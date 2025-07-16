@@ -13,6 +13,9 @@ def load_canon_snippets(storypack_path, refs=None, limit=5):
     canon_dir = os.path.join(storypack_path, "canon")
     snippets = []
 
+    if not os.path.exists(canon_dir):
+        return snippets
+
     if refs:
         for ref in refs:
             file_path = os.path.join(canon_dir, f"{ref}.txt")
@@ -22,10 +25,11 @@ def load_canon_snippets(storypack_path, refs=None, limit=5):
     else:
         # Load random canon snippets if no refs provided
         canon_files = [f for f in os.listdir(canon_dir) if f.endswith(".txt")]
-        random.shuffle(canon_files)
-        for filename in canon_files[:limit]:
-            with open(os.path.join(canon_dir, filename), "r", encoding="utf-8") as f:
-                snippets.append(f.read().strip())
+        if canon_files:
+            random.shuffle(canon_files)
+            for filename in canon_files[:limit]:
+                with open(os.path.join(canon_dir, filename), "r", encoding="utf-8") as f:
+                    snippets.append(f.read().strip())
 
     return snippets
 
