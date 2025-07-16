@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pyyaml
+jinja2
+httpx
