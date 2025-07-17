@@ -42,6 +42,10 @@ def init_database(story_id):
         if 'analysis' not in columns:
             cursor.execute('ALTER TABLE scenes ADD COLUMN analysis TEXT')
         
+        # Check if scene_label column exists and add if not
+        if 'scene_label' not in columns:
+            cursor.execute('ALTER TABLE scenes ADD COLUMN scene_label TEXT')
+        
         # Create memory table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS memory (
@@ -92,11 +96,29 @@ def init_database(story_id):
             )
         ''')
         
+        # Create bookmarks table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                story_id TEXT NOT NULL,
+                scene_id TEXT NOT NULL,
+                label TEXT NOT NULL,
+                description TEXT,
+                bookmark_type TEXT DEFAULT 'user',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                metadata TEXT
+            )
+        ''')
+        
         # Create indexes for performance
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_scenes_timestamp ON scenes(timestamp)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_scenes_label ON scenes(scene_label)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_memory_story_type ON memory(story_id, type)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_memory_history_scene ON memory_history(scene_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_rollback_scene ON rollback_points(scene_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_story ON bookmarks(story_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_scene ON bookmarks(scene_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_type ON bookmarks(bookmark_type)')
         
         conn.commit()
 
@@ -128,6 +150,17 @@ def execute_update(story_id, query, params=None):
             cursor.execute(query)
         conn.commit()
         return cursor.rowcount
+
+def execute_insert(story_id, query, params=None):
+    """Execute an insert query and return the last row ID."""
+    with get_connection(story_id) as conn:
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        conn.commit()
+        return cursor.lastrowid
 
 def migrate_from_json(story_id):
     """Migrate existing JSON data to SQLite."""
