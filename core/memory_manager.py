@@ -2,34 +2,19 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
-
-def get_memory_dir(story_id):
-    """Get the memory directory for a story."""
-    return os.path.join("storage", story_id, "memory")
-
-def ensure_memory_dir(story_id):
-    """Ensure memory directory exists."""
-    os.makedirs(get_memory_dir(story_id), exist_ok=True)
-
-def get_current_memory_path(story_id):
-    """Get path to current memory file."""
-    return os.path.join(get_memory_dir(story_id), "current_memory.json")
-
-def get_memory_history_path(story_id):
-    """Get path to memory history file."""
-    return os.path.join(get_memory_dir(story_id), "memory_history.json")
+from .database import get_connection, execute_query, execute_update, init_database
 
 def load_current_memory(story_id):
-    """Load the current memory state for a story."""
-    ensure_memory_dir(story_id)
-    memory_path = get_current_memory_path(story_id)
+    """Load the current memory state for a story from database."""
+    init_database(story_id)
     
-    if os.path.exists(memory_path):
-        with open(memory_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+    # Get all current memory entries
+    rows = execute_query(story_id, '''
+        SELECT type, key, value FROM memory 
+        WHERE story_id = ? ORDER BY updated_at DESC
+    ''', (story_id,))
     
-    # Return default memory structure
-    return {
+    memory = {
         "characters": {},
         "world_state": {},
         "flags": [],
@@ -39,42 +24,71 @@ def load_current_memory(story_id):
             "last_updated": datetime.utcnow().isoformat()
         }
     }
+    
+    for row in rows:
+        memory_type = row["type"]
+        key = row["key"]
+        value = json.loads(row["value"])
+        
+        if memory_type == "characters":
+            memory["characters"] = value
+        elif memory_type == "world_state":
+            memory["world_state"] = value
+        elif memory_type == "flags":
+            memory["flags"] = value
+        elif memory_type == "recent_events":
+            memory["recent_events"] = value
+        elif memory_type == "metadata":
+            memory["metadata"] = value
+    
+    return memory
 
 def save_current_memory(story_id, memory_data):
-    """Save the current memory state."""
-    ensure_memory_dir(story_id)
-    memory_path = get_current_memory_path(story_id)
+    """Save the current memory state to database."""
+    init_database(story_id)
     
     # Update metadata
     memory_data["metadata"]["last_updated"] = datetime.utcnow().isoformat()
     
-    with open(memory_path, "w", encoding="utf-8") as f:
-        json.dump(memory_data, f, indent=2, ensure_ascii=False)
+    timestamp = datetime.utcnow().isoformat()
+    
+    # Save each memory type
+    for memory_type in ["characters", "world_state", "flags", "recent_events", "metadata"]:
+        if memory_type in memory_data:
+            execute_update(story_id, '''
+                INSERT OR REPLACE INTO memory 
+                (story_id, type, key, value, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                story_id,
+                memory_type,
+                "current",
+                json.dumps(memory_data[memory_type]),
+                timestamp
+            ))
 
 def archive_memory_snapshot(story_id, scene_id, memory_data):
     """Archive a memory snapshot linked to a scene."""
-    ensure_memory_dir(story_id)
-    history_path = get_memory_history_path(story_id)
+    init_database(story_id)
     
-    # Load existing history
-    history = []
-    if os.path.exists(history_path):
-        with open(history_path, "r", encoding="utf-8") as f:
-            history = json.load(f)
-    
-    # Add new snapshot
-    snapshot = {
-        "scene_id": scene_id,
-        "timestamp": datetime.utcnow().isoformat(),
-        "memory": memory_data.copy()
-    }
-    history.append(snapshot)
+    execute_update(story_id, '''
+        INSERT INTO memory_history (scene_id, timestamp, memory_data)
+        VALUES (?, ?, ?)
+    ''', (
+        scene_id,
+        datetime.utcnow().isoformat(),
+        json.dumps(memory_data)
+    ))
     
     # Keep only last 50 snapshots to prevent bloat
-    history = history[-50:]
-    
-    with open(history_path, "w", encoding="utf-8") as f:
-        json.dump(history, f, indent=2, ensure_ascii=False)
+    execute_update(story_id, '''
+        DELETE FROM memory_history 
+        WHERE id NOT IN (
+            SELECT id FROM memory_history 
+            ORDER BY created_at DESC 
+            LIMIT 50
+        )
+    ''')
 
 def update_character_memory(story_id, character_name, updates):
     """Update memory for a specific character."""
@@ -177,26 +191,18 @@ def get_memory_summary(story_id):
 
 def restore_memory_from_snapshot(story_id, scene_id):
     """Restore memory from a historical snapshot."""
-    history_path = get_memory_history_path(story_id)
+    init_database(story_id)
     
-    if not os.path.exists(history_path):
-        raise FileNotFoundError(f"No memory history found for story: {story_id}")
+    rows = execute_query(story_id, '''
+        SELECT memory_data FROM memory_history 
+        WHERE scene_id = ? ORDER BY created_at DESC LIMIT 1
+    ''', (scene_id,))
     
-    with open(history_path, "r", encoding="utf-8") as f:
-        history = json.load(f)
-    
-    # Find the snapshot
-    snapshot = None
-    for snap in history:
-        if snap["scene_id"] == scene_id:
-            snapshot = snap
-            break
-    
-    if not snapshot:
+    if not rows:
         raise ValueError(f"No memory snapshot found for scene: {scene_id}")
     
     # Restore memory
-    memory_data = snapshot["memory"]
+    memory_data = json.loads(rows[0]["memory_data"])
     save_current_memory(story_id, memory_data)
     
     return memory_data

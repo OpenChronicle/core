@@ -2,51 +2,66 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
-
-def get_scene_dir(story_id):
-    return os.path.join("storage", story_id, "scenes")
-
-def get_memory_dir(story_id):
-    return os.path.join("storage", story_id, "memory")
-
-def ensure_dirs(story_id):
-    os.makedirs(get_scene_dir(story_id), exist_ok=True)
-    os.makedirs(get_memory_dir(story_id), exist_ok=True)
+from .database import get_connection, execute_query, execute_update, init_database
 
 def generate_scene_id():
     return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
 def save_scene(story_id, user_input, model_output, memory_snapshot=None, flags=None, context_refs=None):
-    ensure_dirs(story_id)
+    """Save a scene to the database."""
+    init_database(story_id)
     
     scene_id = generate_scene_id()
-    scene_path = os.path.join(get_scene_dir(story_id), f"{scene_id}.json")
-
-    scene_data = {
-        "scene_id": scene_id,
-        "timestamp": datetime.utcnow().isoformat(),
-        "input": user_input,
-        "output": model_output,
-        "memory": memory_snapshot or {},
-        "flags": flags or [],
-        "canon_refs": context_refs or []
-    }
-
-    with open(scene_path, "w", encoding="utf-8") as f:
-        json.dump(scene_data, f, indent=2)
-
+    timestamp = datetime.utcnow().isoformat()
+    
+    execute_update(story_id, '''
+        INSERT OR REPLACE INTO scenes 
+        (scene_id, timestamp, input, output, memory_snapshot, flags, canon_refs)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        scene_id,
+        timestamp,
+        user_input,
+        model_output,
+        json.dumps(memory_snapshot or {}),
+        json.dumps(flags or []),
+        json.dumps(context_refs or [])
+    ))
+    
     return scene_id
 
 def load_scene(story_id, scene_id):
-    scene_path = os.path.join(get_scene_dir(story_id), f"{scene_id}.json")
-    if not os.path.exists(scene_path):
+    """Load a scene from the database."""
+    init_database(story_id)
+    
+    rows = execute_query(story_id, '''
+        SELECT scene_id, timestamp, input, output, memory_snapshot, flags, canon_refs
+        FROM scenes WHERE scene_id = ?
+    ''', (scene_id,))
+    
+    if not rows:
         raise FileNotFoundError(f"No scene found: {scene_id}")
-    with open(scene_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    
+    row = rows[0]
+    return {
+        "scene_id": row["scene_id"],
+        "timestamp": row["timestamp"],
+        "input": row["input"],
+        "output": row["output"],
+        "memory": json.loads(row["memory_snapshot"] or "{}"),
+        "flags": json.loads(row["flags"] or "[]"),
+        "canon_refs": json.loads(row["canon_refs"] or "[]")
+    }
 
 def list_scenes(story_id):
-    scene_dir = Path(get_scene_dir(story_id))
-    return sorted(f.stem for f in scene_dir.glob("*.json"))
+    """List all scene IDs for a story."""
+    init_database(story_id)
+    
+    rows = execute_query(story_id, '''
+        SELECT scene_id FROM scenes ORDER BY timestamp ASC
+    ''')
+    
+    return [row["scene_id"] for row in rows]
 
 def rollback_to_scene(story_id, scene_id):
     """Returns scene input/output/memory to rebuild current state."""

@@ -3,3 +3,6 @@ uvicorn
 pyyaml
 jinja2
 httpx
+sqlite3
+sqlalchemy>=2.0.0
+aiosqlite
