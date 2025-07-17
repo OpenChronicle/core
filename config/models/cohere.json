@@ -1,0 +1,82 @@
+{
+  "provider": "cohere",
+  "display_name": "Cohere",
+  "enabled": true,
+  "type": "cohere",
+  "api_config": {
+    "model_name": "command-r-plus",
+    "base_url": "https://api.cohere.ai/v1",
+    "api_key": "",
+    "api_key_env": "COHERE_API_KEY",
+    "version": "v1"
+  },
+  "capabilities": {
+    "text_generation": true,
+    "image_generation": false,
+    "function_calling": true,
+    "streaming": true,
+    "vision": false
+  },
+  "limits": {
+    "max_tokens": 4096,
+    "context_window": 128000,
+    "rate_limit_rpm": 1000,
+    "rate_limit_tpm": 40000,
+    "cost_per_1k_input": 0.003,
+    "cost_per_1k_output": 0.015
+  },
+  "content_filtering": {
+    "supports_nsfw": false,
+    "allowed_content": ["general", "fantasy", "sci-fi", "mystery", "creative", "educational", "analysis"],
+    "blocked_content": ["explicit", "graphic_violence", "hate_speech", "illegal"],
+    "safety_level": "strict"
+  },
+  "generation_params": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 40,
+    "max_tokens": 4096
+  },
+  "retry_config": {
+    "max_retries": 3,
+    "retry_delay": 1.0,
+    "exponential_backoff": true,
+    "retry_on_errors": ["timeout", "rate_limit", "server_error", "connection_error"]
+  },
+  "monitoring": {
+    "track_usage": true,
+    "log_requests": true,
+    "alert_on_errors": true,
+    "performance_metrics": true
+  },
+  "available_models": [
+    {
+      "name": "command-r-plus",
+      "context_window": 128000,
+      "max_tokens": 4096,
+      "cost_per_1k_input": 0.003,
+      "cost_per_1k_output": 0.015
+    },
+    {
+      "name": "command-r",
+      "context_window": 128000,
+      "max_tokens": 4096,
+      "cost_per_1k_input": 0.0005,
+      "cost_per_1k_output": 0.0015
+    },
+    {
+      "name": "command-light",
+      "context_window": 4096,
+      "max_tokens": 4096,
+      "cost_per_1k_input": 0.0003,
+      "cost_per_1k_output": 0.0006
+    }
+  ],
+  "integration_notes": "Strong retrieval-augmented generation capabilities. Excellent for search and knowledge tasks.",
+  "health_check": {
+    "endpoint": "https://api.cohere.ai/v1/models",
+    "method": "GET",
+    "expected_status": 200,
+    "timeout": 10
+  }
+}

@@ -47,7 +47,7 @@ class BackupManager:
                 backup_dir.mkdir(parents=True, exist_ok=True)
             log_info(f"Ensured backup directory: {backup_dir}")
     
-    def backup_config(self, config_file: str = "models.json") -> Optional[Path]:
+    def backup_config(self, config_file: str = "model_registry.json") -> Optional[Path]:
         """Backup configuration files."""
         config_path = self.config_dir / config_file
         if not config_path.exists():
@@ -73,6 +73,57 @@ class BackupManager:
         })
         
         return backup_path
+    
+    def backup_models_directory(self) -> Optional[Path]:
+        """Backup the entire models directory with all provider configurations."""
+        models_dir = self.config_dir / "models"
+        if not models_dir.exists():
+            log_error(f"Models directory not found: {models_dir}")
+            return None
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dirname = f"models_backup_{timestamp}"
+        backup_path = self.config_backup_dir / backup_dirname
+        
+        if not self.dry_run:
+            shutil.copytree(models_dir, backup_path)
+        
+        # Calculate total size of all files
+        total_size = 0
+        model_files = []
+        for model_file in models_dir.glob("*.json"):
+            if model_file.is_file():
+                model_files.append(model_file.name)
+                total_size += model_file.stat().st_size
+        
+        self.backed_up_files.append(str(backup_path))
+        self.total_backup_size += total_size
+        
+        log_info(f"Backed up models directory: {len(model_files)} model configs -> {backup_dirname}")
+        log_maintenance_action("backup_models_directory", "success", {
+            "models_count": len(model_files),
+            "models": model_files,
+            "backup_path": str(backup_path),
+            "total_size": total_size
+        })
+        
+        return backup_path
+    
+    def backup_full_config(self) -> Dict[str, Optional[Path]]:
+        """Backup all configuration files including model registry and models directory."""
+        results = {}
+        
+        # Backup model registry
+        results["model_registry"] = self.backup_config("model_registry.json")
+        
+        # Backup models directory
+        results["models_directory"] = self.backup_models_directory()
+        
+        # Backup legacy models.json if it exists (for compatibility)
+        if (self.config_dir / "models.json").exists():
+            results["legacy_models"] = self.backup_config("models.json")
+        
+        return results
     
     def backup_database(self, db_path: Path) -> Optional[Path]:
         """Backup a database file."""
@@ -286,9 +337,14 @@ class BackupManager:
         
         # Backup configurations
         log_info("Backing up configurations...")
-        for config_file in ["models.json"]:
-            if (self.config_dir / config_file).exists():
-                self.backup_config(config_file)
+        config_results = self.backup_full_config()
+        
+        # Log configuration backup results
+        for config_type, result in config_results.items():
+            if result:
+                log_info(f"  [OK] {config_type}: {result.name}")
+            else:
+                log_info(f"  [SKIP] {config_type}: Not found or failed")
         
         # Backup databases
         log_info("Backing up databases...")
@@ -316,6 +372,87 @@ class BackupManager:
             log_info("Run without --dry-run to actually perform backups")
         
         log_system_event("backup_complete", f"Full backup completed - {len(self.backed_up_files)} files backed up")
+    
+    def restore_config(self, backup_path: str, config_type: str = "model_registry") -> bool:
+        """Restore configuration from backup."""
+        backup_file = Path(backup_path)
+        if not backup_file.exists():
+            log_error(f"Backup file not found: {backup_path}")
+            return False
+        
+        if config_type == "model_registry":
+            restore_path = self.config_dir / "model_registry.json"
+        elif config_type == "models_directory":
+            restore_path = self.config_dir / "models"
+            # Remove existing models directory if it exists
+            if restore_path.exists() and not self.dry_run:
+                shutil.rmtree(restore_path)
+        else:
+            log_error(f"Unknown config type: {config_type}")
+            return False
+        
+        try:
+            if not self.dry_run:
+                if config_type == "models_directory":
+                    shutil.copytree(backup_file, restore_path)
+                else:
+                    shutil.copy2(backup_file, restore_path)
+            
+            log_info(f"Restored {config_type} from {backup_file.name}")
+            log_maintenance_action("restore_config", "success", {
+                "config_type": config_type,
+                "backup_path": str(backup_file),
+                "restore_path": str(restore_path)
+            })
+            return True
+            
+        except Exception as e:
+            log_error(f"Failed to restore {config_type}: {e}")
+            return False
+    
+    def list_config_backups(self) -> Dict[str, List[Dict[str, Any]]]:
+        """List available configuration backups."""
+        backups = {
+            "model_registry": [],
+            "models_directory": [],
+            "legacy_models": []
+        }
+        
+        if not self.config_backup_dir.exists():
+            return backups
+        
+        for backup_file in self.config_backup_dir.iterdir():
+            if backup_file.is_file():
+                if backup_file.name.startswith("model_registry.json.backup"):
+                    backups["model_registry"].append({
+                        "file": backup_file.name,
+                        "path": str(backup_file),
+                        "timestamp": backup_file.stat().st_mtime,
+                        "size": backup_file.stat().st_size
+                    })
+                elif backup_file.name.startswith("models.json.backup"):
+                    backups["legacy_models"].append({
+                        "file": backup_file.name,
+                        "path": str(backup_file),
+                        "timestamp": backup_file.stat().st_mtime,
+                        "size": backup_file.stat().st_size
+                    })
+            elif backup_file.is_dir() and backup_file.name.startswith("models_backup_"):
+                model_count = len(list(backup_file.glob("*.json")))
+                total_size = sum(f.stat().st_size for f in backup_file.glob("*.json"))
+                backups["models_directory"].append({
+                    "directory": backup_file.name,
+                    "path": str(backup_file),
+                    "timestamp": backup_file.stat().st_mtime,
+                    "model_count": model_count,
+                    "total_size": total_size
+                })
+        
+        # Sort by timestamp (newest first)
+        for backup_type in backups:
+            backups[backup_type].sort(key=lambda x: x["timestamp"], reverse=True)
+        
+        return backups
 
 
 def main():

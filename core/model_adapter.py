@@ -42,6 +42,16 @@ class ModelAdapter(ABC):
     
     def log_interaction(self, story_id: str, prompt: str, response: str, metadata: Dict[str, Any] = None):
         """Log the interaction for debugging/analysis."""
+        # Use centralized logging system
+        log_model_interaction(
+            story_id=story_id,
+            model=self.model_name,
+            prompt_length=len(prompt),
+            response_length=len(response),
+            metadata=metadata or {}
+        )
+        
+        # Maintain backward compatibility with local file logging
         log_entry = {
             "timestamp": datetime.utcnow().isoformat(),
             "story_id": story_id,
@@ -285,13 +295,22 @@ class ModelManager:
         self.config = self._load_config()
     
     def _load_config(self) -> Dict[str, Any]:
-        """Load model configuration."""
+        """Load model configuration with plugin-style support."""
+        # First, try to load the new model registry
+        registry_file = os.path.join("config", "model_registry.json")
+        if os.path.exists(registry_file):
+            log_system_event("model_config_loading", "Loading plugin-style model configuration from registry")
+            return self._load_plugin_config(registry_file)
+        
+        # Fallback to legacy models.json
         config_file = os.path.join("config", "models.json")
         if os.path.exists(config_file):
+            log_system_event("model_config_loading", "Loading legacy models.json configuration")
             with open(config_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         
         # Default configuration
+        log_system_event("model_config_loading", "Using default model configuration")
         return {
             "default_adapter": "mock",
             "adapters": {
@@ -319,6 +338,118 @@ class ModelManager:
                 }
             }
         }
+
+    def _load_plugin_config(self, registry_file: str) -> Dict[str, Any]:
+        """Load plugin-style model configuration from registry and individual files."""
+        log_info("Loading plugin-style model configuration")
+        log_system_event("plugin_config_loading", f"Loading plugin-style model configuration from {registry_file}")
+        
+        # Load the registry
+        with open(registry_file, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+        
+        log_system_event("plugin_config_registry", f"Loaded registry with {len(registry['models'])} model entries")
+        
+        # Load individual model configurations
+        models_dir = os.path.join("config", "models")
+        adapters = {}
+        
+        for model_entry in registry["models"]:
+            provider = model_entry["name"]  # Use "name" field from registry
+            model_file = os.path.join(models_dir, f"{provider}.json")
+            
+            if os.path.exists(model_file) and model_entry["enabled"]:
+                try:
+                    with open(model_file, "r", encoding="utf-8") as f:
+                        model_config = json.load(f)
+                    
+                    if model_config.get("enabled", True):
+                        # Convert plugin config to legacy format for compatibility
+                        adapter_config = {
+                            "type": model_config["type"],
+                            "model_name": model_config["api_config"]["model_name"],
+                            "base_url": model_config["api_config"]["base_url"],
+                            "api_key": model_config["api_config"].get("api_key", ""),
+                            "api_key_env": model_config["api_config"].get("api_key_env", ""),
+                            "max_tokens": model_config["limits"]["max_tokens"],
+                            "temperature": model_config["generation_params"]["temperature"],
+                            "top_p": model_config["generation_params"].get("top_p", 0.9),
+                            "top_k": model_config["generation_params"].get("top_k", 40),
+                            "retry_config": model_config["retry_config"],
+                            "content_filtering": model_config["content_filtering"],
+                            "capabilities": model_config["capabilities"],
+                            "limits": model_config["limits"],
+                            "available_models": model_config["available_models"],
+                            "health_check": model_config["health_check"]
+                        }
+                        
+                        # Add provider-specific configurations
+                        if provider == "openai":
+                            adapter_config["organization"] = model_config["api_config"].get("organization", "")
+                        elif provider == "anthropic":
+                            adapter_config["version"] = model_config["api_config"].get("version", "2023-06-01")
+                        elif provider == "google":
+                            adapter_config["version"] = model_config["api_config"].get("version", "v1beta")
+                        elif provider == "mock":
+                            adapter_config["responses"] = [
+                                "The story continues with rich detail and engaging narrative.",
+                                "Your character moves forward, discovering new possibilities.",
+                                "The world around you shifts as the tale unfolds."
+                            ]
+                        
+                        adapters[provider] = adapter_config
+                        log_info(f"Loaded model configuration for {provider}")
+                        log_system_event("model_config_loaded", f"Loaded model configuration for {provider}")
+                        
+                except Exception as e:
+                    log_error(f"Failed to load model config for {provider}: {e}")
+                    log_system_event("model_config_error", f"Failed to load model config for {provider}: {e}")
+        
+        # Add mock adapter if no other adapters loaded
+        if not adapters:
+            adapters["mock"] = {
+                "type": "mock",
+                "model_name": "mock-model",
+                "responses": [
+                    "The story continues with rich detail and engaging narrative.",
+                    "Your character moves forward, discovering new possibilities.",
+                    "The world around you shifts as the tale unfolds."
+                ]
+            }
+            log_system_event("model_config_fallback", "No adapters loaded, using mock adapter as fallback")
+        
+        # Build fallback chains from registry
+        fallback_chains = {}
+        for model_entry in registry["models"]:
+            provider = model_entry["name"]
+            fallbacks = model_entry.get("fallbacks", [])
+            # Ensure the provider itself is included in the chain
+            if provider not in fallbacks:
+                fallbacks.insert(0, provider)
+            fallback_chains[provider] = fallbacks
+        
+        # Build final configuration
+        default_adapter = registry["default_model"]
+        
+        # If the default adapter didn't load, find the first available one
+        if default_adapter not in adapters:
+            if adapters:
+                default_adapter = list(adapters.keys())[0]
+                log_info(f"Default adapter '{registry['default_model']}' not available, using '{default_adapter}'")
+            else:
+                default_adapter = "mock"
+                log_info("No adapters loaded, defaulting to mock")
+        
+        config = {
+            "default_adapter": default_adapter,
+            "adapters": adapters,
+            "fallback_chains": fallback_chains,
+            "content_routing": registry["content_routing"],
+            "registry_version": registry["version"]
+        }
+        
+        log_info(f"Plugin-style configuration loaded with {len(adapters)} adapters")
+        return config
     
     def register_adapter(self, name: str, adapter: ModelAdapter):
         """Register a model adapter."""
@@ -327,54 +458,102 @@ class ModelManager:
     async def initialize_adapter(self, name: str) -> bool:
         """Initialize a specific adapter."""
         if name not in self.config["adapters"]:
+            log_system_event("adapter_initialization", f"Adapter {name} not found in configuration")
             raise ValueError(f"Adapter '{name}' not found in configuration")
         
         adapter_config = self.config["adapters"][name]
         adapter_type = adapter_config["type"]
         
-        if adapter_type == "openai":
-            adapter = OpenAIAdapter(adapter_config)
-        elif adapter_type == "ollama":
-            adapter = OllamaAdapter(adapter_config)
-        elif adapter_type == "mock":
-            adapter = MockAdapter(adapter_config)
-        elif adapter_type == "anthropic":
-            adapter = AnthropicAdapter(adapter_config)
-        elif adapter_type == "gemini":
-            adapter = GeminiAdapter(adapter_config)
-        elif adapter_type == "groq":
-            adapter = GroqAdapter(adapter_config)
-        elif adapter_type == "cohere":
-            adapter = CohereAdapter(adapter_config)
-        elif adapter_type == "mistral":
-            adapter = MistralAdapter(adapter_config)
-        elif adapter_type == "huggingface":
-            adapter = HuggingFaceAdapter(adapter_config)
-        elif adapter_type == "azure_openai":
-            adapter = AzureOpenAIAdapter(adapter_config)
-        elif adapter_type == "openai_image":
-            adapter = OpenAIImageAdapter(adapter_config)
-        elif adapter_type == "stability":
-            adapter = StabilityAdapter(adapter_config)
-        elif adapter_type == "replicate":
-            adapter = ReplicateAdapter(adapter_config)
-        elif adapter_type == "mock_image":
-            adapter = MockImageAdapter(adapter_config)
-        else:
-            raise ValueError(f"Unknown adapter type: {adapter_type}")
+        log_system_event("adapter_initialization", f"Initializing {adapter_type} adapter: {name}")
         
-        success = await adapter.initialize()
-        if success:
-            self.adapters[name] = adapter
-            if self.default_adapter is None:
-                self.default_adapter = name
+        try:
+            if adapter_type == "openai":
+                adapter = OpenAIAdapter(adapter_config)
+            elif adapter_type == "ollama":
+                adapter = OllamaAdapter(adapter_config)
+            elif adapter_type == "mock":
+                adapter = MockAdapter(adapter_config)
+            elif adapter_type == "anthropic":
+                adapter = AnthropicAdapter(adapter_config)
+            elif adapter_type == "gemini":
+                adapter = GeminiAdapter(adapter_config)
+            elif adapter_type == "groq":
+                adapter = GroqAdapter(adapter_config)
+            elif adapter_type == "cohere":
+                adapter = CohereAdapter(adapter_config)
+            elif adapter_type == "mistral":
+                adapter = MistralAdapter(adapter_config)
+            elif adapter_type == "huggingface":
+                adapter = HuggingFaceAdapter(adapter_config)
+            elif adapter_type == "azure_openai":
+                adapter = AzureOpenAIAdapter(adapter_config)
+            elif adapter_type == "openai_image":
+                adapter = OpenAIImageAdapter(adapter_config)
+            elif adapter_type == "stability":
+                adapter = StabilityAdapter(adapter_config)
+            elif adapter_type == "replicate":
+                adapter = ReplicateAdapter(adapter_config)
+            elif adapter_type == "mock_image":
+                adapter = MockImageAdapter(adapter_config)
+            else:
+                log_system_event("adapter_initialization", f"Unknown adapter type: {adapter_type}")
+                raise ValueError(f"Unknown adapter type: {adapter_type}")
+            
+            success = await adapter.initialize()
+            if success:
+                self.adapters[name] = adapter
+                if self.default_adapter is None:
+                    self.default_adapter = name
+                log_system_event("adapter_initialization", f"Successfully initialized {adapter_type} adapter: {name}")
+            else:
+                log_system_event("adapter_initialization", f"Failed to initialize {adapter_type} adapter: {name}")
+        
+        except Exception as e:
+            log_system_event("adapter_initialization", f"Error initializing {adapter_type} adapter {name}: {e}")
+            raise
         
         return success
     
     async def generate_response(self, prompt: str, adapter_name: str = None, story_id: str = None, **kwargs) -> str:
-        """Generate response using specified or default adapter."""
+        """Generate response using specified or default adapter with fallback support."""
         adapter_name = adapter_name or self.default_adapter
         
+        # Use fallback chain if configured
+        if "fallback_chains" in self.config and adapter_name in self.config["fallback_chains"]:
+            chain = self.config["fallback_chains"][adapter_name]
+            log_info(f"Using fallback chain for {adapter_name}: {chain}")
+            log_system_event("fallback_chain_usage", f"Using fallback chain for {adapter_name}: {chain}")
+            
+            for attempt_adapter in chain:
+                try:
+                    if attempt_adapter not in self.adapters:
+                        # Try to initialize the adapter
+                        if not await self.initialize_adapter(attempt_adapter):
+                            log_error(f"Failed to initialize adapter: {attempt_adapter}")
+                            continue
+                    
+                    adapter = self.adapters[attempt_adapter]
+                    response = await adapter.generate_response(prompt, **kwargs)
+                    
+                    # Log interaction if story_id provided
+                    if story_id:
+                        metadata = {"adapter": attempt_adapter, "kwargs": kwargs, "fallback_position": chain.index(attempt_adapter)}
+                        adapter.log_interaction(story_id, prompt, response, metadata)
+                    
+                    log_info(f"Successfully generated response using {attempt_adapter}")
+                    log_system_event("fallback_chain_success", f"Successfully generated response using {attempt_adapter} (fallback position {chain.index(attempt_adapter)})")
+                    return response
+                    
+                except Exception as e:
+                    log_error(f"Adapter {attempt_adapter} failed: {e}")
+                    log_system_event("fallback_chain_failure", f"Adapter {attempt_adapter} failed: {e}")
+                    continue
+            
+            # If all adapters in chain failed, raise error
+            log_system_event("fallback_chain_exhausted", f"All adapters in fallback chain failed for {adapter_name}")
+            raise RuntimeError(f"All adapters in fallback chain failed for {adapter_name}")
+        
+        # Original single adapter logic
         if adapter_name not in self.adapters:
             # Try to initialize the adapter
             if not await self.initialize_adapter(adapter_name):
@@ -408,6 +587,65 @@ class ModelManager:
         else:
             raise ValueError(f"Adapter '{name}' not found")
     
+    async def check_adapter_health(self, adapter_name: str) -> Dict[str, Any]:
+        """Check the health of a specific adapter."""
+        if adapter_name not in self.config["adapters"]:
+            return {"status": "unknown", "error": "Adapter not found in configuration"}
+        
+        adapter_config = self.config["adapters"][adapter_name]
+        health_check = adapter_config.get("health_check", {})
+        
+        if not health_check:
+            return {"status": "unknown", "error": "No health check configured"}
+        
+        try:
+            import httpx
+            
+            async with httpx.AsyncClient(timeout=health_check.get("timeout", 10)) as client:
+                if health_check["method"] == "GET":
+                    response = await client.get(health_check["endpoint"])
+                else:
+                    response = await client.post(health_check["endpoint"], json={"test": "health_check"})
+                
+                if response.status_code == health_check["expected_status"]:
+                    return {"status": "healthy", "response_time": response.elapsed.total_seconds()}
+                else:
+                    return {"status": "unhealthy", "error": f"Unexpected status: {response.status_code}"}
+        
+        except Exception as e:
+            return {"status": "unhealthy", "error": str(e)}
+    
+    def get_adapter_for_content(self, content_type: str, content_flags: Dict[str, Any] = None) -> str:
+        """Get the best adapter for specific content type based on content routing rules."""
+        if "content_routing" not in self.config:
+            return self.default_adapter
+        
+        routing_rules = self.config["content_routing"]
+        content_flags = content_flags or {}
+        
+        # Check for NSFW content routing
+        if content_flags.get("nsfw", False):
+            nsfw_adapters = [adapter for adapter in self.get_available_adapters() 
+                           if self.config["adapters"][adapter].get("content_filtering", {}).get("supports_nsfw", False)]
+            if nsfw_adapters:
+                return nsfw_adapters[0]
+        
+        # Check content type specific routing
+        if content_type in routing_rules:
+            preferred_adapter = routing_rules[content_type]
+            if preferred_adapter in self.get_available_adapters():
+                return preferred_adapter
+        
+        # Default routing
+        return routing_rules.get("default", self.default_adapter)
+    
+    def get_fallback_chain(self, adapter_name: str) -> List[str]:
+        """Get the fallback chain for a specific adapter."""
+        if "fallback_chains" not in self.config:
+            return [adapter_name]
+        
+        return self.config["fallback_chains"].get(adapter_name, [adapter_name])
+    
     async def generate_image(self, prompt: str, adapter_name: str = None, **kwargs) -> str:
         """Generate image using specified or default image adapter."""
         # Use image_adapter from config if no adapter specified
@@ -426,6 +664,241 @@ class ModelManager:
             raise RuntimeError(f"Adapter '{adapter_name}' does not support image generation")
         
         return await adapter.generate_image(prompt, **kwargs)
+
+    # ================================
+    # DYNAMIC MODEL MANAGEMENT
+    # ================================
+    
+    def add_model_config(self, name: str, config: Dict[str, Any], enabled: bool = True) -> bool:
+        """Add a new model configuration dynamically."""
+        try:
+            # Create model config file
+            models_dir = os.path.join("config", "models")
+            os.makedirs(models_dir, exist_ok=True)
+            
+            model_file = os.path.join(models_dir, f"{name}.json")
+            
+            # Write the individual model config
+            with open(model_file, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=2)
+            
+            # Update registry
+            self._update_registry_add_model(name, enabled)
+            
+            # Reload configuration
+            self.config = self._load_config()
+            
+            log_system_event("dynamic_model_add", f"Added model configuration: {name}")
+            return True
+            
+        except Exception as e:
+            log_system_event("dynamic_model_add_error", f"Failed to add model {name}: {e}")
+            return False
+    
+    def remove_model_config(self, name: str) -> bool:
+        """Remove a model configuration dynamically."""
+        try:
+            # Remove from runtime if initialized
+            if name in self.adapters:
+                del self.adapters[name]
+            
+            # Remove model config file
+            model_file = os.path.join("config", "models", f"{name}.json")
+            if os.path.exists(model_file):
+                os.remove(model_file)
+            
+            # Update registry
+            self._update_registry_remove_model(name)
+            
+            # Reload configuration
+            self.config = self._load_config()
+            
+            # Update default adapter if needed
+            if self.default_adapter == name:
+                available = self.get_available_adapters()
+                self.default_adapter = available[0] if available else "mock"
+            
+            log_system_event("dynamic_model_remove", f"Removed model configuration: {name}")
+            return True
+            
+        except Exception as e:
+            log_system_event("dynamic_model_remove_error", f"Failed to remove model {name}: {e}")
+            return False
+    
+    def enable_model(self, name: str) -> bool:
+        """Enable a model in the registry."""
+        return self._update_registry_enable_model(name, True)
+    
+    def disable_model(self, name: str) -> bool:
+        """Disable a model in the registry."""
+        return self._update_registry_enable_model(name, False)
+    
+    def _update_registry_add_model(self, name: str, enabled: bool = True) -> bool:
+        """Add a model to the registry."""
+        try:
+            registry_file = os.path.join("config", "model_registry.json")
+            
+            # Load existing registry or create new one
+            if os.path.exists(registry_file):
+                with open(registry_file, "r", encoding="utf-8") as f:
+                    registry = json.load(f)
+            else:
+                registry = {
+                    "version": "1.0.0",
+                    "models": [],
+                    "fallback_chains": {},
+                    "content_routing": {}
+                }
+            
+            # Check if model already exists
+            existing_model = None
+            for model in registry["models"]:
+                if model["name"] == name:
+                    existing_model = model
+                    break
+            
+            if existing_model:
+                # Update existing model
+                existing_model["enabled"] = enabled
+            else:
+                # Add new model
+                registry["models"].append({
+                    "name": name,
+                    "enabled": enabled
+                })
+            
+            # Save updated registry
+            with open(registry_file, "w", encoding="utf-8") as f:
+                json.dump(registry, f, indent=2)
+            
+            return True
+            
+        except Exception as e:
+            log_system_event("registry_update_error", f"Failed to update registry for {name}: {e}")
+            return False
+    
+    def _update_registry_remove_model(self, name: str) -> bool:
+        """Remove a model from the registry."""
+        try:
+            registry_file = os.path.join("config", "model_registry.json")
+            
+            if not os.path.exists(registry_file):
+                return True  # Nothing to remove
+            
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            
+            # Remove model from registry
+            registry["models"] = [model for model in registry["models"] if model["name"] != name]
+            
+            # Remove from fallback chains
+            if "fallback_chains" in registry:
+                # Remove as primary adapter
+                if name in registry["fallback_chains"]:
+                    del registry["fallback_chains"][name]
+                
+                # Remove from other chains
+                for chain_name, chain in registry["fallback_chains"].items():
+                    if name in chain:
+                        registry["fallback_chains"][chain_name] = [adapter for adapter in chain if adapter != name]
+            
+            # Remove from content routing
+            if "content_routing" in registry:
+                for route_type, adapters in registry["content_routing"].items():
+                    if isinstance(adapters, list) and name in adapters:
+                        registry["content_routing"][route_type] = [adapter for adapter in adapters if adapter != name]
+            
+            # Save updated registry
+            with open(registry_file, "w", encoding="utf-8") as f:
+                json.dump(registry, f, indent=2)
+            
+            return True
+            
+        except Exception as e:
+            log_system_event("registry_remove_error", f"Failed to remove {name} from registry: {e}")
+            return False
+    
+    def _update_registry_enable_model(self, name: str, enabled: bool) -> bool:
+        """Enable or disable a model in the registry."""
+        try:
+            registry_file = os.path.join("config", "model_registry.json")
+            
+            if not os.path.exists(registry_file):
+                return False
+            
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            
+            # Find and update the model
+            for model in registry["models"]:
+                if model["name"] == name:
+                    model["enabled"] = enabled
+                    break
+            else:
+                return False  # Model not found
+            
+            # Save updated registry
+            with open(registry_file, "w", encoding="utf-8") as f:
+                json.dump(registry, f, indent=2)
+            
+            # Reload configuration
+            self.config = self._load_config()
+            
+            # Remove from runtime if disabled
+            if not enabled and name in self.adapters:
+                del self.adapters[name]
+            
+            action = "enabled" if enabled else "disabled"
+            log_system_event("dynamic_model_toggle", f"Model {name} {action}")
+            return True
+            
+        except Exception as e:
+            log_system_event("registry_enable_error", f"Failed to {action} model {name}: {e}")
+            return False
+    
+    def list_model_configs(self) -> Dict[str, Any]:
+        """List all model configurations with their status."""
+        models_info = {}
+        
+        # Get registry information
+        registry_file = os.path.join("config", "model_registry.json")
+        registry_models = {}
+        
+        if os.path.exists(registry_file):
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+                registry_models = {model["name"]: model["enabled"] for model in registry["models"]}
+        
+        # Get model file information
+        models_dir = os.path.join("config", "models")
+        if os.path.exists(models_dir):
+            for model_file in os.listdir(models_dir):
+                if model_file.endswith(".json"):
+                    model_name = model_file[:-5]  # Remove .json extension
+                    model_path = os.path.join(models_dir, model_file)
+                    
+                    try:
+                        with open(model_path, "r", encoding="utf-8") as f:
+                            model_config = json.load(f)
+                        
+                        models_info[model_name] = {
+                            "type": model_config.get("type", "unknown"),
+                            "model_name": model_config.get("api_config", {}).get("model_name", "unknown"),
+                            "enabled": registry_models.get(model_name, False),
+                            "initialized": model_name in self.adapters,
+                            "config_file": model_path
+                        }
+                    except Exception as e:
+                        models_info[model_name] = {
+                            "type": "error",
+                            "model_name": "unknown",
+                            "enabled": False,
+                            "initialized": False,
+                            "config_file": model_path,
+                            "error": str(e)
+                        }
+        
+        return models_info
 
     async def shutdown(self):
         """Shutdown all adapters."""

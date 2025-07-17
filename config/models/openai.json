@@ -1,0 +1,91 @@
+{
+  "provider": "openai",
+  "display_name": "OpenAI GPT",
+  "enabled": true,
+  "type": "openai",
+  "api_config": {
+    "model_name": "gpt-4o-mini",
+    "base_url": "https://api.openai.com/v1",
+    "api_key": "",
+    "api_key_env": "OPENAI_API_KEY",
+    "organization": "",
+    "organization_env": "OPENAI_ORGANIZATION"
+  },
+  "capabilities": {
+    "text_generation": true,
+    "image_generation": false,
+    "function_calling": true,
+    "streaming": true,
+    "vision": false
+  },
+  "limits": {
+    "max_tokens": 2048,
+    "context_window": 128000,
+    "rate_limit_rpm": 3000,
+    "rate_limit_tpm": 40000,
+    "cost_per_1k_input": 0.0015,
+    "cost_per_1k_output": 0.006
+  },
+  "content_filtering": {
+    "supports_nsfw": false,
+    "allowed_content": ["general", "fantasy", "sci-fi", "mystery", "creative", "educational"],
+    "blocked_content": ["explicit", "graphic_violence", "hate_speech", "illegal"],
+    "safety_level": "strict"
+  },
+  "generation_params": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0,
+    "max_tokens": 2048
+  },
+  "retry_config": {
+    "max_retries": 3,
+    "retry_delay": 1.0,
+    "exponential_backoff": true,
+    "retry_on_errors": ["timeout", "rate_limit", "server_error", "connection_error"]
+  },
+  "monitoring": {
+    "track_usage": true,
+    "log_requests": true,
+    "alert_on_errors": true,
+    "performance_metrics": true
+  },
+  "available_models": [
+    {
+      "name": "gpt-4o",
+      "context_window": 128000,
+      "max_tokens": 4096,
+      "cost_per_1k_input": 0.005,
+      "cost_per_1k_output": 0.015
+    },
+    {
+      "name": "gpt-4o-mini",
+      "context_window": 128000,
+      "max_tokens": 2048,
+      "cost_per_1k_input": 0.0015,
+      "cost_per_1k_output": 0.006
+    },
+    {
+      "name": "gpt-4-turbo",
+      "context_window": 128000,
+      "max_tokens": 4096,
+      "cost_per_1k_input": 0.01,
+      "cost_per_1k_output": 0.03
+    },
+    {
+      "name": "gpt-3.5-turbo",
+      "context_window": 16384,
+      "max_tokens": 2048,
+      "cost_per_1k_input": 0.0015,
+      "cost_per_1k_output": 0.002
+    }
+  ],
+  "integration_notes": "Primary model for high-quality text generation. Excellent for creative writing and general tasks.",
+  "health_check": {
+    "endpoint": "https://api.openai.com/v1/models",
+    "method": "GET",
+    "expected_status": 200,
+    "timeout": 10
+  }
+}

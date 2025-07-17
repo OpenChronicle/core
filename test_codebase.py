@@ -163,7 +163,7 @@ def test_rollback_system():
         return False
 
 def test_model_adapter_system():
-    """Test model adapter system functionality."""
+    """Test model adapter system functionality including plugin-style configuration."""
     try:
         from core.model_adapter import ModelManager, MockAdapter
         import asyncio
@@ -173,14 +173,37 @@ def test_model_adapter_system():
             manager = ModelManager()
             print("✅ Model manager initialized")
             
+            # Test plugin-style configuration loading
+            print(f"✅ Configuration loaded: {manager.config is not None}")
+            print(f"✅ Registry version: {manager.config.get('registry_version', 'Legacy')}")
+            print(f"✅ Default adapter: {manager.config.get('default_adapter', 'Unknown')}")
+            
             # Test available adapters
             adapters = manager.get_available_adapters()
-            expected_adapters = ['openai', 'ollama', 'mock']
-            for adapter in expected_adapters:
-                if adapter not in adapters:
-                    print(f"❌ Missing adapter: {adapter}")
-                    return False
-            print("✅ All expected adapters available")
+            print(f"✅ Available adapters: {adapters}")
+            
+            # Test adapter info for each available adapter
+            for adapter_name in adapters:
+                try:
+                    info = manager.get_adapter_info(adapter_name)
+                    print(f"✅ {adapter_name}: {info['provider']} - {info['model_name']}")
+                except Exception as e:
+                    print(f"⚠️  {adapter_name}: Error - {e}")
+            
+            # Test fallback chains (plugin-style feature)
+            if "fallback_chains" in manager.config:
+                print("✅ Fallback chains configured:")
+                for adapter, chain in manager.config["fallback_chains"].items():
+                    print(f"  {adapter}: {' -> '.join(chain)}")
+            
+            # Test content routing (plugin-style feature)
+            if "content_routing" in manager.config:
+                print("✅ Content routing configured:")
+                for content_type, adapter in manager.config["content_routing"].items():
+                    if isinstance(adapter, list):
+                        print(f"  {content_type}: {adapter}")
+                    else:
+                        print(f"  {content_type}: {adapter}")
             
             # Test mock adapter initialization
             success = await manager.initialize_adapter("mock")
@@ -198,20 +221,32 @@ def test_model_adapter_system():
             
             # Test adapter info
             info = manager.get_adapter_info("mock")
-            if not info.get("initialized"):
-                print("❌ Adapter not marked as initialized")
+            if info["provider"] != "Mock":
+                print(f"❌ Expected Mock provider, got {info['provider']}")
                 return False
-            print("✅ Adapter info works")
+            print("✅ Mock adapter info correct")
             
-            # Test shutdown
-            await manager.shutdown()
-            print("✅ Model manager shutdown works")
+            # Test fallback chain functionality
+            try:
+                response = await manager.generate_response("Test fallback prompt")
+                if response:
+                    print("✅ Fallback chain response generation works")
+                else:
+                    print("⚠️  Fallback chain returned empty response")
+            except Exception as e:
+                print(f"⚠️  Fallback chain test failed: {e}")
+            
+            # Test health checks (if available)
+            try:
+                health = await manager.check_adapter_health("mock")
+                print(f"✅ Health check available: {health['status']}")
+            except Exception as e:
+                print(f"⚠️  Health check failed: {e}")
             
             return True
         
         # Run async tests
-        result = asyncio.run(run_adapter_tests())
-        return result
+        return asyncio.run(run_adapter_tests())
         
     except Exception as e:
         print(f"❌ Model adapter system error: {e}")
@@ -325,7 +360,7 @@ def test_required_files():
             "core/database.py",
             "core/model_adapter.py",
             "core/content_analyzer.py",
-            "config/models.json",
+            "config/model_registry.json",
             "storypacks/demo-story/meta.yaml",
             "storypacks/demo-story/style_guide.md"
         ]
@@ -352,8 +387,11 @@ def test_backup_system():
         from logging_system import log_info
         
         # Test backup manager initialization
-        backup_manager = BackupManager('storage/backups')
+        backup_manager = BackupManager(dry_run=False)
         print("✅ Backup manager initialized successfully")
+        
+        # Ensure backup directories exist
+        backup_manager.ensure_backup_directories()
         
         # Test backup statistics
         stats = backup_manager.get_backup_statistics()

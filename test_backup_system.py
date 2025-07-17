@@ -36,10 +36,10 @@ def test_centralized_backup_system():
                 print(f"    Latest: {info['latest_backup']['file']}")
     
     # Test 2: Test config backup (if config exists)
-    config_path = Path('config/models.json')
+    config_path = Path('config/model_registry.json')
     if config_path.exists():
         print("\n📁 Testing Config Backup:")
-        backup_file = backup_manager.backup_config("models.json")
+        backup_file = backup_manager.backup_config("model_registry.json")
         if backup_file:
             print(f"  ✅ Config backup created: {backup_file}")
         else:

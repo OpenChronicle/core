@@ -1,0 +1,197 @@
+{
+  "version": "1.0.0",
+  "default_model": "openai",
+  "analyzer_model": "openai",
+  "image_model": "stability",
+  "models": [
+    {
+      "name": "openai",
+      "priority": 1,
+      "fallbacks": [
+        "anthropic",
+        "groq",
+        "ollama",
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "mystery",
+        "creative"
+      ],
+      "description": "OpenAI GPT models - high quality, general purpose"
+    },
+    {
+      "name": "anthropic",
+      "priority": 2,
+      "fallbacks": [
+        "groq",
+        "ollama",
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "mystery",
+        "creative",
+        "analysis"
+      ],
+      "description": "Anthropic Claude models - excellent for analysis and creative writing"
+    },
+    {
+      "name": "groq",
+      "priority": 3,
+      "fallbacks": [
+        "ollama",
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "creative"
+      ],
+      "description": "Groq fast inference - good for quick responses"
+    },
+    {
+      "name": "ollama",
+      "priority": 4,
+      "fallbacks": [
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": true,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "mystery",
+        "creative",
+        "mature"
+      ],
+      "description": "Local Ollama models - privacy-focused, supports NSFW"
+    },
+    {
+      "name": "gemini",
+      "priority": 5,
+      "fallbacks": [
+        "ollama",
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "analysis"
+      ],
+      "description": "Google Gemini models - good for analysis and general tasks"
+    },
+    {
+      "name": "cohere",
+      "priority": 6,
+      "fallbacks": [
+        "ollama",
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "general",
+        "creative"
+      ],
+      "description": "Cohere Command models - good for creative tasks"
+    },
+    {
+      "name": "mistral",
+      "priority": 7,
+      "fallbacks": [
+        "ollama",
+        "mock"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "creative"
+      ],
+      "description": "Mistral AI models - European alternative"
+    },
+    {
+      "name": "mock",
+      "priority": 99,
+      "fallbacks": [],
+      "enabled": true,
+      "supports_nsfw": true,
+      "content_types": [
+        "general",
+        "fantasy",
+        "sci-fi",
+        "mystery",
+        "creative",
+        "mature",
+        "testing"
+      ],
+      "description": "Mock model for testing and development"
+    }
+  ],
+  "content_routing": {
+    "nsfw_models": [
+      "ollama",
+      "mock"
+    ],
+    "safe_models": [
+      "openai",
+      "anthropic",
+      "groq",
+      "gemini",
+      "cohere",
+      "mistral"
+    ],
+    "analysis_models": [
+      "anthropic",
+      "openai",
+      "gemini"
+    ],
+    "creative_models": [
+      "openai",
+      "anthropic",
+      "cohere",
+      "mistral",
+      "ollama"
+    ],
+    "fast_models": [
+      "groq",
+      "ollama"
+    ]
+  },
+  "fallback_behavior": {
+    "max_fallback_attempts": 3,
+    "fallback_delay_seconds": 1,
+    "log_fallback_usage": true,
+    "fail_on_all_fallbacks": true,
+    "retry_on_errors": [
+      "timeout",
+      "rate_limit",
+      "server_error",
+      "connection_error"
+    ]
+  },
+  "performance": {
+    "max_concurrent_requests": 3,
+    "timeout_seconds": 30,
+    "rate_limit_buffer": 0.1,
+    "health_check_interval": 300
+  }
+}
