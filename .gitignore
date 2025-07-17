@@ -41,7 +41,6 @@ venv.bak/
 storage/*/openchronicle.db
 storage/*/logs/
 storage/*/exports/
-.copilot/
 *.jsonl
 *.log
 
