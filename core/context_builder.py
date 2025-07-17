@@ -1,8 +1,18 @@
 import os
 import json
 import random
+import sys
+from typing import Dict, List, Any, Optional
+from pathlib import Path
+
+# Add utilities to path for logging system
+sys.path.append(str(Path(__file__).parent.parent / "utilities"))
+from logging_system import log_system_event, log_info, log_warning, log_error
+
 from .memory_manager import load_current_memory
-from .content_analyzer import content_analyzer
+from .content_analyzer import ContentAnalyzer
+from .character_style_manager import CharacterStyleManager
+from .token_manager import TokenManager
 
 def load_canon_snippets(storypack_path, refs=None, limit=5):
     canon_dir = os.path.join(storypack_path, "canon")
@@ -90,6 +100,13 @@ async def build_context_with_analysis(user_input, story_data):
     Build optimized context using content analysis.
     This is the new intelligent version that reduces tokens.
     """
+    from .content_analyzer import ContentAnalyzer
+    from .model_adapter import ModelManager
+    
+    # Initialize content analyzer
+    model_manager = ModelManager()
+    content_analyzer = ContentAnalyzer(model_manager)
+    
     story_id = story_data["id"]
     story_path = story_data["path"]
 
@@ -175,3 +192,157 @@ async def build_context_with_analysis(user_input, story_data):
         "analysis": analysis,
         "routing": content_analyzer.get_routing_recommendation(analysis)
     }
+
+async def build_context_with_dynamic_models(user_input: str, story_data: Dict[str, Any], 
+                                          model_manager) -> Dict[str, Any]:
+    """
+    Build context with dynamic model selection and optimization.
+    """
+    story_id = story_data["id"]
+    story_path = story_data["path"]
+    
+    # Initialize managers
+    content_analyzer = ContentAnalyzer(model_manager)
+    character_manager = CharacterStyleManager(model_manager)
+    token_manager = TokenManager(model_manager)
+    
+    # Load character styles
+    character_manager.load_character_styles(story_path)
+    
+    # Analyze user input for optimal model selection
+    try:
+        analysis = await content_analyzer.analyze_user_input(user_input, {
+            "story_id": story_id,
+            "meta": story_data.get("meta", {}),
+            "characters": story_data.get("characters", {})
+        })
+        
+        recommended_model = analysis.get("routing_recommendation", "mock")
+        content_type = analysis.get("content_type", "general")
+        
+        log_system_event("context_building", 
+                        f"Recommended model: {recommended_model} for {content_type}")
+        
+    except Exception as e:
+        log_error(f"Content analysis failed, using fallback: {e}")
+        analysis = {"routing_recommendation": "mock", "content_type": "general"}
+        recommended_model = "mock"
+        content_type = "general"
+    
+    # Load memory and canon
+    memory = load_current_memory(story_id)
+    canon_chunks = load_canon_snippets(story_path)
+    
+    # Determine active character if any
+    active_character = None
+    if analysis.get("entities", {}).get("characters"):
+        active_character = analysis["entities"]["characters"][0]
+    
+    # Select model based on character and content
+    if active_character:
+        selected_model = character_manager.select_character_model(
+            active_character, content_type)
+        if selected_model != recommended_model:
+            log_info(f"Character-specific model override: {selected_model} for {active_character}")
+            recommended_model = selected_model
+    
+    # Build context parts
+    context_parts = {
+        "system": _build_system_context(story_data),
+        "memory": _build_memory_context(memory),
+        "canon": _build_canon_context(canon_chunks),
+        "user_input": user_input
+    }
+    
+    # Add character style context if applicable
+    if active_character:
+        character_context = character_manager.build_character_context(
+            active_character, recommended_model)
+        if character_context:
+            context_parts["character_style"] = character_context
+    
+    # Estimate token usage and trim if necessary
+    estimated_tokens = sum(
+        token_manager.estimate_tokens(part, recommended_model)
+        for part in context_parts.values()
+    )
+    
+    # Check if we need to trim for token limits
+    model_config = model_manager.get_adapter_info(recommended_model)
+    max_tokens = model_config.get("max_tokens", 4096)
+    target_tokens = int(max_tokens * 0.6)  # Leave room for response
+    
+    if estimated_tokens > target_tokens:
+        log_warning(f"Context too long ({estimated_tokens} tokens), trimming to {target_tokens}")
+        context_parts = token_manager.trim_context_intelligently(
+            context_parts, target_tokens, recommended_model)
+    
+    # Build final context
+    final_context = _assemble_context(context_parts)
+    
+    return {
+        "context": final_context,
+        "recommended_model": recommended_model,
+        "content_analysis": analysis,
+        "active_character": active_character,
+        "token_estimate": token_manager.estimate_tokens(final_context, recommended_model)
+    }
+
+def _build_system_context(story_data: Dict[str, Any]) -> str:
+    """Build system context section."""
+    return f"""You are continuing a fictional interactive narrative.
+Story Title: {story_data['meta'].get('title', 'Untitled')}
+Description: {story_data['meta'].get('description', 'No description')}"""
+
+def _build_memory_context(memory: Dict[str, Any]) -> str:
+    """Build memory context section."""
+    parts = []
+    
+    if memory.get("characters"):
+        parts.append("=== CHARACTERS ===")
+        for char_name, char_data in memory["characters"].items():
+            parts.append(f"{char_name}: {char_data.get('current_state', {})}")
+    
+    if memory.get("world_state"):
+        parts.append("=== WORLD STATE ===")
+        for key, value in memory["world_state"].items():
+            parts.append(f"{key}: {value}")
+    
+    if memory.get("flags"):
+        parts.append("=== ACTIVE FLAGS ===")
+        for flag in memory["flags"]:
+            parts.append(f"- {flag['name']}")
+    
+    if memory.get("recent_events"):
+        parts.append("=== RECENT EVENTS ===")
+        for event in memory["recent_events"][-5:]:
+            parts.append(f"- {event['description']}")
+    
+    return "\n".join(parts)
+
+def _build_canon_context(canon_chunks: List[str]) -> str:
+    """Build canon context section."""
+    if not canon_chunks:
+        return ""
+    
+    parts = ["=== CANON ==="]
+    parts.extend(canon_chunks)
+    return "\n".join(parts)
+
+def _assemble_context(context_parts: Dict[str, str]) -> str:
+    """Assemble final context from parts."""
+    sections = []
+    
+    # Order matters for context flow
+    section_order = ["system", "memory", "canon", "character_style", "user_input"]
+    
+    for section in section_order:
+        if section in context_parts and context_parts[section]:
+            if section == "user_input":
+                sections.append(f"USER INPUT: {context_parts[section]}")
+            else:
+                sections.append(context_parts[section])
+    
+    sections.append("\nContinue the story naturally based on the user's input, maintaining consistency with the established world and characters.")
+    
+    return "\n\n".join(sections)

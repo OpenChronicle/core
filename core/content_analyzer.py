@@ -1,6 +1,6 @@
 """
-Content Analysis Engine for OpenChronicle.
-Uses local LLM to analyze, classify, and optimize story content before main LLM processing.
+Content Analysis Engine for OpenChronicle with Dynamic Model Routing.
+Uses dynamic model selection to optimize content analysis and routing.
 """
 
 import json
@@ -9,36 +9,102 @@ import sys
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pathlib import Path
-from core.model_adapter import model_manager
 
 # Add utilities to path for logging system
 sys.path.append(str(Path(__file__).parent.parent / "utilities"))
 from logging_system import log_model_interaction, log_system_event, log_info, log_error
 
 class ContentAnalyzer:
-    """Analyzes user input and story content to optimize context and routing."""
+    """Analyzes user input and story content with dynamic model routing."""
     
-    def __init__(self):
+    def __init__(self, model_manager):
+        self.model_manager = model_manager
         self.analysis_cache = {}
+        self.routing_rules = {}
+        self.content_patterns = {}
         
-    def get_analyzer_adapter(self):
-        """Get the configured analyzer adapter."""
-        # Import here to avoid circular imports
-        from .model_adapter import model_manager
-        return model_manager.config.get("analyzer_adapter", "mock")
+    def get_best_analysis_model(self, content_type: str = "general") -> str:
+        """Get the best model for content analysis based on dynamic configuration."""
+        # Get content routing from registry
+        config = self.model_manager.config
+        content_routing = config.get("content_routing", {})
+        
+        # Select model based on content type
+        if content_type == "nsfw":
+            candidates = content_routing.get("nsfw_models", [])
+        elif content_type == "creative":
+            candidates = content_routing.get("creative_models", [])
+        elif content_type == "analysis":
+            candidates = content_routing.get("analysis_models", [])
+        else:
+            candidates = content_routing.get("safe_models", [])
+            
+        # Filter for enabled models
+        enabled_models = [
+            name for name in candidates 
+            if self.model_manager.list_model_configs().get(name, {}).get("enabled", True)
+        ]
+        
+        if not enabled_models:
+            log_warning("No enabled models for content analysis, using fallback")
+            return "mock"
+            
+        # Select the first available model (they're ordered by preference)
+        selected = enabled_models[0]
+        log_info(f"Selected {selected} for {content_type} content analysis")
+        return selected
+        
+    def detect_content_type(self, user_input: str) -> str:
+        """Detect content type to route to appropriate analysis model."""
+        text_lower = user_input.lower()
+        
+        # NSFW content detection
+        nsfw_keywords = [
+            "explicit", "sexual", "adult", "mature", "intimate", "romantic",
+            "kiss", "embrace", "seductive", "passionate", "desire"
+        ]
+        
+        if any(keyword in text_lower for keyword in nsfw_keywords):
+            return "nsfw"
+            
+        # Creative content detection
+        creative_keywords = [
+            "imagine", "create", "describe", "story", "scene", "character",
+            "dialogue", "narrative", "plot", "setting", "atmosphere"
+        ]
+        
+        if any(keyword in text_lower for keyword in creative_keywords):
+            return "creative"
+            
+        # Analysis content detection
+        analysis_keywords = [
+            "analyze", "classify", "determine", "evaluate", "assess",
+            "summarize", "explain", "interpret", "understand"
+        ]
+        
+        if any(keyword in text_lower for keyword in analysis_keywords):
+            return "analysis"
+            
+        return "general"
         
     async def analyze_user_input(self, user_input: str, story_context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Analyze user input to extract intent, content type, and required context.
+        Analyze user input with dynamic model selection for optimal analysis.
         """
+        # Detect content type for model routing
+        content_type = self.detect_content_type(user_input)
+        
+        # Get the best model for this content type
+        analysis_model = self.get_best_analysis_model(content_type)
+        
         analysis_prompt = self._build_analysis_prompt(user_input, story_context)
         
         try:
-            # Use local LLM for fast analysis
-            analyzer_adapter = self.get_analyzer_adapter()
-            analysis_response = await model_manager.generate_response(
+            # Use dynamically selected model for analysis
+            analysis_response = await self.model_manager.generate_response(
                 analysis_prompt,
-                adapter_name=analyzer_adapter,
+                adapter_name=analysis_model,
+                story_id=story_context.get("story_id"),
                 max_tokens=512,
                 temperature=0.1  # Low temperature for consistent analysis
             )
@@ -46,16 +112,72 @@ class ContentAnalyzer:
             # Parse the structured analysis
             analysis = self._parse_analysis_response(analysis_response)
             
+            # Add routing information
+            analysis["content_type"] = content_type
+            analysis["analysis_model"] = analysis_model
+            analysis["routing_recommendation"] = self.recommend_generation_model(analysis)
+            
             # Cache the analysis
             cache_key = hash(user_input + str(story_context.get("story_id", "")))
             self.analysis_cache[cache_key] = analysis
             
+            log_system_event("content_analysis", 
+                           f"Analyzed with {analysis_model}: {content_type} content")
+            
             return analysis
             
         except Exception as e:
-            log_error(f"⚠️ Content analysis failed: {e}")
+            log_error(f"Content analysis failed with {analysis_model}: {e}")
             # Fallback to basic analysis
-            return self._fallback_analysis(user_input)
+            return self._basic_analysis_fallback(user_input, story_context)
+    
+    def recommend_generation_model(self, analysis: Dict[str, Any]) -> str:
+        """Recommend the best model for content generation based on analysis."""
+        content_type = analysis.get("content_type", "general")
+        content_flags = analysis.get("content_flags", [])
+        
+        config = self.model_manager.config
+        content_routing = config.get("content_routing", {})
+        
+        # Check for NSFW content
+        if "nsfw" in content_flags or "mature" in content_flags:
+            candidates = content_routing.get("nsfw_models", [])
+        # Check for creative content
+        elif content_type == "creative" or "creative" in content_flags:
+            candidates = content_routing.get("creative_models", [])
+        # Check for fast/simple responses
+        elif "simple" in content_flags or "quick" in content_flags:
+            candidates = content_routing.get("fast_models", [])
+        else:
+            candidates = content_routing.get("safe_models", [])
+        
+        # Filter for enabled models
+        enabled_models = [
+            name for name in candidates 
+            if self.model_manager.list_model_configs().get(name, {}).get("enabled", True)
+        ]
+        
+        if not enabled_models:
+            log_warning("No enabled models for content generation, using fallback")
+            return "mock"
+        
+        recommended = enabled_models[0]
+        log_info(f"Recommended {recommended} for generation based on {content_type} analysis")
+        return recommended
+    
+    def _basic_analysis_fallback(self, user_input: str, story_context: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback analysis when dynamic analysis fails."""
+        content_type = self.detect_content_type(user_input)
+        
+        return {
+            "content_type": content_type,
+            "intent": "story_continuation",
+            "content_flags": [],
+            "routing_recommendation": self.get_best_analysis_model(content_type),
+            "analysis_model": "fallback",
+            "context_needed": ["memory", "canon"],
+            "confidence": 0.5
+        }
     
     def _build_analysis_prompt(self, user_input: str, story_context: Dict[str, Any]) -> str:
         """Build the analysis prompt for the local LLM."""
@@ -312,5 +434,29 @@ Response (JSON only):"""
         
         return recommendation
 
-# Global content analyzer instance
-content_analyzer = ContentAnalyzer()
+# For testing purposes
+if __name__ == "__main__":
+    # Initialize test
+    logging.basicConfig(level=logging.INFO)
+    from model_adapter import ModelManager
+    
+    model_manager = ModelManager()
+    content_analyzer = ContentAnalyzer(model_manager)
+    
+    # Test the system
+    test_content = "Lyra draws her sword and attacks the dragon"
+    print(f"Analyzing: {test_content}")
+    
+    # Analyze content
+    result = content_analyzer.analyze_content(test_content)
+    print(f"Content analysis result: {result}")
+    
+    # Test content type detection
+    content_type = content_analyzer.detect_content_type(test_content)
+    print(f"Content type: {content_type}")
+    
+    # Test model recommendation
+    model = content_analyzer.get_best_analysis_model(content_type)
+    print(f"Recommended model: {model}")
+    
+    print("Content analysis system test complete!")

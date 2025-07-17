@@ -170,6 +170,22 @@ This directory automatically enhances Copilot's suggestions by providing:
 - [Ollama Documentation](https://ollama.ai/docs)
 - [SQLite Documentation](https://sqlite.org/docs.html)
 
+## 🆕 Recent Updates
+
+### Dynamic Model Integration (Latest)
+- **Integration Summary**: `integration_summary.md` - Comprehensive overview of dynamic model system integration
+- **Core Systems Enhanced**: Token management, content analysis, character consistency, context building
+- **New Capabilities**: Intelligent model routing, token optimization, character-specific preferences
+- **Testing**: `test_dynamic_integration.py` validates all integration components
+- **Benefits**: Optimal performance, cost efficiency, consistent character voices
+
+### Dynamic Model Management System
+- **Core Implementation**: `patterns/dynamic_model_management.md` - Complete technical documentation
+- **Configuration**: Plugin-style model registry with runtime add/remove/enable/disable
+- **Integration**: Seamless integration with existing OpenChronicle systems
+- **Testing**: Comprehensive test suite with 11/11 tests passing
+- **Benefits**: Flexibility, scalability, maintainability
+
 ## 🤝 Contributing
 
 When adding content to this directory:
