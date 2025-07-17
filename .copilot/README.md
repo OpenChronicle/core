@@ -8,6 +8,10 @@ This directory contains comprehensive documentation, examples, and patterns to e
 .copilot/
 ├── README.md                    # This file
 ├── context.json                 # Unified project context for Copilot
+├── next_priority_full_text_search.md # Current development priority
+├── integration_summary.md       # Token management and dynamic models (COMPLETED)
+├── character_style_completion.md # Character consistency system (COMPLETED)
+├── test_organization_summary.md # Test structure organization (COMPLETED)
 ├── architecture/                # System architecture documentation
 │   └── module_interactions.md   # Module relationships and data flow
 ├── config/                      # Configuration examples
