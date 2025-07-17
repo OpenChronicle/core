@@ -120,6 +120,96 @@ def init_database(story_id):
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_scene ON bookmarks(scene_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_type ON bookmarks(bookmark_type)')
         
+        # Create FTS5 virtual tables for full-text search
+        cursor.execute('''
+            CREATE VIRTUAL TABLE IF NOT EXISTS scenes_fts USING fts5(
+                scene_id UNINDEXED,
+                input,
+                output,
+                scene_label,
+                flags,
+                analysis,
+                content='scenes',
+                content_rowid='rowid'
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+                memory_id UNINDEXED,
+                story_id UNINDEXED,
+                type UNINDEXED,
+                key,
+                value,
+                content='memory',
+                content_rowid='id'
+            )
+        ''')
+        
+        # Create triggers for automatic FTS5 indexing
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS scenes_ai AFTER INSERT ON scenes BEGIN
+                INSERT INTO scenes_fts(rowid, scene_id, input, output, scene_label, flags, analysis)
+                VALUES (new.rowid, new.scene_id, new.input, new.output, 
+                        COALESCE(new.scene_label, ''), COALESCE(new.flags, ''), COALESCE(new.analysis, ''));
+            END
+        ''')
+        
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS scenes_ad AFTER DELETE ON scenes BEGIN
+                INSERT INTO scenes_fts(scenes_fts, rowid, scene_id, input, output, scene_label, flags, analysis)
+                VALUES ('delete', old.rowid, old.scene_id, old.input, old.output, 
+                        COALESCE(old.scene_label, ''), COALESCE(old.flags, ''), COALESCE(old.analysis, ''));
+            END
+        ''')
+        
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS scenes_au AFTER UPDATE ON scenes BEGIN
+                INSERT INTO scenes_fts(scenes_fts, rowid, scene_id, input, output, scene_label, flags, analysis)
+                VALUES ('delete', old.rowid, old.scene_id, old.input, old.output, 
+                        COALESCE(old.scene_label, ''), COALESCE(old.flags, ''), COALESCE(old.analysis, ''));
+                INSERT INTO scenes_fts(rowid, scene_id, input, output, scene_label, flags, analysis)
+                VALUES (new.rowid, new.scene_id, new.input, new.output, 
+                        COALESCE(new.scene_label, ''), COALESCE(new.flags, ''), COALESCE(new.analysis, ''));
+            END
+        ''')
+        
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS memory_ai AFTER INSERT ON memory BEGIN
+                INSERT INTO memory_fts(rowid, memory_id, story_id, type, key, value)
+                VALUES (new.id, new.id, new.story_id, new.type, new.key, new.value);
+            END
+        ''')
+        
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS memory_ad AFTER DELETE ON memory BEGIN
+                INSERT INTO memory_fts(memory_fts, rowid, memory_id, story_id, type, key, value)
+                VALUES ('delete', old.id, old.id, old.story_id, old.type, old.key, old.value);
+            END
+        ''')
+        
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS memory_au AFTER UPDATE ON memory BEGIN
+                INSERT INTO memory_fts(memory_fts, rowid, memory_id, story_id, type, key, value)
+                VALUES ('delete', old.id, old.id, old.story_id, old.type, old.key, old.value);
+                INSERT INTO memory_fts(rowid, memory_id, story_id, type, key, value)
+                VALUES (new.id, new.id, new.story_id, new.type, new.key, new.value);
+            END
+        ''')
+        
+        # Populate FTS5 tables with existing data
+        cursor.execute('''
+            INSERT OR IGNORE INTO scenes_fts(rowid, scene_id, input, output, scene_label, flags, analysis)
+            SELECT rowid, scene_id, input, output, 
+                   COALESCE(scene_label, ''), COALESCE(flags, ''), COALESCE(analysis, '') 
+            FROM scenes
+        ''')
+        
+        cursor.execute('''
+            INSERT OR IGNORE INTO memory_fts(rowid, memory_id, story_id, type, key, value)
+            SELECT id, id, story_id, type, key, value FROM memory
+        ''')
+        
         conn.commit()
 
 def get_connection(story_id):
@@ -294,3 +384,62 @@ def get_database_stats(story_id):
             stats['database_size_mb'] = 0
         
         return stats
+
+def optimize_fts_index(story_id):
+    """Optimize FTS5 indexes for better performance."""
+    with get_connection(story_id) as conn:
+        cursor = conn.cursor()
+        
+        # Optimize scenes FTS5 index
+        cursor.execute("INSERT INTO scenes_fts(scenes_fts) VALUES('optimize')")
+        
+        # Optimize memory FTS5 index
+        cursor.execute("INSERT INTO memory_fts(memory_fts) VALUES('optimize')")
+        
+        conn.commit()
+
+def rebuild_fts_index(story_id):
+    """Rebuild FTS5 indexes from scratch."""
+    with get_connection(story_id) as conn:
+        cursor = conn.cursor()
+        
+        # Rebuild scenes FTS5 index
+        cursor.execute("INSERT INTO scenes_fts(scenes_fts) VALUES('rebuild')")
+        
+        # Rebuild memory FTS5 index
+        cursor.execute("INSERT INTO memory_fts(memory_fts) VALUES('rebuild')")
+        
+        conn.commit()
+
+def get_fts_stats(story_id):
+    """Get FTS5 index statistics."""
+    with get_connection(story_id) as conn:
+        cursor = conn.cursor()
+        
+        stats = {}
+        
+        # Check if FTS5 tables exist
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name LIKE '%_fts'
+        """)
+        fts_tables = [row[0] for row in cursor.fetchall()]
+        stats['fts_tables'] = fts_tables
+        
+        # Get FTS5 table sizes
+        for table in fts_tables:
+            cursor.execute(f"SELECT COUNT(*) FROM {table}")
+            stats[f'{table}_entries'] = cursor.fetchone()[0]
+        
+        return stats
+
+def check_fts_support():
+    """Check if FTS5 is supported in the current SQLite version."""
+    try:
+        with sqlite3.connect(":memory:") as conn:
+            cursor = conn.cursor()
+            cursor.execute("CREATE VIRTUAL TABLE test_fts USING fts5(content)")
+            cursor.execute("DROP TABLE test_fts")
+            return True
+    except sqlite3.OperationalError:
+        return False
