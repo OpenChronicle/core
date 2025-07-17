@@ -3,6 +3,10 @@ uvicorn
 pyyaml
 jinja2
 httpx
-sqlite3
 sqlalchemy>=2.0.0
 aiosqlite
+
+# Optional LLM dependencies
+openai>=1.0.0
+# Install with: pip install openai (for OpenAI GPT models)
+# httpx already included above for Ollama support

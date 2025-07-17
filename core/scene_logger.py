@@ -7,17 +7,20 @@ from .database import get_connection, execute_query, execute_update, init_databa
 def generate_scene_id():
     return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
-def save_scene(story_id, user_input, model_output, memory_snapshot=None, flags=None, context_refs=None):
+def save_scene(story_id, user_input, model_output, memory_snapshot=None, flags=None, context_refs=None, analysis_data=None):
     """Save a scene to the database."""
     init_database(story_id)
     
     scene_id = generate_scene_id()
     timestamp = datetime.utcnow().isoformat()
     
+    # Prepare analysis data for storage
+    analysis_json = json.dumps(analysis_data) if analysis_data else None
+    
     execute_update(story_id, '''
         INSERT OR REPLACE INTO scenes 
-        (scene_id, timestamp, input, output, memory_snapshot, flags, canon_refs)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (scene_id, timestamp, input, output, memory_snapshot, flags, canon_refs, analysis)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         scene_id,
         timestamp,
@@ -25,7 +28,8 @@ def save_scene(story_id, user_input, model_output, memory_snapshot=None, flags=N
         model_output,
         json.dumps(memory_snapshot or {}),
         json.dumps(flags or []),
-        json.dumps(context_refs or [])
+        json.dumps(context_refs or []),
+        analysis_json
     ))
     
     return scene_id

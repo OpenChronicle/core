@@ -11,6 +11,41 @@ services:
       - "8199:8000"
     environment:
       - DEFAULT_STORY_PACK=demo-story
+      - OLLAMA_HOST=http://ollama:11434
     env_file:
       - .env
     restart: unless-stopped
+    depends_on:
+      - ollama
+    networks:
+      - openchronicle
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: openchronicle-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    restart: unless-stopped
+    networks:
+      - openchronicle
+    # Pull and run a small model for content analysis
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 10 &&
+        ollama pull llama3.2:1b &&
+        ollama pull llama3.2:3b &&
+        wait
+      "
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  openchronicle:
+    driver: bridge

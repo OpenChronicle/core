@@ -31,9 +31,16 @@ def init_database(story_id):
                 memory_snapshot TEXT,
                 flags TEXT,
                 canon_refs TEXT,
+                analysis TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Check if analysis column exists and add if not (for backwards compatibility)
+        cursor.execute("PRAGMA table_info(scenes)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'analysis' not in columns:
+            cursor.execute('ALTER TABLE scenes ADD COLUMN analysis TEXT')
         
         # Create memory table
         cursor.execute('''

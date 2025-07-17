@@ -1,0 +1,44 @@
+{
+  "default_adapter": "ollama",
+  "analyzer_adapter": "ollama_analyzer",
+  "adapters": {
+    "openai": {
+      "type": "openai",
+      "model_name": "gpt-4o-mini",
+      "max_tokens": 2048,
+      "temperature": 0.7
+    },
+    "ollama": {
+      "type": "ollama",
+      "model_name": "llama3.2:3b",
+      "base_url": "http://ollama:11434",
+      "max_tokens": 2048,
+      "temperature": 0.7
+    },
+    "ollama_analyzer": {
+      "type": "ollama",
+      "model_name": "llama3.2:1b",
+      "base_url": "http://ollama:11434",
+      "max_tokens": 512,
+      "temperature": 0.1
+    },
+    "ollama_local": {
+      "type": "ollama",
+      "model_name": "llama3.2:3b",
+      "base_url": "http://localhost:11434",
+      "max_tokens": 2048,
+      "temperature": 0.7
+    },
+    "mock": {
+      "type": "mock",
+      "model_name": "mock-model",
+      "responses": [
+        "The story continues with rich detail and engaging narrative.",
+        "Your character moves forward, discovering new possibilities.",
+        "The world around you shifts as the tale unfolds.",
+        "A new chapter begins with unexpected twists and turns.",
+        "The narrative deepens as your choices shape the story."
+      ]
+    }
+  }
+}

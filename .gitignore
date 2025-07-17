@@ -25,10 +25,25 @@ wheels/
 .installed.cfg
 *.egg
 
+# Virtual environments
+.venv/
+.env/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
 # OpenChronicle specific
 *.env
+.env.local
+.env.production
 storage/*/openchronicle.db
+storage/*/logs/
+storage/*/exports/
 .copilot/
+*.jsonl
+*.log
 
 # User-specific files
 *.rsuser
@@ -424,9 +439,6 @@ FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
@@ -447,3 +459,21 @@ FodyWeavers.xsd
 test_codebase.py
 test_*.py
 *_test.py
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Docker overrides
+docker-compose.override.yml

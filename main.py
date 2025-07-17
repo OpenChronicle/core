@@ -1,13 +1,17 @@
+import asyncio
 from core.story_loader import load_storypack
-from core.context_builder import build_context
+from core.context_builder import build_context_with_analysis
 from core.memory_manager import (
     load_current_memory, 
     update_character_memory, 
     add_recent_event,
+    add_memory_flag,
     get_memory_summary
 )
 from core.scene_logger import save_scene
 from core.rollback_engine import get_rollback_candidates, rollback_to_scene
+from core.model_adapter import model_manager
+from core.content_analyzer import content_analyzer
 
 def print_memory_summary(story_id):
     """Print a summary of current memory state."""
@@ -18,6 +22,38 @@ def print_memory_summary(story_id):
     print(f"   Active Flags: {len(summary['active_flags'])}")
     print(f"   Recent Events: {summary['recent_events_count']}")
     print(f"   Last Updated: {summary['last_updated']}")
+
+def show_model_info():
+    """Show information about available models."""
+    print("\n🤖 Available Models:")
+    for adapter_name in model_manager.get_available_adapters():
+        try:
+            info = model_manager.get_adapter_info(adapter_name)
+            status = "✅ Ready" if info["initialized"] else "⏳ Not initialized"
+            print(f"   {adapter_name}: {info['provider']} - {info['model_name']} ({status})")
+        except Exception as e:
+            print(f"   {adapter_name}: ❌ Error: {e}")
+
+async def switch_model():
+    """Switch the active model adapter."""
+    adapters = model_manager.get_available_adapters()
+    print("\n🔄 Available Adapters:")
+    for i, adapter in enumerate(adapters):
+        print(f"{i+1}. {adapter}")
+    
+    choice = input("Select adapter number (or press Enter to cancel): ").strip()
+    if choice.isdigit() and 1 <= int(choice) <= len(adapters):
+        adapter_name = adapters[int(choice)-1]
+        try:
+            print(f"🔄 Initializing {adapter_name}...")
+            success = await model_manager.initialize_adapter(adapter_name)
+            if success:
+                model_manager.default_adapter = adapter_name
+                print(f"✅ Switched to {adapter_name}")
+            else:
+                print(f"❌ Failed to initialize {adapter_name}")
+        except Exception as e:
+            print(f"❌ Error switching to {adapter_name}: {e}")
 
 def show_rollback_options(story_id):
     """Show available rollback options."""
@@ -37,7 +73,7 @@ def show_rollback_options(story_id):
         print(f"✅ {result['message']}")
         print(f"   Scenes removed: {result['scenes_removed']}")
 
-if __name__ == "__main__":
+async def main():
     print("🔧 Loading storypack...")
     story = load_storypack("demo-story")
     story_id = story["id"]
@@ -45,10 +81,21 @@ if __name__ == "__main__":
     print(f"✅ Loaded story: {story['meta']['title']}")
     print_memory_summary(story_id)
     
+    # Initialize default model adapter
+    print("🤖 Initializing AI model...")
+    try:
+        await model_manager.initialize_adapter(model_manager.config["default_adapter"])
+        print(f"✅ Model ready: {model_manager.default_adapter}")
+    except Exception as e:
+        print(f"⚠️ Model initialization failed: {e}")
+        print("Continuing with mock responses...")
+    
     print("\n📖 Commands:")
     print("   - Type your story input normally")
     print("   - Type 'memory' to view memory summary")
     print("   - Type 'rollback' to see rollback options")
+    print("   - Type 'models' to see available models")
+    print("   - Type 'switch' to switch model")
     print("   - Type 'quit' to exit")
     
     while True:
@@ -62,21 +109,55 @@ if __name__ == "__main__":
         elif user_input.lower() == 'rollback':
             show_rollback_options(story_id)
             continue
+        elif user_input.lower() == 'models':
+            show_model_info()
+            continue
+        elif user_input.lower() == 'switch':
+            await switch_model()
+            continue
         elif not user_input:
             continue
         
-        # Build context and process input
-        context = build_context(user_input, story)
+        # Build context using intelligent analysis
+        context = await build_context_with_analysis(user_input, story)
         
-        # Simulate AI response (in real implementation, this would call an LLM)
-        ai_response = f"[AI would respond to: {user_input}]"
+        # Get routing recommendation from analysis
+        routing = context.get("routing", {})
+        preferred_adapter = routing.get("adapter", model_manager.default_adapter)
+        max_tokens = routing.get("max_tokens", 1024)
+        temperature = routing.get("temperature", 0.7)
+        
+        # Generate AI response using optimized context and routing
+        try:
+            ai_response = await model_manager.generate_response(
+                context["full_context"], 
+                adapter_name=preferred_adapter,
+                story_id=story_id,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+        except Exception as e:
+            print(f"⚠️ AI generation failed: {e}")
+            ai_response = f"[Error generating response: {e}]"
+        
+        # Generate content flags from analysis and response
+        analysis = context.get("analysis", {})
+        if analysis:
+            try:
+                content_flags = await content_analyzer.generate_content_flags(analysis, ai_response)
+                for flag in content_flags:
+                    add_memory_flag(story_id, flag["name"], flag["value"])
+                print(f"   Generated {len(content_flags)} content flags")
+            except Exception as e:
+                print(f"⚠️ Flag generation failed: {e}")
         
         # Log the scene
         scene_id = save_scene(
             story_id, 
             user_input, 
             ai_response, 
-            memory_snapshot=context["memory"]
+            memory_snapshot=context["memory"],
+            analysis_data=analysis
         )
         
         # Add to recent events
@@ -86,3 +167,7 @@ if __name__ == "__main__":
         print(f"   Scene logged: {scene_id}")
     
     print("\n👋 Story session ended.")
+    await model_manager.shutdown()
+
+if __name__ == "__main__":
+    asyncio.run(main())
