@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from cleanup_storage import StorageCleanup
 from optimize_database import DatabaseOptimizer
+from logging_system import get_logger, log_maintenance_action, log_system_event, log_error_with_context
 
 class MaintenanceManager:
     """Manages comprehensive maintenance tasks for OpenChronicle."""
@@ -25,6 +26,10 @@ class MaintenanceManager:
         self.dry_run = dry_run
         self.root_dir = Path(__file__).parent.parent
         self.maintenance_log = []
+        self.logger = get_logger()
+        
+        # Log maintenance start
+        log_system_event("maintenance_start", f"Maintenance utility started (dry_run: {dry_run})")
         
     def log_action(self, action: str, details: Dict[str, Any] = None):
         """Log maintenance action."""
@@ -35,6 +40,10 @@ class MaintenanceManager:
         }
         self.maintenance_log.append(log_entry)
         
+        # Use centralized logging
+        status = "success" if not details or not details.get("error") else "error"
+        log_maintenance_action(action, details, status)
+        
     def check_system_health(self) -> Dict[str, Any]:
         """Perform system health checks."""
         health_status = {
@@ -42,17 +51,22 @@ class MaintenanceManager:
             "checks": {}
         }
         
+        self.logger.info("Performing system health checks...")
         print("🏥 Performing system health checks...")
         
         # Check if main configuration files exist
         config_files = ["config/models.json", "main.py", "requirements.txt"]
         for config_file in config_files:
             file_path = self.root_dir / config_file
+            exists = file_path.exists()
             health_status["checks"][config_file] = {
-                "exists": file_path.exists(),
-                "size": file_path.stat().st_size if file_path.exists() else 0,
-                "last_modified": datetime.fromtimestamp(file_path.stat().st_mtime).isoformat() if file_path.exists() else None
+                "exists": exists,
+                "size": file_path.stat().st_size if exists else 0,
+                "last_modified": datetime.fromtimestamp(file_path.stat().st_mtime).isoformat() if exists else None
             }
+            
+            if not exists:
+                self.logger.warning(f"Configuration file missing: {config_file}")
         
         # Check storage directory structure
         storage_dir = self.root_dir / "storage"
@@ -63,8 +77,10 @@ class MaintenanceManager:
                 "story_count": len(story_dirs),
                 "stories": [d.name for d in story_dirs]
             }
+            self.logger.info(f"Found {len(story_dirs)} story directories: {[d.name for d in story_dirs]}")
         else:
             health_status["checks"]["storage"] = {"exists": False}
+            self.logger.error("Storage directory not found")
         
         # Check Python environment
         try:
@@ -74,8 +90,10 @@ class MaintenanceManager:
                 "version": result.stdout.strip(),
                 "executable": sys.executable
             }
+            self.logger.info(f"Python version: {result.stdout.strip()}")
         except Exception as e:
             health_status["checks"]["python"] = {"error": str(e)}
+            log_error_with_context(e, {"context": "python_version_check"})
         
         # Check for required modules
         required_modules = ["sqlite3", "json", "pathlib", "datetime"]
@@ -83,26 +101,37 @@ class MaintenanceManager:
             try:
                 __import__(module)
                 health_status["checks"][f"module_{module}"] = {"available": True}
-            except ImportError:
+            except ImportError as e:
                 health_status["checks"][f"module_{module}"] = {"available": False}
+                self.logger.error(f"Required module {module} not available")
         
         # Check disk space
         try:
             import shutil
             total, used, free = shutil.disk_usage(self.root_dir)
+            free_percent = (free / total * 100) if total > 0 else 0
             health_status["checks"]["disk_space"] = {
                 "total": total,
                 "used": used,
                 "free": free,
-                "free_percent": (free / total * 100) if total > 0 else 0
+                "free_percent": free_percent
             }
+            
+            # Warn if disk space is low
+            if free_percent < 10:
+                self.logger.warning(f"Low disk space: {free_percent:.1f}% free")
+            elif free_percent < 20:
+                self.logger.info(f"Disk space: {free_percent:.1f}% free")
+                
         except Exception as e:
             health_status["checks"]["disk_space"] = {"error": str(e)}
+            log_error_with_context(e, {"context": "disk_space_check"})
         
         return health_status
     
     def validate_configuration(self) -> Dict[str, Any]:
         """Validate OpenChronicle configuration."""
+        self.logger.info("Validating configuration...")
         print("⚙️  Validating configuration...")
         
         validation_result = {
@@ -122,23 +151,33 @@ class MaintenanceManager:
                 required_fields = ["default_adapter", "adapters"]
                 for field in required_fields:
                     if field not in models_config:
-                        validation_result["issues"].append(f"Missing required field: {field}")
+                        issue = f"Missing required field: {field}"
+                        validation_result["issues"].append(issue)
                         validation_result["valid"] = False
+                        self.logger.error(f"Configuration issue: {issue}")
                 
                 # Check adapters
                 if "adapters" in models_config:
                     for adapter_name, adapter_config in models_config["adapters"].items():
                         if not adapter_name.startswith("//"):  # Skip comments
                             if "type" not in adapter_config:
-                                validation_result["issues"].append(f"Adapter '{adapter_name}' missing type field")
+                                issue = f"Adapter '{adapter_name}' missing type field"
+                                validation_result["issues"].append(issue)
                                 validation_result["valid"] = False
+                                self.logger.error(f"Configuration issue: {issue}")
+                
+                self.logger.info(f"Configuration validation: {len(validation_result['issues'])} issues found")
                 
             except json.JSONDecodeError as e:
-                validation_result["issues"].append(f"Invalid JSON in models.json: {e}")
+                issue = f"Invalid JSON in models.json: {e}"
+                validation_result["issues"].append(issue)
                 validation_result["valid"] = False
+                log_error_with_context(e, {"context": "models.json_validation"})
         else:
-            validation_result["issues"].append("models.json not found")
+            issue = "models.json not found"
+            validation_result["issues"].append(issue)
             validation_result["valid"] = False
+            self.logger.error(f"Configuration issue: {issue}")
         
         return validation_result
     

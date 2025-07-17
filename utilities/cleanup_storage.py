@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
+from logging_system import log_maintenance_action, log_system_event, log_info, log_error
 
 # Add the parent directory to the path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -125,14 +126,14 @@ class StorageCleanup:
         """Clean up old configuration backups, keeping only the most recent ones."""
         backup_files = list(self.config_dir.glob("*.backup.*"))
         if len(backup_files) <= keep_count:
-            print(f"✅ Only {len(backup_files)} backup files found, keeping all")
+            log_info(f"Only {len(backup_files)} backup files found, keeping all")
             return
         
         # Sort by modification time, newest first
         backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
         files_to_remove = backup_files[keep_count:]
         
-        print(f"🗑️  Removing {len(files_to_remove)} old backup files (keeping {keep_count} most recent)")
+        log_info(f"Removing {len(files_to_remove)} old backup files (keeping {keep_count} most recent)")
         
         for backup_file in files_to_remove:
             size = backup_file.stat().st_size
@@ -140,7 +141,13 @@ class StorageCleanup:
                 backup_file.unlink()
             self.cleaned_files.append(str(backup_file))
             self.cleaned_size += size
-            print(f"  - Removed: {backup_file.name} ({self._format_size(size)})")
+            log_info(f"  - Removed: {backup_file.name} ({self._format_size(size)})")
+            
+        log_maintenance_action("cleanup_old_backups", "success", {
+            "files_removed": len(files_to_remove),
+            "files_kept": keep_count,
+            "size_freed": self.cleaned_size
+        })
     
     def cleanup_logs(self, max_age_days: int = 7) -> None:
         """Clean up log files older than specified days."""
@@ -283,12 +290,11 @@ class StorageCleanup:
     
     def run_full_cleanup(self) -> None:
         """Run all cleanup operations."""
-        print("🧹 Starting OpenChronicle Storage Cleanup")
-        print("=" * 50)
+        log_system_event("cleanup_start", "Storage cleanup started")
+        log_info("Starting OpenChronicle Storage Cleanup")
         
         if self.dry_run:
-            print("🔍 DRY RUN MODE - No files will be actually deleted")
-            print()
+            log_info("DRY RUN MODE - No files will be actually deleted")
         
         # Run cleanup operations
         self.cleanup_old_backups()
@@ -299,12 +305,14 @@ class StorageCleanup:
         self.cleanup_empty_directories()
         
         # Summary
-        print("\n📊 Cleanup Summary:")
-        print(f"  🗑️  Files/directories cleaned: {len(self.cleaned_files)}")
-        print(f"  💾 Space freed: {self._format_size(self.cleaned_size)}")
+        log_info("Cleanup Summary:")
+        log_info(f"  Files/directories cleaned: {len(self.cleaned_files)}")
+        log_info(f"  Space freed: {self._format_size(self.cleaned_size)}")
         
         if self.dry_run:
-            print("\n💡 Run without --dry-run to actually delete files")
+            log_info("Run without --dry-run to actually delete files")
+            
+        log_system_event("cleanup_complete", f"Storage cleanup completed - {len(self.cleaned_files)} items, {self._format_size(self.cleaned_size)} freed")
 
 
 def main():

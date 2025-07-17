@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
+from logging_system import log_maintenance_action, log_system_event, log_info, log_error
 
 # Add the parent directory to the path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -332,34 +333,35 @@ class DatabaseOptimizer:
     
     def run_optimization(self) -> None:
         """Run optimization on all databases."""
-        print("🔧 Starting OpenChronicle Database Optimization")
-        print("=" * 50)
+        log_system_event("db_optimization_start", "Database optimization started")
+        log_info("Starting OpenChronicle Database Optimization")
         
         if self.dry_run:
-            print("🔍 DRY RUN MODE - No changes will be made")
-            print()
+            log_info("DRY RUN MODE - No changes will be made")
         
         databases = self.find_databases()
         
         if not databases:
-            print("📝 No databases found in storage directory")
+            log_info("No databases found in storage directory")
             return
         
-        print(f"🔍 Found {len(databases)} database(s) to optimize")
+        log_info(f"Found {len(databases)} database(s) to optimize")
         
         for db_path in databases:
             try:
                 self.optimize_database(db_path)
             except Exception as e:
-                print(f"❌ Error optimizing {db_path}: {e}")
+                log_error(f"Error optimizing {db_path}: {e}")
         
         # Summary
-        print("\n📊 Optimization Summary:")
-        print(f"  🗃️  Databases optimized: {len(self.optimized_dbs)}")
-        print(f"  💾 Total space saved: {self._format_size(self.total_space_saved)}")
+        log_info("Optimization Summary:")
+        log_info(f"  Databases optimized: {len(self.optimized_dbs)}")
+        log_info(f"  Total space saved: {self._format_size(self.total_space_saved)}")
         
         if self.dry_run:
-            print("\n💡 Run without --dry-run to actually optimize databases")
+            log_info("Run without --dry-run to actually optimize databases")
+            
+        log_system_event("db_optimization_complete", f"Database optimization completed - {len(self.optimized_dbs)} databases optimized")
 
 
 def main():
