@@ -1,9 +1,9 @@
 """
 Test suite for OpenChronicle Full-Text Search (FTS5) System.
 
-This test suite covers:
+This comprehensive test suite covers:
 - FTS5 database schema and indexing
-- Search engine functionality
+- Search engine functionality 
 - Query parsing and sanitization
 - Search result ranking and snippets
 - Integration with existing systems
@@ -13,6 +13,7 @@ import unittest
 import os
 import tempfile
 import shutil
+import json
 from datetime import datetime
 import sys
 
@@ -21,10 +22,16 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from core.database import init_database, check_fts_support, optimize_fts_index, get_fts_stats, execute_insert
+from core.database import init_database, check_fts_support, optimize_fts_index, execute_insert
 from core.search_engine import SearchEngine, SearchResult, SearchQuery, search_story
 from core.scene_logger import save_scene
-from core.memory_manager import update_character_memory, update_world_state
+
+# Try to import optional features
+try:
+    from core.database import get_fts_stats
+    HAS_FTS_STATS = True
+except ImportError:
+    HAS_FTS_STATS = False
 
 
 def store_memory_for_testing(story_id, memory_type, key, value):
@@ -460,6 +467,383 @@ class TestSearchIntegration(unittest.TestCase):
         # Should find the inventory memory
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].metadata['memory_type'], 'inventory')
+
+
+# =============================================================================
+# ADVANCED FEATURES TESTS (PHASE 2)
+# =============================================================================
+
+class TestAdvancedQueryParsing(unittest.TestCase):
+    """Test advanced query parsing features."""
+    
+    def setUp(self):
+        """Set up test environment."""
+        self.test_story_id = "test_story_advanced"
+        self.temp_dir = tempfile.mkdtemp()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.temp_dir)
+        
+        # Initialize database
+        init_database(self.test_story_id)
+        
+        # Check if FTS5 is supported
+        if not check_fts_support():
+            self.skipTest("FTS5 is not supported in this SQLite version")
+        
+        # Create SearchEngine
+        self.engine = SearchEngine(self.test_story_id)
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        os.chdir(self.original_cwd)
+        shutil.rmtree(self.temp_dir)
+    
+    def test_wildcard_parsing(self):
+        """Test parsing of wildcard queries."""
+        query = self.engine.parse_query("cast* ancient ?oor")
+        
+        self.assertEqual(len(query.wildcards), 2)
+        self.assertIn("cast*", query.wildcards)
+        self.assertIn("?oor", query.wildcards)
+    
+    def test_proximity_search_parsing(self):
+        """Test parsing of proximity searches."""
+        query = self.engine.parse_query("castle NEAR/5 door")
+        
+        self.assertEqual(len(query.proximity_searches), 1)
+        self.assertEqual(query.proximity_searches[0], ("castle", "door", 5))
+    
+    def test_sort_order_parsing(self):
+        """Test parsing of sort orders."""
+        query = self.engine.parse_query("castle sort:date")
+        
+        self.assertEqual(query.sort_order, "date")
+        self.assertNotIn("sort", query.filters)
+    
+    def test_limit_parsing(self):
+        """Test parsing of result limits."""
+        query = self.engine.parse_query("castle limit:25")
+        
+        self.assertEqual(query.limit, 25)
+        self.assertNotIn("limit", query.filters)
+    
+    def test_complex_query_parsing(self):
+        """Test parsing of complex queries with multiple features."""
+        query = self.engine.parse_query(
+            'castle AND "ancient door" cast* type:scene sort:date limit:20'
+        )
+        
+        self.assertIn("castle", query.terms)
+        self.assertIn("ancient door", query.quoted_phrases)
+        self.assertIn("cast*", query.wildcards)
+        self.assertIn("AND", query.operators)
+        self.assertEqual(query.filters["type"], "scene")
+        self.assertEqual(query.sort_order, "date")
+        self.assertEqual(query.limit, 20)
+
+
+class TestSearchCaching(unittest.TestCase):
+    """Test search caching and performance features."""
+    
+    def setUp(self):
+        """Set up test environment."""
+        self.test_story_id = "test_story_caching"
+        self.temp_dir = tempfile.mkdtemp()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.temp_dir)
+        
+        # Initialize database
+        init_database(self.test_story_id)
+        
+        # Check if FTS5 is supported
+        if not check_fts_support():
+            self.skipTest("FTS5 is not supported in this SQLite version")
+        
+        # Create SearchEngine with small cache for testing
+        self.engine = SearchEngine(self.test_story_id, cache_size=3)
+        
+        # Create test data
+        save_scene(
+            self.test_story_id,
+            "I explore the ancient castle",
+            "You approach the massive stone fortress",
+            scene_label="Castle Entry"
+        )
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        os.chdir(self.original_cwd)
+        shutil.rmtree(self.temp_dir)
+    
+    def test_search_caching(self):
+        """Test that search results are cached."""
+        # First search
+        results1 = self.engine.search_all("castle")
+        
+        # Second search should use cache
+        results2 = self.engine.search_all("castle")
+        
+        # Results should be identical
+        self.assertEqual(len(results1), len(results2))
+        self.assertEqual(self.engine.performance_stats['cache_hits'], 1)
+        self.assertEqual(self.engine.performance_stats['total_queries'], 2)
+    
+    def test_cache_size_limit(self):
+        """Test that cache size is limited."""
+        # Fill cache beyond limit
+        for i in range(5):
+            self.engine.search_all(f"query{i}")
+        
+        # Cache should be limited to configured size
+        self.assertLessEqual(len(self.engine.query_cache), 3)
+    
+    def test_cache_clearing(self):
+        """Test cache clearing functionality."""
+        # Perform search to populate cache
+        self.engine.search_all("castle")
+        self.assertGreater(len(self.engine.query_cache), 0)
+        
+        # Clear cache
+        self.engine.clear_cache()
+        self.assertEqual(len(self.engine.query_cache), 0)
+    
+    def test_performance_tracking(self):
+        """Test performance statistics tracking."""
+        # Perform some searches
+        self.engine.search_all("castle")
+        self.engine.search_all("door")
+        
+        stats = self.engine.get_performance_stats()
+        
+        self.assertEqual(stats['total_queries'], 2)
+        self.assertGreater(stats['avg_query_time'], 0)
+        self.assertGreater(stats['total_query_time'], 0)
+        self.assertGreaterEqual(stats['cache_hit_rate'], 0)
+
+
+@unittest.skipUnless(ADVANCED_FEATURES_AVAILABLE, "Advanced search features not available")
+class TestSearchHistory(unittest.TestCase):
+    """Test search history functionality."""
+    
+    def setUp(self):
+        """Set up test environment."""
+        self.test_story_id = "test_story_history"
+        self.temp_dir = tempfile.mkdtemp()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.temp_dir)
+        
+        # Initialize database
+        init_database(self.test_story_id)
+        
+        # Check if FTS5 is supported
+        if not check_fts_support():
+            self.skipTest("FTS5 is not supported in this SQLite version")
+        
+        # Create SearchEngine
+        self.engine = SearchEngine(self.test_story_id)
+        
+        # Create test data
+        save_scene(
+            self.test_story_id,
+            "I explore the castle",
+            "You enter the grand hall",
+            scene_label="Castle Exploration"
+        )
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        os.chdir(self.original_cwd)
+        shutil.rmtree(self.temp_dir)
+    
+    def test_search_history_recording(self):
+        """Test that search history is recorded."""
+        # Perform searches
+        self.engine.search_all("castle")
+        self.engine.search_all("door")
+        self.engine.search_all("magic")
+        
+        # Check history
+        history = self.engine.get_search_history()
+        self.assertEqual(len(history), 3)
+        
+        # Check that most recent is first
+        self.assertEqual(history[0].query, "magic")
+        self.assertEqual(history[1].query, "door")
+        self.assertEqual(history[2].query, "castle")
+    
+    def test_search_history_limit(self):
+        """Test that search history is limited."""
+        # Perform many searches
+        for i in range(15):
+            self.engine.search_all(f"query{i}")
+        
+        # History should be limited
+        history = self.engine.get_search_history()
+        self.assertLessEqual(len(history), 10)  # Default limit
+    
+    def test_clear_search_history(self):
+        """Test clearing search history."""
+        # Perform searches
+        self.engine.search_all("castle")
+        self.engine.search_all("door")
+        
+        # Clear history
+        self.engine.clear_search_history()
+        
+        # History should be empty
+        history = self.engine.get_search_history()
+        self.assertEqual(len(history), 0)
+
+
+@unittest.skipUnless(ADVANCED_FEATURES_AVAILABLE, "Advanced search features not available")
+class TestSavedSearches(unittest.TestCase):
+    """Test saved searches functionality."""
+    
+    def setUp(self):
+        """Set up test environment."""
+        self.test_story_id = "test_story_saved"
+        self.temp_dir = tempfile.mkdtemp()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.temp_dir)
+        
+        # Initialize database
+        init_database(self.test_story_id)
+        
+        # Check if FTS5 is supported
+        if not check_fts_support():
+            self.skipTest("FTS5 is not supported in this SQLite version")
+        
+        # Create SearchEngine
+        self.engine = SearchEngine(self.test_story_id)
+        
+        # Create test data
+        save_scene(
+            self.test_story_id,
+            "I cast a spell",
+            "Magic energy flows through you",
+            scene_label="Spellcasting"
+        )
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        os.chdir(self.original_cwd)
+        shutil.rmtree(self.temp_dir)
+    
+    def test_save_search(self):
+        """Test saving a search."""
+        # Save a search
+        saved_search = self.engine.save_search(
+            "magic_search",
+            "magic AND spell",
+            "Find all magic-related content"
+        )
+        
+        self.assertEqual(saved_search.name, "magic_search")
+        self.assertEqual(saved_search.query, "magic AND spell")
+        self.assertEqual(saved_search.description, "Find all magic-related content")
+        
+        # Should be in saved searches
+        saved_searches = self.engine.list_saved_searches()
+        self.assertEqual(len(saved_searches), 1)
+        self.assertEqual(saved_searches[0].name, "magic_search")
+    
+    def test_list_saved_searches(self):
+        """Test listing saved searches."""
+        # Save multiple searches
+        self.engine.save_search("search1", "castle", "Castle search")
+        self.engine.save_search("search2", "magic", "Magic search")
+        
+        # List searches
+        saved_searches = self.engine.list_saved_searches()
+        self.assertEqual(len(saved_searches), 2)
+        
+        # Should be sorted by name
+        names = [s.name for s in saved_searches]
+        self.assertEqual(sorted(names), names)
+    
+    def test_delete_saved_search(self):
+        """Test deleting a saved search."""
+        # Save a search
+        self.engine.save_search("temp_search", "test", "Temporary search")
+        
+        # Delete it
+        self.engine.delete_saved_search("temp_search")
+        
+        # Should not be in saved searches
+        saved_searches = self.engine.list_saved_searches()
+        self.assertEqual(len(saved_searches), 0)
+    
+    def test_execute_saved_search(self):
+        """Test executing a saved search."""
+        # Save a search
+        self.engine.save_search("magic_search", "magic", "Find magic content")
+        
+        # Execute the saved search
+        results = self.engine.execute_saved_search("magic_search")
+        
+        # Should find results
+        self.assertGreater(len(results), 0)
+        self.assertIn("magic", results[0].content.lower())
+
+
+class TestSearchExport(unittest.TestCase):
+    """Test search result export functionality."""
+    
+    def setUp(self):
+        """Set up test environment."""
+        self.test_story_id = "test_story_export"
+        self.temp_dir = tempfile.mkdtemp()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.temp_dir)
+        
+        # Initialize database
+        init_database(self.test_story_id)
+        
+        # Check if FTS5 is supported
+        if not check_fts_support():
+            self.skipTest("FTS5 is not supported in this SQLite version")
+        
+        # Create SearchEngine
+        self.engine = SearchEngine(self.test_story_id)
+        
+        # Create test data
+        save_scene(
+            self.test_story_id,
+            "I explore the library",
+            "Ancient books line the walls",
+            scene_label="Library Discovery"
+        )
+        
+        store_memory_for_testing(self.test_story_id, 'world', 'location', 'Ancient Library')
+    
+    def tearDown(self):
+        """Clean up test environment."""
+        os.chdir(self.original_cwd)
+        shutil.rmtree(self.temp_dir)
+    
+    def test_export_results_to_json(self):
+        """Test exporting search results to JSON."""
+        # Perform search
+        results = self.engine.search_all("library")
+        
+        # Export to JSON
+        if hasattr(self.engine, 'export_results'):
+            json_data = self.engine.export_results(results, format='json')
+            
+            # Should be valid JSON
+            parsed = json.loads(json_data)
+            self.assertIsInstance(parsed, list)
+            self.assertGreater(len(parsed), 0)
+            
+            # Check structure
+            result_item = parsed[0]
+            self.assertIn('id', result_item)
+            self.assertIn('content_type', result_item)
+            self.assertIn('title', result_item)
+            self.assertIn('content', result_item)
+            self.assertIn('score', result_item)
+        else:
+            self.skipTest("Export functionality not implemented")
 
 
 if __name__ == '__main__':
