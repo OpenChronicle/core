@@ -36,6 +36,43 @@ OpenChronicle uses a local LLM to analyze and optimize content before sending to
 
 ---
 
+## 🚀 Quick Start
+
+### Configuration
+
+OpenChronicle supports multiple LLM backends. Edit `config/models.json` to set your preferred default:
+
+```json
+{
+  "default_adapter": "mock",  // Change to "openai", "ollama", or "mock"
+  "adapters": {
+    "mock": {...},     // Built-in mock adapter (no setup required)
+    "openai": {...},   // OpenAI API integration
+    "ollama": {...}    // Local Ollama integration
+  }
+}
+```
+
+### Deployment Options
+
+**Option 1: Docker with Optional Ollama**
+- Edit `docker-compose.yaml` to comment/uncomment the ollama service
+- Set `default_adapter` in `config/models.json`
+- Run `docker-compose up -d`
+
+**Option 2: Local Development**
+- Create virtual environment: `python -m venv .venv`
+- Activate: `.venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (Linux/Mac)
+- Install: `pip install -r requirements.txt`
+- Configure `config/models.json` and run `python main.py`
+
+**Option 3: Cloud Deployment**
+- Set environment variables (e.g., `OPENAI_API_KEY`)
+- Set `default_adapter` to "openai" in `config/models.json`
+- Run `python main.py`
+
+---
+
 ## 🤖 Model Adapter System
 
 OpenChronicle supports multiple LLM backends through a unified adapter system:
@@ -106,32 +143,25 @@ Craft immersive, branching story worlds using GPT-4o, Claude, or local LLMs — 
 
 ## 📦 Getting Started
 
-### 🐳 Docker Quick Start (Recommended)
+Choose your preferred deployment method:
 
-OpenChronicle includes embedded Ollama with Llama 3.2 models for complete self-containment:
+### 🐳 Docker Deployment
 
 ```bash
 # Clone the repository
 git clone https://github.com/OpenChronicle/openchronicle-core.git
 cd openchronicle-core
 
-# Start the complete environment (downloads ~2GB of models on first run)
+# Configure your deployment:
+# 1. Edit docker-compose.yaml - comment/uncomment sections as needed
+# 2. Edit config/models.json - set your preferred default_adapter
+# 3. Start the services
+
 docker-compose up -d
-
-# Start interactive storytelling
 docker-compose exec openchronicle python main.py
-
-# Check status
-docker-compose logs -f openchronicle
-docker-compose logs -f ollama
-
-# Stop services
-docker-compose down
 ```
 
 ### 🛠️ Local Development
-
-For development or external LLM integration:
 
 ```bash
 # Create and activate virtual environment
@@ -143,32 +173,36 @@ source .venv/bin/activate # Linux/Mac
 # Install dependencies
 pip install -r requirements.txt
 
-# Run with local Ollama (install separately)
+# Configure your preferred LLM in config/models.json
+# Run the application
 python main.py
 ```
 
 ### ☁️ Cloud Deployment
 
-For cloud deployment with OpenAI:
-
 ```bash
-# Set OpenAI API key
+# Set your API key
 export OPENAI_API_KEY="your-api-key"
 
-# Update config/models.json to use OpenAI adapter
+# Update config/models.json - set default_adapter to "openai"
+# Run the application
+python main.py
+```
+
+# Update config/models.json to use your preferred cloud adapter
 # Run the application
 python main.py
 ```
 
 ### 🔧 Configuration
 
-Models are configured in `config/models.json`. The Docker setup uses embedded Ollama by default, but you can modify the configuration for different deployment scenarios.
+Models are configured in `config/models.json`. You can choose any combination of adapters based on your needs and preferences. The system supports OpenAI, Ollama, or mock adapters equally.
 
 ---
 
 ## 🐳 Docker Architecture
 
-OpenChronicle uses a multi-container architecture for complete self-containment:
+OpenChronicle supports flexible Docker deployment:
 
 ```yaml
 services:
@@ -176,19 +210,19 @@ services:
     - Python 3.11 with OpenChronicle
     - SQLite databases
     - Story management
+    - Configurable LLM integration
     
-  ollama:           # Embedded LLM service
+  ollama:           # Optional embedded LLM service
     - Llama 3.2 1B (content analysis)
     - Llama 3.2 3B (story generation)
     - Completely local, no external APIs
 ```
 
-### Benefits
-- **Complete Self-Containment**: No external dependencies
-- **Privacy**: All processing happens locally
-- **Cost-Effective**: No API fees
-- **Portable**: Runs anywhere Docker runs
-- **Scalable**: Easy to swap models or add GPUs
+### Benefits of Different Approaches
+- **Docker with Ollama**: Self-contained, private, no API costs
+- **Local Development**: Fast iteration, use any LLM
+- **Cloud Integration**: Access to latest models, pay-per-use
+- **Hybrid**: Mix local and cloud models as needed
 
 ---
 This project is dual-licensed under AGPL-3.0 for engine code and CC BY-NC-SA 4.0 for story content.

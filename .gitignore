@@ -455,10 +455,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# Test files
-test_codebase.py
-test_*.py
-*_test.py
+# Test files (ignoring only temporary/development tests)
+test_development.py
+temp_test*.py
 
 # OS-specific files
 .DS_Store

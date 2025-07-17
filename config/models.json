@@ -1,6 +1,13 @@
 {
-  "default_adapter": "ollama",
-  "analyzer_adapter": "ollama_analyzer",
+  "default_adapter": "mock",
+  "analyzer_adapter": "mock",
+  
+  "// DEPLOYMENT CONFIGURATION": "Choose your deployment by changing the adapters above",
+  "// Docker with embedded Ollama": "Set default_adapter to 'ollama' and analyzer_adapter to 'ollama_analyzer'",
+  "// External Ollama (local)": "Set default_adapter to 'ollama_local' and analyzer_adapter to 'ollama_local'", 
+  "// OpenAI cloud": "Set default_adapter to 'openai' and analyzer_adapter to 'openai' (need OPENAI_API_KEY)",
+  "// Testing/minimal": "Keep default_adapter as 'mock' and analyzer_adapter as 'mock'",
+  
   "adapters": {
     "openai": {
       "type": "openai",

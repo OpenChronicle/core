@@ -7,19 +7,25 @@ services:
     volumes:
       - ./storypacks:/app/storypacks:ro
       - ./storage:/app/storage
+      - ./config:/app/config
     ports:
       - "8199:8000"
     environment:
       - DEFAULT_STORY_PACK=demo-story
+      # Uncomment next line for embedded Ollama deployment
       - OLLAMA_HOST=http://ollama:11434
+      # Uncomment next line for external Ollama deployment
+      # - OLLAMA_HOST=http://localhost:11434
     env_file:
       - .env
     restart: unless-stopped
+    # Uncomment next 2 lines for embedded Ollama deployment
     depends_on:
       - ollama
     networks:
       - openchronicle
 
+  # Embedded Ollama service - comment out entire section if using external LLM
   ollama:
     image: ollama/ollama:latest
     container_name: openchronicle-ollama
@@ -32,7 +38,7 @@ services:
     restart: unless-stopped
     networks:
       - openchronicle
-    # Pull and run a small model for content analysis
+    # Pull and run models for OpenChronicle
     command: >
       sh -c "
         ollama serve &
@@ -43,6 +49,7 @@ services:
       "
 
 volumes:
+  # Comment out if not using embedded Ollama
   ollama_data:
     driver: local
 

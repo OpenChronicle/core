@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from core.story_loader import load_storypack
 from core.context_builder import build_context_with_analysis
 from core.memory_manager import (
@@ -73,7 +74,60 @@ def show_rollback_options(story_id):
         print(f"✅ {result['message']}")
         print(f"   Scenes removed: {result['scenes_removed']}")
 
+async def run_quick_test():
+    """Run a quick test of core functionality without interactive mode."""
+    print("🧪 Quick Test Mode - Non-Interactive")
+    print("=" * 40)
+    
+    try:
+        # Load story
+        print("📚 Loading demo story...")
+        story = load_storypack("demo-story")
+        story_id = story["id"]
+        print(f"✅ Loaded: {story['meta']['title']}")
+        
+        # Initialize model
+        print("🤖 Initializing mock model...")
+        await model_manager.initialize_adapter("mock")
+        print("✅ Mock model ready")
+        
+        # Test context building
+        print("🏗️ Testing context building...")
+        context = await build_context_with_analysis("I look around the room", story)
+        print("✅ Context built successfully")
+        
+        # Test AI response
+        print("🤖 Testing AI response...")
+        response = await model_manager.generate_response(context["full_context"])
+        print(f"✅ Response: {response[:50]}...")
+        
+        # Test scene logging
+        print("📝 Testing scene logging...")
+        scene_id = save_scene(story_id, "Test input", response, memory_snapshot=context["memory"])
+        print(f"✅ Scene logged: {scene_id}")
+        
+        # Test memory summary
+        print("🧠 Testing memory summary...")
+        summary = get_memory_summary(story_id)
+        print(f"✅ Memory summary: {summary['character_count']} characters")
+        
+        print("\n🎉 Quick test completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Quick test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+    finally:
+        await model_manager.shutdown()
+
 async def main():
+    # Check for non-interactive test mode
+    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+        success = await run_quick_test()
+        sys.exit(0 if success else 1)
+    
     print("🔧 Loading storypack...")
     story = load_storypack("demo-story")
     story_id = story["id"]
