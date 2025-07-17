@@ -58,6 +58,14 @@ class CharacterStyleManager:
         self.character_styles = styles
         return styles
     
+    def get_character_list(self) -> List[str]:
+        """Get list of available character names."""
+        return list(self.character_styles.keys())
+    
+    def get_character_style(self, character_name: str) -> Dict[str, Any]:
+        """Get character style information."""
+        return self.character_styles.get(character_name, {})
+    
     def load_character_style(self, character_name: str, character_data: Dict[str, Any]):
         """Load a single character style for testing."""
         self.character_styles[character_name] = character_data

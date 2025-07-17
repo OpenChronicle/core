@@ -4,6 +4,17 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+def has_fts5_support():
+    """Check if SQLite supports FTS5."""
+    try:
+        with sqlite3.connect(':memory:') as conn:
+            cursor = conn.cursor()
+            cursor.execute("CREATE VIRTUAL TABLE test_fts USING fts5(content)")
+            cursor.execute("DROP TABLE test_fts")
+            return True
+    except sqlite3.OperationalError:
+        return False
+
 def get_db_path(story_id):
     """Get the path to the SQLite database for a story."""
     return os.path.join("storage", story_id, "openchronicle.db")

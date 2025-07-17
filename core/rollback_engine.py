@@ -201,6 +201,12 @@ def validate_rollback_integrity(story_id):
         current_time = datetime.fromisoformat(row["timestamp"])
         next_time = datetime.fromisoformat(rows[i + 1]["timestamp"])
         
+        # Handle timezone-aware/naive comparison
+        if current_time.tzinfo is None and next_time.tzinfo is not None:
+            current_time = current_time.replace(tzinfo=next_time.tzinfo)
+        elif current_time.tzinfo is not None and next_time.tzinfo is None:
+            next_time = next_time.replace(tzinfo=current_time.tzinfo)
+        
         if current_time >= next_time:
             issues.append(f"Scene {row['scene_id']} timestamp is not before {rows[i + 1]['scene_id']}")
     

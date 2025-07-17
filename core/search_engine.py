@@ -18,9 +18,12 @@ Features:
 import sqlite3
 import json
 import re
+import time
 from typing import Dict, List, Optional, Tuple, Union
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+from collections import defaultdict
+from functools import lru_cache
 
 from .database import get_connection, check_fts_support, optimize_fts_index
 
@@ -49,38 +52,98 @@ class SearchQuery:
     quoted_phrases: List[str]
     filters: Dict[str, str]
     content_types: List[str]
+    wildcards: List[str] = field(default_factory=list)
+    proximity_searches: List[Tuple[str, str, int]] = field(default_factory=list)
+    sort_order: str = "relevance"
+    limit: int = 50
+
+
+@dataclass
+class SearchHistory:
+    """Represents a search history entry."""
+    query: str
+    timestamp: datetime
+    results_count: int
+    execution_time: float
+    filters: Dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class SavedSearch:
+    """Represents a saved search."""
+    name: str
+    query: str
+    filters: Dict[str, str]
+    created_at: datetime
+    last_used: Optional[datetime] = None
+    use_count: int = 0
 
 
 class SearchEngine:
-    """Full-text search engine with FTS5 integration."""
+    """Enhanced full-text search engine with FTS5 integration."""
     
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, cache_size: int = 100):
         """Initialize search engine for a specific story."""
         self.story_id = story_id
         self.fts_supported = check_fts_support()
+        self.cache_size = cache_size
+        self.search_history: List[SearchHistory] = []
+        self.saved_searches: Dict[str, SavedSearch] = {}
+        self.query_cache: Dict[str, Tuple[List[SearchResult], float]] = {}
+        self.performance_stats = {
+            'total_queries': 0,
+            'cache_hits': 0,
+            'avg_query_time': 0.0,
+            'total_query_time': 0.0
+        }
         
         if not self.fts_supported:
             raise RuntimeError("FTS5 is not supported in this SQLite version")
     
     def parse_query(self, query: str) -> SearchQuery:
-        """Parse and sanitize a search query."""
+        """Parse and sanitize a search query with advanced features."""
         original = query.strip()
         
         # Extract quoted phrases
         quoted_phrases = re.findall(r'"([^"]*)"', original)
         
-        # Extract filters (e.g., type:scene, label:chapter)
+        # Extract wildcards (terms with * or ?)
+        wildcards = re.findall(r'\b\w*[*?]\w*\b', original)
+        
+        # Remove wildcards from terms extraction
+        temp_sanitized = original
+        for wildcard in wildcards:
+            temp_sanitized = temp_sanitized.replace(wildcard, '')
+        
+        # Extract proximity searches (word1 NEAR/5 word2)
+        proximity_searches = []
+        proximity_pattern = r'(\w+)\s+NEAR/(\d+)\s+(\w+)'
+        for match in re.finditer(proximity_pattern, temp_sanitized, re.IGNORECASE):
+            term1, distance, term2 = match.groups()
+            proximity_searches.append((term1, term2, int(distance)))
+        
+        # Extract filters (e.g., type:scene, label:chapter, sort:date)
         filters = {}
         filter_pattern = r'(\w+):(\w+)'
         for match in re.finditer(filter_pattern, original):
             key, value = match.groups()
             filters[key] = value
         
-        # Remove quoted phrases and filters from main query
+        # Extract sort order
+        sort_order = filters.pop('sort', 'relevance')
+        
+        # Extract limit
+        limit = int(filters.pop('limit', '50'))
+        
+        # Remove quoted phrases, wildcards, proximity searches, and filters from main query
         sanitized = original
         for phrase in quoted_phrases:
             sanitized = sanitized.replace(f'"{phrase}"', '')
-        for key, value in filters.items():
+        for wildcard in wildcards:
+            sanitized = sanitized.replace(wildcard, '')
+        for term1, term2, distance in proximity_searches:
+            sanitized = sanitized.replace(f'{term1} NEAR/{distance} {term2}', '')
+        for key, value in {**filters, 'sort': sort_order, 'limit': str(limit)}.items():
             sanitized = sanitized.replace(f'{key}:{value}', '')
         
         # Extract individual terms and operators
@@ -107,7 +170,7 @@ class SearchEngine:
             content_types = ['scene', 'memory']
         
         # Clean up sanitized query
-        sanitized = ' '.join(terms + quoted_phrases)
+        sanitized = ' '.join(terms + quoted_phrases + wildcards)
         
         return SearchQuery(
             original=original,
@@ -116,7 +179,11 @@ class SearchEngine:
             operators=operators,
             quoted_phrases=quoted_phrases,
             filters=filters,
-            content_types=content_types
+            content_types=content_types,
+            wildcards=wildcards,
+            proximity_searches=proximity_searches,
+            sort_order=sort_order,
+            limit=limit
         )
     
     def search_scenes(self, query: SearchQuery, limit: int = 50) -> List[SearchResult]:
@@ -261,26 +328,93 @@ class SearchEngine:
             return results
     
     def search_all(self, query_string: str, limit: int = 50) -> List[SearchResult]:
-        """Search across all content types."""
+        """Search across all content types with caching and performance tracking."""
+        start_time = time.time()
+        
+        # Check cache first
+        cache_key = f"{query_string}::{limit}"
+        if cache_key in self.query_cache:
+            cached_results, cached_time = self.query_cache[cache_key]
+            # Return cached results if they're less than 5 minutes old
+            if time.time() - cached_time < 300:
+                self.performance_stats['cache_hits'] += 1
+                self.performance_stats['total_queries'] += 1
+                return cached_results
+        
+        # Parse query
         query = self.parse_query(query_string)
         
+        # Determine actual limit for each content type
+        scene_limit = limit // 2 if len(query.content_types) > 1 else limit
+        memory_limit = limit // 2 if len(query.content_types) > 1 else limit
+        
         # Search scenes and memory
-        scene_results = self.search_scenes(query, limit // 2)
-        memory_results = self.search_memory(query, limit // 2)
+        scene_results = self.search_scenes(query, scene_limit)
+        memory_results = self.search_memory(query, memory_limit)
         
-        # Combine and sort by relevance
+        # Combine results
         all_results = scene_results + memory_results
-        all_results.sort(key=lambda x: x.score)
         
-        return all_results[:limit]
+        # Sort results based on sort order
+        if query.sort_order == 'relevance':
+            all_results.sort(key=lambda x: x.score)
+        elif query.sort_order == 'date':
+            all_results.sort(key=lambda x: x.timestamp or '', reverse=True)
+        elif query.sort_order == 'title':
+            all_results.sort(key=lambda x: x.title.lower())
+        
+        # Apply final limit
+        final_results = all_results[:query.limit]
+        
+        # Update performance stats
+        execution_time = time.time() - start_time
+        self.performance_stats['total_queries'] += 1
+        self.performance_stats['total_query_time'] += execution_time
+        self.performance_stats['avg_query_time'] = (
+            self.performance_stats['total_query_time'] / 
+            self.performance_stats['total_queries']
+        )
+        
+        # Cache results
+        self.query_cache[cache_key] = (final_results, time.time())
+        
+        # Limit cache size
+        if len(self.query_cache) > self.cache_size:
+            # Remove oldest entry
+            oldest_key = min(self.query_cache.keys(), 
+                           key=lambda k: self.query_cache[k][1])
+            del self.query_cache[oldest_key]
+        
+        # Add to search history
+        self.search_history.append(SearchHistory(
+            query=query_string,
+            timestamp=datetime.now(),
+            results_count=len(final_results),
+            execution_time=execution_time,
+            filters=query.filters
+        ))
+        
+        # Limit history size
+        if len(self.search_history) > 100:
+            self.search_history = self.search_history[-100:]
+        
+        return final_results
     
     def _build_fts_query(self, query: SearchQuery) -> str:
-        """Build FTS5 query from parsed query."""
+        """Build FTS5 query from parsed query with advanced features."""
         parts = []
         
         # Add quoted phrases
         for phrase in query.quoted_phrases:
             parts.append(f'"{phrase}"')
+        
+        # Add wildcards
+        for wildcard in query.wildcards:
+            parts.append(wildcard)
+        
+        # Add proximity searches
+        for term1, term2, distance in query.proximity_searches:
+            parts.append(f'"{term1}" NEAR/{distance} "{term2}"')
         
         # Add terms with operators
         if query.terms:
@@ -305,10 +439,14 @@ class SearchEngine:
                     term_parts.append(query.terms[term_idx])
                     term_idx += 1
                 
-                parts.append(' '.join(term_parts))
+                if term_parts:
+                    parts.append(' '.join(term_parts))
             else:
-                # Simple term matching
-                parts.extend(query.terms)
+                # Simple term matching with implicit AND
+                if len(query.terms) > 1:
+                    parts.append(' AND '.join(query.terms))
+                elif query.terms:
+                    parts.extend(query.terms)
         
         # Join with AND if multiple parts
         if len(parts) > 1:
@@ -347,6 +485,165 @@ class SearchEngine:
     def optimize_indexes(self):
         """Optimize FTS5 indexes for better performance."""
         optimize_fts_index(self.story_id)
+        # Clear cache after optimization
+        self.query_cache.clear()
+    
+    def clear_cache(self):
+        """Clear search result cache."""
+        self.query_cache.clear()
+    
+    def get_search_history(self, limit: int = 20) -> List[SearchHistory]:
+        """Get recent search history."""
+        return self.search_history[-limit:]
+    
+    def clear_search_history(self):
+        """Clear search history."""
+        self.search_history.clear()
+    
+    def save_search(self, name: str, query: str, filters: Dict[str, str] = None):
+        """Save a search for later reuse."""
+        self.saved_searches[name] = SavedSearch(
+            name=name,
+            query=query,
+            filters=filters or {},
+            created_at=datetime.now()
+        )
+    
+    def get_saved_search(self, name: str) -> Optional[SavedSearch]:
+        """Get a saved search by name."""
+        saved_search = self.saved_searches.get(name)
+        if saved_search:
+            saved_search.last_used = datetime.now()
+            saved_search.use_count += 1
+        return saved_search
+    
+    def list_saved_searches(self) -> List[SavedSearch]:
+        """List all saved searches."""
+        return list(self.saved_searches.values())
+    
+    def delete_saved_search(self, name: str) -> bool:
+        """Delete a saved search."""
+        if name in self.saved_searches:
+            del self.saved_searches[name]
+            return True
+        return False
+    
+    def execute_saved_search(self, name: str, limit: int = 50) -> List[SearchResult]:
+        """Execute a saved search."""
+        saved_search = self.get_saved_search(name)
+        if saved_search:
+            # Build query with filters
+            query_with_filters = saved_search.query
+            for key, value in saved_search.filters.items():
+                query_with_filters += f" {key}:{value}"
+            
+            return self.search_all(query_with_filters, limit)
+        return []
+    
+    def get_search_suggestions(self, partial_query: str, limit: int = 5) -> List[str]:
+        """Get search suggestions based on history and saved searches."""
+        suggestions = []
+        
+        # Get suggestions from search history
+        for history_entry in reversed(self.search_history):
+            if partial_query.lower() in history_entry.query.lower():
+                if history_entry.query not in suggestions:
+                    suggestions.append(history_entry.query)
+                    if len(suggestions) >= limit:
+                        break
+        
+        # Get suggestions from saved searches
+        if len(suggestions) < limit:
+            for saved_search in self.saved_searches.values():
+                if partial_query.lower() in saved_search.query.lower():
+                    if saved_search.query not in suggestions:
+                        suggestions.append(saved_search.query)
+                        if len(suggestions) >= limit:
+                            break
+        
+        return suggestions[:limit]
+    
+    def export_search_results(self, results: List[SearchResult], format: str = 'json') -> str:
+        """Export search results in various formats."""
+        if format == 'json':
+            return self._export_json(results)
+        elif format == 'markdown':
+            return self._export_markdown(results)
+        elif format == 'csv':
+            return self._export_csv(results)
+        else:
+            raise ValueError(f"Unsupported export format: {format}")
+    
+    def _export_json(self, results: List[SearchResult]) -> str:
+        """Export results as JSON."""
+        export_data = []
+        for result in results:
+            export_data.append({
+                'id': result.id,
+                'content_type': result.content_type,
+                'title': result.title,
+                'content': result.content,
+                'snippet': result.snippet,
+                'score': result.score,
+                'timestamp': result.timestamp,
+                'scene_label': result.scene_label,
+                'metadata': result.metadata
+            })
+        return json.dumps(export_data, indent=2)
+    
+    def _export_markdown(self, results: List[SearchResult]) -> str:
+        """Export results as Markdown."""
+        markdown = "# Search Results\n\n"
+        for i, result in enumerate(results, 1):
+            markdown += f"## {i}. {result.title}\n\n"
+            markdown += f"**Type:** {result.content_type}\n"
+            markdown += f"**Score:** {result.score:.6f}\n"
+            if result.timestamp:
+                markdown += f"**Timestamp:** {result.timestamp}\n"
+            if result.scene_label:
+                markdown += f"**Scene Label:** {result.scene_label}\n"
+            markdown += f"\n**Content:**\n{result.content}\n\n"
+            markdown += f"**Snippet:**\n{result.snippet}\n\n"
+            markdown += "---\n\n"
+        return markdown
+    
+    def _export_csv(self, results: List[SearchResult]) -> str:
+        """Export results as CSV."""
+        import csv
+        import io
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(['ID', 'Content Type', 'Title', 'Content', 'Snippet', 
+                        'Score', 'Timestamp', 'Scene Label'])
+        
+        # Write data
+        for result in results:
+            writer.writerow([
+                result.id,
+                result.content_type,
+                result.title,
+                result.content.replace('\n', ' '),
+                result.snippet.replace('\n', ' '),
+                result.score,
+                result.timestamp or '',
+                result.scene_label or ''
+            ])
+        
+        return output.getvalue()
+    
+    def get_performance_stats(self) -> Dict:
+        """Get search engine performance statistics."""
+        stats = self.performance_stats.copy()
+        stats.update({
+            'cache_size': len(self.query_cache),
+            'cache_hit_rate': (stats['cache_hits'] / max(stats['total_queries'], 1)) * 100,
+            'search_history_size': len(self.search_history),
+            'saved_searches_count': len(self.saved_searches)
+        })
+        return stats
     
     def health_check(self) -> Dict:
         """Perform a health check on the search engine."""
