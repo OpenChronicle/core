@@ -1,0 +1,46 @@
+{
+  "models": [
+    {
+      "name": "openai",
+      "priority": 1,
+      "fallbacks": ["anthropic", "ollama", "mock"],
+      "enabled": true
+    },
+    {
+      "name": "anthropic",
+      "priority": 2,
+      "fallbacks": ["ollama", "mock"],
+      "enabled": true
+    },
+    {
+      "name": "ollama",
+      "priority": 3,
+      "fallbacks": ["mock"],
+      "enabled": true
+    },
+    {
+      "name": "mock",
+      "priority": 99,
+      "fallbacks": [],
+      "enabled": true
+    }
+  ],
+  "content_routing": {
+    "nsfw_models": ["ollama"],
+    "safe_models": ["openai", "anthropic", "ollama"],
+    "default_nsfw_model": "ollama",
+    "default_safe_model": "openai"
+  },
+  "performance": {
+    "max_concurrent_requests": 3,
+    "timeout_seconds": 30,
+    "retry_attempts": 2,
+    "rate_limit_per_minute": 60
+  },
+  "fallback_behavior": {
+    "max_fallback_attempts": 3,
+    "fallback_delay_seconds": 1,
+    "log_fallback_usage": true,
+    "fail_on_all_fallbacks": true
+  }
+}
