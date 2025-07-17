@@ -10,4 +10,7 @@ services:
     ports:
       - "8199:8000"
     environment:
-      - STORYPACK=demo-story
+      - DEFAULT_STORY_PACK=demo-story
+    env_file:
+      - .env
+    restart: unless-stopped
