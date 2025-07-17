@@ -45,6 +45,9 @@ storage/*/exports/
 *.jsonl
 *.log
 
+# Configuration backups
+config/models.json.backup.*
+
 # User-specific files
 *.rsuser
 *.suo

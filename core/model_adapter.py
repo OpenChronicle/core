@@ -60,6 +60,7 @@ class OpenAIAdapter(ModelAdapter):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("OPENAI_API_KEY")
+        self.base_url = config.get("base_url", "https://api.openai.com/v1")
         self.client = None
     
     async def initialize(self) -> bool:
@@ -69,7 +70,10 @@ class OpenAIAdapter(ModelAdapter):
         
         try:
             import openai
-            self.client = openai.AsyncOpenAI(api_key=self.api_key)
+            self.client = openai.AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
             self.initialized = True
             return True
         except ImportError:
@@ -436,6 +440,7 @@ class AnthropicAdapter(ModelAdapter):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("ANTHROPIC_API_KEY")
+        self.base_url = config.get("base_url", "https://api.anthropic.com")
         self.client = None
     
     async def initialize(self) -> bool:
@@ -445,7 +450,10 @@ class AnthropicAdapter(ModelAdapter):
         
         try:
             import anthropic
-            self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
+            self.client = anthropic.AsyncAnthropic(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
             self.initialized = True
             return True
         except ImportError:
@@ -819,6 +827,7 @@ class OpenAIImageAdapter(ImageAdapter):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("OPENAI_API_KEY")
+        self.base_url = config.get("base_url", "https://api.openai.com/v1")
         self.size = config.get("size", "1024x1024")
         self.quality = config.get("quality", "standard")
         self.style = config.get("style", "vivid")
@@ -831,7 +840,10 @@ class OpenAIImageAdapter(ImageAdapter):
         
         try:
             import openai
-            self.client = openai.AsyncOpenAI(api_key=self.api_key)
+            self.client = openai.AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
             self.initialized = True
             return True
         except ImportError:
