@@ -1,6 +1,6 @@
 # OpenChronicle Architecture Overview
 
-## Core Module Interactions
+## Core Module Interactions (13 Core Modules)
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -29,19 +29,35 @@
                     │   story         │    │ • Memory snaps  │
                     │ • Rollback      │    │ • Rollback pts  │
                     │   support       │    │ • Centralized   │
-                    └─────────────────┘    │   logging       │
-                                          └─────────────────┘
-                                                   │
-                                                   ▼
-                                          ┌─────────────────┐
-                                          │ utilities/      │
-                                          │ logging_system  │
-                                          │                 │
-                                          │ • Centralized   │
-                                          │   logging       │
-                                          │ • Log rotation  │
-                                          │ • Maintenance   │
-                                          └─────────────────┘
+                    │ • FTS5 tables   │    │   logging       │
+                    └─────────────────┘    └─────────────────┘
+                             │                       │
+                             ▼                       ▼
+                    ┌─────────────────┐    ┌─────────────────┐
+                    │ search_engine   │    │ rollback_engine │
+                    │                 │    │                 │
+                    │ • FTS5 search   │    │ • State mgmt    │
+                    │ • Query parsing │    │ • Checkpoint    │
+                    │ • Result rank   │    │ • Restoration   │
+                    └─────────────────┘    └─────────────────┘
+                             │                       │
+                             ▼                       ▼
+                    ┌─────────────────┐    ┌─────────────────┐
+                    │bookmark_manager │    │ token_manager   │
+                    │                 │    │                 │
+                    │ • Bookmark CRUD │    │ • Token estim   │
+                    │ • Collections   │    │ • Model select  │
+                    │ • Search integ  │    │ • Optimization  │
+                    └─────────────────┘    └─────────────────┘
+                             │                       │
+                             ▼                       ▼
+                    ┌─────────────────┐    ┌─────────────────┐
+                    │timeline_builder │    │char_style_mgr   │
+                    │                 │    │                 │
+                    │ • Timeline gen  │    │ • Char consist  │
+                    │ • Event track   │    │ • Style enforce │
+                    │ • Visual out    │    │ • Writing style │
+                    └─────────────────┘    └─────────────────┘
 ```
 
 ## Data Flow Patterns

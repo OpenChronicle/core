@@ -1,23 +1,16 @@
 # OpenChronicle .copilot Directory
 
-This directory contains comprehensive documentation, examples, and patterns to enhance GitHub Copilot's understanding of the OpenChronicle project. It serves as a knowledge base for AI-assisted development.
+This directory contains essential documentation, examples, and patterns to enhance GitHub Copilot's understanding of the OpenChronicle project. It serves as a streamlined knowledge base for AI-assisted development.
 
 ## 📁 Directory Structure
 
 ```
 .copilot/
-├── README.md                    # This file
-├── context.json                 # Unified project context for Copilot
-├── core_logic_phase1_plan.md    # Current development priority - Memory & Continuity Enhancement
-├── next_priority_full_text_search.md # Full-text search system (COMPLETED)
-├── integration_summary.md       # Token management and dynamic models (COMPLETED)
-├── character_style_completion.md # Character consistency system (COMPLETED)
-├── test_organization_summary.md # Test structure organization (COMPLETED)
-├── fts_phase1_complete.md       # FTS Phase 1 completion summary
-├── fts_phase2_complete.md       # FTS Phase 2 completion summary
+├── README.md                    # This file - overview and usage guide
+├── context.json                 # Unified project context and status (PRIMARY REFERENCE)
 ├── architecture/                # System architecture documentation
 │   └── module_interactions.md   # Module relationships and data flow
-├── config/                      # Configuration examples
+├── config/                      # Configuration examples and templates
 │   ├── model_registry.json      # Model priority and fallback configuration
 │   └── models/                  # Individual model configurations
 │       ├── openai.json          # OpenAI GPT configuration
@@ -46,61 +39,64 @@ This directory contains comprehensive documentation, examples, and patterns to e
 This directory serves multiple purposes:
 
 ### 1. **Enhanced AI Understanding**
-- Provides comprehensive context about the OpenChronicle project
+- Provides comprehensive context about the OpenChronicle project through `context.json`
 - Includes architectural patterns and design decisions
+- Maintains current project status and development priorities
 - Demonstrates best practices and coding standards
-- Shows working examples of key components
 
 ### 2. **Development Acceleration**
-- Standardized patterns for common tasks
-- Complete examples that can be adapted
-- Testing templates and strategies
-- Configuration templates for different deployment scenarios
+- Reusable code patterns and templates in `patterns/`
+- Working examples and configurations in `examples/` and `config/`
+- Testing frameworks and patterns in `testing/`
+- Standardized patterns for common development tasks
 
 ### 3. **Knowledge Preservation**
-- Documents architectural decisions and rationale
-- Preserves working examples of complex features
+- Documents architectural decisions and implementation rationale
+- Preserves working examples of complex integrations
 - Maintains consistency across development sessions
-- Serves as onboarding material for new developers
+- Serves as reference for understanding system relationships
 
 ### 4. **Code Quality**
-- Enforces consistent coding standards
+- Enforces consistent coding standards via `development_guidelines.md`
 - Provides tested patterns for common operations
 - Includes comprehensive error handling examples
-- Demonstrates proper testing strategies
+- Demonstrates proper testing strategies and module structure
 
 ## 🔧 How to Use
 
 ### For Developers
-1. **Reference Patterns**: Use files in `patterns/` as templates for new modules
-2. **Copy Examples**: Adapt configurations from `config/` for your needs
-3. **Follow Guidelines**: Refer to `development_guidelines.md` for coding standards
-4. **Test Templates**: Use `testing/test_patterns.py` as a testing framework
+1. **Start with Context**: Review `context.json` for current project status and priorities
+2. **Reference Patterns**: Use files in `patterns/` as templates for new modules
+3. **Copy Examples**: Adapt configurations from `config/` for your deployment needs
+4. **Follow Guidelines**: Refer to `patterns/development_guidelines.md` for coding standards
+5. **Test Templates**: Use `testing/test_patterns.py` as a testing framework
 
 ### For GitHub Copilot
 This directory automatically enhances Copilot's suggestions by providing:
-- Project-specific context and terminology
-- Working code examples in the project's style
-- Architecture patterns and relationships
-- Testing strategies and patterns
+- Current project context and status via `context.json`
+- Project-specific terminology and architectural patterns
+- Working code examples demonstrating the project's coding style
+- Module relationships and data flow understanding
+- Testing strategies and implementation patterns
 
 ### For Story Creation
-- Use `examples/storypacks/fantasy-tavern/` as a template
-- Adapt `meta.yaml` for your story's needs
-- Reference `style_guide.md` for narrative formatting
-- Use character and canon examples as templates
+- Use `examples/storypacks/fantasy-tavern/` as a complete template
+- Adapt `meta.yaml` for your story's metadata requirements
+- Reference `style_guide.md` for narrative formatting standards
+- Use character and canon examples as structural templates
 
 ## 📋 Key Files
 
-### `context.json`
-- **Purpose**: Unified project context for Copilot
-- **Content**: Project overview, architecture, features, and development status
-- **Usage**: Automatically used by Copilot for project understanding
+### `context.json` ⭐ PRIMARY REFERENCE
+- **Purpose**: Unified project context and current status
+- **Content**: Project overview, 13 core modules, implemented features, current priorities, and development roadmap
+- **Usage**: Automatically referenced by Copilot for accurate project understanding
+- **Status**: Continuously updated with accurate implementation status
 
 ### `architecture/module_interactions.md`
-- **Purpose**: System architecture documentation
-- **Content**: Module relationships, data flow, and design patterns
-- **Usage**: Understanding how components interact
+- **Purpose**: System architecture and module relationships
+- **Content**: Data flow, component interactions, and design patterns
+- **Usage**: Understanding how the 13 core modules work together
 
 ### `patterns/core_module_pattern.py`
 - **Purpose**: Standard module structure template
