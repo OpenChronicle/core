@@ -7,9 +7,11 @@ import os
 import sys
 
 # Add the parent directory to the path so we can import our modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from core.content_analyzer import content_analyzer
+from core.content_analyzer import ContentAnalyzer
 from core.model_adapter import model_manager
 from core.story_loader import load_storypack
 from core.context_builder import build_context_with_analysis
@@ -21,6 +23,9 @@ async def test_content_analysis():
     
     # Initialize model manager
     await model_manager.initialize_adapter("mock")
+    
+    # Initialize content analyzer
+    content_analyzer = ContentAnalyzer(model_manager)
     
     # Load demo story
     story = load_storypack("demo-story")

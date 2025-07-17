@@ -7,6 +7,11 @@ import sys
 import os
 import traceback
 
+# Add the project root to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 def test_imports():
     """Test that all core modules can be imported."""
     try:

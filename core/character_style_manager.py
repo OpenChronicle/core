@@ -1,12 +1,14 @@
 """
-Character Style Manager with Dynamic Model Selection
-Maintains character consistency across different LLM models.
+Character Style Manager with Dynamic Model Selection and Tone Consistency
+Maintains character consistency across different LLM models with tone auditing.
 """
 
 import json
 import os
 import sys
-from typing import Dict, List, Any, Optional
+import re
+import time
+from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 
 # Add utilities to path for logging system
@@ -21,6 +23,8 @@ class CharacterStyleManager:
         self.character_styles = {}
         self.model_adaptations = {}
         self.tone_history = {}
+        self.consistency_scores = {}
+        self.scene_anchors = {}
         
     def load_character_styles(self, story_path: str) -> Dict[str, Dict[str, Any]]:
         """Load character style blocks from story characters."""
@@ -43,18 +47,37 @@ class CharacterStyleManager:
                         styles[char_name] = char_data['style_block']
                         log_info(f"Loaded style block for {char_name}")
                         
+                        # Initialize tone history and consistency tracking
+                        self.tone_history[char_name] = []
+                        self.consistency_scores[char_name] = 1.0
+                        self.scene_anchors[char_name] = {}
+                        
                 except Exception as e:
                     log_error(f"Failed to load character style for {char_name}: {e}")
                     
         self.character_styles = styles
         return styles
     
+    def load_character_style(self, character_name: str, character_data: Dict[str, Any]):
+        """Load a single character style for testing."""
+        self.character_styles[character_name] = character_data
+        
+        # Initialize tone history and consistency tracking
+        self.tone_history[character_name] = []
+        self.consistency_scores[character_name] = []
+        self.scene_anchors[character_name] = []
+        
+        log_info(f"Loaded character style: {character_name}")
+    
     def get_character_style_prompt(self, character_name: str, model_name: str) -> str:
         """Get character style prompt adapted for specific model."""
         if character_name not in self.character_styles:
             return ""
             
-        style = self.character_styles[character_name]
+        character_data = self.character_styles[character_name]
+        # Extract style_block if it exists, otherwise use the whole character data
+        style = character_data.get("style_block", character_data)
+        
         model_config = self.model_manager.get_adapter_info(model_name)
         provider = model_config.get("provider", "").lower()
         
@@ -215,6 +238,9 @@ Provide analysis in JSON format:
             if len(self.tone_history[character_name]) > 5:
                 self.tone_history[character_name] = self.tone_history[character_name][-5:]
             
+            # Update consistency score
+            self.update_consistency_score(character_name, analysis["consistency"])
+            
             log_system_event("character_tone_analysis", 
                            f"{character_name}: {analysis['tone']} (consistency: {analysis['consistency']})")
             
@@ -299,6 +325,107 @@ Provide analysis in JSON format:
         log_system_event("character_style_update", 
                         f"Updated style for {character_name}: {style_updates}")
     
+    def calculate_consistency_score(self, character_name: str) -> float:
+        """Calculate consistency score for a character based on recent outputs."""
+        if character_name not in self.consistency_scores:
+            return 0.5  # Default neutral score
+        
+        scores = self.consistency_scores[character_name]
+        if not scores:
+            return 0.5
+        
+        # Weight recent scores more heavily
+        weighted_sum = 0.0
+        weight_sum = 0.0
+        
+        for i, score in enumerate(scores):
+            weight = 1.0 + (i * 0.1)  # More recent = higher weight
+            weighted_sum += score * weight
+            weight_sum += weight
+        
+        return weighted_sum / weight_sum if weight_sum > 0 else 0.5
+    
+    def update_consistency_score(self, character_name: str, score: float):
+        """Update consistency score for a character."""
+        if character_name not in self.consistency_scores:
+            self.consistency_scores[character_name] = []
+        
+        self.consistency_scores[character_name].append(score)
+        
+        # Keep only last 10 scores
+        if len(self.consistency_scores[character_name]) > 10:
+            self.consistency_scores[character_name] = self.consistency_scores[character_name][-10:]
+    
+    def create_scene_anchor(self, character_name: str, scene_context: str, 
+                           model_name: str) -> str:
+        """Create an echo-driven scene anchor for model switching."""
+        # Get recent tone and style info
+        recent_tone = "neutral"
+        if character_name in self.tone_history and self.tone_history[character_name]:
+            recent_tone = self.tone_history[character_name][-1]
+        
+        # Get character style
+        style = self.character_styles.get(character_name, {})
+        
+        # Create anchor prompt
+        anchor = f"""=== SCENE ANCHOR for {character_name} ===
+Recent tone: {recent_tone}
+Character style: {json.dumps(style.get('style_block', {}), indent=2)}
+Scene context: {scene_context}
+
+The character should maintain consistency with their established tone and style.
+Model: {model_name}
+"""
+        
+        # Store anchor for future reference
+        if character_name not in self.scene_anchors:
+            self.scene_anchors[character_name] = []
+        
+        self.scene_anchors[character_name].append({
+            "timestamp": time.time(),
+            "anchor": anchor,
+            "model": model_name,
+            "tone": recent_tone
+        })
+        
+        # Keep only last 5 anchors
+        if len(self.scene_anchors[character_name]) > 5:
+            self.scene_anchors[character_name] = self.scene_anchors[character_name][-5:]
+        
+        return anchor
+    
+    def get_narrative_stitching_prompt(self, character_name: str, 
+                                      old_model: str, new_model: str) -> str:
+        """Create prompt for narrative stitching between models."""
+        # Get recent anchors
+        recent_anchors = []
+        if character_name in self.scene_anchors:
+            recent_anchors = self.scene_anchors[character_name][-2:]
+        
+        # Get tone history
+        tone_context = ""
+        if character_name in self.tone_history and self.tone_history[character_name]:
+            recent_tones = self.tone_history[character_name][-3:]
+            tone_context = f"Recent tone progression: {' -> '.join(recent_tones)}"
+        
+        # Build stitching prompt
+        stitching_prompt = f"""=== NARRATIVE STITCHING for {character_name} ===
+
+Character is transitioning from model {old_model} to model {new_model}.
+Maintain tone and style consistency.
+
+{tone_context}
+
+Character style: {json.dumps(self.character_styles.get(character_name, {}), indent=2)}
+
+Recent scene anchors:
+{json.dumps(recent_anchors, indent=2)}
+
+Ensure the character's voice remains consistent across this model transition.
+"""
+        
+        return stitching_prompt
+    
     def get_character_stats(self) -> Dict[str, Any]:
         """Get character consistency statistics."""
         stats = {
@@ -311,19 +438,17 @@ Provide analysis in JSON format:
         total_consistency = 0
         consistency_count = 0
         
-        for char_name, tones in self.tone_history.items():
-            if char_name in self.character_styles:
-                # Calculate average consistency for this character
-                # (This would need to be tracked during tone analysis)
-                char_consistency = 0.8  # Placeholder
-                total_consistency += char_consistency
-                consistency_count += 1
-                
-                stats["character_details"][char_name] = {
-                    "tone_entries": len(tones),
-                    "recent_tone": tones[-1] if tones else "unknown",
-                    "consistency": char_consistency
-                }
+        for char_name in self.character_styles.keys():
+            char_consistency = self.calculate_consistency_score(char_name)
+            total_consistency += char_consistency
+            consistency_count += 1
+            
+            stats["character_details"][char_name] = {
+                "tone_entries": len(self.tone_history.get(char_name, [])),
+                "recent_tone": self.tone_history.get(char_name, ["unknown"])[-1],
+                "consistency": char_consistency,
+                "scene_anchors": len(self.scene_anchors.get(char_name, []))
+            }
         
         if consistency_count > 0:
             stats["average_consistency"] = total_consistency / consistency_count
