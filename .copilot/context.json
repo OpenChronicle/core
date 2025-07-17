@@ -1,33 +1,169 @@
 {
   "version": 4,
-  "messages": [
+  "project": "OpenChronicle",
+  "description": "An extensible, LLM-agnostic storytelling engine that allows users to build, extend, and retell interactive stories through structured folders, dynamic memory, character-driven logic, and local/API LLM integration. Supports rollback, NSFW-safe routing, world modeling, and plugin-based extensibility.",
+  
+  "goals": [
+    "Support modular storypack structure (characters, world, items, meta, style, config)",
+    "Enable multi-model integration using both local (Ollama) and remote (OpenAI, Groq, Claude) LLMs",
+    "Allow story state continuity across interactions with rollback and snapshot support",
+    "Support style-guided storytelling and configurable tone via per-story style guides",
+    "Enable immersive character memory and voice modeling, unique per character",
+    "Support token-efficient prompt construction and fallback routing between models",
+    "Expose OpenChronicle functions through CLI, Discord bot, and web UI",
+    "Support converter scripts to package/unpack storypacks and build from raw notes",
+    "Maintain LLM abstraction so any compliant model can be plugged in",
+    "Keep system compatible with low-resource hardware (NAS, Pi, etc.)"
+  ],
+
+  "core_modules": [
+    "scene_logger.py → logs scene_id, user/model input, memory state, flags, canon used",
+    "story_loader.py → loads storypacks (canon, memory, characters, meta.yaml, style)",
+    "context_builder.py → builds prompts using memory + canon + analysis + user input",
+    "content_analyzer.py → uses LLM to classify tone, flags, route models",
+    "memory_manager.py → stores/retrieves world state, character status, etc",
+    "database.py → story-local SQLite persistence with rollback and memory tracking",
+    "model_adapter.py → abstraction for different LLM providers (OpenAI, Ollama, mock)",
+    "rollback_engine.py → complete rollback system with backup and integrity validation",
+    "search_engine.py → full-text search with FTS5, caching, and advanced queries",
+    "bookmark_manager.py → comprehensive bookmark system with metadata and navigation",
+    "timeline_builder.py → timeline generation with scene and bookmark integration",
+    "character_style_manager.py → character consistency management across models",
+    "token_manager.py → intelligent token management and optimization"
+  ],
+
+  "design_principles": [
+    "Modular architecture with clean separation of concerns",
+    "Local-first but model-agnostic design",
+    "NSFW-safe routing and content classification",
+    "Memory versioning and comprehensive rollback support",
+    "Scene tracking and timeline export capabilities",
+    "Docker and Synology-friendly deployment"
+  ],
+
+  "project_structure": {
+    "core": "13 foundational Python modules",
+    "storypacks": "Per-story folders with canon, characters, memory, and style guides",
+    "storage": "SQLite databases per story, with exports folder",
+    "config": "Model configuration (models.json) with 12+ LLM providers"
+  },
+
+  "completed_features": [
+    "SQLite integration with all core modules",
+    "LLM adapter system with 12+ providers (text + image generation)",
+    "Intelligent content analysis system (optional local LLM)",
+    "Full-text search engine with FTS5 support and advanced queries",
+    "Scene labeling and bookmark management system",
+    "Timeline builder with navigation and export capabilities",
+    "Character style management for cross-model consistency",
+    "Token management and optimization system",
+    "Flexible Docker deployment with optional embedded Ollama",
+    "Optional two-tier LLM architecture for token optimization",
+    "Smart context selection and token optimization",
+    "Comprehensive test suite (22/22 tests passing)",
+    "Configuration management system with extensive provider support",
+    "Virtual environment setup with proper dependency management",
+    "Multiple deployment options (Docker, local, cloud)",
+    "Complete modularity - use any combination of features",
+    "Clean, stable codebase foundation",
+    "Centralized logging and utilities system",
+    "CLI commands: memory, models, switch, rollback (functional in interactive mode)"
+  ],
+
+  "in_development": [
+    "Content Classification: Analyzes user input for type, intent, and entities (basic implementation)",
+    "Token Optimization: Reduces context size by 50-80% through smart selection (functional but needs refinement)",
+    "Automatic Flagging: Generates memory flags from content analysis (basic implementation)",
+    "Smart Routing: Routes content to appropriate models based on analysis (basic implementation)",
+    "NSFW Detection: Content filtering and model routing for sensitive content (planned)"
+  ],
+
+  "deployment_options": [
+    "Docker with Embedded Ollama: docker-compose up -d (functional but needs refinement)",
+    "Local Development: .venv with pip install -r requirements.txt + external LLM",
+    "Cloud Deployment: Multi-provider integration with environment variables",
+    "Hybrid: Mix local and cloud models as needed",
+    "Cross-Platform: Windows, Linux, macOS support for all deployment modes"
+  ],
+
+  "current_priority": {
+    "phase": "Core Logic Phase 1 - Memory & Continuity Enhancement",
+    "goals": [
+      "Ensure seamless fallback, tone continuity, and prompt formatting across models",
+      "Integrate style and memory handling into timeline, rollback, and search layers",
+      "Harden recovery + storytelling logic under token strain or model transition"
+    ],
+    "operational_systems": [
+      "context_builder.py → Token logic, fallback, style blocks integrated",
+      "model_adapter.py → Prompt formatting by engine type working",
+      "character_style_manager.py → Style data distribution to prompt builder functional"
+    ],
+    "enhancement_tasks": [
+      "memory_manager.py: Inject per-character memory snapshot formatting (voice, mood)",
+      "memory_manager.py: Add interface for refreshing memory after rollback",
+      "timeline_builder.py: Track per-turn tone tags for LLM consistency audit",
+      "timeline_builder.py: Generate auto-summaries for long-term memory compaction",
+      "scene_logger.py: Add structured tags (mood, scene_type) to logs for model context boosting",
+      "scene_logger.py: Sync scene logging with token_manager to flag long-turns",
+      "token_manager.py: Expose token threshold API for use in scene_logger & timeline_builder",
+      "token_manager.py: Optionally allow per-character token budgets or alerts",
+      "rollback_engine.py: Re-parse style block & inject it post-rollback",
+      "rollback_engine.py: Trigger memory_manager refresh when rollback is invoked",
+      "rollback_engine.py: Log rollback origin & reason in scene_logger for transparency",
+      "search_engine.py: Integrate canon search fallback into context_builder when tokens are tight",
+      "search_engine.py: Allow fuzzy memory injection from prior scenes if direct canon isn't found",
+      "bookmark_manager.py: Allow pinned bookmarks to override fallback tone injection",
+      "story_loader.py: Validate meta.yaml entries: default_model, fallback_chain, style_guide",
+      "story_loader.py: Load and return style data from style_guide.md if path present",
+      "database.py: Add integrity check for required storypack folders & structure",
+      "database.py: Add backup hook into rollback_engine.py when a scene is versioned"
+    ],
+    "proposed_new_feature": "style_reinjector.py: Accept current scene state and model choice, output style-locked prompt rebuild with fallback continuity"
+  },
+
+  "future_priorities": [
+    "Publisher-Friendly Export System: Story export to Markdown/JSON with metadata",
+    "Style Override Support: Session-wide style mode locking",
+    "Memory Versioning: Track memory state changes over time",
+    "CLI Time Machine Tooling: Navigate backward in story using labels, timestamps",
+    "Disk Guardrails: Optional disk usage warnings for resource-constrained deployments",
+    "Scene playback debugger / visualizer",
+    "Role-specific prompting modes (narrator vs character-driven)",
+    "Support for tagging and filtering scenes, characters, or memories by tone, topic, or trigger",
+    "Storypack template generator and best-guess story builder from unstructured folders",
+    "Web UI version of the story engine with auth + save system"
+  ],
+
+  "roadmap": [
     {
-      "role": "system",
-      "content": "You are helping build OpenChronicle, a modular interactive storytelling engine with flexible LLM integration options. OpenChronicle supports multiple deployment modes: self-contained Docker with optional embedded Ollama, local development with external LLMs, or cloud deployment with services like OpenAI. The system features intelligent content analysis, multi-model orchestration, and advanced memory management for seamless narrative continuity."
-    },
-    {
-      "role": "user",
-      "content": "This project is OpenChronicle: a modular AI-driven storytelling engine designed for continuity-rich, interactive narrative experiences. It supports local or remote LLMs (OpenAI, Ollama, etc), user-owned storypacks, per-story memory/state management, rollback features, and extensible frontends like CLI or Discord bots."
-    },
-    {
-      "role": "user",
-      "content": "Core engine modules include:\n\n- scene_logger.py → logs scene_id, user/model input, memory state, flags, canon used\n- story_loader.py → loads storypacks (canon, memory, characters, meta.yaml, style)\n- context_builder.py → builds prompts using memory + canon + analysis + user input\n- content_analyzer.py → uses LLM to classify tone, flags, route models\n- memory_manager.py → stores/retrieves world state, character status, etc\n- database.py → story-local SQLite persistence with rollback and memory tracking\n- model_adapter.py → abstraction for different LLM providers (OpenAI, Ollama, mock)\n- rollback_engine.py → complete rollback system with backup and integrity validation\n- search_engine.py → full-text search with FTS5, caching, and advanced queries\n- bookmark_manager.py → comprehensive bookmark system with metadata and navigation\n- timeline_builder.py → timeline generation with scene and bookmark integration\n- character_style_manager.py → character consistency management across models\n- token_manager.py → intelligent token management and optimization\n\nDesign goals:\n- Modular\n- Local-first but model-agnostic\n- NSFW-safe routing\n- Memory versioning and rollback\n- Scene tracking and timeline export\n- Docker and Synology-friendly"
-    },
-    {
-      "role": "user",
-      "content": "📊 PROJECT STATUS: Core Foundation Complete - Active Development Phase\n\nProject Structure:\n- /core/: main Python modules (13 foundational modules)\n- /storypacks/: per-story folders with canon, characters, memory, and style guides\n- /storage/: SQLite databases per story, with exports folder\n- /config/: model configuration (model_registry.json) with 9 LLM providers\n\n✅ COMPLETED CORE MODULES (Foundation Complete):\n- story_loader.py: loads storypacks and parses meta.yaml with robust error handling\n- scene_logger.py: logs scenes to SQLite with flags, memory snapshots, rollback support\n- context_builder.py: builds prompts using current memory and canon snippets with analysis integration\n- memory_manager.py: manages character memory, world state, flags, recent events via SQLite\n- rollback_engine.py: complete rollback system with backup and integrity validation\n- database.py: SQLite utilities, migration, stats, and table management\n- model_adapter.py: unified LLM adapter system supporting 12+ providers (OpenAI, Anthropic, Google Gemini, Cohere, Groq, Ollama, Mistral, HuggingFace, Azure OpenAI, Stability AI, Replicate, mock) plus image generation\n- content_analyzer.py: intelligent content analysis using local LLM for token optimization\n- search_engine.py: full-text search engine with FTS5 support, advanced queries, and result caching\n- bookmark_manager.py: comprehensive bookmark system with metadata and navigation\n- timeline_builder.py: timeline generation with scene and bookmark integration\n- character_style_manager.py: character consistency management across models\n- token_manager.py: intelligent token management and optimization\n\n🏗️ ARCHITECTURE HIGHLIGHTS:\n- LLM Support: 12+ providers with unified interface (see config/models.json)\n- Flexible deployment: Docker (with optional Ollama), local development, or cloud\n- Optional two-tier LLM system: Local LLM (analysis) + Main LLM (generation)\n- Each story gets its own SQLite database at storage/{story_id}/openchronicle.db\n- Tables: scenes, memory, memory_history, rollback_points, rollback_backups, bookmarks, scenes_fts, memory_fts\n- Static content (canon, characters) remains in YAML/text files\n- Dynamic data (scenes, memory, rollback, bookmarks, search indexes) stored in SQLite\n- Model adapters configured via config/models.json with extensive provider support\n- Optional content analysis with token optimization (50-80% reduction)\n- Centralized logging system with utilities for maintenance and monitoring\n\n✅ COMPLETED FEATURES (Core Foundation):\n- ✅ SQLite integration with all core modules\n- ✅ LLM adapter system with 12+ providers (text + image generation)\n- ✅ Intelligent content analysis system (optional local LLM)\n- ✅ Full-text search engine with FTS5 support and advanced queries\n- ✅ Scene labeling and bookmark management system\n- ✅ Timeline builder with navigation and export capabilities\n- ✅ Character style management for cross-model consistency\n- ✅ Token management and optimization system\n- ✅ Flexible Docker deployment with optional embedded Ollama\n- ✅ Optional two-tier LLM architecture for token optimization\n- ✅ Smart context selection and token optimization\n- ✅ Comprehensive test suite (14/14 tests passing)\n- ✅ Configuration management system with extensive provider support\n- ✅ Virtual environment setup with proper dependency management\n- ✅ Multiple deployment options (Docker, local, cloud)\n- ✅ Complete modularity - use any combination of features\n- ✅ Clean, stable codebase foundation\n- ✅ Centralized logging and utilities system\n- ✅ CLI commands: memory, models, switch, rollback (functional in interactive mode)\n\n🎯 KEY FEATURES (In Development):\n- 🧠 Content Classification: Analyzes user input for type, intent, and entities (basic implementation)\n- 🔧 Token Optimization: Reduces context size by 50-80% through smart selection (functional but needs refinement)\n- 🏷️ Automatic Flagging: Generates memory flags from content analysis (basic implementation)\n- 🎯 Smart Routing: Routes content to appropriate models based on analysis (basic implementation)\n- 🔒 NSFW Detection: Content filtering and model routing for sensitive content (planned)\n- 🐳 Self-Contained Option: Optional embedded Ollama with ~2GB Llama 3.2 models\n- 💰 Cost-Effective Options: No API fees with local models, or pay-per-use with cloud\n- 🔐 Privacy Options: Complete local processing available, or cloud integration\n- 🔧 Flexible Integration: Works with 12+ LLM providers including OpenAI, Anthropic, Google, local models\n\n📦 DEPLOYMENT OPTIONS (Basic Implementation):\n- Docker with Embedded Ollama: `docker-compose up -d` (functional but needs refinement)\n- Local Development: `.venv` with `pip install -r requirements.txt` + external LLM\n- Cloud Deployment: Multi-provider integration with environment variables\n- Hybrid: Mix local and cloud models as needed\n- Cross-Platform: Windows, Linux, macOS support for all deployment modes"
-    },
-    {
-      "role": "user",
-      "content": "🔖 Scene Labeling + Bookmarking System - ✅ COMPLETED\n\n🎯 Goals: ✅ ACHIEVED\n- Add support for optional `scene_label` field in scene logger\n- Enable timeline view or export with labeled chapters\n- Create comprehensive bookmark management system\n- Implement navigation and organization features\n\n🏷️ Scene Labeling System: ✅ IMPLEMENTED\n- Enhanced database schema with `scene_label` column in scenes table\n- Complete API for scene labeling with timezone-aware datetime implementation\n- Database indexing for optimal performance\n- No deprecation warnings or compatibility issues\n\n🔖 Bookmark Management System: ✅ IMPLEMENTED\n- Comprehensive bookmark CRUD operations with metadata support\n- Advanced features: duplicate prevention, full-text search, analytics\n- Bookmark types: `user`, `auto`, `chapter`, `system`\n- Scene-bookmark relationship management\n\n🕰️ Timeline Builder System: ✅ IMPLEMENTED\n- Timeline generation with scene and bookmark integration\n- Navigation menu creation and JSON/Markdown export\n- Scene context retrieval and timeline statistics\n- Compatible format structure for bookmark manager integration\n\n🗄️ Database Schema Enhancements: ✅ IMPLEMENTED\n- New `bookmarks` table with full metadata support\n- Enhanced `scenes` table with scene labeling\n- Performance indexes for optimal query performance\n- Proper foreign key relationships and constraints\n\n🧪 Testing Coverage: ✅ COMPREHENSIVE\n- 22/22 tests passing (100% success rate)\n- Complete test coverage for all scene labeling, bookmark management, and timeline features\n- Production-ready implementation with comprehensive error handling\n- Fixed deprecation warnings and timeline compatibility issues\n\n🔧 Technical Implementation:\n- `core/scene_logger.py` - Enhanced with scene labeling support\n- `core/bookmark_manager.py` - New comprehensive bookmark system (267 lines)\n- `core/timeline_builder.py` - New timeline and navigation utilities\n- `core/database.py` - Enhanced with new tables and indexes\n- `tests/test_scene_labeling.py` - Complete test suite (22 tests)\n- All datetime usage updated to timezone-aware implementation\n\n🎯 NEXT PRIORITY: Full-Text Search (FTS5) System\n- Enable SQLite FTS5 for memory and scene searching\n- Fast, semantic content search across all story data\n- Support for complex queries and advanced search operators\n- Foundation for content discovery and story analysis"
-    },
-    {
-      "role": "user",
-      "content": "🔍 Full-Text Search (FTS5) System - Phase 2 ✅ COMPLETED\n\n🎯 Phase 2 Goals: ✅ ACHIEVED\n- Advanced query parsing with wildcards and proximity search\n- Enhanced search result processing with caching\n- Performance optimization and monitoring\n- Search interface improvements (history, saved searches, export)\n\n✅ COMPLETED IMPLEMENTATION:\n\n� Advanced Query Features: ✅ IMPLEMENTED\n- Complex boolean expressions with nested logic\n- Wildcard support (*,?) and proximity search (NEAR/distance)\n- Advanced query operators (sort:, limit:, filters)\n- Robust query validation and error handling\n\n🔍 Search Interface Enhancements: ✅ IMPLEMENTED\n- Search history tracking and retrieval\n- Saved searches with named storage\n- Search suggestions based on history\n- Advanced filtering by type, date, metadata\n\n📊 Performance Optimizations: ✅ IMPLEMENTED\n- Query result caching with TTL (5-minute default)\n- Performance tracking and metrics\n- Cache management with size limits\n- Index optimization and maintenance\n\n� Search Result Export: ✅ IMPLEMENTED\n- JSON export for structured data analysis\n- Markdown export for human-readable results\n- CSV export for spreadsheet compatibility\n- Custom formatting options\n\n🧪 Testing Coverage: ✅ COMPREHENSIVE\n- 22 new tests covering all Phase 2 features\n- Advanced query parsing validation\n- Caching system verification\n- Export format validation\n- Integration testing with existing systems\n\n🔧 Technical Implementation:\n- `core/search_engine.py` - Enhanced with Phase 2 features (650+ lines)\n- `tests/test_search_engine_phase2.py` - Complete Phase 2 test suite (550+ lines)\n\n🎯 Success Criteria: ✅ ACHIEVED\n- Wildcard and proximity search functionality\n- Intelligent query caching for performance\n- Comprehensive search history and saved searches\n- Multi-format export capabilities\n- Production-ready advanced search features\n\n📊 Verified Benefits:\n- 5-minute query caching for instant repeat searches\n- Advanced search operators for precise content discovery\n- Search history and suggestions for improved UX\n- Flexible export options for data analysis and sharing\n- Enterprise-grade search capabilities\n\n🚀 NEXT PRIORITY: Core Logic Phase 1 - Memory & Continuity Enhancement\n- Ensure seamless fallback, tone continuity, and prompt formatting across models\n- Integrate style and memory handling into timeline, rollback, and search layers\n- Harden recovery + storytelling logic under token strain or model transition\n\n🎯 Additional Developer Targets for OpenChronicle (Post Core Logic Phase 1):\n- 📚 Publisher-Friendly Export System: Story export to Markdown/JSON with metadata\n- 🪄 Style Override Support: Session-wide style mode locking\n- 🔁 LLM Fallback Logic: Enhanced failover with logging\n- 🕰️ Memory Versioning: Track memory state changes over time\n- ⏳ CLI Time Machine Tooling: Navigate backward in story using labels, timestamps\n- 📉 Disk Guardrails: Optional disk usage warnings for resource-constrained deployments"
-    },
-    {
-      "role": "user",
-      "content": "🧠 Core Logic Phase 1 - CURRENT PRIORITY\n\n🎯 Phase 1 Goals: Memory & Continuity Enhancement\n- Ensure seamless fallback, tone continuity, and prompt formatting across models\n- Integrate style and memory handling into timeline, rollback, and search layers\n- Harden recovery + storytelling logic under token strain or model transition\n\n✅ Prompt Layer Status: OPERATIONAL (Polish Later)\n- context_builder.py → Token logic, fallback, style blocks integrated ✔\n- model_adapter.py → Prompt formatting by engine type working ✔\n- character_style_manager.py → Style data distribution to prompt builder functional ✔\n\n🧠 Memory & Continuity - ENHANCEMENT NEEDED:\n📌 memory_manager.py\n- [ ] Inject per-character memory snapshot formatting (voice, mood)\n- [ ] Add interface for refreshing memory after rollback\n\n📌 timeline_builder.py\n- [ ] Track per-turn tone tags for LLM consistency audit (optional)\n- [ ] Generate auto-summaries for long-term memory compaction\n\n📌 scene_logger.py\n- [ ] Add structured tags (mood, scene_type) to logs for model context boosting\n- [ ] Sync scene logging with token_manager to flag long-turns\n\n🔁 Fallback & Token Handling - EXPANDABLE:\n📌 token_manager.py\n- [ ] Expose token threshold API for use in scene_logger & timeline_builder\n- [ ] Optionally allow per-character token budgets or alerts\n\n📌 rollback_engine.py\n- [ ] Re-parse style block & inject it post-rollback\n- [ ] Trigger memory_manager refresh when rollback is invoked\n- [ ] Log rollback origin & reason in scene_logger for transparency\n\n📚 Canon/Search/Bookmark - CONTINUITY INTEGRATION:\n📌 search_engine.py\n- [ ] Integrate canon search fallback into context_builder when tokens are tight\n- [ ] Allow fuzzy memory injection from prior scenes if direct canon isn't found\n\n📌 bookmark_manager.py\n- [ ] Allow pinned bookmarks to override fallback tone injection (e.g. \"drama pivot\")\n\n📌 story_loader.py\n- [ ] Validate `meta.yaml` entries: default_model, fallback_chain, style_guide\n- [ ] Load and return style data from `style_guide.md` if path present\n\n� Persistence Layer - OPTIONAL:\n📌 database.py\n- [ ] Add integrity check for required storypack folders & structure\n- [ ] Add backup hook into rollback_engine.py when a scene is versioned\n\n📁 New Feature Proposed:\n- `style_reinjector.py`\n  - [ ] Accept current scene state and model choice\n  - [ ] Output style-locked prompt rebuild with fallback continuity\n\n🚀 FUTURE PRIORITIES (Post Core Logic Phase 1):\n- Publisher-Friendly Export System: Story export to Markdown/JSON with metadata\n- Style Override Support: Session-wide style mode locking\n- Memory Versioning: Track memory state changes over time\n- CLI Time Machine Tooling: Navigate backward in story using labels, timestamps\n- Disk Guardrails: Optional disk usage warnings for resource-constrained deployments"
+      "title": "ROUTING + CLASSIFICATION SYSTEM",
+      "status": "next_major_phase",
+      "details": [
+        "Integrate lightweight classifier (e.g. DistilBERT or similar) to flag NSFW, emotional, or tonal shifts in user content",
+        "Route flagged content to appropriate model (e.g. uncensored Ollama model vs. OpenAI API)",
+        "Maintain tone continuity across model switches by injecting recent character memory and style guide fragments",
+        "Define routing behavior per-character and per-scene via config/storyname/models.json or routing_rules.json",
+        "Ensure logs contain traceable routing decisions for debug and user audit",
+        "Use model fallback chains with retry logic if a model fails, exceeds tokens, or encounters safety filter",
+        "Optionally run classifier in parallel with context builder to minimize latency",
+        "Support future override flags (e.g. /force-nsfw, /override-model) for power users or testing"
+      ]
     }
-  ]
+  ],
+
+  "architecture_highlights": [
+    "LLM Support: 12+ providers with unified interface (see config/models.json)",
+    "Flexible deployment: Docker (with optional Ollama), local development, or cloud",
+    "Optional two-tier LLM system: Local LLM (analysis) + Main LLM (generation)",
+    "Each story gets its own SQLite database at storage/{story_id}/openchronicle.db",
+    "Tables: scenes, memory, memory_history, rollback_points, rollback_backups, bookmarks, scenes_fts, memory_fts",
+    "Static content (canon, characters) remains in YAML/text files",
+    "Dynamic data (scenes, memory, rollback, bookmarks, search indexes) stored in SQLite",
+    "Model adapters configured via config/models.json with extensive provider support",
+    "Optional content analysis with token optimization (50-80% reduction)",
+    "Centralized logging system with utilities for maintenance and monitoring"
+  ],
+
+  "testing_status": "Comprehensive test suite with 22/22 tests passing (100% success rate)",
+  "current_status": "Solid foundation with core architecture complete. Advanced features implemented including full-text search, bookmarking, and timeline generation. Currently enhancing memory and continuity systems for seamless multi-model storytelling."
 }
