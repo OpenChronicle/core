@@ -18,6 +18,7 @@ from .character_interaction_engine import CharacterInteractionEngine
 from .character_stat_engine import CharacterStatEngine
 from .narrative_dice_engine import NarrativeDiceEngine
 from .memory_consistency_engine import MemoryConsistencyEngine
+from .intelligent_response_engine import IntelligentResponseEngine, enhance_context_with_intelligent_response
 from .token_manager import TokenManager
 
 def load_canon_snippets(storypack_path, refs=None, limit=5):
@@ -253,6 +254,7 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
     stat_engine = CharacterStatEngine()
     dice_engine = NarrativeDiceEngine()
     memory_engine = MemoryConsistencyEngine()
+    intelligent_response_engine = IntelligentResponseEngine()
     token_manager = TokenManager(model_manager)
     
     # Load character styles and consistency data
@@ -422,7 +424,8 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
     # Build final context
     final_context = _assemble_context(context_parts)
     
-    return {
+    # Create initial result
+    result = {
         "context": final_context,
         "recommended_model": recommended_model,
         "content_analysis": analysis,
@@ -430,6 +433,13 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
         "consistency_engine": consistency_engine,
         "token_estimate": token_manager.estimate_tokens(final_context, recommended_model)
     }
+    
+    # Enhance with intelligent response planning
+    enhanced_result = enhance_context_with_intelligent_response(
+        result, user_input, intelligent_response_engine
+    )
+    
+    return enhanced_result
 
 def _build_system_context(story_data: Dict[str, Any]) -> str:
     """Build system context section."""
