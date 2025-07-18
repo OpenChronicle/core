@@ -225,8 +225,11 @@ def init_database(story_id):
 
 def get_connection(story_id):
     """Get a database connection for a story."""
-    init_database(story_id)
+    # Only initialize database if it doesn't exist
     db_path = get_db_path(story_id)
+    if not os.path.exists(db_path):
+        init_database(story_id)
+    
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row  # Enable column access by name
     return conn

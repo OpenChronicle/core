@@ -73,20 +73,28 @@ class SavedSearch:
     """Represents a saved search."""
     name: str
     query: str
-    filters: Dict[str, str]
-    created_at: datetime
+    description: str = ""
+    filters: Dict[str, str] = None
+    created_at: datetime = None
     last_used: Optional[datetime] = None
     use_count: int = 0
+    
+    def __post_init__(self):
+        if self.filters is None:
+            self.filters = {}
+        if self.created_at is None:
+            self.created_at = datetime.now()
 
 
 class SearchEngine:
     """Enhanced full-text search engine with FTS5 integration."""
     
-    def __init__(self, story_id: str, cache_size: int = 100):
+    def __init__(self, story_id: str, cache_size: int = 100, history_limit: int = 10):
         """Initialize search engine for a specific story."""
         self.story_id = story_id
         self.fts_supported = check_fts_support()
         self.cache_size = cache_size
+        self.history_limit = history_limit
         self.search_history: List[SearchHistory] = []
         self.saved_searches: Dict[str, SavedSearch] = {}
         self.query_cache: Dict[str, Tuple[List[SearchResult], float]] = {}
@@ -108,7 +116,7 @@ class SearchEngine:
         quoted_phrases = re.findall(r'"([^"]*)"', original)
         
         # Extract wildcards (terms with * or ?)
-        wildcards = re.findall(r'\b\w*[*?]\w*\b', original)
+        wildcards = re.findall(r'\w*[*?]\w*', original)
         
         # Remove wildcards from terms extraction
         temp_sanitized = original
@@ -395,8 +403,8 @@ class SearchEngine:
         ))
         
         # Limit history size
-        if len(self.search_history) > 100:
-            self.search_history = self.search_history[-100:]
+        if len(self.search_history) > self.history_limit:
+            self.search_history = self.search_history[-self.history_limit:]
         
         return final_results
     
@@ -494,20 +502,22 @@ class SearchEngine:
     
     def get_search_history(self, limit: int = 20) -> List[SearchHistory]:
         """Get recent search history."""
-        return self.search_history[-limit:]
+        return list(reversed(self.search_history[-limit:]))
     
     def clear_search_history(self):
         """Clear search history."""
         self.search_history.clear()
     
-    def save_search(self, name: str, query: str, filters: Dict[str, str] = None):
+    def save_search(self, name: str, query: str, description: str = "", filters: Dict[str, str] = None) -> SavedSearch:
         """Save a search for later reuse."""
-        self.saved_searches[name] = SavedSearch(
+        saved_search = SavedSearch(
             name=name,
             query=query,
-            filters=filters or {},
-            created_at=datetime.now()
+            description=description,
+            filters=filters or {}
         )
+        self.saved_searches[name] = saved_search
+        return saved_search
     
     def get_saved_search(self, name: str) -> Optional[SavedSearch]:
         """Get a saved search by name."""
@@ -534,8 +544,9 @@ class SearchEngine:
         if saved_search:
             # Build query with filters
             query_with_filters = saved_search.query
-            for key, value in saved_search.filters.items():
-                query_with_filters += f" {key}:{value}"
+            if saved_search.filters:
+                for key, value in saved_search.filters.items():
+                    query_with_filters += f" {key}:{value}"
             
             return self.search_all(query_with_filters, limit)
         return []
