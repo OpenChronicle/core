@@ -220,3 +220,10 @@
   "fallback_mode": "manual-review",
   "llm_preference": ["ollama", "local-api", "openai"]
 }
+{
+  "id": "goal-chatgpt-import-bridge",
+  "title": "Import from ChatGPT Conversations",
+  "description": "Enable users to import story data from saved ChatGPT conversations, either via exported chat logs or direct file drops. Use LLM parsing to extract scenes, characters, world details, and build a valid OpenChronicle storypack from the transcript.",
+  "status": "planned",
+  "priority": "medium"
+}
