@@ -16,6 +16,7 @@ from .character_consistency_engine import CharacterConsistencyEngine
 from .emotional_stability_engine import EmotionalStabilityEngine
 from .character_interaction_engine import CharacterInteractionEngine
 from .character_stat_engine import CharacterStatEngine
+from .narrative_dice_engine import NarrativeDiceEngine
 from .token_manager import TokenManager
 
 def load_canon_snippets(storypack_path, refs=None, limit=5):
@@ -249,6 +250,7 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
     emotional_engine = EmotionalStabilityEngine()
     interaction_engine = CharacterInteractionEngine()
     stat_engine = CharacterStatEngine()
+    dice_engine = NarrativeDiceEngine()
     token_manager = TokenManager(model_manager)
     
     # Load character styles and consistency data
@@ -359,6 +361,14 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
                 stat_prompt = stat_engine.generate_response_prompt(active_character, content_type, analysis.get('emotional_tone', 'neutral'))
                 if stat_prompt:
                     context_parts["character_stats"] = stat_prompt
+            
+            # Add narrative dice resolution context if applicable
+            character_stats = stat_engine.get_character_stats(active_character)
+            if character_stats:
+                # Check if user input suggests an action that might need resolution
+                dice_prompt = _check_for_dice_resolution(user_input, active_character, character_stats, dice_engine)
+                if dice_prompt:
+                    context_parts["dice_resolution"] = dice_prompt
             
             # Detect if this might be a multi-character scene (basic heuristic)
             scene_characters = _detect_scene_characters(user_input, story_data.get("characters", {}))
@@ -687,3 +697,81 @@ def _detect_scene_characters(user_input: str, characters: Dict[str, Any]) -> Lis
     
     # Remove duplicates while preserving order
     return list(dict.fromkeys(detected_characters))
+
+def _check_for_dice_resolution(user_input: str, character_id: str, character_stats: Dict[str, int], dice_engine) -> Optional[str]:
+    """
+    Check if user input suggests an action that might need dice resolution.
+    Returns a prompt snippet if resolution is suggested, None otherwise.
+    """
+    if not user_input or not character_stats:
+        return None
+    
+    # Import ResolutionType for type checking
+    from .narrative_dice_engine import ResolutionType, DifficultyLevel
+    
+    # Keywords that suggest different types of resolution checks
+    resolution_patterns = {
+        ResolutionType.PERSUASION: ["convince", "persuade", "talk", "argue", "negotiate", "charm"],
+        ResolutionType.DECEPTION: ["lie", "deceive", "bluff", "fake", "trick", "mislead"],
+        ResolutionType.INTIMIDATION: ["threaten", "intimidate", "scare", "menace", "force"],
+        ResolutionType.INVESTIGATION: ["search", "investigate", "examine", "look for", "find", "discover"],
+        ResolutionType.PERCEPTION: ["notice", "spot", "hear", "see", "observe", "sense"],
+        ResolutionType.STEALTH: ["sneak", "hide", "creep", "stalk", "avoid", "slip"],
+        ResolutionType.ATHLETICS: ["climb", "jump", "run", "swim", "lift", "physical"],
+        ResolutionType.COMBAT: ["attack", "fight", "battle", "strike", "defend", "combat"],
+        ResolutionType.SURVIVAL: ["track", "hunt", "forage", "navigate", "weather"]
+    }
+    
+    input_lower = user_input.lower()
+    suggested_resolution = None
+    
+    # Check for resolution type patterns
+    for res_type, keywords in resolution_patterns.items():
+        if any(keyword in input_lower for keyword in keywords):
+            suggested_resolution = res_type
+            break
+    
+    # If no specific resolution type found, check for general challenge indicators
+    challenge_indicators = ["try to", "attempt", "challenge", "difficult", "risky", "dangerous"]
+    if not suggested_resolution and any(indicator in input_lower for indicator in challenge_indicators):
+        suggested_resolution = ResolutionType.SKILL_CHECK
+    
+    if suggested_resolution:
+        # Generate prompt guidance for potential resolution
+        performance_summary = dice_engine.get_character_performance_summary(character_id)
+        
+        prompt_parts = [
+            f"[DICE_RESOLUTION_SUGGESTED: {character_id} attempting {suggested_resolution.value}]"
+        ]
+        
+        # Add character performance context if available
+        if performance_summary:
+            best_type = performance_summary.get('best_resolution_type')
+            worst_type = performance_summary.get('worst_resolution_type')
+            recent_streak = performance_summary.get('recent_streak', {})
+            
+            if best_type:
+                prompt_parts.append(f"[CHARACTER_STRENGTH: {character_id} excels at {best_type}]")
+            if worst_type:
+                prompt_parts.append(f"[CHARACTER_WEAKNESS: {character_id} struggles with {worst_type}]")
+            if recent_streak.get('current_streak', 0) > 2:
+                streak_type = recent_streak.get('streak_type', 'none')
+                prompt_parts.append(f"[PERFORMANCE_STREAK: {character_id} on {recent_streak['current_streak']} {streak_type} streak]")
+        
+        # Add stat modifier context
+        stat_mapping = dice_engine.stat_mappings.get(suggested_resolution)
+        if stat_mapping and stat_mapping in character_stats:
+            stat_value = character_stats[stat_mapping]
+            modifier = stat_value - 5  # Same calculation as in dice engine
+            modifier = max(-3, min(3, modifier))  # Clamp to tolerance
+            
+            if modifier > 0:
+                prompt_parts.append(f"[STAT_ADVANTAGE: {character_id} has +{modifier} from {stat_mapping}]")
+            elif modifier < 0:
+                prompt_parts.append(f"[STAT_DISADVANTAGE: {character_id} has {modifier} from {stat_mapping}]")
+        
+        prompt_parts.append(f"[RESOLUTION_GUIDANCE: Consider success/failure outcomes for story branching]")
+        
+        return "\n".join(prompt_parts)
+    
+    return None
