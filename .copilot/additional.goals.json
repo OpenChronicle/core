@@ -207,3 +207,16 @@
     "Can be paired with an 'export' utility for portability between story engines"
   ]
 }
+"llm_assistance": {
+  "enabled": true,
+  "functions": [
+    "Summarize raw text into scenes or chapters",
+    "Extract character profiles from prose or bullet lists",
+    "Convert first-person stories into dialogue/action structure",
+    "Suggest or auto-fill style guide based on tone analysis",
+    "Generate scene timestamps or arc mapping heuristics",
+    "Normalize formatting of all generated .json files"
+  ],
+  "fallback_mode": "manual-review",
+  "llm_preference": ["ollama", "local-api", "openai"]
+}
