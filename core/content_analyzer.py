@@ -6,22 +6,84 @@ Uses dynamic model selection to optimize content analysis and routing.
 import json
 import os
 import sys
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, UTC
 from pathlib import Path
 
 # Add utilities to path for logging system
 sys.path.append(str(Path(__file__).parent.parent / "utilities"))
-from logging_system import log_model_interaction, log_system_event, log_info, log_error
+from logging_system import log_model_interaction, log_system_event, log_info, log_error, log_warning
+
+# Optional transformer imports with graceful fallback
+try:
+    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+    import torch
+    TRANSFORMERS_AVAILABLE = True
+    log_info("Transformers library loaded - advanced classification enabled")
+except ImportError:
+    TRANSFORMERS_AVAILABLE = False
+    log_warning("Transformers library not available - using keyword-based classification only")
 
 class ContentAnalyzer:
     """Analyzes user input and story content with dynamic model routing."""
     
-    def __init__(self, model_manager):
+    def __init__(self, model_manager, use_transformers: bool = True):
         self.model_manager = model_manager
         self.analysis_cache = {}
         self.routing_rules = {}
         self.content_patterns = {}
+        self.use_transformers = use_transformers and TRANSFORMERS_AVAILABLE
+        
+        # Initialize transformer models if available
+        self.nsfw_classifier = None
+        self.sentiment_classifier = None
+        self.emotion_classifier = None
+        
+        if self.use_transformers:
+            self._initialize_transformers()
+    
+    def _initialize_transformers(self):
+        """Initialize transformer-based classifiers."""
+        try:
+            log_info("Initializing transformer-based content classifiers...")
+            
+            # NSFW Content Detection
+            # Using a general text classification model fine-tuned for content safety
+            self.nsfw_classifier = pipeline(
+                "text-classification",
+                model="unitary/toxic-bert",
+                device=0 if torch.cuda.is_available() else -1,
+                truncation=True,
+                max_length=512
+            )
+            
+            # Sentiment Analysis
+            self.sentiment_classifier = pipeline(
+                "sentiment-analysis",
+                model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                device=0 if torch.cuda.is_available() else -1,
+                truncation=True,
+                max_length=512
+            )
+            
+            # Emotion Detection
+            self.emotion_classifier = pipeline(
+                "text-classification",
+                model="j-hartmann/emotion-english-distilroberta-base",
+                device=0 if torch.cuda.is_available() else -1,
+                truncation=True,
+                max_length=512
+            )
+            
+            log_info("Transformer classifiers initialized successfully")
+            
+        except Exception as e:
+            log_error(f"Failed to initialize transformer classifiers: {e}")
+            self.use_transformers = False
+            self.nsfw_classifier = None
+            self.sentiment_classifier = None
+            self.emotion_classifier = None
         
     def get_best_analysis_model(self, content_type: str = "general") -> str:
         """Get the best model for content analysis based on dynamic configuration."""
@@ -54,48 +116,260 @@ class ContentAnalyzer:
         log_info(f"Selected {selected} for {content_type} content analysis")
         return selected
         
-    def detect_content_type(self, user_input: str) -> str:
-        """Detect content type to route to appropriate analysis model."""
+    def _analyze_with_transformers(self, user_input: str) -> Dict[str, Any]:
+        """Use transformer models for advanced content analysis."""
+        if not self.use_transformers:
+            return {}
+            
+        analysis = {
+            "transformer_results": {},
+            "nsfw_score": 0.0,
+            "sentiment": "neutral",
+            "sentiment_score": 0.0,
+            "emotions": {},
+            "transformer_confidence": 0.0
+        }
+        
+        try:
+            # NSFW/Toxic Content Detection
+            if self.nsfw_classifier:
+                nsfw_result = self.nsfw_classifier(user_input)
+                if isinstance(nsfw_result, list):
+                    nsfw_result = nsfw_result[0]
+                
+                # toxic-bert returns TOXIC or NOT_TOXIC
+                analysis["transformer_results"]["nsfw"] = nsfw_result
+                if nsfw_result["label"] == "TOXIC":
+                    analysis["nsfw_score"] = nsfw_result["score"]
+                else:
+                    analysis["nsfw_score"] = 1.0 - nsfw_result["score"]
+            
+            # Sentiment Analysis
+            if self.sentiment_classifier:
+                sentiment_result = self.sentiment_classifier(user_input)
+                if isinstance(sentiment_result, list):
+                    sentiment_result = sentiment_result[0]
+                
+                analysis["transformer_results"]["sentiment"] = sentiment_result
+                analysis["sentiment"] = sentiment_result["label"].lower()
+                analysis["sentiment_score"] = sentiment_result["score"]
+            
+            # Emotion Detection
+            if self.emotion_classifier:
+                emotion_result = self.emotion_classifier(user_input)
+                if isinstance(emotion_result, list):
+                    emotion_result = emotion_result[0]
+                
+                analysis["transformer_results"]["emotion"] = emotion_result
+                analysis["emotions"] = {
+                    "primary_emotion": emotion_result["label"],
+                    "confidence": emotion_result["score"]
+                }
+            
+            # Calculate overall transformer confidence
+            confidences = []
+            for result in analysis["transformer_results"].values():
+                if isinstance(result, dict) and "score" in result:
+                    confidences.append(result["score"])
+            
+            if confidences:
+                analysis["transformer_confidence"] = sum(confidences) / len(confidences)
+            
+            log_system_event("transformer_analysis", 
+                           f"NSFW: {analysis['nsfw_score']:.3f}, "
+                           f"Sentiment: {analysis['sentiment']} ({analysis['sentiment_score']:.3f}), "
+                           f"Emotion: {analysis['emotions'].get('primary_emotion', 'unknown')}")
+            
+        except Exception as e:
+            log_error(f"Transformer analysis failed: {e}")
+            analysis["transformer_error"] = str(e)
+        
+        return analysis
+        
+    def detect_content_type(self, user_input: str) -> Dict[str, Any]:
+        """Detect content type and flags using hybrid keyword + transformer approach."""
+        # Start with keyword-based analysis
+        keyword_analysis = self._keyword_based_detection(user_input)
+        
+        # Add transformer-based analysis if available
+        try:
+            transformer_analysis = self._analyze_with_transformers(user_input)
+        except Exception as e:
+            log_error(f"Transformer analysis failed in detect_content_type: {e}")
+            transformer_analysis = {}
+        
+        # Combine both approaches for enhanced accuracy
+        combined_analysis = self._combine_analysis_results(keyword_analysis, transformer_analysis, user_input)
+        
+        return combined_analysis
+    
+    def _keyword_based_detection(self, user_input: str) -> Dict[str, Any]:
+        """Original keyword-based content detection."""
         text_lower = user_input.lower()
+        content_flags = []
+        content_type = "general"
+        confidence = 0.0
         
-        # NSFW content detection
-        nsfw_keywords = [
-            "explicit", "sexual", "adult", "mature", "intimate", "romantic",
-            "kiss", "embrace", "seductive", "passionate", "desire"
-        ]
+        # Enhanced NSFW content detection with severity levels
+        nsfw_explicit = ["explicit", "sexual", "adult", "erotic", "nude", "naked", "sex"]
+        nsfw_suggestive = ["intimate", "romantic", "kiss", "embrace", "seductive", "passionate", "desire", "love"]
+        nsfw_mature = ["violence", "blood", "death", "kill", "murder", "torture", "gore"]
         
-        if any(keyword in text_lower for keyword in nsfw_keywords):
-            return "nsfw"
+        explicit_matches = sum(1 for keyword in nsfw_explicit if keyword in text_lower)
+        suggestive_matches = sum(1 for keyword in nsfw_suggestive if keyword in text_lower)
+        mature_matches = sum(1 for keyword in nsfw_mature if keyword in text_lower)
+        
+        if explicit_matches > 0:
+            content_type = "nsfw"
+            content_flags.append("explicit")
+            confidence = min(0.9, 0.7 + (explicit_matches * 0.1))
+        elif suggestive_matches > 1:
+            content_type = "nsfw"
+            content_flags.append("suggestive")
+            confidence = min(0.8, 0.5 + (suggestive_matches * 0.1))
+        elif mature_matches > 0:
+            content_type = "nsfw"
+            content_flags.append("mature")
+            confidence = min(0.7, 0.4 + (mature_matches * 0.1))
             
         # Creative content detection
         creative_keywords = [
             "imagine", "create", "describe", "story", "scene", "character",
-            "dialogue", "narrative", "plot", "setting", "atmosphere"
+            "dialogue", "narrative", "plot", "setting", "atmosphere", "cast", "spell",
+            "explore", "magical", "magic", "fantasy", "wizard", "dragon", "forest", "adventure"
         ]
         
-        if any(keyword in text_lower for keyword in creative_keywords):
-            return "creative"
+        creative_matches = sum(1 for keyword in creative_keywords if keyword in text_lower)
+        if creative_matches > 0 and content_type == "general":
+            content_type = "creative"
+            content_flags.append("creative")
+            confidence = min(0.8, 0.4 + (creative_matches * 0.1))
             
         # Analysis content detection
         analysis_keywords = [
             "analyze", "classify", "determine", "evaluate", "assess",
-            "summarize", "explain", "interpret", "understand"
+            "summarize", "explain", "interpret", "understand", "what", "why", "how"
         ]
         
-        if any(keyword in text_lower for keyword in analysis_keywords):
-            return "analysis"
+        analysis_matches = sum(1 for keyword in analysis_keywords if keyword in text_lower)
+        if analysis_matches > 0 and content_type == "general":
+            content_type = "analysis"
+            content_flags.append("analysis")
+            confidence = min(0.7, 0.3 + (analysis_matches * 0.1))
+        
+        # Action content detection
+        action_keywords = [
+            "attack", "fight", "battle", "sword", "weapon", "combat", "hit", "strike",
+            "run", "jump", "climb", "move", "go", "walk", "enter", "exit"
+        ]
+        
+        action_matches = sum(1 for keyword in action_keywords if keyword in text_lower)
+        if action_matches > 0:
+            content_flags.append("action")
             
-        return "general"
+        # Dialogue content detection
+        if any(marker in user_input for marker in ['"', "'", "say", "tell", "ask", "whisper", "shout"]):
+            content_flags.append("dialogue")
+            
+        # Simple/quick response detection
+        if len(user_input.split()) < 5:
+            content_flags.append("simple")
+            
+        return {
+            "content_type": content_type,
+            "content_flags": content_flags,
+            "confidence": confidence,
+            "raw_text": user_input,
+            "word_count": len(user_input.split()),
+            "analysis_method": "keyword"
+        }
+    
+    def _combine_analysis_results(self, keyword_analysis: Dict[str, Any], transformer_analysis: Dict[str, Any], user_input: str) -> Dict[str, Any]:
+        """Combine keyword and transformer analysis for enhanced accuracy."""
+        combined = keyword_analysis.copy()
+        
+        if not transformer_analysis:
+            # No transformer analysis available, return keyword-based only
+            return combined
+        
+        # Get sentiment and emotion information first
+        sentiment = transformer_analysis.get("sentiment", "neutral")
+        emotions = transformer_analysis.get("emotions", {})
+        primary_emotion = emotions.get("primary_emotion", "").lower()
+        
+        # Enhance NSFW detection with transformer results
+        nsfw_score = transformer_analysis.get("nsfw_score", 0.0)
+        
+        # Only override keyword-based detection if transformer is very confident AND
+        # there are other indicators (negative sentiment, negative emotions)
+        high_confidence_toxic = (
+            nsfw_score > 0.95 and 
+            (sentiment in ["negative", "NEGATIVE"] or 
+             primary_emotion in ["anger", "disgust", "fear"])
+        )
+        
+        if high_confidence_toxic:
+            if combined["content_type"] != "nsfw":
+                combined["content_type"] = "nsfw"
+                combined["content_flags"].append("toxic_detected")
+            combined["confidence"] = max(combined["confidence"], nsfw_score)
+        elif nsfw_score > 0.6 and combined["content_type"] == "nsfw":
+            # Transformer moderates keyword-based NSFW detection
+            combined["confidence"] = (combined["confidence"] + nsfw_score) / 2
+        
+        # Add sentiment and emotion information
+        combined["sentiment"] = sentiment
+        combined["emotions"] = emotions
+        
+        combined["sentiment"] = sentiment
+        combined["emotions"] = emotions
+        
+        # Add sentiment-based flags
+        if sentiment in ["negative", "NEGATIVE"]:
+            combined["content_flags"].append("negative_sentiment")
+        elif sentiment in ["positive", "POSITIVE"]:
+            combined["content_flags"].append("positive_sentiment")
+        
+        # Add emotion-based flags
+        primary_emotion = emotions.get("primary_emotion", "").lower()
+        if primary_emotion in ["anger", "disgust", "fear"]:
+            combined["content_flags"].append("negative_emotion")
+        elif primary_emotion in ["joy", "surprise"]:
+            combined["content_flags"].append("positive_emotion")
+        elif primary_emotion == "sadness":
+            combined["content_flags"].append("melancholy")
+        
+        # Update confidence with transformer input
+        transformer_confidence = transformer_analysis.get("transformer_confidence", 0.0)
+        if transformer_confidence > 0:
+            # Weighted average: 60% transformer, 40% keyword for final confidence
+            combined["confidence"] = (transformer_confidence * 0.6) + (combined["confidence"] * 0.4)
+        
+        # Add transformer metadata
+        combined["transformer_analysis"] = transformer_analysis
+        combined["analysis_method"] = "hybrid"
+        
+        log_system_event("hybrid_analysis", 
+                        f"Final: {combined['content_type']} (confidence: {combined['confidence']:.3f}), "
+                        f"Sentiment: {sentiment}, Emotion: {primary_emotion}")
+        
+        return combined
         
     async def analyze_user_input(self, user_input: str, story_context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Analyze user input with dynamic model selection for optimal analysis.
         """
         # Detect content type for model routing
-        content_type = self.detect_content_type(user_input)
+        content_detection = self.detect_content_type(user_input)
+        content_type = content_detection["content_type"]
         
         # Get the best model for this content type
         analysis_model = self.get_best_analysis_model(content_type)
+        
+        # Log routing decision
+        log_system_event("content_routing", 
+                        f"Content type: {content_type}, flags: {content_detection['content_flags']}, "
+                        f"confidence: {content_detection['confidence']:.2f}, selected model: {analysis_model}")
         
         analysis_prompt = self._build_analysis_prompt(user_input, story_context)
         
@@ -112,8 +386,8 @@ class ContentAnalyzer:
             # Parse the structured analysis
             analysis = self._parse_analysis_response(analysis_response)
             
-            # Add routing information
-            analysis["content_type"] = content_type
+            # Merge with content detection results
+            analysis.update(content_detection)
             analysis["analysis_model"] = analysis_model
             analysis["routing_recommendation"] = self.recommend_generation_model(analysis)
             
@@ -122,34 +396,63 @@ class ContentAnalyzer:
             self.analysis_cache[cache_key] = analysis
             
             log_system_event("content_analysis", 
-                           f"Analyzed with {analysis_model}: {content_type} content")
+                           f"Analyzed with {analysis_model}: {content_type} content, "
+                           f"recommended model: {analysis['routing_recommendation']}")
             
             return analysis
             
         except Exception as e:
             log_error(f"Content analysis failed with {analysis_model}: {e}")
             # Fallback to basic analysis
-            return self._basic_analysis_fallback(user_input, story_context)
+            return self._basic_analysis_fallback(user_input, story_context, content_detection)
     
     def recommend_generation_model(self, analysis: Dict[str, Any]) -> str:
         """Recommend the best model for content generation based on analysis."""
         content_type = analysis.get("content_type", "general")
         content_flags = analysis.get("content_flags", [])
+        confidence = analysis.get("confidence", 0.0)
         
         config = self.model_manager.config
         content_routing = config.get("content_routing", {})
         
-        # Check for NSFW content
-        if "nsfw" in content_flags or "mature" in content_flags:
+        # Priority-based routing with confidence thresholds
+        candidates = []
+        routing_reason = ""
+        
+        # High-confidence NSFW content
+        if ("explicit" in content_flags) and confidence > 0.7:
             candidates = content_routing.get("nsfw_models", [])
-        # Check for creative content
+            routing_reason = f"Explicit content detected with {confidence:.2f} confidence"
+        
+        # Suggestive or mature content with sufficient confidence
+        elif ("suggestive" in content_flags or "mature" in content_flags) and confidence > 0.5:
+            candidates = content_routing.get("nsfw_models", [])
+            routing_reason = f"Mature content detected with {confidence:.2f} confidence"
+        
+        # NSFW content type but low confidence - route to safe models
+        elif content_type == "nsfw" and confidence <= 0.5:
+            candidates = content_routing.get("safe_models", [])
+            routing_reason = f"Low-confidence NSFW content ({confidence:.2f}) routed to safe models"
+        
+        # Creative content
         elif content_type == "creative" or "creative" in content_flags:
             candidates = content_routing.get("creative_models", [])
-        # Check for fast/simple responses
-        elif "simple" in content_flags or "quick" in content_flags:
+            routing_reason = "Creative content detected"
+        
+        # Simple/quick responses
+        elif "simple" in content_flags or analysis.get("word_count", 0) < 5:
             candidates = content_routing.get("fast_models", [])
+            routing_reason = "Simple/quick response needed"
+        
+        # Analysis requests
+        elif content_type == "analysis" or "analysis" in content_flags:
+            candidates = content_routing.get("analysis_models", [])
+            routing_reason = "Analysis content detected"
+        
+        # Default to safe models
         else:
             candidates = content_routing.get("safe_models", [])
+            routing_reason = "Default safe routing"
         
         # Filter for enabled models
         enabled_models = [
@@ -158,25 +461,38 @@ class ContentAnalyzer:
         ]
         
         if not enabled_models:
-            log_warning("No enabled models for content generation, using fallback")
-            return "mock"
+            log_warning(f"No enabled models for routing decision: {routing_reason}")
+            # Fallback to any enabled model
+            all_models = self.model_manager.list_model_configs()
+            enabled_models = [name for name, config in all_models.items() if config.get("enabled", True)]
+            
+            if enabled_models:
+                recommended = enabled_models[0]
+                routing_reason = f"Fallback to {recommended} (no suitable models enabled)"
+            else:
+                recommended = "mock"
+                routing_reason = "Emergency fallback to mock model"
+        else:
+            recommended = enabled_models[0]  # First in priority order
         
-        recommended = enabled_models[0]
-        log_info(f"Recommended {recommended} for generation based on {content_type} analysis")
+        # Log routing decision
+        log_system_event("model_routing", 
+                        f"Recommended {recommended} for generation. Reason: {routing_reason}")
+        
         return recommended
     
-    def _basic_analysis_fallback(self, user_input: str, story_context: Dict[str, Any]) -> Dict[str, Any]:
+    def _basic_analysis_fallback(self, user_input: str, story_context: Dict[str, Any], content_detection: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Fallback analysis when dynamic analysis fails."""
-        content_type = self.detect_content_type(user_input)
+        if content_detection is None:
+            content_detection = self.detect_content_type(user_input)
         
         return {
-            "content_type": content_type,
+            **content_detection,
             "intent": "story_continuation",
-            "content_flags": [],
-            "routing_recommendation": self.get_best_analysis_model(content_type),
+            "routing_recommendation": self.get_best_analysis_model(content_detection["content_type"]),
             "analysis_model": "fallback",
             "context_needed": ["memory", "canon"],
-            "confidence": 0.5
+            "fallback_used": True
         }
     
     def _build_analysis_prompt(self, user_input: str, story_context: Dict[str, Any]) -> str:
