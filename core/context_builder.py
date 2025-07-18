@@ -12,6 +12,8 @@ from logging_system import log_system_event, log_info, log_warning, log_error
 from .memory_manager import load_current_memory
 from .content_analyzer import ContentAnalyzer
 from .character_style_manager import CharacterStyleManager
+from .character_consistency_engine import CharacterConsistencyEngine
+from .emotional_stability_engine import EmotionalStabilityEngine
 from .token_manager import TokenManager
 
 def load_canon_snippets(storypack_path, refs=None, limit=5):
@@ -233,7 +235,7 @@ async def build_context_with_analysis(user_input, story_data):
 async def build_context_with_dynamic_models(user_input: str, story_data: Dict[str, Any], 
                                           model_manager) -> Dict[str, Any]:
     """
-    Build context with dynamic model selection and optimization.
+    Build context with dynamic model selection, optimization, and character consistency.
     """
     story_id = story_data["id"]
     story_path = story_data["path"]
@@ -241,10 +243,13 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
     # Initialize managers
     content_analyzer = ContentAnalyzer(model_manager)
     character_manager = CharacterStyleManager(model_manager)
+    consistency_engine = CharacterConsistencyEngine(character_manager)
+    emotional_engine = EmotionalStabilityEngine()
     token_manager = TokenManager(model_manager)
     
-    # Load character styles
+    # Load character styles and consistency data
     character_manager.load_character_styles(story_path)
+    consistency_engine.load_character_consistency_data(story_path)
     
     # Analyze user input for optimal model selection
     try:
@@ -291,12 +296,48 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
         "user_input": user_input
     }
     
-    # Add character style context if applicable
+    # Add character consistency context if applicable
     if active_character:
+        # Add character style context
         character_context = character_manager.build_character_context(
             active_character, recommended_model)
         if character_context:
             context_parts["character_style"] = character_context
+        
+        # Add motivation anchoring for consistency
+        motivation_prompt = consistency_engine.get_motivation_prompt(
+            active_character, content_type)
+        if motivation_prompt:
+            context_parts["character_consistency"] = motivation_prompt
+        
+        # Add emotional stability context and anti-loop prompts
+        emotional_context = emotional_engine.get_emotional_context(active_character)
+        if emotional_context['active_cooldowns']:
+            cooldown_warnings = []
+            for cooldown in emotional_context['active_cooldowns']:
+                remaining = cooldown['remaining_minutes']
+                behavior = cooldown['behavior']
+                cooldown_warnings.append(
+                    f"{behavior} behavior should be avoided for {remaining} more minutes"
+                )
+            
+            if cooldown_warnings:
+                context_parts["emotional_stability"] = (
+                    f"[EMOTIONAL_STABILITY_GUIDANCE: {active_character} has recent "
+                    f"emotional patterns to avoid: {'; '.join(cooldown_warnings)}. "
+                    f"Consider introducing variety, internal conflict, or external "
+                    f"distractions to maintain authentic character development.]"
+                )
+        
+        # Check for potential loops in user input and add prevention prompts
+        if user_input:
+            input_loops = emotional_engine.detect_emotional_loops(active_character, user_input)
+            if input_loops:
+                anti_loop_prompt = emotional_engine.generate_anti_loop_prompt(active_character, input_loops)
+                if anti_loop_prompt and "emotional_stability" in context_parts:
+                    context_parts["emotional_stability"] += f"\n{anti_loop_prompt}"
+                elif anti_loop_prompt:
+                    context_parts["emotional_stability"] = anti_loop_prompt
     
     # Estimate token usage and trim if necessary
     estimated_tokens = sum(
@@ -311,6 +352,13 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
     
     if estimated_tokens > target_tokens:
         log_warning(f"Context too long ({estimated_tokens} tokens), trimming to {target_tokens}")
+        
+        # Use fallback motivation prompt if we need to trim
+        if active_character and "character_consistency" in context_parts:
+            fallback_prompt = consistency_engine.get_fallback_prompt(
+                active_character, max_tokens=150)
+            context_parts["character_consistency"] = fallback_prompt
+        
         context_parts = token_manager.trim_context_intelligently(
             context_parts, target_tokens, recommended_model)
     
@@ -322,6 +370,7 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
         "recommended_model": recommended_model,
         "content_analysis": analysis,
         "active_character": active_character,
+        "consistency_engine": consistency_engine,
         "token_estimate": token_manager.estimate_tokens(final_context, recommended_model)
     }
 
@@ -371,15 +420,201 @@ def _assemble_context(context_parts: Dict[str, str]) -> str:
     sections = []
     
     # Order matters for context flow
-    section_order = ["system", "memory", "canon", "character_style", "user_input"]
+    section_order = ["system", "memory", "canon", "character_style", "character_consistency", "user_input"]
     
     for section in section_order:
         if section in context_parts and context_parts[section]:
             if section == "user_input":
-                sections.append(f"USER INPUT: {context_parts[section]}")
+                sections.append(f"=== USER INPUT ===\n{context_parts[section]}")
             else:
                 sections.append(context_parts[section])
     
     sections.append("\nContinue the story naturally based on the user's input, maintaining consistency with the established world and characters.")
     
     return "\n\n".join(sections)
+
+async def validate_character_consistency(generated_output: str, character_name: str, 
+                                       scene_id: str, consistency_engine: CharacterConsistencyEngine,
+                                       context: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Validate generated output for character consistency violations.
+    """
+    if not character_name or not consistency_engine:
+        return {"violations": [], "consistency_score": 1.0}
+    
+    try:
+        # Analyze the output for consistency violations
+        violations = consistency_engine.analyze_behavioral_consistency(
+            character_name, generated_output, scene_id, context
+        )
+        
+        # Get current consistency score
+        consistency_score = consistency_engine.get_consistency_score(character_name)
+        
+        # Log results
+        if violations:
+            log_warning(f"Character consistency violations detected for {character_name} in {scene_id}")
+            for violation in violations:
+                log_warning(f"  - {violation.violation_type.value}: {violation.description}")
+        else:
+            log_info(f"Character consistency maintained for {character_name} in {scene_id}")
+        
+        return {
+            "violations": [v.to_dict() for v in violations],
+            "consistency_score": consistency_score,
+            "character_name": character_name,
+            "scene_id": scene_id
+        }
+        
+    except Exception as e:
+        log_error(f"Character consistency validation failed: {e}")
+        return {
+            "violations": [],
+            "consistency_score": 1.0,
+            "error": str(e)
+        }
+
+async def validate_emotional_stability(generated_output: str, character_name: str,
+                                     scene_id: str, emotional_engine: EmotionalStabilityEngine,
+                                     context: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Validate generated output for emotional stability and detect loops.
+    """
+    if not character_name or not emotional_engine:
+        return {"loops": [], "stability_score": 1.0, "anti_loop_prompt": ""}
+    
+    try:
+        # Detect emotional loops in the output
+        detected_loops = emotional_engine.detect_emotional_loops(character_name, generated_output)
+        
+        # Get current emotional context
+        emotional_context = emotional_engine.get_emotional_context(character_name)
+        stability_score = emotional_context['emotional_stability_score']
+        
+        # Generate anti-loop prompt if needed
+        anti_loop_prompt = ""
+        if detected_loops:
+            anti_loop_prompt = emotional_engine.generate_anti_loop_prompt(character_name, detected_loops)
+            
+            # Trigger cooldowns for detected loop behaviors
+            for loop in detected_loops:
+                if loop.loop_type in ['excessive_flirtation', 'praise_seeking', 'neediness']:
+                    emotional_engine.trigger_behavior_cooldown(character_name, loop.loop_type.replace('_', ''))
+        
+        # Track emotional state based on content analysis
+        if context and 'content_analysis' in context:
+            content_flags = context['content_analysis'].get('flags', [])
+            emotional_intensity = 0.5  # Default
+            
+            # Determine emotion and intensity from content flags
+            if 'flirty' in content_flags or 'romantic' in content_flags:
+                emotional_engine.track_emotional_state(character_name, 'flirty', 0.7, scene_id)
+            elif 'emotional' in content_flags:
+                emotional_engine.track_emotional_state(character_name, 'vulnerable', 0.6, scene_id)
+            elif 'praise_seeking' in generated_output.lower():
+                emotional_engine.track_emotional_state(character_name, 'insecure', 0.5, scene_id)
+        
+        # Log results
+        if detected_loops:
+            log_warning(f"Emotional loops detected for {character_name} in {scene_id}")
+            for loop in detected_loops:
+                log_warning(f"  - {loop.loop_type}: {loop.pattern} (confidence: {loop.confidence:.2f})")
+        else:
+            log_info(f"Emotional stability maintained for {character_name} in {scene_id}")
+        
+        return {
+            "loops": [
+                {
+                    "type": loop.loop_type,
+                    "pattern": loop.pattern,
+                    "confidence": loop.confidence,
+                    "severity": loop.severity,
+                    "suggested_disruption": loop.suggested_disruption
+                }
+                for loop in detected_loops
+            ],
+            "stability_score": stability_score,
+            "anti_loop_prompt": anti_loop_prompt,
+            "character_name": character_name,
+            "scene_id": scene_id,
+            "active_cooldowns": emotional_context['active_cooldowns']
+        }
+        
+    except Exception as e:
+        log_error(f"Emotional stability validation failed: {e}")
+        return {
+            "loops": [],
+            "stability_score": 1.0,
+            "anti_loop_prompt": "",
+            "error": str(e)
+        }
+
+def get_character_consistency_report(consistency_engine: CharacterConsistencyEngine, 
+                                   character_name: str = None) -> Dict[str, Any]:
+    """
+    Get character consistency report(s).
+    """
+    if not consistency_engine:
+        return {"error": "No consistency engine available"}
+    
+    try:
+        if character_name:
+            return consistency_engine.get_consistency_report(character_name)
+        else:
+            # Get stats for all characters
+            stats = consistency_engine.get_stats()
+            character_reports = {}
+            
+            for char_name in consistency_engine.motivation_anchors.keys():
+                character_reports[char_name] = consistency_engine.get_consistency_report(char_name)
+            
+            return {
+                "overall_stats": stats,
+                "character_reports": character_reports
+            }
+            
+    except Exception as e:
+        log_error(f"Failed to generate consistency report: {e}")
+        return {"error": str(e)}
+
+def get_emotional_stability_report(emotional_engine: EmotionalStabilityEngine,
+                                 character_name: str = None) -> Dict[str, Any]:
+    """
+    Get emotional stability report(s).
+    """
+    if not emotional_engine:
+        return {"error": "No emotional stability engine available"}
+    
+    try:
+        if character_name:
+            context = emotional_engine.get_emotional_context(character_name)
+            cooldown_status = emotional_engine.get_cooldown_status(character_name)
+            
+            return {
+                "character_name": character_name,
+                "current_emotional_state": context.get('current_state'),
+                "recent_emotions": context.get('recent_emotions', []),
+                "stability_score": context.get('emotional_stability_score', 1.0),
+                "active_cooldowns": context.get('active_cooldowns', []),
+                "cooldown_details": cooldown_status
+            }
+        else:
+            # Get overall engine statistics
+            engine_stats = emotional_engine.get_engine_stats()
+            character_reports = {}
+            
+            # Get reports for all tracked characters
+            for char_id in emotional_engine.emotional_histories.keys():
+                character_reports[char_id] = {
+                    "emotional_context": emotional_engine.get_emotional_context(char_id),
+                    "cooldown_status": emotional_engine.get_cooldown_status(char_id)
+                }
+            
+            return {
+                "overall_stats": engine_stats,
+                "character_reports": character_reports
+            }
+            
+    except Exception as e:
+        log_error(f"Failed to generate emotional stability report: {e}")
+        return {"error": str(e)}
