@@ -5,3 +5,10 @@
   "status": "planned",
   "priority": "medium"
 }
+{
+  "id": "goal-image-generation-integration",
+  "title": "Image Generation Integration",
+  "description": "Add optional support for image generation via local or API-driven models. Images are treated as non-critical 'fluff' and stored in each storypack’s `/images/` directory. The system should support pluggable image models, matching how LLM adapters work. Future support may include image memory tagging, automatic character/scene visualization, and CLI-triggered generation.",
+  "status": "planned",
+  "priority": "low"
+}
