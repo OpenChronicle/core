@@ -15,6 +15,7 @@ from .character_style_manager import CharacterStyleManager
 from .character_consistency_engine import CharacterConsistencyEngine
 from .emotional_stability_engine import EmotionalStabilityEngine
 from .character_interaction_engine import CharacterInteractionEngine
+from .character_stat_engine import CharacterStatEngine
 from .token_manager import TokenManager
 
 def load_canon_snippets(storypack_path, refs=None, limit=5):
@@ -247,6 +248,7 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
     consistency_engine = CharacterConsistencyEngine(character_manager)
     emotional_engine = EmotionalStabilityEngine()
     interaction_engine = CharacterInteractionEngine()
+    stat_engine = CharacterStatEngine()
     token_manager = TokenManager(model_manager)
     
     # Load character styles and consistency data
@@ -341,30 +343,43 @@ async def build_context_with_dynamic_models(user_input: str, story_data: Dict[st
                 elif anti_loop_prompt:
                     context_parts["emotional_stability"] = anti_loop_prompt
     
-    # Add character interaction dynamics context for multi-character scenes
-    if active_character:
-        # Detect if this might be a multi-character scene (basic heuristic)
-        scene_characters = _detect_scene_characters(user_input, story_data.get("characters", {}))
-        
-        if len(scene_characters) > 1 and active_character in scene_characters:
-            # Create or get existing scene
-            scene_id = f"scene_{story_id}_{hash(frozenset(scene_characters)) % 10000}"
+        # Add character interaction dynamics context for multi-character scenes
+        if active_character:
+            # Initialize character in stat engine if not already present
+            character_data = story_data.get("characters", {}).get(active_character, {})
+            if character_data:
+                # Extract initial stats from character data if available
+                initial_stats = character_data.get("stats", {})
+                stat_engine.initialize_character(active_character, initial_stats)
             
-            # Check if scene exists, if not create it
-            if scene_id not in interaction_engine.scene_states:
-                interaction_engine.create_scene(
-                    scene_id=scene_id,
-                    characters=scene_characters,
-                    scene_focus="character interaction",
-                    environment_context="current scene"
-                )
+            # Generate stat-based behavior context
+            stat_context = stat_engine.generate_behavior_context(active_character, content_type)
+            if stat_context and stat_context.get('behavior_influences'):
+                # Create stat-based prompt guidance
+                stat_prompt = stat_engine.generate_response_prompt(active_character, content_type, analysis.get('emotional_tone', 'neutral'))
+                if stat_prompt:
+                    context_parts["character_stats"] = stat_prompt
             
-            # Generate relationship context
-            relationship_prompt = interaction_engine.generate_relationship_prompt(scene_id, active_character)
-            if relationship_prompt:
-                context_parts["character_interactions"] = relationship_prompt
-    
-    # Estimate token usage and trim if necessary
+            # Detect if this might be a multi-character scene (basic heuristic)
+            scene_characters = _detect_scene_characters(user_input, story_data.get("characters", {}))
+            
+            if len(scene_characters) > 1 and active_character in scene_characters:
+                # Create or get existing scene
+                scene_id = f"scene_{story_id}_{hash(frozenset(scene_characters)) % 10000}"
+                
+                # Check if scene exists, if not create it
+                if scene_id not in interaction_engine.scene_states:
+                    interaction_engine.create_scene(
+                        scene_id=scene_id,
+                        characters=scene_characters,
+                        scene_focus="character interaction",
+                        environment_context="current scene"
+                    )
+                
+                # Generate relationship context
+                relationship_prompt = interaction_engine.generate_relationship_prompt(scene_id, active_character)
+                if relationship_prompt:
+                    context_parts["character_interactions"] = relationship_prompt    # Estimate token usage and trim if necessary
     estimated_tokens = sum(
         token_manager.estimate_tokens(part, recommended_model)
         for part in context_parts.values()
@@ -445,7 +460,7 @@ def _assemble_context(context_parts: Dict[str, str]) -> str:
     sections = []
     
     # Order matters for context flow
-    section_order = ["system", "memory", "canon", "character_style", "character_consistency", "user_input"]
+    section_order = ["system", "memory", "canon", "character_style", "character_consistency", "character_stats", "character_interactions", "emotional_stability", "user_input"]
     
     for section in section_order:
         if section in context_parts and context_parts[section]:
