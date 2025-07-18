@@ -1,4 +1,4 @@
-{
+9{
   "id": "goal-character-consistency-engine",
   "title": "Character Consistency Engine",
   "description": "Develop a system to track and enforce logical, emotionally consistent character behavior across scenes. This includes preserving motivation, detecting contradictions, and optionally validating tone coherence across LLM responses. Future versions may support internal conflict modeling and cross-scene behavioral audits.",
@@ -109,4 +109,28 @@
   "description": "Prevent characters from falling into repetitive gratification loops (e.g., constant flirting, praise-seeking, or sexual innuendo). Implement emotional cooldowns, varied motivation stacks, memory-aware dialogue planning, and narrative disruptors to keep interactions dynamic, grounded, and emotionally believable. Loop detection logic should flag excessive repetition, while characters should exhibit resistance, shame, or boundary-setting where appropriate.",
   "status": "planned",
   "priority": "high"
+}
+{
+  "id": "goal-character-emotional-config",
+  "title": "Configurable Emotional Behavior for Characters",
+  "description": "Enable fine-tuned emotional behavior per character to prevent unwanted gratification loops and support intentional emotional nuance. Emotional neediness, volatility, boundaries, and cooldown settings should be adjustable via character JSON files. This allows defaults to remain immersive and healthy, while power users can deliberately build clingy, obsessive, or emotionally volatile characters. These behaviors should influence both dialog patterns and response selection logic.",
+  "status": "planned",
+  "priority": "high",
+  "schema_extension": {
+    "emotional_profile": {
+      "volatility": 0.3,
+      "gratification_drive": 0.1,
+      "emotional_cooldown": 4,
+      "boundaries_enabled": true,
+      "needs_attention": false,
+      "loop_protection_enabled": true
+    }
+  },
+  "notes": [
+    "Volatility affects how easily a character reacts to emotional or narrative shifts.",
+    "Gratification drive controls how likely a character is to seek approval, affection, or intimacy repeatedly.",
+    "Cooldown prevents characters from repeating the same emotional beats too frequently.",
+    "Boundaries allow characters to say 'no', resist flattery, or reject escalation.",
+    "Loop protection suppresses repeated emotional or sexual content without narrative pressure to change."
+  ]
 }
