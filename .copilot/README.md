@@ -8,32 +8,53 @@ This directory contains essential documentation, examples, and patterns to enhan
 .copilot/
 ├── README.md                    # This file - overview and usage guide
 ├── context.json                 # Unified project context and status (PRIMARY REFERENCE)
-├── architecture/                # System architecture documentation
-│   └── module_interactions.md   # Module relationships and data flow
-├── config/                      # Configuration examples and templates
-│   ├── model_registry.json      # Model priority and fallback configuration
-│   └── models/                  # Individual model configurations
-│       ├── openai.json          # OpenAI GPT configuration
-│       └── ollama.json          # Ollama local model configuration
-├── examples/                    # Complete working examples
+├── technical_improvements.md    # Core module enhancements and technical debt
+├── architecture/               # System architecture documentation
+│   └── module_interactions.md  # Module relationships and data flow
+├── config/                     # Configuration examples and templates
+│   ├── model_registry.json     # Model priority and fallback configuration
+│   └── models/                 # Individual model configurations
+│       ├── openai.json         # OpenAI GPT configuration
+│       └── ollama.json         # Ollama local model configuration
+├── examples/                   # Complete working examples
 │   ├── dynamic_model_management.py # Dynamic model management examples
 │   ├── transformer_content_analysis.py # Transformer-based content analysis examples
-│   └── storypacks/              # Example story packages
-│       └── fantasy-tavern/      # Fantasy tavern story example
-│           ├── meta.yaml        # Story metadata
-│           ├── style_guide.md   # Narrative style guide
-│           ├── characters/      # Character definitions
+│   └── storypacks/             # Example story packages
+│       └── fantasy-tavern/     # Fantasy tavern story example
+│           ├── meta.yaml       # Story metadata
+│           ├── style_guide.md  # Narrative style guide
+│           ├── characters/     # Character definitions
 │           │   └── gareth_ironwood.json
-│           └── canon/           # World lore documents
+│           └── canon/          # World lore documents
 │               └── wanderers_rest_tavern.md
-├── patterns/                    # Development patterns and best practices
-│   ├── core_module_pattern.py   # Standard module structure
+├── patterns/                   # Development patterns and best practices
+│   ├── core_module_pattern.py  # Standard module structure
 │   ├── development_guidelines.md # Coding standards and conventions
 │   ├── dynamic_model_management.md # Dynamic model management system
 │   ├── transformer_analysis_pattern.md # Transformer-based content analysis patterns
-│   └── token_management.py      # Token optimization patterns
-└── testing/                     # Testing patterns and examples
-    └── test_patterns.py         # Standard testing approaches
+│   └── token_management.py     # Token optimization patterns
+├── tasks/                      # Task management and development planning
+│   ├── README.md               # Task management overview and guidelines
+│   ├── task_registry.json      # Master task registry with status tracking (15 tasks)
+│   ├── priority_matrix.json    # Priority matrix and dependency mapping
+│   ├── mvp_roadmap.md          # MVP milestone tracking and timeline
+│   ├── engines/                # Character and narrative engine tasks
+│   │   ├── character_consistency_engine.md
+│   │   ├── character_interaction_engine.md
+│   │   ├── character_stat_engine.md
+│   │   ├── emotional_stability_engine.md
+│   │   ├── narrative_dice_engine.md
+│   │   └── image_generation_engine.md
+│   ├── utilities/              # Tool and utility development tasks
+│   │   ├── storypack_importer.md
+│   │   └── stress_testing_framework.md
+│   └── safety/                 # Legal, ethical, and safety tasks
+│       ├── content_risk_framework.md
+│       ├── legal_liability_framework.md
+│       ├── ethical_content_safety.md
+│       └── content_disclaimer.txt
+└── testing/                    # Testing patterns and examples
+    └── test_patterns.py        # Standard testing approaches
 ```
 
 ## 🎯 Purpose
@@ -64,14 +85,29 @@ This directory serves multiple purposes:
 - Includes comprehensive error handling examples
 - Demonstrates proper testing strategies and module structure
 
+### 5. **Task Management and Planning**
+- Centralized task registry with priority and dependency tracking
+- Sprint planning and milestone management via `tasks/`
+- Risk assessment and contingency planning
+- Progress tracking and success metrics
+
 ## 🔧 How to Use
 
 ### For Developers
 1. **Start with Context**: Review `context.json` for current project status and priorities
-2. **Reference Patterns**: Use files in `patterns/` as templates for new modules
-3. **Copy Examples**: Adapt configurations from `config/` for your deployment needs
-4. **Follow Guidelines**: Refer to `patterns/development_guidelines.md` for coding standards
-5. **Test Templates**: Use `testing/test_patterns.py` as a testing framework
+2. **Check Tasks**: Use `tasks/task_registry.json` for current development priorities and dependencies
+3. **Reference Patterns**: Use files in `patterns/` as templates for new modules
+4. **Copy Examples**: Adapt configurations from `config/` for your deployment needs
+5. **Follow Guidelines**: Refer to `patterns/development_guidelines.md` for coding standards
+6. **Test Templates**: Use `testing/test_patterns.py` as a testing framework
+7. **Track Progress**: Update task status in registry and follow sprint planning
+
+### For Project Management
+1. **Sprint Planning**: Use `tasks/priority_matrix.json` for sprint planning and resource allocation
+2. **Milestone Tracking**: Monitor progress via `tasks/mvp_roadmap.md`
+3. **Risk Management**: Review and update risk assessments in priority matrix
+4. **Dependency Management**: Track task dependencies and critical path items
+5. **Progress Reporting**: Use task registry metrics for status updates
 
 ### For GitHub Copilot
 This directory automatically enhances Copilot's suggestions by providing:
@@ -89,15 +125,28 @@ This directory automatically enhances Copilot's suggestions by providing:
 - Use character and canon examples as structural templates
 
 ### For Content Analysis Integration
-- Review `patterns/transformer_analysis_pattern.md` for hybrid analysis patterns
-- Use `examples/transformer_content_analysis.py` for implementation examples
+- Review `technical_improvements.md` for character system enhancements
+- Use emotional profile and character stats schemas for advanced character AI
 - Follow confidence weighting and false positive reduction patterns
 - Implement graceful fallback from transformer to keyword-only analysis
-- Adapt `meta.yaml` for your story's metadata requirements
-- Reference `style_guide.md` for narrative formatting standards
-- Use character and canon examples as structural templates
+- Reference existing `content_analyzer.py` for integration patterns
 
 ## 📋 Key Files
+
+### 🎯 **Primary References**
+- **`context.json`** - Complete project status, goals, and current development phase
+- **`tasks/task_registry.json`** - Master registry of all 15 development tasks with priorities and dependencies
+- **`tasks/mvp_roadmap.md`** - 4-week roadmap to MVP v0.1.0 release (Target: August 15, 2025)
+
+### 🔧 **Development Resources**  
+- **`technical_improvements.md`** - Core module enhancements and performance optimizations
+- **`patterns/development_guidelines.md`** - Coding standards and best practices
+- **`examples/transformer_content_analysis.py`** - Working content analysis implementation
+
+### 📊 **Planning and Management**
+- **`tasks/priority_matrix.json`** - Sprint planning, dependency mapping, and risk management
+- **`tasks/safety/legal_liability_framework.md`** - Critical legal protection requirements
+- **`tasks/safety/content_risk_framework.md`** - Content classification and safety system
 
 ### `context.json` ⭐ PRIMARY REFERENCE
 - **Purpose**: Unified project context and current status

@@ -50,6 +50,29 @@
     "utilities": "Maintenance and optimization tools"
   },
 
+  "character_system_schemas": {
+    "emotional_profile": {
+      "volatility": "0.0-1.0 scale: 0.0=stoic, 1.0=explosive emotional reactions",
+      "gratification_drive": "0.0-1.0 scale: 0.0=self-sufficient, 1.0=approval-seeking/needy",
+      "emotional_cooldown": "Number of turns before character can reuse same emotional response",
+      "boundaries_enabled": "Boolean: whether character can resist advances or say no",
+      "needs_attention": "Boolean: whether character seeks validation when ignored",
+      "loop_protection_enabled": "Boolean: prevents repetitive emotional/behavioral patterns"
+    },
+    "character_stats": {
+      "intelligence": "Problem-solving and learning ability (0-10 scale)",
+      "wisdom": "Insight, judgment, and understanding (0-10 scale)",
+      "charisma": "Social influence and natural likability (0-10 scale)",
+      "willpower": "Resistance to temptation and mental fortitude (0-10 scale)",
+      "creativity": "Innovation and artistic ability (0-10 scale)",
+      "humor": "Wit, comedic timing, and levity (0-10 scale)",
+      "courage": "Bravery in dangerous or challenging situations (0-10 scale)",
+      "loyalty": "Commitment to relationships and causes (0-10 scale)",
+      "greed": "Desire for wealth, power, or material gain (0-10 scale)",
+      "temper": "Anger and emotional volatility (0-10 scale)"
+    }
+  },
+
   "completed_features": [
     "SQLite integration with all core modules",
     "LLM adapter system with 12+ providers (text + image generation)",
