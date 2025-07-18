@@ -1,14 +1,21 @@
 """
 Timeline Builder for OpenChronicle.
 Creates timeline views and navigation utilities for stories.
+Enhanced with tone tracking and auto-summary generation.
 """
 
 import json
-from datetime import datetime
-from typing import Dict, List, Optional, Any
+import sys
+from datetime import datetime, UTC
+from typing import Dict, List, Optional, Any, Tuple
+from pathlib import Path
 from .database import execute_query, init_database
 from .bookmark_manager import BookmarkManager
 from .scene_logger import list_scenes, get_labeled_scenes
+
+# Add utilities to path for logging system
+sys.path.append(str(Path(__file__).parent.parent / "utilities"))
+from logging_system import log_system_event, log_info, log_warning, log_error
 
 class TimelineBuilder:
     """Builds story timelines and navigation structures."""
@@ -317,3 +324,383 @@ class TimelineBuilder:
                 'labeling_percentage': (scene_stats[1] / scene_stats[0] * 100) if scene_stats[0] > 0 else 0
             }
         }
+
+    def track_tone_consistency_audit(self) -> Dict[str, Any]:
+        """
+        Track per-turn tone tags for LLM consistency audit.
+        
+        Returns:
+            Tone consistency analysis with flagged inconsistencies
+        """
+        try:
+            log_info(f"Starting tone consistency audit for story: {self.story_id}")
+            
+            # Get scenes with structured tags
+            scenes = execute_query(self.story_id, '''
+                SELECT scene_id, timestamp, structured_tags, input, output
+                FROM scenes 
+                WHERE structured_tags IS NOT NULL 
+                ORDER BY timestamp ASC
+            ''')
+            
+            tone_timeline = []
+            tone_inconsistencies = []
+            tone_transitions = {}
+            character_tone_profiles = {}
+            
+            previous_mood = None
+            previous_scene_type = None
+            
+            for scene in scenes:
+                try:
+                    structured_tags = json.loads(scene[2] or '{}')
+                    scene_id = scene[0]
+                    timestamp = scene[1]
+                    
+                    current_mood = structured_tags.get('mood', 'neutral')
+                    scene_type = structured_tags.get('scene_type', 'dialogue')
+                    character_moods = structured_tags.get('character_moods', {})
+                    
+                    # Track tone timeline
+                    tone_entry = {
+                        'scene_id': scene_id,
+                        'timestamp': timestamp,
+                        'mood': current_mood,
+                        'scene_type': scene_type,
+                        'character_moods': character_moods
+                    }
+                    tone_timeline.append(tone_entry)
+                    
+                    # Check for tone inconsistencies
+                    if previous_mood and previous_mood != current_mood:
+                        # Check if transition is too abrupt
+                        mood_severity = {
+                            'joyful': 3, 'excited': 3, 'happy': 2,
+                            'neutral': 1, 'calm': 1,
+                            'sad': -2, 'angry': -3, 'terrified': -3, 'depressed': -3
+                        }
+                        
+                        prev_score = mood_severity.get(previous_mood, 0)
+                        curr_score = mood_severity.get(current_mood, 0)
+                        transition_gap = abs(curr_score - prev_score)
+                        
+                        if transition_gap >= 4:  # Large mood swing
+                            inconsistency = {
+                                'scene_id': scene_id,
+                                'type': 'abrupt_mood_change',
+                                'from_mood': previous_mood,
+                                'to_mood': current_mood,
+                                'severity': transition_gap,
+                                'timestamp': timestamp
+                            }
+                            tone_inconsistencies.append(inconsistency)
+                            log_warning(f"Abrupt mood change detected in scene {scene_id}: {previous_mood} -> {current_mood}")
+                    
+                    # Track tone transitions
+                    if previous_mood:
+                        transition_key = f"{previous_mood}->{current_mood}"
+                        tone_transitions[transition_key] = tone_transitions.get(transition_key, 0) + 1
+                    
+                    # Track character tone profiles
+                    for char_name, char_mood_data in character_moods.items():
+                        if char_name not in character_tone_profiles:
+                            character_tone_profiles[char_name] = {
+                                'moods': [],
+                                'stability_scores': [],
+                                'scene_count': 0
+                            }
+                        
+                        character_tone_profiles[char_name]['moods'].append(char_mood_data.get('mood', 'neutral'))
+                        character_tone_profiles[char_name]['stability_scores'].append(char_mood_data.get('stability', 1.0))
+                        character_tone_profiles[char_name]['scene_count'] += 1
+                    
+                    previous_mood = current_mood
+                    previous_scene_type = scene_type
+                    
+                except json.JSONDecodeError:
+                    continue
+            
+            # Analyze character consistency
+            character_consistency = {}
+            for char_name, profile in character_tone_profiles.items():
+                moods = profile['moods']
+                stability_scores = profile['stability_scores']
+                
+                # Calculate mood diversity (how many different moods)
+                unique_moods = len(set(moods))
+                total_scenes = len(moods)
+                mood_diversity = unique_moods / total_scenes if total_scenes > 0 else 0
+                
+                # Calculate average stability
+                avg_stability = sum(stability_scores) / len(stability_scores) if stability_scores else 1.0
+                
+                character_consistency[char_name] = {
+                    'total_scenes': total_scenes,
+                    'unique_moods': unique_moods,
+                    'mood_diversity': mood_diversity,
+                    'average_stability': avg_stability,
+                    'most_common_mood': max(set(moods), key=moods.count) if moods else 'neutral',
+                    'consistency_score': avg_stability * (1 - min(mood_diversity, 0.8))  # Penalize too much diversity
+                }
+            
+            audit_result = {
+                'story_id': self.story_id,
+                'audit_timestamp': datetime.now(UTC).isoformat(),
+                'tone_timeline': tone_timeline,
+                'inconsistencies': tone_inconsistencies,
+                'tone_transitions': tone_transitions,
+                'character_consistency': character_consistency,
+                'summary': {
+                    'total_scenes_analyzed': len(tone_timeline),
+                    'inconsistencies_found': len(tone_inconsistencies),
+                    'characters_tracked': len(character_tone_profiles),
+                    'most_common_mood': max(tone_transitions.keys(), key=lambda k: tone_transitions[k]) if tone_transitions else 'neutral'
+                }
+            }
+            
+            log_info(f"Tone consistency audit completed: {len(tone_inconsistencies)} inconsistencies found")
+            return audit_result
+            
+        except Exception as e:
+            log_error(f"Error during tone consistency audit: {e}")
+            return {
+                'story_id': self.story_id,
+                'error': str(e),
+                'audit_timestamp': datetime.now(UTC).isoformat()
+            }
+    
+    def generate_auto_summary(self, scene_range: Tuple[int, int] = None, 
+                              summary_type: str = "narrative") -> Dict[str, Any]:
+        """
+        Generate auto-summaries for long-term memory compaction.
+        
+        Args:
+            scene_range: Tuple of (start_index, end_index) for scene range, None for all
+            summary_type: Type of summary ("narrative", "character_focused", "event_focused")
+        
+        Returns:
+            Generated summary with metadata
+        """
+        try:
+            log_info(f"Generating auto-summary for story: {self.story_id}, type: {summary_type}")
+            
+            # Get scenes in range
+            if scene_range:
+                scenes = execute_query(self.story_id, '''
+                    SELECT scene_id, timestamp, input, output, structured_tags, scene_label
+                    FROM scenes 
+                    ORDER BY timestamp ASC
+                    LIMIT ? OFFSET ?
+                ''', (scene_range[1] - scene_range[0], scene_range[0]))
+            else:
+                scenes = execute_query(self.story_id, '''
+                    SELECT scene_id, timestamp, input, output, structured_tags, scene_label
+                    FROM scenes 
+                    ORDER BY timestamp ASC
+                ''')
+            
+            if not scenes:
+                return {
+                    'story_id': self.story_id,
+                    'summary': "No scenes available for summarization.",
+                    'metadata': {'scene_count': 0}
+                }
+            
+            # Analyze scenes for summary generation
+            key_events = []
+            character_developments = {}
+            mood_progression = []
+            important_scenes = []
+            
+            for scene in scenes:
+                scene_id, timestamp, user_input, output, structured_tags_raw, scene_label = scene
+                
+                try:
+                    structured_tags = json.loads(structured_tags_raw or '{}')
+                except json.JSONDecodeError:
+                    structured_tags = {}
+                
+                # Extract key information
+                scene_mood = structured_tags.get('mood', 'neutral')
+                scene_type = structured_tags.get('scene_type', 'dialogue')
+                character_moods = structured_tags.get('character_moods', {})
+                
+                # Track mood progression
+                mood_progression.append({
+                    'scene_id': scene_id,
+                    'mood': scene_mood,
+                    'timestamp': timestamp
+                })
+                
+                # Identify important scenes (labeled, long turns, mood changes)
+                is_important = (
+                    scene_label is not None or
+                    structured_tags.get('token_usage', {}).get('is_long_turn', False) or
+                    scene_mood not in ['neutral', 'calm']
+                )
+                
+                if is_important:
+                    important_scenes.append({
+                        'scene_id': scene_id,
+                        'timestamp': timestamp,
+                        'label': scene_label,
+                        'mood': scene_mood,
+                        'type': scene_type,
+                        'input_preview': user_input[:100] + "..." if len(user_input) > 100 else user_input,
+                        'output_preview': output[:200] + "..." if len(output) > 200 else output
+                    })
+                
+                # Track character developments
+                for char_name, char_mood_data in character_moods.items():
+                    if char_name not in character_developments:
+                        character_developments[char_name] = {
+                            'mood_changes': [],
+                            'key_scenes': [],
+                            'stability_trend': []
+                        }
+                    
+                    character_developments[char_name]['mood_changes'].append({
+                        'scene_id': scene_id,
+                        'mood': char_mood_data.get('mood', 'neutral'),
+                        'stability': char_mood_data.get('stability', 1.0),
+                        'timestamp': timestamp
+                    })
+                    
+                    # Track scenes where character had significant mood changes
+                    if char_mood_data.get('stability', 1.0) < 0.7:
+                        character_developments[char_name]['key_scenes'].append(scene_id)
+                
+                # Extract potential key events from user input
+                if any(keyword in user_input.lower() for keyword in 
+                       ['fight', 'battle', 'kiss', 'death', 'leave', 'arrive', 'discover', 'reveal']):
+                    key_events.append({
+                        'scene_id': scene_id,
+                        'event_type': 'action',
+                        'description': user_input[:150] + "..." if len(user_input) > 150 else user_input,
+                        'timestamp': timestamp
+                    })
+            
+            # Generate summary based on type
+            if summary_type == "narrative":
+                summary_text = self._generate_narrative_summary(scenes, important_scenes, mood_progression)
+            elif summary_type == "character_focused":
+                summary_text = self._generate_character_summary(character_developments, important_scenes)
+            elif summary_type == "event_focused":
+                summary_text = self._generate_event_summary(key_events, important_scenes)
+            else:
+                summary_text = self._generate_narrative_summary(scenes, important_scenes, mood_progression)
+            
+            summary_result = {
+                'story_id': self.story_id,
+                'summary_type': summary_type,
+                'summary': summary_text,
+                'generated_at': datetime.now(UTC).isoformat(),
+                'metadata': {
+                    'scene_count': len(scenes),
+                    'important_scenes_count': len(important_scenes),
+                    'characters_tracked': len(character_developments),
+                    'key_events_count': len(key_events),
+                    'scene_range': scene_range,
+                    'mood_diversity': len(set(entry['mood'] for entry in mood_progression)),
+                    'timeline_span': {
+                        'start': scenes[0][1] if scenes else None,
+                        'end': scenes[-1][1] if scenes else None
+                    }
+                },
+                'detailed_analysis': {
+                    'important_scenes': important_scenes,
+                    'character_developments': character_developments,
+                    'key_events': key_events,
+                    'mood_progression': mood_progression
+                }
+            }
+            
+            log_info(f"Auto-summary generated: {len(summary_text)} characters, {len(important_scenes)} key scenes")
+            return summary_result
+            
+        except Exception as e:
+            log_error(f"Error generating auto-summary: {e}")
+            return {
+                'story_id': self.story_id,
+                'error': str(e),
+                'generated_at': datetime.now(UTC).isoformat()
+            }
+    
+    def _generate_narrative_summary(self, scenes: List, important_scenes: List, mood_progression: List) -> str:
+        """Generate a narrative-style summary."""
+        if not scenes:
+            return "No scenes to summarize."
+        
+        summary_parts = []
+        
+        # Opening
+        summary_parts.append(f"Story progression across {len(scenes)} scenes:")
+        
+        # Key developments
+        if important_scenes:
+            summary_parts.append(f"\nKey developments occurred in {len(important_scenes)} significant scenes:")
+            for scene in important_scenes[:5]:  # Top 5 important scenes
+                scene_desc = f"Scene {scene['scene_id'][:8]}..."
+                if scene['label']:
+                    scene_desc += f" ({scene['label']})"
+                scene_desc += f": {scene['input_preview']}"
+                summary_parts.append(f"• {scene_desc}")
+        
+        # Mood progression
+        if mood_progression:
+            mood_changes = [entry['mood'] for entry in mood_progression]
+            unique_moods = list(set(mood_changes))
+            if len(unique_moods) > 1:
+                summary_parts.append(f"\nMood progression: {' → '.join(unique_moods[:5])}")
+        
+        return "\n".join(summary_parts)
+    
+    def _generate_character_summary(self, character_developments: Dict, important_scenes: List) -> str:
+        """Generate a character-focused summary."""
+        if not character_developments:
+            return "No character developments to summarize."
+        
+        summary_parts = []
+        summary_parts.append(f"Character developments for {len(character_developments)} characters:")
+        
+        for char_name, development in character_developments.items():
+            char_summary = f"\n{char_name}:"
+            
+            moods = [change['mood'] for change in development['mood_changes']]
+            if moods:
+                most_common_mood = max(set(moods), key=moods.count)
+                char_summary += f" Primary mood: {most_common_mood}"
+                
+                if len(development['key_scenes']) > 0:
+                    char_summary += f", {len(development['key_scenes'])} significant moments"
+            
+            summary_parts.append(char_summary)
+        
+        return "\n".join(summary_parts)
+    
+    def _generate_event_summary(self, key_events: List, important_scenes: List) -> str:
+        """Generate an event-focused summary."""
+        if not key_events and not important_scenes:
+            return "No significant events to summarize."
+        
+        summary_parts = []
+        summary_parts.append(f"Key events summary:")
+        
+        # Combine events and important scenes
+        all_events = key_events + [
+            {
+                'scene_id': scene['scene_id'],
+                'event_type': 'important',
+                'description': scene['input_preview'],
+                'timestamp': scene['timestamp']
+            }
+            for scene in important_scenes
+        ]
+        
+        # Sort by timestamp
+        all_events.sort(key=lambda x: x['timestamp'])
+        
+        for i, event in enumerate(all_events[:10], 1):  # Top 10 events
+            summary_parts.append(f"{i}. {event['description']}")
+        
+        return "\n".join(summary_parts)

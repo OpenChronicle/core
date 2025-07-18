@@ -14,7 +14,7 @@ import os
 import tempfile
 import shutil
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 import sys
 
 # Add the parent directory to the path so we can import our modules
@@ -40,7 +40,7 @@ def store_memory_for_testing(story_id, memory_type, key, value):
         INSERT INTO memory (story_id, type, key, value, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
     ''', (story_id, memory_type, key, f'"{value}"', 
-          datetime.utcnow().isoformat(), datetime.utcnow().isoformat()))
+          datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat()))
 
 
 class TestFTSSupport(unittest.TestCase):
@@ -620,6 +620,9 @@ class TestSearchCaching(unittest.TestCase):
         self.assertGreater(stats['total_query_time'], 0)
         self.assertGreaterEqual(stats['cache_hit_rate'], 0)
 
+
+# Define advanced features availability
+ADVANCED_FEATURES_AVAILABLE = True
 
 @unittest.skipUnless(ADVANCED_FEATURES_AVAILABLE, "Advanced search features not available")
 class TestSearchHistory(unittest.TestCase):

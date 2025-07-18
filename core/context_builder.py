@@ -23,20 +23,57 @@ def load_canon_snippets(storypack_path, refs=None, limit=5):
 
     if refs:
         for ref in refs:
-            file_path = os.path.join(canon_dir, f"{ref}.txt")
-            if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8") as f:
+            # Try JSON first, then fallback to TXT for backward compatibility
+            json_path = os.path.join(canon_dir, f"{ref}.json")
+            txt_path = os.path.join(canon_dir, f"{ref}.txt")
+            
+            if os.path.exists(json_path):
+                with open(json_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Convert JSON to readable text format
+                    snippets.append(json_to_readable_text(data))
+            elif os.path.exists(txt_path):
+                with open(txt_path, "r", encoding="utf-8") as f:
                     snippets.append(f.read().strip())
     else:
         # Load random canon snippets if no refs provided
-        canon_files = [f for f in os.listdir(canon_dir) if f.endswith(".txt")]
+        canon_files = [f for f in os.listdir(canon_dir) if f.endswith((".json", ".txt"))]
         if canon_files:
             random.shuffle(canon_files)
             for filename in canon_files[:limit]:
-                with open(os.path.join(canon_dir, filename), "r", encoding="utf-8") as f:
-                    snippets.append(f.read().strip())
+                file_path = os.path.join(canon_dir, filename)
+                if filename.endswith(".json"):
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        snippets.append(json_to_readable_text(data))
+                else:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        snippets.append(f.read().strip())
 
     return snippets
+
+def json_to_readable_text(data, indent=0):
+    """Convert JSON data to readable text format for context injection."""
+    lines = []
+    prefix = "  " * indent
+    
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, (dict, list)):
+                lines.append(f"{prefix}{key.replace('_', ' ').title()}:")
+                lines.append(json_to_readable_text(value, indent + 1))
+            else:
+                lines.append(f"{prefix}{key.replace('_', ' ').title()}: {value}")
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            if isinstance(item, (dict, list)):
+                lines.append(f"{prefix}- {json_to_readable_text(item, indent + 1)}")
+            else:
+                lines.append(f"{prefix}- {item}")
+    else:
+        return str(data)
+    
+    return "\n".join(lines)
 
 def build_context(user_input, story_data):
     """

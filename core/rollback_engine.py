@@ -1,7 +1,7 @@
 import os
 import json
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from .scene_logger import load_scene, list_scenes
 from .memory_manager import restore_memory_from_snapshot
@@ -14,7 +14,7 @@ def create_rollback_point(story_id, scene_id, description="Manual rollback point
     # Verify scene exists
     scene_data = load_scene(story_id, scene_id)
     
-    rollback_id = f"rollback_{scene_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+    rollback_id = f"rollback_{scene_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
     
     execute_update(story_id, '''
         INSERT OR REPLACE INTO rollback_points 
@@ -23,7 +23,7 @@ def create_rollback_point(story_id, scene_id, description="Manual rollback point
     ''', (
         rollback_id,
         scene_id,
-        datetime.utcnow().isoformat(),
+        datetime.now(UTC).isoformat(),
         description,
         json.dumps(scene_data)
     ))
@@ -31,10 +31,10 @@ def create_rollback_point(story_id, scene_id, description="Manual rollback point
     return {
         "id": rollback_id,
         "scene_id": scene_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "description": description,
         "scene_data": scene_data,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(UTC).isoformat()
     }
 
 def list_rollback_points(story_id):
@@ -74,7 +74,7 @@ def backup_scenes_for_rollback(story_id, scenes_to_backup):
         return
     
     init_database(story_id)
-    backup_id = f"backup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+    backup_id = f"backup_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
     
     for scene_id in scenes_to_backup:
         scene_data = load_scene(story_id, scene_id)
@@ -227,7 +227,7 @@ def cleanup_old_rollback_data(story_id, days_to_keep=30):
     """Clean up old rollback data and backups."""
     init_database(story_id)
     
-    cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
+    cutoff_date = datetime.now(UTC) - timedelta(days=days_to_keep)
     cutoff_timestamp = cutoff_date.isoformat()
     
     # Clean old rollback points

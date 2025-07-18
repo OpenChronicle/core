@@ -8,7 +8,7 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 # Add utilities to path for logging system
@@ -53,7 +53,7 @@ class ModelAdapter(ABC):
         
         # Maintain backward compatibility with local file logging
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "story_id": story_id,
             "model": self.model_name,
             "prompt_length": len(prompt),

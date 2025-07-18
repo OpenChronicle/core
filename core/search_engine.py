@@ -293,7 +293,7 @@ class SearchEngine:
                     snippet(memory_fts, 3, '<mark>', '</mark>', '...', 32) as snippet_key,
                     snippet(memory_fts, 4, '<mark>', '</mark>', '...', 32) as snippet_value
                 FROM memory_fts
-                JOIN memory m ON m.id = memory_fts.rowid
+                JOIN memory m ON m.id = memory_fts.memory_id
                 WHERE memory_fts MATCH ?{where_clause}
                 ORDER BY score
                 LIMIT ?

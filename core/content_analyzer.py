@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 # Add utilities to path for logging system
@@ -267,8 +267,10 @@ Response (JSON only):"""
         if not os.path.exists(canon_dir):
             return []
         
-        # Get all available canon files
-        canon_files = [f[:-4] for f in os.listdir(canon_dir) if f.endswith(".txt")]
+        # Get all available canon files (JSON and TXT)
+        json_files = [f[:-5] for f in os.listdir(canon_dir) if f.endswith(".json")]
+        txt_files = [f[:-4] for f in os.listdir(canon_dir) if f.endswith(".txt")]
+        canon_files = json_files + txt_files
         
         # If analysis suggests specific canon files, use those
         required_canon = analysis.get("required_canon", [])
@@ -365,7 +367,7 @@ Response (JSON only):"""
         flags.append({
             "name": f"content_type_{content_type}",
             "value": True,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         })
         
         # Add entity flags
@@ -376,7 +378,7 @@ Response (JSON only):"""
                     flags.append({
                         "name": f"{entity_type}_{entity.lower().replace(' ', '_')}",
                         "value": True,
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now(UTC).isoformat()
                     })
         
         # Add content flags
@@ -386,7 +388,7 @@ Response (JSON only):"""
                 flags.append({
                     "name": f"content_{flag_name}",
                     "value": flag_value,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 })
         
         # Add emotional intensity flag
@@ -394,7 +396,7 @@ Response (JSON only):"""
         flags.append({
             "name": "emotional_intensity",
             "value": emotional_intensity,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         })
         
         return flags

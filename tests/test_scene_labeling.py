@@ -121,6 +121,125 @@ class TestSceneLabeling(unittest.TestCase):
         labels = [scene['scene_label'] for scene in labeled_scenes]
         self.assertIn("Chapter 1: The Beginning", labels)
         self.assertIn("Forest Exploration", labels)
+    
+    def test_structured_tags_functionality(self):
+        """Test enhanced structured tags functionality."""
+        # Test saving scene with structured tags
+        scene_id = save_scene(
+            self.test_story_id,
+            "I investigate the mysterious sound",
+            "You discover it's coming from an old music box",
+            scene_label="Investigation",
+            structured_tags={
+                'location': 'old_house',
+                'mood': 'mysterious',
+                'action_type': 'investigation',
+                'significance': 'medium',
+                'long_turn': True,
+                'token_usage': {'input_tokens': 30, 'output_tokens': 45, 'total_tokens': 75}
+            }
+        )
+        
+        scene = load_scene(self.test_story_id, scene_id)
+        tags = scene.get('structured_tags', {})
+        self.assertEqual(tags['location'], 'old_house')
+        self.assertEqual(tags['mood'], 'mysterious')
+        self.assertTrue(tags['long_turn'])
+        self.assertEqual(tags['token_usage']['total_tokens'], 75)
+    
+    def test_token_usage_stats(self):
+        """Test token usage statistics."""
+        from core.scene_logger import get_token_usage_stats
+        
+        # Create scene with token data
+        save_scene(
+            self.test_story_id,
+            "Short input",
+            "Short output",
+            structured_tags={
+                'token_usage': {'input_tokens': 20, 'output_tokens': 30, 'total_tokens': 50}
+            }
+        )
+        
+        stats = get_token_usage_stats(self.test_story_id)
+        self.assertIsInstance(stats, dict)
+        self.assertIn('total_tokens', stats)
+        self.assertIn('scene_count', stats)
+        self.assertGreater(stats['total_tokens'], 0)
+    
+    def test_long_turn_detection(self):
+        """Test long turn detection functionality."""
+        from core.scene_logger import get_scenes_with_long_turns
+        
+        # Create a long turn scene
+        save_scene(
+            self.test_story_id,
+            "This is a very long input that should be detected as a long turn",
+            "This is a detailed response that provides comprehensive information",
+            structured_tags={'long_turn': True}
+        )
+        
+        long_turns = get_scenes_with_long_turns(self.test_story_id)
+        self.assertIsInstance(long_turns, list)
+        # Should have at least one long turn (may have more from setup)
+        self.assertGreater(len(long_turns), 0)
+    
+    def test_character_mood_timeline(self):
+        """Test character mood timeline functionality."""
+        from core.scene_logger import get_character_mood_timeline
+        
+        # Create scenes with character mood data
+        save_scene(
+            self.test_story_id,
+            "Character feels happy",
+            "The character smiles brightly",
+            structured_tags={
+                'characters': ['protagonist'],
+                'mood': 'happy'
+            }
+        )
+        
+        save_scene(
+            self.test_story_id,
+            "Character becomes worried",
+            "The character's expression turns serious",
+            structured_tags={
+                'characters': ['protagonist'],
+                'mood': 'worried'
+            }
+        )
+        
+        timeline = get_character_mood_timeline(self.test_story_id, 'protagonist')
+        self.assertIsInstance(timeline, list)
+        # Should capture mood changes
+        if len(timeline) > 0:
+            self.assertIn('mood', timeline[0])
+            self.assertIn('timestamp', timeline[0])
+    
+    def test_scene_summary_stats(self):
+        """Test scene summary statistics."""
+        from core.scene_logger import get_scene_summary_stats
+        
+        # Create scene with comprehensive tags
+        save_scene(
+            self.test_story_id,
+            "Test scene",
+            "Test response",
+            structured_tags={
+                'location': 'test_location',
+                'mood': 'test_mood',
+                'action_type': 'test_action',
+                'significance': 'high'
+            }
+        )
+        
+        stats = get_scene_summary_stats(self.test_story_id)
+        self.assertIsInstance(stats, dict)
+        self.assertIn('total_scenes', stats)
+        self.assertIn('scenes_by_location', stats)
+        self.assertIn('scenes_by_mood', stats)
+        self.assertIn('scenes_by_action_type', stats)
+        self.assertIn('scenes_by_significance', stats)
 
 
 class TestBookmarkManager(unittest.TestCase):
@@ -502,6 +621,130 @@ class TestTimelineBuilder(unittest.TestCase):
         self.assertEqual(stats['bookmarks']['total_bookmarks'], 2)
         self.assertTrue(stats['timeline_coverage']['has_chapters'])
         self.assertEqual(stats['timeline_coverage']['labeling_percentage'], 100.0)
+    
+    def test_tone_consistency_audit(self):
+        """Test tone consistency auditing functionality."""
+        # Create scenes with tone indicators
+        save_scene(
+            self.test_story_id,
+            "Happy scene",
+            "Everyone is cheerful",
+            structured_tags={
+                'mood': 'happy',
+                'tone_indicators': {'emotional_tone': 'positive'}
+            }
+        )
+        
+        save_scene(
+            self.test_story_id,
+            "Sad scene",
+            "Things become dark",
+            structured_tags={
+                'mood': 'sad',
+                'tone_indicators': {'emotional_tone': 'negative'}
+            }
+        )
+        
+        audit_result = self.timeline_builder.track_tone_consistency_audit()
+        
+        self.assertIsInstance(audit_result, dict)
+        self.assertIn('story_id', audit_result)
+        self.assertIn('tone_timeline', audit_result)
+        self.assertIn('inconsistencies', audit_result)
+        self.assertIn('tone_transitions', audit_result)
+        self.assertIn('summary', audit_result)
+        
+        # Should have processed the scenes
+        self.assertEqual(audit_result['story_id'], self.test_story_id)
+        self.assertIsInstance(audit_result['tone_timeline'], list)
+        self.assertIsInstance(audit_result['inconsistencies'], list)
+    
+    def test_generate_auto_summary(self):
+        """Test auto-summary generation functionality."""
+        # Create scenes with more detailed content
+        save_scene(
+            self.test_story_id,
+            "The hero begins their journey",
+            "In a small village, our hero sets out on an epic quest",
+            scene_label="Journey Begins",
+            structured_tags={
+                'significance': 'high',
+                'action_type': 'journey_start',
+                'characters': ['hero']
+            }
+        )
+        
+        save_scene(
+            self.test_story_id,
+            "A challenge appears",
+            "The hero faces their first obstacle",
+            scene_label="First Challenge",
+            structured_tags={
+                'significance': 'medium',
+                'action_type': 'conflict',
+                'characters': ['hero']
+            }
+        )
+        
+        summary = self.timeline_builder.generate_auto_summary()
+        
+        self.assertIsInstance(summary, dict)
+        self.assertIn('story_id', summary)
+        self.assertIn('summary', summary)
+        self.assertIn('metadata', summary)
+        
+        # Should have generated a summary
+        self.assertEqual(summary['story_id'], self.test_story_id)
+        self.assertIsInstance(summary['summary'], str)
+        self.assertGreater(len(summary['summary']), 0)
+        
+        # Metadata should contain scene count
+        self.assertIn('scene_count', summary['metadata'])
+        self.assertGreater(summary['metadata']['scene_count'], 0)
+    
+    def test_enhanced_timeline_with_structured_data(self):
+        """Test timeline building with enhanced structured data."""
+        # Create scene with comprehensive structured tags
+        save_scene(
+            self.test_story_id,
+            "Complex scene with metadata",
+            "This scene has extensive metadata for testing",
+            scene_label="Metadata Test",
+            structured_tags={
+                'location': 'castle',
+                'mood': 'tense',
+                'action_type': 'negotiation',
+                'significance': 'high',
+                'characters': ['protagonist', 'antagonist'],
+                'themes': ['conflict', 'diplomacy'],
+                'tone_indicators': {
+                    'emotional_tone': 'neutral',
+                    'energy_level': 'medium'
+                }
+            }
+        )
+        
+        # Test that timeline can handle enhanced data
+        timeline_data = self.timeline_builder.get_full_timeline()
+        
+        self.assertIsInstance(timeline_data, dict)
+        self.assertIn('timeline', timeline_data)
+        timeline = timeline_data['timeline']
+        self.assertGreater(len(timeline), 0)
+        
+        # Find our test scene
+        test_scene = None
+        for scene in timeline:
+            if scene.get('scene_label') == 'Metadata Test':
+                test_scene = scene
+                break
+        
+        self.assertIsNotNone(test_scene)
+        if 'structured_tags' in test_scene:
+            tags = test_scene['structured_tags']
+            self.assertEqual(tags['location'], 'castle')
+            self.assertEqual(tags['mood'], 'tense')
+            self.assertEqual(tags['action_type'], 'negotiation')
 
 
 if __name__ == '__main__':

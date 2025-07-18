@@ -1,7 +1,7 @@
 import sqlite3
 import json
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 def has_fts5_support():
@@ -56,6 +56,10 @@ def init_database(story_id):
         # Check if scene_label column exists and add if not
         if 'scene_label' not in columns:
             cursor.execute('ALTER TABLE scenes ADD COLUMN scene_label TEXT')
+        
+        # Check if structured_tags column exists and add if not
+        if 'structured_tags' not in columns:
+            cursor.execute('ALTER TABLE scenes ADD COLUMN structured_tags TEXT')
         
         # Create memory table
         cursor.execute('''
@@ -151,9 +155,7 @@ def init_database(story_id):
                 story_id UNINDEXED,
                 type UNINDEXED,
                 key,
-                value,
-                content='memory',
-                content_rowid='id'
+                value
             )
         ''')
         
@@ -187,24 +189,22 @@ def init_database(story_id):
         
         cursor.execute('''
             CREATE TRIGGER IF NOT EXISTS memory_ai AFTER INSERT ON memory BEGIN
-                INSERT INTO memory_fts(rowid, memory_id, story_id, type, key, value)
-                VALUES (new.id, new.id, new.story_id, new.type, new.key, new.value);
+                INSERT INTO memory_fts(memory_id, story_id, type, key, value)
+                VALUES (new.id, new.story_id, new.type, new.key, new.value);
             END
         ''')
         
         cursor.execute('''
             CREATE TRIGGER IF NOT EXISTS memory_ad AFTER DELETE ON memory BEGIN
-                INSERT INTO memory_fts(memory_fts, rowid, memory_id, story_id, type, key, value)
-                VALUES ('delete', old.id, old.id, old.story_id, old.type, old.key, old.value);
+                DELETE FROM memory_fts WHERE memory_id = old.id;
             END
         ''')
         
         cursor.execute('''
             CREATE TRIGGER IF NOT EXISTS memory_au AFTER UPDATE ON memory BEGIN
-                INSERT INTO memory_fts(memory_fts, rowid, memory_id, story_id, type, key, value)
-                VALUES ('delete', old.id, old.id, old.story_id, old.type, old.key, old.value);
-                INSERT INTO memory_fts(rowid, memory_id, story_id, type, key, value)
-                VALUES (new.id, new.id, new.story_id, new.type, new.key, new.value);
+                DELETE FROM memory_fts WHERE memory_id = old.id;
+                INSERT INTO memory_fts(memory_id, story_id, type, key, value)
+                VALUES (new.id, new.story_id, new.type, new.key, new.value);
             END
         ''')
         
@@ -217,8 +217,8 @@ def init_database(story_id):
         ''')
         
         cursor.execute('''
-            INSERT OR IGNORE INTO memory_fts(rowid, memory_id, story_id, type, key, value)
-            SELECT id, id, story_id, type, key, value FROM memory
+            INSERT OR IGNORE INTO memory_fts(memory_id, story_id, type, key, value)
+            SELECT id, story_id, type, key, value FROM memory
         ''')
         
         conn.commit()
@@ -320,7 +320,7 @@ def migrate_from_json(story_id):
                             memory_type,
                             "current",
                             json.dumps(data),
-                            datetime.utcnow().isoformat()
+                            datetime.now(UTC).isoformat()
                         ))
                         migrated_count += 1
             

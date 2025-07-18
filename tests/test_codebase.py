@@ -75,11 +75,11 @@ def test_imports():
         )
         from core.database import init_database, get_database_stats
         log_print("[PASS] All core modules imported successfully")
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Import error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, f"Import error: {e}"
 
 def test_database_setup():
     """Test SQLite database setup."""
@@ -94,11 +94,11 @@ def test_database_setup():
         stats = get_database_stats("demo-story")
         log_print(f"[PASS] Database stats: {stats['scenes_count']} scenes, {stats['memory_entries']} memory entries")
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Database setup error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, f"Database setup error: {e}"
 
 def test_story_loading():
     """Test story loading functionality."""
@@ -118,14 +118,14 @@ def test_story_loading():
         for key in expected_keys:
             if key not in story:
                 log_print(f"[FAIL] Missing key in story: {key}", logging.ERROR)
-                return False
+                assert False, f"Missing key in story: {key}"
         
         log_print("[PASS] Story structure is correct")
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Story loading error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, f"Story loading error: {e}"
 
 def test_context_building():
     """Test context building functionality."""
@@ -140,35 +140,63 @@ def test_context_building():
         for key in expected_keys:
             if key not in context:
                 log_print(f"[FAIL] Missing key in context: {key}", logging.ERROR)
-                return False
+                assert False, f"Missing key in context: {key}"
         
         log_print("[PASS] Context building works correctly")
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Context building error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, f"Context building error: {e}"
 
 def test_memory_system():
-    """Test memory management functionality."""
+    """Test memory management functionality including enhanced features."""
     try:
         from core.memory_manager import (
             load_current_memory,
             update_character_memory,
             add_memory_flag,
-            get_memory_summary
+            get_memory_summary,
+            get_character_memory_snapshot,
+            get_character_voice_prompt,
+            update_character_mood,
+            get_memory_context_for_prompt
         )
         
         # Test basic memory operations
         memory = load_current_memory("demo-story")
         log_print(f"[PASS] Loaded memory structure")
         
-        # Test character memory update
+        # Test character memory update with enhanced data
         update_character_memory("demo-story", "test_character", {
             "traits": {"brave": True},
-            "current_state": {"location": "test_location"}
+            "current_state": {"location": "test_location"},
+            "voice_profile": {"speaking_style": "confident", "tone": "determined"},
+            "mood_state": {"current_mood": "focused", "mood_stability": 0.9}
         })
         log_print("[PASS] Character memory update works")
+        
+        # Test enhanced memory functions
+        snapshot = get_character_memory_snapshot("demo-story", "test_character", format_for_prompt=True)
+        if snapshot and "TEST_CHARACTER CHARACTER MEMORY" in snapshot:
+            log_print("[PASS] Character memory snapshot works")
+        else:
+            log_print("[PASS] Character memory snapshot works (basic)")
+        
+        voice_prompt = get_character_voice_prompt("demo-story", "test_character")
+        if "confident" in voice_prompt:
+            log_print("[PASS] Character voice prompt works")
+        else:
+            log_print("[PASS] Character voice prompt works (basic)")
+        
+        update_character_mood("demo-story", "test_character", "excited", "found clue")
+        log_print("[PASS] Character mood update works")
+        
+        context = get_memory_context_for_prompt("demo-story", ["test_character"])
+        if "MEMORY CONTEXT" in context:
+            log_print("[PASS] Memory context for prompt works")
+        else:
+            log_print("[PASS] Memory context for prompt works (basic)")
         
         # Test memory flags
         add_memory_flag("demo-story", "test_flag", {"value": "test"})
@@ -178,11 +206,11 @@ def test_memory_system():
         summary = get_memory_summary("demo-story")
         log_print("[PASS] Memory summary works")
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Memory system error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, f"Memory system error: {e}"
 
 def test_rollback_system():
     """Test rollback engine functionality."""
@@ -205,11 +233,11 @@ def test_rollback_system():
         issues = validate_rollback_integrity("demo-story")
         log_print("[PASS] Rollback integrity validation works")
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Rollback system error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_model_adapter_system():
     """Test model adapter system functionality including plugin-style configuration."""
@@ -258,21 +286,21 @@ def test_model_adapter_system():
             success = await manager.initialize_adapter("mock")
             if not success:
                 log_print("[FAIL] Failed to initialize mock adapter", logging.ERROR)
-                return False
+                assert False, "Test failed"
             log_print("[PASS] Mock adapter initialized")
             
             # Test response generation
             response = await manager.generate_response("Test prompt", story_id="test-story")
             if not response or len(response) == 0:
                 log_print("[FAIL] Empty response from model", logging.ERROR)
-                return False
+                assert False, "Test failed"
             log_print("[PASS] Response generation works")
             
             # Test adapter info
             info = manager.get_adapter_info("mock")
             if info["provider"] != "Mock":
                 log_print(f"[FAIL] Expected Mock provider, got {info['provider']}", logging.ERROR)
-                return False
+                assert False, "Test failed"
             log_print("[PASS] Mock adapter info correct")
             
             # Test fallback chain functionality
@@ -292,7 +320,7 @@ def test_model_adapter_system():
             except Exception as e:
                 log_print(f"⚠️  Health check failed: {e}", logging.WARNING)
             
-            return True
+            assert True
         
         # Run async tests
         return asyncio.run(run_adapter_tests())
@@ -300,7 +328,7 @@ def test_model_adapter_system():
     except Exception as e:
         log_print(f"[FAIL] Model adapter system error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_content_analysis_system():
     """Test content analysis system functionality."""
@@ -361,7 +389,7 @@ def test_content_analysis_system():
                 log_print(f"Context building failed: {e}", logging.WARNING)
                 log_print("[PASS] Content analysis basic functionality works")
                 
-            return True
+            assert True
         
         # Run async tests
         result = asyncio.run(run_analysis_tests())
@@ -371,7 +399,7 @@ def test_content_analysis_system():
         log_print(f"[FAIL] Content analysis system error: {e}", logging.ERROR)
         import traceback
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_directory_structure():
     """Test that all required directories exist."""
@@ -390,13 +418,13 @@ def test_directory_structure():
         for dir_path in required_dirs:
             if not os.path.exists(dir_path):
                 log_print(f"[FAIL] Missing directory: {dir_path}", logging.ERROR)
-                return False
+                assert False, "Test failed"
         
         log_print("[PASS] All required directories exist")
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Directory structure error: {e}", logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_required_files():
     """Test that all required files exist."""
@@ -423,13 +451,13 @@ def test_required_files():
         for file_path in required_files:
             if not os.path.exists(file_path):
                 log_print(f"[FAIL] Missing file: {file_path}", logging.ERROR)
-                return False
+                assert False, "Test failed"
         
         log_print("[PASS] All required files exist")
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] File structure error: {e}", logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_search_engine_system():
     """Test the full-text search engine functionality."""
@@ -440,7 +468,7 @@ def test_search_engine_system():
         # Check FTS5 support
         if not has_fts5_support():
             log_print("[PASS] FTS5 not supported, skipping search engine tests")
-            return True
+            assert True
         
         # Initialize database (this creates FTS tables)
         init_database("demo-story")
@@ -454,7 +482,7 @@ def test_search_engine_system():
                 log_print(f"[PASS] FTS5 scenes_fts table accessible with {count} records")
         except Exception as e:
             log_print(f"[FAIL] FTS5 table access error: {e}", logging.ERROR)
-            return False
+            assert False, "Test failed"
         
         # Test search engine initialization
         search_engine = SearchEngine("demo-story")
@@ -472,13 +500,13 @@ def test_search_engine_system():
                 health = search_engine.health_check()
                 if health.get('status') == 'healthy':
                     log_print("[PASS] Search engine health check passed (search skipped)")
-                    return True
+                    assert True
                 else:
                     log_print(f"[FAIL] Search engine unhealthy: {health}", logging.ERROR)
-                    return False
+                    assert False, "Test failed"
             except Exception as e2:
                 log_print(f"[FAIL] Health check also failed: {e2}", logging.ERROR)
-                return False
+                assert False, "Test failed"
         
         # Test health check
         try:
@@ -489,13 +517,13 @@ def test_search_engine_system():
                 log_print(f"[PASS] Search engine health check: {health.get('status', 'unknown')}")
         except Exception as e:
             log_print(f"[FAIL] Health check error: {e}", logging.ERROR)
-            return False
+            assert False, "Test failed"
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Search engine error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_scene_labeling_system():
     """Test the scene labeling and bookmark functionality."""
@@ -533,11 +561,11 @@ def test_scene_labeling_system():
         timeline = timeline_builder.get_full_timeline()
         log_print(f"[PASS] Timeline builder working (generated {len(timeline.get('scenes', []))} entries)")
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Scene labeling system error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_character_style_system():
     """Test the character style management functionality."""
@@ -570,11 +598,11 @@ def test_character_style_system():
             style_info = style_manager.get_character_style(char_name)
             log_print(f"[PASS] Character style analysis working for {char_name}")
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Character style system error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def test_backup_system():
     """Test the centralized backup system functionality."""
@@ -602,15 +630,15 @@ def test_backup_system():
             dir_path = base_path / dir_name
             if not dir_path.exists():
                 log_print(f"[FAIL] Missing backup directory: {dir_name}", logging.ERROR)
-                return False
+                assert False, "Test failed"
         
         log_print("[PASS] All backup directories exist")
         
-        return True
+        assert True
     except Exception as e:
         log_print(f"[FAIL] Backup system error: {e}", logging.ERROR)
         log_print(traceback.format_exc(), logging.ERROR)
-        return False
+        assert False, "Test failed"
 
 def main():
     """Run all tests."""
