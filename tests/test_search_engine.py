@@ -16,11 +16,56 @@ import shutil
 import json
 from datetime import datetime, UTC
 import sys
+import gc
+import time
+import platform
 
 # Add the parent directory to the path so we can import our modules
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+def safe_teardown_temp_dir(temp_dir, original_cwd, engine=None):
+    """
+    Safely remove temporary directory with Windows-compatible cleanup.
+    
+    Args:
+        temp_dir: Path to temporary directory to remove
+        original_cwd: Original working directory to restore
+        engine: Optional search engine instance to close
+    """
+    # Force close any database connections
+    gc.collect()
+    
+    # Try to close engine if provided
+    if engine and hasattr(engine, 'close'):
+        try:
+            engine.close()
+        except:
+            pass
+    
+    os.chdir(original_cwd)
+    
+    # On Windows, add retry logic for file removal
+    if platform.system() == 'Windows':
+        time.sleep(0.1)  # Small delay to let file handles close
+        
+        # Try multiple times to remove the directory
+        for attempt in range(3):
+            try:
+                shutil.rmtree(temp_dir)
+                break
+            except PermissionError:
+                if attempt < 2:
+                    time.sleep(0.2)
+                    gc.collect()
+                else:
+                    # Last resort: try Windows rd command
+                    try:
+                        import subprocess
+                        subprocess.run(['rd', '/s', '/q', temp_dir], shell=True, capture_output=True)
+                    except:
+                        pass
+    else:
+        shutil.rmtree(temp_dir)
 
 from core.database import init_database, check_fts_support, optimize_fts_index, execute_insert
 from core.search_engine import SearchEngine, SearchResult, SearchQuery, search_story
@@ -62,8 +107,7 @@ class TestFTSSupport(unittest.TestCase):
                 engine = SearchEngine("test_story")
                 self.assertIsNotNone(engine)
             finally:
-                os.chdir(original_cwd)
-                shutil.rmtree(temp_dir)
+                safe_teardown_temp_dir(temp_dir, original_cwd, engine)
 
 
 class TestFTSDatabase(unittest.TestCase):
@@ -85,8 +129,7 @@ class TestFTSDatabase(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_fts_tables_creation(self):
         """Test that FTS5 virtual tables are created."""
@@ -116,13 +159,30 @@ class TestFTSDatabase(unittest.TestCase):
     
     def test_fts_indexing_memory(self):
         """Test that memory is automatically indexed."""
+        # Get initial count
+        initial_stats = get_fts_stats(self.test_story_id)
+        initial_count = initial_stats.get('memory_fts_entries', 0)
+        print(f"Initial FTS entries: {initial_count}")
+        
         # Create memory entries
         store_memory_for_testing(self.test_story_id, 'character', 'hero_name', 'Aragorn the Brave')
+        print("Added first memory entry")
+        
+        # Check intermediate count
+        mid_stats = get_fts_stats(self.test_story_id)
+        mid_count = mid_stats.get('memory_fts_entries', 0)
+        print(f"After first entry: {mid_count}")
+        
         store_memory_for_testing(self.test_story_id, 'world', 'location', 'Enchanted Forest')
+        print("Added second memory entry")
         
         # Check that they were indexed
         stats = get_fts_stats(self.test_story_id)
-        self.assertEqual(stats['memory_fts_entries'], 2)
+        final_count = stats.get('memory_fts_entries', 0)
+        print(f"Final FTS entries: {final_count}")
+        
+        self.assertEqual(final_count, initial_count + 2, 
+                        f"Expected {initial_count + 2} FTS entries, got {final_count}")
     
     def test_fts_optimization(self):
         """Test FTS5 index optimization."""
@@ -187,8 +247,7 @@ class TestSearchEngine(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd, self.engine)
     
     def test_search_engine_initialization(self):
         """Test SearchEngine initialization."""
@@ -390,8 +449,7 @@ class TestSearchConvenienceFunctions(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_search_story_function(self):
         """Test search_story convenience function."""
@@ -427,8 +485,7 @@ class TestSearchIntegration(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_search_with_scene_labels(self):
         """Test search integration with scene labeling system."""
@@ -495,8 +552,7 @@ class TestAdvancedQueryParsing(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_wildcard_parsing(self):
         """Test parsing of wildcard queries."""
@@ -572,8 +628,7 @@ class TestSearchCaching(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_search_caching(self):
         """Test that search results are cached."""
@@ -655,8 +710,7 @@ class TestSearchHistory(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_search_history_recording(self):
         """Test that search history is recorded."""
@@ -729,8 +783,7 @@ class TestSavedSearches(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_save_search(self):
         """Test saving a search."""
@@ -821,8 +874,7 @@ class TestSearchExport(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test environment."""
-        os.chdir(self.original_cwd)
-        shutil.rmtree(self.temp_dir)
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_export_results_to_json(self):
         """Test exporting search results to JSON."""

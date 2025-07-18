@@ -8,11 +8,58 @@ import tempfile
 import shutil
 from datetime import datetime
 import sys
+import gc
+import time
+import platform
 
 # Add the parent directory to the path so we can import our modules
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+def safe_teardown_temp_dir(temp_dir, original_cwd, engine=None):
+    """
+    Safely remove temporary directory with Windows-compatible cleanup.
+    
+    Args:
+        temp_dir: Path to temporary directory to remove
+        original_cwd: Original working directory to restore
+        engine: Optional search engine instance to close
+    """
+    # Force close any database connections
+    gc.collect()
+    
+    # Try to close engine if provided
+    if engine and hasattr(engine, 'close'):
+        try:
+            engine.close()
+        except:
+            pass
+    
+    os.chdir(original_cwd)
+    
+    # On Windows, add retry logic for file removal
+    if platform.system() == 'Windows':
+        time.sleep(0.1)  # Small delay to let file handles close
+        
+        # Try multiple times to remove the directory
+        for attempt in range(3):
+            try:
+                shutil.rmtree(temp_dir)
+                break
+            except PermissionError:
+                if attempt < 2:
+                    time.sleep(0.2)
+                    gc.collect()
+                else:
+                    # Last resort: try Windows rd command
+                    try:
+                        import subprocess
+                        subprocess.run(['rd', '/s', '/q', temp_dir], shell=True, capture_output=True)
+                    except:
+                        pass
+    else:
+        shutil.rmtree(temp_dir)
 
 from core.scene_logger import save_scene, load_scene, update_scene_label, get_scenes_by_label, get_labeled_scenes
 from core.bookmark_manager import BookmarkManager
@@ -61,18 +108,7 @@ class TestSceneLabeling(unittest.TestCase):
         import gc
         gc.collect()
         
-        os.chdir(self.original_cwd)
-        # Try to remove temp directory with retry
-        try:
-            shutil.rmtree(self.temp_dir)
-        except PermissionError:
-            # On Windows, sometimes files are still locked
-            import time
-            time.sleep(0.1)
-            try:
-                shutil.rmtree(self.temp_dir)
-            except PermissionError:
-                pass  # Ignore if still locked
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_save_scene_with_label(self):
         """Test saving scene with label."""
@@ -276,18 +312,7 @@ class TestBookmarkManager(unittest.TestCase):
         import gc
         gc.collect()
         
-        os.chdir(self.original_cwd)
-        # Try to remove temp directory with retry
-        try:
-            shutil.rmtree(self.temp_dir)
-        except PermissionError:
-            # On Windows, sometimes files are still locked
-            import time
-            time.sleep(0.1)
-            try:
-                shutil.rmtree(self.temp_dir)
-            except PermissionError:
-                pass  # Ignore if still locked
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_create_bookmark(self):
         """Test creating a bookmark."""
@@ -514,18 +539,7 @@ class TestTimelineBuilder(unittest.TestCase):
         import gc
         gc.collect()
         
-        os.chdir(self.original_cwd)
-        # Try to remove temp directory with retry
-        try:
-            shutil.rmtree(self.temp_dir)
-        except PermissionError:
-            # On Windows, sometimes files are still locked
-            import time
-            time.sleep(0.1)
-            try:
-                shutil.rmtree(self.temp_dir)
-            except PermissionError:
-                pass  # Ignore if still locked
+        safe_teardown_temp_dir(self.temp_dir, self.original_cwd)
     
     def test_get_full_timeline(self):
         """Test getting full timeline."""
