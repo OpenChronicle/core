@@ -134,3 +134,30 @@
     "Loop protection suppresses repeated emotional or sexual content without narrative pressure to change."
   ]
 }
+{
+  "id": "goal-character-narrative-attributes",
+  "title": "Narrative Character Attributes and Traits",
+  "description": "Introduce a standardized system for defining character-level traits such as intelligence, charisma, courage, and greed — inspired by lightweight RPG-style stat sheets. These stats should inform dialogue tone, decision-making, reactions to events, and emotional dynamics. The goal is to enhance immersion and allow users to create nuanced personalities with strengths, flaws, and contradictions that evolve naturally in storytelling.",
+  "status": "planned",
+  "priority": "high",
+  "schema_extension": {
+    "character_stats": {
+      "intelligence": 7,
+      "wisdom": 5,
+      "charisma": 6,
+      "willpower": 4,
+      "creativity": 8,
+      "humor": 6,
+      "courage": 5,
+      "loyalty": 9,
+      "greed": 3,
+      "temper": 2
+    }
+  },
+  "notes": [
+    "Stats range from 0–10 and guide behavioral nuance in character dialogue and reactions.",
+    "Stats should modify emotional response probabilities (e.g., low willpower + high greed = temptation risk).",
+    "Can be used in scene parsing to trigger special prompts, reroutes, or social conflict events.",
+    "Future support for stat evolution, training, or degradation over story arcs is encouraged."
+  ]
+}
