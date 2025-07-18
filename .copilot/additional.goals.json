@@ -75,3 +75,10 @@
   "status": "planned",
   "priority": "low"
 }
+{
+  "id": "goal-character-mutation-lifecycle",
+  "title": "Character Mutation Lifecycle",
+  "description": "Introduce schema and system support for evolving character identity, including name changes, aliases, appearance shifts, and physical or psychological transformation. Changes should be tracked in the dynamic_profile section of the character file, logged as canonical events, and reflected in prompt generation. Identity changes should not break memory, timeline, or scene continuity.",
+  "status": "planned",
+  "priority": "medium"
+}
