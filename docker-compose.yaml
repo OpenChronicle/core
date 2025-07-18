@@ -12,12 +12,13 @@ services:
       - "8199:8000"
     environment:
       - DEFAULT_STORY_PACK=demo-story
+      # Add your API keys here or set them in your system environment
+      # - OPENAI_API_KEY=your_key_here
+      # - ANTHROPIC_API_KEY=your_key_here
       # Uncomment next line for embedded Ollama deployment
       - OLLAMA_HOST=http://ollama:11434
       # Uncomment next line for external Ollama deployment
       # - OLLAMA_HOST=http://localhost:11434
-    env_file:
-      - .env
     restart: unless-stopped
     # Uncomment next 2 lines for embedded Ollama deployment
     depends_on:

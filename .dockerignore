@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.gitattributes
 
 # Python
 __pycache__/
@@ -26,39 +27,67 @@ wheels/
 MANIFEST
 
 # Virtual environments
+.venv/
 venv/
 env/
 ENV/
+env.bak/
+venv.bak/
 
-# IDE
+# IDE and editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.copilot/
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Local development
-*.log
+# Development and testing
+.env*
 .env.local
 .env.development
+.env.production
+tests/
+.pytest_cache/
+.coverage
+.nyc_output
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+pytest.ini
+tox.ini
 
-# Storage (will be mounted)
+# Logs and runtime data
+*.log
+logs/
 storage/
 !storage/.gitkeep
 
-# Test files
-test_*.py
-*_test.py
-
-# Documentation
-docs/
+# Documentation (keep only README.md)
 *.md
 !README.md
+docs/
+*.old
+*.ignoreme
+LICENSE*
 
-# Setup scripts (not needed in container)
-setup.sh
-setup.bat
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Build artifacts and dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
