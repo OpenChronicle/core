@@ -1,0 +1,55 @@
+{
+  "provider": "stability_ai",
+  "display_name": "Stability AI",
+  "enabled": false,
+  "type": "image_generation",
+  "api_config": {
+    "model_name": "stable-diffusion-xl-1024-v1-0",
+    "base_url": "https://api.stability.ai/v1/generation",
+    "api_key": "",
+    "api_key_env": "STABILITY_API_KEY"
+  },
+  "capabilities": {
+    "text_generation": false,
+    "image_generation": true,
+    "function_calling": false,
+    "streaming": false,
+    "vision": false
+  },
+  "image_capabilities": {
+    "supported_sizes": [
+      "1024x1024",
+      "1152x896",
+      "1216x832",
+      "1344x768",
+      "1536x640",
+      "640x1536",
+      "768x1344",
+      "832x1216",
+      "896x1152"
+    ],
+    "supported_formats": ["png", "jpeg"],
+    "max_prompt_length": 2000,
+    "style_support": true,
+    "negative_prompts": true,
+    "quality_levels": ["draft", "standard", "premium"]
+  },
+  "limits": {
+    "max_images_per_request": 10,
+    "rate_limit_rpm": 150,
+    "cost_per_image": 0.020
+  },
+  "content_filtering": {
+    "supports_nsfw": true,
+    "content_policy_enforcement": false,
+    "automatic_moderation": false
+  },
+  "fallback_models": [
+    "openai_dalle",
+    "mock_image"
+  ],
+  "priority": 2,
+  "quality_score": 8,
+  "speed_score": 6,
+  "cost_score": 8
+}

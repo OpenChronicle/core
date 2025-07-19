@@ -37,6 +37,56 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def load_model_registry() -> Dict[str, Any]:
+    """Load the model registry configuration."""
+    config_path = Path(__file__).parent.parent / "config" / "model_registry.json"
+    
+    if not config_path.exists():
+        return {"default_image_model": "mock_image", "image_fallback_chain": ["mock_image"]}
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading model registry: {e}")
+        return {"default_image_model": "mock_image", "image_fallback_chain": ["mock_image"]}
+
+
+def get_image_config_from_registry(story_path: str) -> Dict[str, Any]:
+    """Get image configuration from the model registry."""
+    registry = load_model_registry()
+    
+    # Get image models from registry
+    image_models = {}
+    for model in registry.get("models", []):
+        if model.get("name") in ["openai_dalle", "stability_ai", "mock_image"]:
+            image_models[model["name"]] = model
+    
+    # Build adapter configuration
+    adapters = {}
+    fallback_chain = registry.get("image_fallback_chain", ["mock_image"])
+    
+    for model_name in fallback_chain:
+        if model_name == "openai_dalle":
+            adapters["openai"] = {"enabled": True, "class": "OpenAIImageAdapter"}
+        elif model_name == "stability_ai":
+            adapters["stability"] = {"enabled": False, "class": "StabilityImageAdapter"}  # Disabled by default
+        elif model_name == "mock_image":
+            adapters["mock"] = {"enabled": True, "class": "MockImageAdapter"}
+    
+    return {
+        "enabled": True,
+        "adapters": adapters,
+        "auto_generate": {
+            "character_portraits": True,
+            "scene_images": True,
+            "scene_triggers": ["major_event", "new_location"]
+        },
+        "fallback_chain": fallback_chain,
+        "default_model": registry.get("default_image_model", "mock_image")
+    }
+
+
 @dataclass
 class ImageMetadata:
     """Metadata for generated images"""
@@ -425,9 +475,34 @@ class ImageGenerationEngine:
 
 
 # Integration functions for the main OpenChronicle system
-def create_image_engine(story_path: str, config: Dict[str, Any]) -> ImageGenerationEngine:
-    """Create and configure an image generation engine for a story"""
-    return ImageGenerationEngine(story_path, config)
+def create_image_engine(story_id: str, config: Optional[Dict[str, Any]] = None) -> ImageGenerationEngine:
+    """Create and configure an image generation engine for a story using model registry"""
+    try:
+        # Convert story_id to story path - follow the same pattern as other modules
+        # Most modules use storage/<story_id> for file storage
+        story_path = f"storage/{story_id}"
+        
+        # Get image configuration from model registry
+        image_config = get_image_config_from_registry(story_path)
+        
+        # Create engine with registry-based configuration
+        return ImageGenerationEngine(story_path, image_config)
+        
+    except Exception as e:
+        print(f"Error creating image engine with registry: {e}")
+        # Fallback to basic configuration if registry fails
+        fallback_config = {
+            "enabled": True,
+            "adapters": {
+                "mock": {
+                    "enabled": True,
+                    "class": "MockImageAdapter"
+                }
+            },
+            "default_adapter": "mock"
+        }
+        story_path = f"storage/{story_id}"
+        return ImageGenerationEngine(story_path, fallback_config)
 
 
 async def auto_generate_character_portrait(engine: ImageGenerationEngine,

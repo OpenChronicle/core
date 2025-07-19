@@ -112,7 +112,7 @@ class CharacterStyleManager:
         if "personality" in style:
             parts.append(f"Personality: {style['personality']}")
             
-        return "\\n".join(parts)
+        return "\n".join(parts)
     
     def _format_anthropic_style(self, style: Dict[str, Any]) -> str:
         """Format style for Anthropic models."""
@@ -121,7 +121,7 @@ class CharacterStyleManager:
         for key, value in style.items():
             parts.append(f"- {key.title()}: {value}")
             
-        return "\\n".join(parts)
+        return "\n".join(parts)
     
     def _format_ollama_style(self, style: Dict[str, Any]) -> str:
         """Format style for Ollama models (more direct)."""
@@ -181,7 +181,7 @@ class CharacterStyleManager:
         return "mock"
     
     def build_character_context(self, character_name: str, model_name: str, 
-                               recent_scenes: List[str] = None) -> str:
+                               recent_scenes: Optional[List[str]] = None) -> str:
         """Build character context with style consistency."""
         context_parts = []
         
@@ -201,7 +201,7 @@ class CharacterStyleManager:
             context_parts.append("=== RECENT CONTEXT ===")
             context_parts.extend(recent_scenes[-2:])  # Last 2 scenes
         
-        return "\\n\\n".join(context_parts)
+        return "\n\n".join(context_parts)
     
     async def analyze_character_tone(self, character_name: str, output: str) -> Dict[str, Any]:
         """Analyze character output for tone consistency."""

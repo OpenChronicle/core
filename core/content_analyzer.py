@@ -17,6 +17,19 @@ from logging_system import log_model_interaction, log_system_event, log_info, lo
 
 # Optional transformer imports with graceful fallback
 try:
+    import warnings
+    # Suppress specific transformers warnings about unused weights and deprecations
+    warnings.filterwarnings("ignore", message="Some weights of.*were not used when initializing.*")
+    warnings.filterwarnings("ignore", message=".*This IS expected if you are initializing.*")
+    warnings.filterwarnings("ignore", message=".*This IS NOT expected if you are initializing.*")
+    warnings.filterwarnings("ignore", message=".*return_all_scores.*is now deprecated.*")
+    
+    # Set transformers library logging to ERROR level to suppress console output
+    logging.getLogger("transformers").setLevel(logging.ERROR)
+    logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
+    logging.getLogger("transformers.configuration_utils").setLevel(logging.ERROR)
+    logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+    
     from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
     import torch
     TRANSFORMERS_AVAILABLE = True
@@ -48,33 +61,57 @@ class ContentAnalyzer:
         try:
             log_info("Initializing transformer-based content classifiers...")
             
-            # NSFW Content Detection
-            # Using a general text classification model fine-tuned for content safety
-            self.nsfw_classifier = pipeline(
-                "text-classification",
-                model="unitary/toxic-bert",
-                device=0 if torch.cuda.is_available() else -1,
-                truncation=True,
-                max_length=512
-            )
-            
-            # Sentiment Analysis
-            self.sentiment_classifier = pipeline(
-                "sentiment-analysis",
-                model="cardiffnlp/twitter-roberta-base-sentiment-latest",
-                device=0 if torch.cuda.is_available() else -1,
-                truncation=True,
-                max_length=512
-            )
-            
-            # Emotion Detection
-            self.emotion_classifier = pipeline(
-                "text-classification",
-                model="j-hartmann/emotion-english-distilroberta-base",
-                device=0 if torch.cuda.is_available() else -1,
-                truncation=True,
-                max_length=512
-            )
+            # Suppress all warnings and output during model loading
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                
+                # Temporarily redirect stdout and stderr to suppress console output
+                import sys
+                from io import StringIO
+                
+                old_stdout = sys.stdout
+                old_stderr = sys.stderr
+                sys.stdout = StringIO()
+                sys.stderr = StringIO()
+                
+                try:
+                    device = 0 if torch.cuda.is_available() else -1
+                    
+                    # NSFW Content Detection  
+                    # Using a general text classification model fine-tuned for content safety
+                    self.nsfw_classifier = pipeline(
+                        "text-classification",
+                        model="unitary/toxic-bert",
+                        device=device,
+                        truncation=True,
+                        max_length=512,
+                        top_k=1  # Only return top prediction
+                    )
+                    
+                    # Sentiment Analysis
+                    self.sentiment_classifier = pipeline(
+                        "sentiment-analysis",
+                        model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                        device=device,
+                        truncation=True,
+                        max_length=512,
+                        top_k=1  # Only return top prediction
+                    )
+                    
+                    # Emotion Detection
+                    self.emotion_classifier = pipeline(
+                        "text-classification",
+                        model="j-hartmann/emotion-english-distilroberta-base",
+                        device=device,
+                        truncation=True,
+                        max_length=512,
+                        top_k=1  # Only return top prediction
+                    )
+                    
+                finally:
+                    # Restore stdout and stderr
+                    sys.stdout = old_stdout
+                    sys.stderr = old_stderr
             
             log_info("Transformer classifiers initialized successfully")
             
@@ -710,18 +747,30 @@ Response (JSON only):"""
                         "timestamp": datetime.now(UTC).isoformat()
                     })
         
-        # Add content flags
-        content_flags = analysis.get("content_flags", {})
-        for flag_name, flag_value in content_flags.items():
-            if flag_value and flag_name != "emotional_intensity":
-                flags.append({
-                    "name": f"content_{flag_name}",
-                    "value": flag_value,
-                    "timestamp": datetime.now(UTC).isoformat()
-                })
+        # Add content flags (handle list format)
+        content_flags = analysis.get("content_flags", [])
+        if isinstance(content_flags, list):
+            # New list format
+            for flag in content_flags:
+                if flag:  # Skip empty flags
+                    flags.append({
+                        "name": f"content_{flag}",
+                        "value": True,
+                        "timestamp": datetime.now(UTC).isoformat()
+                    })
+            emotional_intensity = "medium"  # Default since no dict structure
+        else:
+            # Legacy dict format (for backwards compatibility)
+            for flag_name, flag_value in content_flags.items():
+                if flag_value and flag_name != "emotional_intensity":
+                    flags.append({
+                        "name": f"content_{flag_name}",
+                        "value": flag_value,
+                        "timestamp": datetime.now(UTC).isoformat()
+                    })
+            emotional_intensity = content_flags.get("emotional_intensity", "medium")
         
         # Add emotional intensity flag
-        emotional_intensity = content_flags.get("emotional_intensity", "medium")
         flags.append({
             "name": "emotional_intensity",
             "value": emotional_intensity,
@@ -734,7 +783,7 @@ Response (JSON only):"""
         """
         Recommend model routing based on content analysis.
         """
-        content_flags = analysis.get("content_flags", {})
+        content_flags = analysis.get("content_flags", [])
         token_priority = analysis.get("token_priority", "medium")
         
         # Default routing
@@ -745,8 +794,10 @@ Response (JSON only):"""
             "content_filter": False
         }
         
-        # Adjust based on content flags
-        if content_flags.get("nsfw") or content_flags.get("mature_themes"):
+        # Adjust based on content flags (list format)
+        if ("nsfw" in content_flags or "explicit" in content_flags or 
+            "suggestive" in content_flags or "mature" in content_flags or 
+            "toxic_detected" in content_flags):
             recommendation["content_filter"] = True
             recommendation["adapter"] = "ollama"  # Use local model for sensitive content
         

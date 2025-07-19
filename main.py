@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import argparse
 from pathlib import Path
 from core.story_loader import load_storypack
 from core.context_builder import build_context_with_analysis
@@ -20,10 +21,23 @@ from core.image_generation_engine import create_image_engine, ImageType
 sys.path.append(str(Path(__file__).parent / "utilities"))
 from logging_system import log_model_interaction, log_system_event, log_info, log_error
 
+# Global flag for emoji display (set by command line argument)
+USE_EMOJIS = True
+
+def emoji(text):
+    """Return emoji text if emojis are enabled, otherwise return empty string."""
+    return text if USE_EMOJIS else ""
+
+def status_icon(success=True):
+    """Return appropriate status icon based on success and emoji setting."""
+    if not USE_EMOJIS:
+        return "Ready" if success else "Error"
+    return "✅" if success else "❌"
+
 def print_memory_summary(story_id):
     """Print a summary of current memory state."""
     summary = get_memory_summary(story_id)
-    print(f"\n📊 Memory Summary:")
+    print(f"\n{emoji('📚 ')}Memory Summary:")
     print(f"   Characters: {summary['character_count']}")
     print(f"   World State: {len(summary['world_state_keys'])} keys")
     print(f"   Active Flags: {len(summary['active_flags'])}")
@@ -32,20 +46,21 @@ def print_memory_summary(story_id):
 
 def show_model_info():
     """Show information about available models."""
-    print("\n🤖 Available Models:")
+    print(f"\n{emoji('🤖 ')}Available Models:")
     for adapter_name in model_manager.get_available_adapters():
         try:
             info = model_manager.get_adapter_info(adapter_name)
-            status = "✅ Ready" if info["initialized"] else "⏳ Not initialized"
-            print(f"   {adapter_name}: {info['provider']} - {info['model_name']} ({status})")
+            status_text = status_icon(info["initialized"]) if USE_EMOJIS else ("Ready" if info["initialized"] else "Not initialized")
+            print(f"   {adapter_name}: {info['provider']} - {info['model_name']} ({status_text})")
         except Exception as e:
-            print(f"   {adapter_name}: ❌ Error: {e}")
+            error_icon = status_icon(False)
+            print(f"   {adapter_name}: {error_icon} Error: {e}")
             log_error(f"Model adapter error for {adapter_name}: {e}")
 
 async def switch_model():
     """Switch the active model adapter."""
     adapters = model_manager.get_available_adapters()
-    print("\n🔄 Available Adapters:")
+    print(f"\n{emoji('🔧 ')}Available Adapters:")
     for i, adapter in enumerate(adapters):
         print(f"{i+1}. {adapter}")
     
@@ -53,35 +68,39 @@ async def switch_model():
     if choice.isdigit() and 1 <= int(choice) <= len(adapters):
         adapter_name = adapters[int(choice)-1]
         try:
-            print(f"🔄 Initializing {adapter_name}...")
+            print(f"Initializing {adapter_name}...")
             success = await model_manager.initialize_adapter(adapter_name)
             if success:
                 model_manager.default_adapter = adapter_name
-                print(f"✅ Switched to {adapter_name}")
+                print(f"{status_icon(True)} Switched to {adapter_name}")
             else:
-                print(f"❌ Failed to initialize {adapter_name}")
+                print(f"{status_icon(False)} Failed to initialize {adapter_name}")
                 log_error(f"Failed to initialize adapter: {adapter_name}")
         except Exception as e:
-            print(f"❌ Error switching to {adapter_name}: {e}")
+            print(f"{status_icon(False)} Error switching to {adapter_name}: {e}")
             log_error(f"Error switching to adapter {adapter_name}: {e}")
 
 def show_rollback_options(story_id):
     """Show available rollback options."""
     candidates = get_rollback_candidates(story_id, limit=5)
     if not candidates:
-        print("No rollback candidates available.")
+        print(f"{emoji('⏪ ')}No rollback candidates available.")
         return
+    
+    print(f"\n{emoji('⏪ ')}Rollback Options:")
+    for i, candidate in enumerate(candidates):
+        print(f"{i+1}. {candidate['scene_summary']} (Scene {candidate['scene_id']})")
     
     choice = input("Enter number to rollback (or press Enter to skip): ").strip()
     if choice.isdigit() and 1 <= int(choice) <= len(candidates):
         scene_id = candidates[int(choice)-1]['scene_id']
         result = rollback_to_scene(story_id, scene_id)
-        print(f"✅ {result['message']}")
+        print(f"{status_icon(True)} {result['message']}")
         print(f"   Scenes removed: {result['scenes_removed']}")
 
 async def show_image_commands(story_id):
     """Show and handle image generation commands."""
-    print("\n🎨 Image Generation Commands:")
+    print(f"\n{emoji('🎨 ')}Image Generation Commands:")
     print("1. Generate character portrait")
     print("2. Generate scene image")
     print("3. List existing images")
@@ -104,16 +123,16 @@ async def show_image_commands(story_id):
         elif choice == "5":
             return
         else:
-            print("Invalid choice. Please select 1-5.")
+            print(f"{status_icon(False)} Invalid choice. Please select 1-5.")
     except Exception as e:
-        print(f"❌ Error accessing image engine: {e}")
+        print(f"{status_icon(False)} Error accessing image engine: {e}")
         log_error(f"Image engine error: {e}")
 
 async def generate_character_portrait_cli(image_engine):
     """Generate a character portrait via CLI."""
     character_name = input("Character name: ").strip()
     if not character_name:
-        print("Character name required.")
+        print(f"{status_icon(False)} Character name required.")
         return
     
     print("Character description (or press Enter to use default):")
@@ -129,18 +148,18 @@ async def generate_character_portrait_cli(image_engine):
             "personality": {"demeanor": "Story-appropriate personality"}
         }
     
-    print(f"🎨 Generating portrait for {character_name}...")
+    print(f"{emoji('🖼️ ')}Generating portrait for {character_name}...")
     
     try:
         image_id = await image_engine.generate_character_portrait(character_name, character_data)
         if image_id:
-            print(f"✅ Generated portrait: {image_id}")
+            print(f"{status_icon(True)} Generated portrait: {image_id}")
             image_path = image_engine.get_image_path(image_id)
             print(f"   Saved to: {image_path}")
         else:
-            print("❌ Failed to generate portrait (no adapters available)")
+            print(f"{status_icon(False)} Failed to generate portrait (no adapters available)")
     except Exception as e:
-        print(f"❌ Error generating portrait: {e}")
+        print(f"{status_icon(False)} Error generating portrait: {e}")
         log_error(f"Portrait generation error: {e}")
 
 async def generate_scene_image_cli(image_engine):
@@ -151,7 +170,7 @@ async def generate_scene_image_cli(image_engine):
     
     description = input("Scene description: ").strip()
     if not description:
-        print("Scene description required.")
+        print(f"{status_icon(False)} Scene description required.")
         return
     
     location = input("Location (optional): ").strip()
@@ -168,27 +187,27 @@ async def generate_scene_image_cli(image_engine):
         "user_requested": True
     }
     
-    print(f"🎨 Generating scene image for {scene_id}...")
+    print(f"{emoji('🎬 ')}Generating scene image for {scene_id}...")
     
     try:
         image_id = await image_engine.generate_scene_image(scene_id, scene_data, context)
         if image_id:
-            print(f"✅ Generated scene: {image_id}")
+            print(f"{status_icon(True)} Generated scene: {image_id}")
             image_path = image_engine.get_image_path(image_id)
             print(f"   Saved to: {image_path}")
         else:
-            print("❌ Failed to generate scene (no adapters available)")
+            print(f"{status_icon(False)} Failed to generate scene (no adapters available)")
     except Exception as e:
-        print(f"❌ Error generating scene: {e}")
+        print(f"{status_icon(False)} Error generating scene: {e}")
         log_error(f"Scene generation error: {e}")
 
 def list_existing_images(image_engine):
     """List all existing images."""
     if not image_engine.metadata:
-        print("No images found.")
+        print(f"{emoji('📷 ')}No images found.")
         return
     
-    print(f"\n🖼️ Existing Images ({len(image_engine.metadata)}):")
+    print(f"\n{emoji('📊 ')}Existing Images ({len(image_engine.metadata)}):")
     
     characters = {}
     scenes = {}
@@ -206,14 +225,14 @@ def list_existing_images(image_engine):
             scenes[scene_id].append(metadata)
     
     if characters:
-        print("\n👥 Character Portraits:")
+        print(f"\n{emoji('👥 ')}Character Portraits:")
         for char_name, images in characters.items():
             print(f"   {char_name}: {len(images)} image(s)")
             for img in images:
                 print(f"     - {img.image_id} ({img.timestamp})")
     
     if scenes:
-        print("\n🎬 Scene Images:")
+        print(f"\n{emoji('🎬 ')}Scene Images:")
         for scene_id, images in scenes.items():
             print(f"   {scene_id}: {len(images)} image(s)")
             for img in images:
@@ -223,7 +242,7 @@ def show_image_stats(image_engine):
     """Show image generation statistics."""
     stats = image_engine.get_engine_stats()
     
-    print(f"\n📊 Image Generation Stats:")
+    print(f"\n{emoji('📊 ')}Image Generation Stats:")
     print(f"   Images Generated: {stats['images_generated']}")
     print(f"   Total Cost: ${stats['total_cost']:.4f}")
     print(f"   Generation Time: {stats['generation_time']:.2f}s")
@@ -239,75 +258,189 @@ def show_image_stats(image_engine):
 
 async def run_quick_test():
     """Run a quick test of core functionality without interactive mode."""
-    print("🧪 Quick Test Mode - Non-Interactive")
+    print(f"{emoji('🧪 ')}Quick Test Mode - Non-Interactive")
     print("=" * 40)
     
     try:
         # Load story
-        print("📚 Loading demo story...")
+        print("Loading demo story...")
         story = load_storypack("demo-story")
         story_id = story["id"]
-        print(f"✅ Loaded: {story['meta']['title']}")
+        print(f"{status_icon(True)} Loaded: {story['meta']['title']}")
         
         # Initialize model
-        print("🤖 Initializing mock model...")
+        print("Initializing mock model...")
         await model_manager.initialize_adapter("mock")
-        print("✅ Mock model ready")
+        print(f"{status_icon(True)} Mock model ready")
         
         # Test context building
-        print("🏗️ Testing context building...")
+        print("Testing context building...")
         context = await build_context_with_analysis("I look around the room", story)
-        print("✅ Context built successfully")
+        print(f"{status_icon(True)} Context built successfully")
         
         # Test AI response
-        print("🤖 Testing AI response...")
+        print("Testing AI response...")
         response = await model_manager.generate_response(context["full_context"])
-        print(f"✅ Response: {response[:50]}...")
+        print(f"{status_icon(True)} Response: {response[:50]}...")
         
         # Test scene logging
-        print("📝 Testing scene logging...")
+        print("Testing scene logging...")
         scene_id = save_scene(story_id, "Test input", response, memory_snapshot=context["memory"])
-        print(f"✅ Scene logged: {scene_id}")
+        print(f"{status_icon(True)} Scene logged: {scene_id}")
         
         # Test memory summary
-        print("🧠 Testing memory summary...")
+        print("Testing memory summary...")
         summary = get_memory_summary(story_id)
-        print(f"✅ Memory summary: {summary['character_count']} characters")
+        print(f"{status_icon(True)} Memory summary: {summary['character_count']} characters")
         
-        print("\n🎉 Quick test completed successfully!")
+        print(f"\n{emoji('🎉 ')}Quick test completed successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Quick test failed: {e}")
+        print(f"{status_icon(False)} Quick test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
     finally:
         await model_manager.shutdown()
 
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='OpenChronicle Interactive Story Engine')
+    parser.add_argument('--test', action='store_true', 
+                        help='Run quick system test and exit')
+    parser.add_argument('--non-interactive', action='store_true',
+                        help='Run in non-interactive mode (for testing/automation)')
+    parser.add_argument('--story-id', type=str, default='demo-story', metavar='ID',
+                        help='Story ID to load (default: demo-story)')
+    parser.add_argument('--input', type=str, metavar='TEXT',
+                        help='Single input to process in non-interactive mode')
+    parser.add_argument('--max-iterations', type=int, default=1, metavar='N',
+                        help='Maximum iterations in non-interactive mode (default: 1)')
+    parser.add_argument('--no-emojis', action='store_true',
+                        help='Disable emoji output for professional/clean display')
+    return parser.parse_args()
+
+async def run_non_interactive_mode(story_id: str, args, story):
+    """Run in non-interactive mode for testing/automation."""
+    print(f"\nRunning in non-interactive mode...")
+    
+    # Use provided input or default test input
+    test_inputs = []
+    if args.input:
+        test_inputs = [args.input]
+    else:
+        test_inputs = [
+            "Look around the forest clearing.",
+            "Check my equipment.",
+            "memory"
+        ]
+    
+    iterations = min(len(test_inputs), args.max_iterations)
+    
+    for i, test_input in enumerate(test_inputs[:iterations]):
+        print(f"\nInput {i+1}: {test_input}")
+        
+        # Handle special commands
+        if test_input.lower() == 'memory':
+            print_memory_summary(story_id)
+            continue
+        elif test_input.lower() in ['models']:
+            show_model_info()
+            continue
+        
+        # Process story input
+        await process_story_input(story_id, test_input, story)
+    
+    print(f"\nNon-interactive mode completed ({iterations} iterations)")
+
+async def process_story_input(story_id: str, user_input: str, story):
+    """Process a single story input (extracted from main loop)."""
+    # Build context with analysis
+    print(f"   {emoji('🧠 ')}Analyzing context...")
+    context = await build_context_with_analysis(user_input, story)
+    
+    # Determine the best adapter and parameters for this input
+    preferred_adapter = context.get("recommended_adapter", "openai")
+    max_tokens = context.get("recommended_max_tokens", 800)
+    temperature = context.get("recommended_temperature", 0.7)
+    
+    print(f"   Using {preferred_adapter} adapter (max_tokens: {max_tokens}, temp: {temperature})")
+    
+    # Generate AI response using optimized context and routing
+    try:
+        ai_response = await model_manager.generate_response(
+            context["full_context"], 
+            adapter_name=preferred_adapter,
+            story_id=story_id,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+    except Exception as e:
+        print(f"{status_icon(False)} AI generation failed: {e}")
+        ai_response = f"[Error generating response: {e}]"
+    
+    # Generate content flags from analysis and response
+    analysis = context.get("analysis", {})
+    if analysis:
+        try:
+            content_analyzer_instance = ContentAnalyzer(model_manager)
+            content_flags = await content_analyzer_instance.generate_content_flags(analysis, ai_response)
+            for flag in content_flags:
+                add_memory_flag(story_id, flag["name"], flag["value"])
+            print(f"   Generated {len(content_flags)} content flags")
+        except Exception as e:
+            print(f"{status_icon(False)} Flag generation failed: {e}")
+    
+    # Log the scene
+    scene_id = save_scene(
+        story_id, 
+        user_input, 
+        ai_response, 
+        memory_snapshot=context["memory"],
+        analysis_data=analysis
+    )
+    
+    # Add to recent events
+    add_recent_event(story_id, f"User: {user_input}")
+    
+    print(f"{ai_response}")
+    print(f"   Scene logged: {scene_id}")
+
 async def main():
-    # Check for non-interactive test mode
-    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+    global USE_EMOJIS
+    args = parse_arguments()
+    
+    # Set emoji preference from command line
+    USE_EMOJIS = not args.no_emojis
+    
+    # Check for test mode
+    if args.test:
         success = await run_quick_test()
         sys.exit(0 if success else 1)
     
-    print("🔧 Loading storypack...")
-    story = load_storypack("demo-story")
+    print(f"{emoji('📖 ')}Loading storypack...")
+    story = load_storypack(args.story_id)
     story_id = story["id"]
     
-    print(f"✅ Loaded story: {story['meta']['title']}")
+    print(f"{status_icon(True)} Loaded story: {story['meta']['title']}")
     print_memory_summary(story_id)
     
     # Initialize default model adapter
-    print("🤖 Initializing AI model...")
+    print(f"{emoji('🤖 ')}Initializing AI model...")
     try:
         await model_manager.initialize_adapter(model_manager.config["default_adapter"])
-        print(f"✅ Model ready: {model_manager.default_adapter}")
+        print(f"{status_icon(True)} Model ready: {model_manager.default_adapter}")
     except Exception as e:
-        print(f"⚠️ Model initialization failed: {e}")
-        print("Continuing with mock responses...")
+        print(f"{status_icon(False)} Model initialization failed: {e}")
+        print(f"{emoji('⚠️ ')}Continuing with mock responses...")
     
-    print("\n📖 Commands:")
+    # Handle non-interactive mode
+    if args.non_interactive:
+        await run_non_interactive_mode(story_id, args, story)
+        return
+    
+    print(f"\n{emoji('📝 ')}Commands:")
     print("   - Type your story input normally")
     print("   - Type 'memory' to view memory summary")
     print("   - Type 'rollback' to see rollback options")
@@ -316,8 +449,9 @@ async def main():
     print("   - Type 'images' to access image generation")
     print("   - Type 'quit' to exit")
     
+    # Interactive mode
     while True:
-        user_input = input("\n🧠 You: ").strip()
+        user_input = input("\nYou: ").strip()
         
         if user_input.lower() in ['quit', 'exit', 'q']:
             break
@@ -358,7 +492,7 @@ async def main():
                 temperature=temperature
             )
         except Exception as e:
-            print(f"⚠️ AI generation failed: {e}")
+            print(f"{status_icon(False)} AI generation failed: {e}")
             ai_response = f"[Error generating response: {e}]"
         
         # Generate content flags from analysis and response
@@ -371,7 +505,7 @@ async def main():
                     add_memory_flag(story_id, flag["name"], flag["value"])
                 print(f"   Generated {len(content_flags)} content flags")
             except Exception as e:
-                print(f"⚠️ Flag generation failed: {e}")
+                print(f"{status_icon(False)} Flag generation failed: {e}")
         
         # Log the scene
         scene_id = save_scene(
@@ -385,10 +519,10 @@ async def main():
         # Add to recent events
         add_recent_event(story_id, f"User: {user_input}")
         
-        print(f"📖 {ai_response}")
+        print(f"{ai_response}")
         print(f"   Scene logged: {scene_id}")
     
-    print("\n👋 Story session ended.")
+    print(f"\n{emoji('👋 ')}Story session ended.")
     await model_manager.shutdown()
 
 if __name__ == "__main__":

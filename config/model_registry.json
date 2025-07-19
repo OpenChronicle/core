@@ -2,7 +2,9 @@
   "version": "1.0.0",
   "default_model": "openai",
   "analyzer_model": "openai",
-  "image_model": "stability",
+  "image_model": "openai_dalle",
+  "default_image_model": "openai_dalle",
+  "image_fallback_chain": ["openai_dalle", "stability_ai", "mock_image"],
   "models": [
     {
       "name": "openai",
@@ -144,6 +146,52 @@
         "testing"
       ],
       "description": "Mock model for testing and development"
+    },
+    {
+      "name": "openai_dalle",
+      "priority": 1,
+      "fallbacks": [
+        "stability_ai",
+        "mock_image"
+      ],
+      "enabled": true,
+      "supports_nsfw": false,
+      "content_types": [
+        "character_portraits",
+        "scene_images",
+        "general_images"
+      ],
+      "description": "OpenAI DALL-E models - high quality image generation"
+    },
+    {
+      "name": "stability_ai",
+      "priority": 2,
+      "fallbacks": [
+        "mock_image"
+      ],
+      "enabled": false,
+      "supports_nsfw": true,
+      "content_types": [
+        "character_portraits",
+        "scene_images",
+        "general_images",
+        "artistic"
+      ],
+      "description": "Stability AI models - flexible image generation with style control"
+    },
+    {
+      "name": "mock_image",
+      "priority": 99,
+      "fallbacks": [],
+      "enabled": true,
+      "supports_nsfw": true,
+      "content_types": [
+        "character_portraits",
+        "scene_images",
+        "general_images",
+        "testing"
+      ],
+      "description": "Mock image generator for testing and development"
     }
   ],
   "content_routing": {

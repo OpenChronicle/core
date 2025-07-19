@@ -8,6 +8,7 @@ This directory contains essential documentation, examples, and patterns to enhan
 .copilot/
 ├── README.md                    # This file - overview and usage guide
 ├── context.json                 # Unified project context and status (PRIMARY REFERENCE)
+├── development_config.md        # Development environment and command patterns
 ├── architecture/               # System architecture documentation
 │   └── module_interactions.md  # Module relationships and data flow
 ├── config/                     # Configuration examples and templates
@@ -68,6 +69,7 @@ This directory serves multiple purposes:
 - Demonstrates best practices and coding standards
 
 ### 2. **Development Acceleration**
+- Terminal command patterns and environment setup in `development_config.md`
 - Reusable code patterns and templates in `patterns/`
 - Working examples and configurations in `examples/` and `config/`
 - Testing frameworks and patterns in `testing/`
@@ -78,6 +80,7 @@ This directory serves multiple purposes:
 - Preserves working examples of complex integrations
 - Maintains consistency across development sessions
 - Serves as reference for understanding system relationships
+- Saves environment-specific configurations and command patterns
 
 ### 4. **Code Quality**
 - Enforces consistent coding standards via `development_guidelines.md`
@@ -268,6 +271,30 @@ This directory significantly improves development efficiency by:
 - **Enhancing AI Assistance**: Rich context for better suggestions
 - **Facilitating Onboarding**: Complete examples and documentation
 - **Maintaining Consistency**: Shared patterns across the project
+
+## 🚀 Quick Reference
+
+### Environment Setup
+- **Python**: 3.13.5 (global installation)
+- **Dependencies**: See `development_config.md` for complete setup
+- **VS Code**: Configured in `.vscode/` directory
+
+### Common Commands
+```bash
+# Test dependencies
+python -c "import yaml, httpx; from PIL import Image; print('All OK')"
+
+# Test OpenChronicle
+python -c "import sys; sys.path.insert(0, '.'); from core.image_generation_engine import create_image_engine; print('Engine OK')"
+
+# Run tests
+python -m pytest tests/ -v
+```
+
+### Key Files
+- `development_config.md` - Environment and command patterns
+- `context.json` - Current project state and status
+- `../config/model_registry.json` - Model configuration and priorities
 
 ---
 
