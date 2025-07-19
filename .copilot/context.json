@@ -93,7 +93,7 @@
     "Smart context selection and token optimization",
     "Comprehensive test suite (127 tests, 126 passing, 1 skipped)",
     "Configuration management system with extensive provider support",
-    "Virtual environment setup with proper dependency management",
+    "Global Python environment with pip dependency management",
     "Multiple deployment options (Docker, local, cloud)",
     "Complete modularity - use any combination of features",
     "Clean, stable codebase foundation",
@@ -131,7 +131,7 @@
 
   "deployment_options": [
     "Docker with Embedded Ollama: docker-compose up -d (functional but needs refinement)",
-    "Local Development: .venv with pip install -r requirements.txt + external LLM",
+    "Local Development: Global Python with pip install -r requirements.txt + external LLM",
     "Cloud Deployment: Multi-provider integration with environment variables",
     "Hybrid: Mix local and cloud models as needed",
     "Cross-Platform: Windows, Linux, macOS support for all deployment modes"

@@ -284,7 +284,7 @@
       "description": "Add optional support for image generation via local or API-driven models. Images are treated as non-critical 'fluff' and stored in each storypack's /images/ directory.",
       "category": "utilities",
       "priority": "high",
-      "status": "planned",
+      "status": "complete",
       "estimated_effort": "medium",
       "target_milestone": "v0.2.0",
       "dependencies": [],
@@ -301,7 +301,30 @@
         "Images stored in organized directory structure",
         "CLI commands for manual image generation",
         "Image metadata integrated with story memory"
-      ]
+      ],
+      "completion_details": {
+        "completed_date": "2025-07-18",
+        "implementation_notes": "Complete image generation engine with plugin architecture. Supports OpenAI DALL-E and mock adapters. Features include automatic character portraits, scene visualization, metadata management, and CLI integration.",
+        "files_created": [
+          "core/image_adapter.py",
+          "core/image_generation_engine.py",
+          "tests/test_image_generation_engine.py"
+        ],
+        "files_modified": [
+          "main.py"
+        ],
+        "test_coverage": "24 tests, 100% pass rate",
+        "key_features": [
+          "Plugin-based adapter system for multiple providers",
+          "Automatic character portrait generation",
+          "Scene image generation with context",
+          "Metadata tracking and persistence",
+          "Cost and performance monitoring",
+          "CLI integration with manual generation",
+          "Image querying by character, scene, and tags",
+          "Fallback mechanisms and error handling"
+        ]
+      }
     },
     {
       "id": "task-narrative-heatmap",

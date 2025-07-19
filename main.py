@@ -13,7 +13,8 @@ from core.memory_manager import (
 from core.scene_logger import save_scene
 from core.rollback_engine import get_rollback_candidates, rollback_to_scene
 from core.model_adapter import model_manager
-from core.content_analyzer import content_analyzer
+from core.content_analyzer import ContentAnalyzer
+from core.image_generation_engine import create_image_engine, ImageType
 
 # Add utilities to path for logging system
 sys.path.append(str(Path(__file__).parent / "utilities"))
@@ -71,16 +72,170 @@ def show_rollback_options(story_id):
         print("No rollback candidates available.")
         return
     
-    print("\n🔄 Recent Rollback Options:")
-    for i, candidate in enumerate(candidates):
-        print(f"{i+1}. {candidate['scene_id']}: {candidate['input_preview']}")
-    
     choice = input("Enter number to rollback (or press Enter to skip): ").strip()
     if choice.isdigit() and 1 <= int(choice) <= len(candidates):
         scene_id = candidates[int(choice)-1]['scene_id']
         result = rollback_to_scene(story_id, scene_id)
         print(f"✅ {result['message']}")
         print(f"   Scenes removed: {result['scenes_removed']}")
+
+async def show_image_commands(story_id):
+    """Show and handle image generation commands."""
+    print("\n🎨 Image Generation Commands:")
+    print("1. Generate character portrait")
+    print("2. Generate scene image")
+    print("3. List existing images")
+    print("4. View image stats")
+    print("5. Back to main menu")
+    
+    choice = input("Select option (1-5): ").strip()
+    
+    try:
+        image_engine = create_image_engine(story_id)
+        
+        if choice == "1":
+            await generate_character_portrait_cli(image_engine)
+        elif choice == "2":
+            await generate_scene_image_cli(image_engine)
+        elif choice == "3":
+            list_existing_images(image_engine)
+        elif choice == "4":
+            show_image_stats(image_engine)
+        elif choice == "5":
+            return
+        else:
+            print("Invalid choice. Please select 1-5.")
+    except Exception as e:
+        print(f"❌ Error accessing image engine: {e}")
+        log_error(f"Image engine error: {e}")
+
+async def generate_character_portrait_cli(image_engine):
+    """Generate a character portrait via CLI."""
+    character_name = input("Character name: ").strip()
+    if not character_name:
+        print("Character name required.")
+        return
+    
+    print("Character description (or press Enter to use default):")
+    description = input().strip()
+    
+    character_data = {}
+    if description:
+        character_data["description"] = description
+    else:
+        character_data = {
+            "description": f"A character from the story named {character_name}",
+            "appearance": {"general": "Detailed character design"},
+            "personality": {"demeanor": "Story-appropriate personality"}
+        }
+    
+    print(f"🎨 Generating portrait for {character_name}...")
+    
+    try:
+        image_id = await image_engine.generate_character_portrait(character_name, character_data)
+        if image_id:
+            print(f"✅ Generated portrait: {image_id}")
+            image_path = image_engine.get_image_path(image_id)
+            print(f"   Saved to: {image_path}")
+        else:
+            print("❌ Failed to generate portrait (no adapters available)")
+    except Exception as e:
+        print(f"❌ Error generating portrait: {e}")
+        log_error(f"Portrait generation error: {e}")
+
+async def generate_scene_image_cli(image_engine):
+    """Generate a scene image via CLI."""
+    scene_id = input("Scene ID (optional): ").strip()
+    if not scene_id:
+        scene_id = f"manual_scene_{int(asyncio.get_event_loop().time())}"
+    
+    description = input("Scene description: ").strip()
+    if not description:
+        print("Scene description required.")
+        return
+    
+    location = input("Location (optional): ").strip()
+    atmosphere = input("Atmosphere/mood (optional): ").strip()
+    
+    scene_data = {"description": description}
+    if location:
+        scene_data["location"] = location
+    if atmosphere:
+        scene_data["atmosphere"] = atmosphere
+    
+    context = {
+        "manual_generation": True,
+        "user_requested": True
+    }
+    
+    print(f"🎨 Generating scene image for {scene_id}...")
+    
+    try:
+        image_id = await image_engine.generate_scene_image(scene_id, scene_data, context)
+        if image_id:
+            print(f"✅ Generated scene: {image_id}")
+            image_path = image_engine.get_image_path(image_id)
+            print(f"   Saved to: {image_path}")
+        else:
+            print("❌ Failed to generate scene (no adapters available)")
+    except Exception as e:
+        print(f"❌ Error generating scene: {e}")
+        log_error(f"Scene generation error: {e}")
+
+def list_existing_images(image_engine):
+    """List all existing images."""
+    if not image_engine.metadata:
+        print("No images found.")
+        return
+    
+    print(f"\n🖼️ Existing Images ({len(image_engine.metadata)}):")
+    
+    characters = {}
+    scenes = {}
+    
+    for image_id, metadata in image_engine.metadata.items():
+        if metadata.image_type == ImageType.CHARACTER:
+            char_name = metadata.character_name or "Unknown"
+            if char_name not in characters:
+                characters[char_name] = []
+            characters[char_name].append(metadata)
+        elif metadata.image_type == ImageType.SCENE:
+            scene_id = metadata.scene_id or "Unknown"
+            if scene_id not in scenes:
+                scenes[scene_id] = []
+            scenes[scene_id].append(metadata)
+    
+    if characters:
+        print("\n👥 Character Portraits:")
+        for char_name, images in characters.items():
+            print(f"   {char_name}: {len(images)} image(s)")
+            for img in images:
+                print(f"     - {img.image_id} ({img.timestamp})")
+    
+    if scenes:
+        print("\n🎬 Scene Images:")
+        for scene_id, images in scenes.items():
+            print(f"   {scene_id}: {len(images)} image(s)")
+            for img in images:
+                print(f"     - {img.image_id} ({img.timestamp})")
+
+def show_image_stats(image_engine):
+    """Show image generation statistics."""
+    stats = image_engine.get_engine_stats()
+    
+    print(f"\n📊 Image Generation Stats:")
+    print(f"   Images Generated: {stats['images_generated']}")
+    print(f"   Total Cost: ${stats['total_cost']:.4f}")
+    print(f"   Generation Time: {stats['generation_time']:.2f}s")
+    print(f"   Available Adapters: {', '.join(stats['available_adapters'])}")
+    
+    if stats['providers_used']:
+        print(f"   Providers Used: {', '.join(stats['providers_used'])}")
+    
+    total_images = stats.get('total_images', 0)
+    if total_images > 0:
+        print(f"   Average Cost per Image: ${stats['total_cost']/total_images:.4f}")
+        print(f"   Average Time per Image: {stats['generation_time']/total_images:.2f}s")
 
 async def run_quick_test():
     """Run a quick test of core functionality without interactive mode."""
@@ -158,6 +313,7 @@ async def main():
     print("   - Type 'rollback' to see rollback options")
     print("   - Type 'models' to see available models")
     print("   - Type 'switch' to switch model")
+    print("   - Type 'images' to access image generation")
     print("   - Type 'quit' to exit")
     
     while True:
@@ -176,6 +332,9 @@ async def main():
             continue
         elif user_input.lower() == 'switch':
             await switch_model()
+            continue
+        elif user_input.lower() == 'images':
+            await show_image_commands(story_id)
             continue
         elif not user_input:
             continue
@@ -206,7 +365,8 @@ async def main():
         analysis = context.get("analysis", {})
         if analysis:
             try:
-                content_flags = await content_analyzer.generate_content_flags(analysis, ai_response)
+                content_analyzer_instance = ContentAnalyzer(model_manager)
+                content_flags = await content_analyzer_instance.generate_content_flags(analysis, ai_response)
                 for flag in content_flags:
                     add_memory_flag(story_id, flag["name"], flag["value"])
                 print(f"   Generated {len(content_flags)} content flags")
