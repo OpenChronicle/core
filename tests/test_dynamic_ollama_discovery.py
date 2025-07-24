@@ -90,14 +90,14 @@ class TestDynamicOllamaDiscovery:
         mock_client.__aexit__.return_value = None
         
         with patch('httpx.AsyncClient', return_value=mock_client):
-            result = await manager.discover_ollama_models()
+            result = await manager.discover_ollama_models("http://test:11434")
         
         # Verify result structure
         assert "error" not in result
         assert result["total_models"] == 4
         assert "models" in result
         assert "timestamp" in result
-        assert result["server_url"] == "http://localhost:11434"
+        assert result["server_url"] == "http://test:11434"
         
         # Verify model parsing
         models = result["models"]

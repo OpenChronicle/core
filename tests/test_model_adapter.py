@@ -12,9 +12,10 @@ from pathlib import Path
 
 from core.model_adapter import (
     ModelManager,
-    AdapterRegistry,
-    get_adapter,
-    normalize_response
+    ModelAdapter,
+    OpenAIAdapter,
+    OllamaAdapter,
+    MockAdapter
 )
 
 

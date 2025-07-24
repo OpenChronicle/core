@@ -83,26 +83,97 @@ OpenChronicle supports multiple LLM backends through a unified adapter system:
 - **Mock**: Built-in testing adapter
 
 ### Configuration
+
+OpenChronicle uses a comprehensive configuration system that eliminates hardcoded URLs and makes everything configurable through JSON and environment variables.
+
+#### Environment Variables
+
+The application respects these environment variables for dynamic configuration:
+
+| Variable | Purpose | Default | Example |
+|----------|---------|---------|---------|
+| `OLLAMA_HOST` | Ollama server URL | `http://localhost:11434` | `http://ollama-alpha:11434` |
+| `OPENAI_API_KEY` | OpenAI API authentication | None | `sk-...` |
+| `OPENAI_BASE_URL` | OpenAI API endpoint override | `https://api.openai.com/v1` | Custom endpoint |
+| `ANTHROPIC_API_KEY` | Anthropic API authentication | None | `sk-ant-...` |
+| `ANTHROPIC_BASE_URL` | Anthropic API endpoint override | `https://api.anthropic.com` | Custom endpoint |
+
+#### Docker Compose Configuration
+
+```yaml
+environment:
+  # Primary Ollama instance
+  - OLLAMA_HOST=http://ollama-alpha:11434
+  # API Keys
+  - OPENAI_API_KEY=your_openai_key_here
+  - ANTHROPIC_API_KEY=your_anthropic_key_here
+  # Optional endpoint overrides
+  - OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+#### Model Registry Configuration
+
 Models are configured in `config/model_registry.json`:
 
 ```json
 {
-  "default_adapter": "mock",
-  "adapters": {
-    "openai": {
-      "type": "openai",
-      "model_name": "gpt-4o-mini",
+  "global_config": {
+    "discovery": {
+      "ollama": {
+        "enabled": true,
+        "default_base_url": "http://localhost:11434",
+        "env_var": "OLLAMA_HOST",
+        "timeout": 10.0
+      }
+    },
+    "defaults": {
+      "timeout": 30.0,
       "max_tokens": 2048,
       "temperature": 0.7
-    },
-    "ollama": {
-      "type": "ollama",
-      "model_name": "llama3.2",
-      "base_url": "http://localhost:11434"
     }
-  }
+  },
+  "models": [
+    {
+      "name": "ollama",
+      "type": "ollama",
+      "config": {
+        "model_name": "llama3.2"
+      }
+    }
+  ]
 }
 ```
+
+For detailed configuration options, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
+#### Dynamic Model Discovery
+
+OpenChronicle includes an intelligent model discovery system for Ollama:
+
+```bash
+# Interactive discovery tool
+python discover_ollama_models.py
+
+# Programmatic discovery
+python -c "
+from core.model_adapter import ModelManager
+import asyncio
+
+async def discover():
+    mm = ModelManager()
+    result = await mm.discover_ollama_models()
+    print(f'Found {result[\"total_models\"]} models')
+
+asyncio.run(discover())
+"
+```
+
+The discovery system:
+- Respects environment variables (`OLLAMA_HOST`)
+- Uses global configuration defaults  
+- Provides intelligent model family detection
+- Automatically categorizes model capabilities
+- Integrates discovered models into the registry
 
 ### Environment Variables
 API keys are loaded from environment variables:

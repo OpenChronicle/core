@@ -1,262 +1,567 @@
 {
-  "version": "1.0.0",
-  "default_model": "ollama",
-  "analyzer_model": "ollama",
-  "image_model": "openai_dalle",
-  "default_image_model": "openai_dalle",
-  "image_fallback_chain": ["openai_dalle", "stability_ai", "mock_image"],
-  "models": [
-    {
-      "name": "openai",
-      "priority": 1,
-      "fallbacks": [
-        "anthropic",
-        "groq",
-        "ollama",
-        "mock"
-      ],
+  "schema_version": "3.0.0",
+  "metadata": {
+    "name": "OpenChronicle Model Registry",
+    "description": "Centralized configuration for all AI models and providers",
+    "last_updated": "2025-07-24",
+    "maintainer": "OpenChronicle Team"
+  },
+  "defaults": {
+    "text_model": "ollama",
+    "analyzer_model": "ollama",
+    "image_model": "openai_dalle"
+  },
+  "global_settings": {
+    "enable_fallbacks": true,
+    "enable_health_checks": true,
+    "enable_logging": true,
+    "intelligent_routing": {
       "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "mystery",
-        "creative"
-      ],
-      "description": "OpenAI GPT models - high quality, general purpose"
-    },
-    {
-      "name": "anthropic",
-      "priority": 2,
-      "fallbacks": [
-        "groq",
-        "ollama",
-        "mock"
-      ],
-      "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "mystery",
-        "creative",
-        "analysis"
-      ],
-      "description": "Anthropic Claude models - excellent for analysis and creative writing"
-    },
-    {
-      "name": "groq",
-      "priority": 3,
-      "fallbacks": [
-        "ollama",
-        "mock"
-      ],
-      "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "creative"
-      ],
-      "description": "Groq fast inference - good for quick responses"
-    },
-    {
-      "name": "ollama",
-      "priority": 1,
-      "fallbacks": [
-        "mock"
-      ],
-      "enabled": true,
-      "supports_nsfw": true,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "mystery",
-        "creative",
-        "mature"
-      ],
-      "description": "Local Ollama models - privacy-focused, supports NSFW",
-      "config": {
-        "base_url": "http://localhost:11434",
-        "model_name": "gemma3:latest",
+      "learning_mode": true,
+      "user_feedback_weight": 0.3,
+      "performance_history_days": 7,
+      "recommendation_confidence_threshold": 0.75,
+      "auto_switch_on_failure": true,
+      "preserve_user_overrides": true,
+      "runtime_state_file": "storage/runtime/runtime_state.json"
+    }
+  },
+  "environment_config": {
+    "providers": {
+      "ollama": {
+        "base_url_env": "OLLAMA_HOST",
+        "default_base_url": "http://localhost:11434",
+        "api_key_env": null,
         "timeout": 120,
-        "max_tokens": 2048,
-        "temperature": 0.7
+        "health_check_enabled": true
+      },
+      "openai": {
+        "base_url_env": "OPENAI_BASE_URL",
+        "default_base_url": "https://api.openai.com/v1",
+        "api_key_env": "OPENAI_API_KEY",
+        "timeout": 30,
+        "health_check_enabled": true
+      },
+      "anthropic": {
+        "base_url_env": "ANTHROPIC_BASE_URL",
+        "default_base_url": "https://api.anthropic.com",
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "timeout": 30,
+        "health_check_enabled": true
+      },
+      "groq": {
+        "base_url_env": "GROQ_BASE_URL",
+        "default_base_url": "https://api.groq.com/openai/v1",
+        "api_key_env": "GROQ_API_KEY",
+        "timeout": 15,
+        "health_check_enabled": true
+      },
+      "gemini": {
+        "base_url_env": "GEMINI_BASE_URL",
+        "default_base_url": "https://generativelanguage.googleapis.com/v1beta",
+        "api_key_env": "GOOGLE_API_KEY",
+        "timeout": 30,
+        "health_check_enabled": true
+      },
+      "cohere": {
+        "base_url_env": "COHERE_BASE_URL",
+        "default_base_url": "https://api.cohere.ai/v1",
+        "api_key_env": "COHERE_API_KEY",
+        "timeout": 30,
+        "health_check_enabled": true
+      },
+      "mistral": {
+        "base_url_env": "MISTRAL_BASE_URL",
+        "default_base_url": "https://api.mistral.ai/v1",
+        "api_key_env": "MISTRAL_API_KEY",
+        "timeout": 30,
+        "health_check_enabled": true
+      },
+      "stability": {
+        "base_url_env": "STABILITY_BASE_URL",
+        "default_base_url": "https://api.stability.ai/v1",
+        "api_key_env": "STABILITY_API_KEY",
+        "timeout": 60,
+        "health_check_enabled": true
       }
     },
-    {
-      "name": "gemini",
-      "priority": 5,
-      "fallbacks": [
-        "ollama",
-        "mock"
-      ],
-      "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "analysis"
-      ],
-      "description": "Google Gemini models - good for analysis and general tasks"
+    "defaults": {
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.7,
+      "max_retries": 3,
+      "retry_delay": 1.0,
+      "concurrent_requests": 3,
+      "enable_logging": true,
+      "enable_fallbacks": true
     },
-    {
-      "name": "cohere",
-      "priority": 6,
-      "fallbacks": [
-        "ollama",
-        "mock"
-      ],
-      "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "general",
-        "creative"
-      ],
-      "description": "Cohere Command models - good for creative tasks"
-    },
-    {
-      "name": "mistral",
-      "priority": 7,
-      "fallbacks": [
-        "ollama",
-        "mock"
-      ],
-      "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "creative"
-      ],
-      "description": "Mistral AI models - European alternative"
-    },
-    {
-      "name": "mock",
-      "priority": 99,
-      "fallbacks": [],
-      "enabled": true,
-      "supports_nsfw": true,
-      "content_types": [
-        "general",
-        "fantasy",
-        "sci-fi",
-        "mystery",
-        "creative",
-        "mature",
-        "testing"
-      ],
-      "description": "Mock model for testing and development"
-    },
-    {
-      "name": "openai_dalle",
-      "type": "image",
-      "priority": 1,
-      "fallbacks": [
-        "stability_ai",
-        "mock_image"
-      ],
-      "enabled": true,
-      "supports_nsfw": false,
-      "content_types": [
-        "character_portraits",
-        "scene_images",
-        "general_images"
-      ],
-      "size": "1024x1024",
-      "quality": "standard",
-      "style": "vivid",
-      "description": "OpenAI DALL-E models - high quality image generation"
-    },
-    {
-      "name": "stability_ai",
-      "type": "image",
-      "priority": 2,
-      "fallbacks": [
-        "mock_image"
-      ],
-      "enabled": false,
-      "supports_nsfw": true,
-      "content_types": [
-        "character_portraits",
-        "scene_images",
-        "general_images",
-        "artistic"
-      ],
-      "width": 1024,
-      "height": 1024,
-      "steps": 30,
-      "description": "Stability AI models - flexible image generation with style control"
-    },
-    {
-      "name": "mock_image",
-      "type": "image",
-      "priority": 99,
-      "fallbacks": [],
-      "enabled": true,
-      "supports_nsfw": true,
-      "content_types": [
-        "character_portraits",
-        "scene_images",
-        "general_images",
-        "testing"
-      ],
-      "size": "1024x1024",
-      "description": "Mock image generator for testing and development"
+    "discovery": {
+      "ollama": {
+        "enabled": true,
+        "auto_discovery": false,
+        "discovery_interval": 300,
+        "include_model_sizes": true,
+        "detect_capabilities": true
+      }
     }
-  ],
+  },
+  "text_models": {
+    "high_priority": [
+      {
+        "name": "ollama",
+        "provider": "ollama",
+        "enabled": true,
+        "priority": 1,
+        "model_name": "llama3.2:latest",
+        "supports_nsfw": true,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "mystery",
+          "creative",
+          "mature"
+        ],
+        "description": "Local Ollama models - privacy-focused, supports NSFW",
+        "fallbacks": [
+          "groq",
+          "anthropic",
+          "mock"
+        ],
+        "config": {
+          "max_tokens": 4096,
+          "temperature": 0.8
+        },
+        "auto_management": {
+          "auto_select": true,
+          "recommendation_weight": {
+            "performance": 0.3,
+            "cost": 0.2,
+            "quality": 0.4,
+            "availability": 0.1
+          },
+          "auto_disable_threshold": {
+            "response_time_ms": 30000,
+            "error_rate": 0.1,
+            "consecutive_failures": 3
+          },
+          "auto_enable_conditions": {
+            "health_restored_duration": 300,
+            "success_rate_required": 0.95
+          }
+        }
+      },
+      {
+        "name": "openai",
+        "provider": "openai",
+        "enabled": true,
+        "priority": 2,
+        "model_name": "gpt-4o-mini",
+        "supports_nsfw": false,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "mystery",
+          "creative",
+          "analysis"
+        ],
+        "description": "OpenAI GPT models - high quality, general purpose",
+        "fallbacks": [
+          "anthropic",
+          "groq",
+          "ollama",
+          "mock"
+        ]
+      },
+      {
+        "name": "anthropic",
+        "provider": "anthropic",
+        "enabled": true,
+        "priority": 3,
+        "model_name": "claude-3-5-sonnet-20241022",
+        "supports_nsfw": false,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "mystery",
+          "creative",
+          "analysis"
+        ],
+        "description": "Anthropic Claude models - excellent for analysis and creative writing",
+        "fallbacks": [
+          "groq",
+          "ollama",
+          "mock"
+        ]
+      }
+    ],
+    "standard_priority": [
+      {
+        "name": "groq",
+        "provider": "groq",
+        "enabled": true,
+        "priority": 4,
+        "model_name": "llama-3.1-70b-versatile",
+        "supports_nsfw": false,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "creative"
+        ],
+        "description": "Groq fast inference - good for quick responses",
+        "fallbacks": [
+          "ollama",
+          "mock"
+        ],
+        "config": {
+          "timeout": 15
+        }
+      },
+      {
+        "name": "gemini",
+        "provider": "gemini",
+        "enabled": true,
+        "priority": 5,
+        "model_name": "gemini-1.5-flash",
+        "supports_nsfw": false,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "analysis"
+        ],
+        "description": "Google Gemini models - good for analysis and general tasks",
+        "fallbacks": [
+          "ollama",
+          "mock"
+        ]
+      },
+      {
+        "name": "cohere",
+        "provider": "cohere",
+        "enabled": true,
+        "priority": 6,
+        "model_name": "command-r-plus",
+        "supports_nsfw": false,
+        "content_types": [
+          "general",
+          "creative"
+        ],
+        "description": "Cohere Command models - good for creative tasks",
+        "fallbacks": [
+          "ollama",
+          "mock"
+        ]
+      },
+      {
+        "name": "mistral",
+        "provider": "mistral",
+        "enabled": true,
+        "priority": 7,
+        "model_name": "mistral-large-latest",
+        "supports_nsfw": false,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "creative"
+        ],
+        "description": "Mistral AI models - European alternative",
+        "fallbacks": [
+          "ollama",
+          "mock"
+        ]
+      }
+    ],
+    "testing": [
+      {
+        "name": "mock",
+        "provider": "mock",
+        "enabled": true,
+        "priority": 99,
+        "model_name": "mock-model",
+        "supports_nsfw": true,
+        "content_types": [
+          "general",
+          "fantasy",
+          "sci-fi",
+          "mystery",
+          "creative",
+          "mature",
+          "testing"
+        ],
+        "description": "Mock model for testing and development",
+        "fallbacks": []
+      }
+    ]
+  },
+  "image_models": {
+    "primary": [
+      {
+        "name": "openai_dalle",
+        "provider": "openai",
+        "enabled": true,
+        "priority": 1,
+        "model_name": "dall-e-3",
+        "supports_nsfw": false,
+        "content_types": [
+          "character_portraits",
+          "scene_images",
+          "general_images"
+        ],
+        "description": "OpenAI DALL-E models - high quality image generation",
+        "fallbacks": [
+          "stability_ai",
+          "mock_image"
+        ],
+        "config": {
+          "size": "1024x1024",
+          "quality": "standard",
+          "style": "vivid"
+        }
+      },
+      {
+        "name": "stability_ai",
+        "provider": "stability",
+        "enabled": false,
+        "priority": 2,
+        "model_name": "stable-diffusion-xl-1024-v1-0",
+        "supports_nsfw": true,
+        "content_types": [
+          "character_portraits",
+          "scene_images",
+          "general_images",
+          "artistic"
+        ],
+        "description": "Stability AI models - flexible image generation with style control",
+        "fallbacks": [
+          "mock_image"
+        ],
+        "config": {
+          "width": 1024,
+          "height": 1024,
+          "steps": 30
+        }
+      }
+    ],
+    "testing": [
+      {
+        "name": "mock_image",
+        "provider": "mock",
+        "enabled": true,
+        "priority": 99,
+        "model_name": "mock-image-model",
+        "supports_nsfw": true,
+        "content_types": [
+          "character_portraits",
+          "scene_images",
+          "general_images",
+          "testing"
+        ],
+        "description": "Mock image generator for testing and development",
+        "fallbacks": [],
+        "config": {
+          "size": "1024x1024"
+        }
+      }
+    ]
+  },
   "content_routing": {
-    "nsfw_models": [
+    "nsfw_content": {
+      "allowed_models": [
+        "ollama",
+        "stability_ai",
+        "mock",
+        "mock_image"
+      ],
+      "default_model": "ollama",
+      "auto_select": true,
+      "recommendation_criteria": {
+        "prefer_local": true,
+        "privacy_weight": 0.8,
+        "quality_weight": 0.2
+      }
+    },
+    "safe_content": {
+      "allowed_models": [
+        "openai",
+        "anthropic",
+        "groq",
+        "gemini",
+        "cohere",
+        "mistral",
+        "openai_dalle"
+      ],
+      "default_model": "openai",
+      "auto_select": true,
+      "recommendation_criteria": {
+        "quality_weight": 0.5,
+        "speed_weight": 0.3,
+        "cost_weight": 0.2
+      }
+    },
+    "analysis_tasks": {
+      "allowed_models": [
+        "anthropic",
+        "openai",
+        "gemini"
+      ],
+      "default_model": "anthropic",
+      "auto_select": true,
+      "recommendation_criteria": {
+        "reasoning_capability": 0.6,
+        "accuracy_weight": 0.4
+      }
+    },
+    "creative_tasks": {
+      "allowed_models": [
+        "openai",
+        "anthropic",
+        "cohere",
+        "mistral",
+        "ollama"
+      ],
+      "default_model": "anthropic",
+      "auto_select": true,
+      "recommendation_criteria": {
+        "creativity_score": 0.5,
+        "coherence_weight": 0.3,
+        "user_preference": 0.2
+      }
+    },
+    "fast_responses": {
+      "allowed_models": [
+        "groq",
+        "ollama"
+      ],
+      "default_model": "groq",
+      "auto_select": true,
+      "recommendation_criteria": {
+        "response_time": 0.8,
+        "availability": 0.2
+      }
+    },
+    "by_capability": {
+      "code_generation": [
+        "ollama",
+        "openai",
+        "anthropic"
+      ],
+      "long_context": [
+        "anthropic",
+        "gemini",
+        "ollama"
+      ],
+      "multilingual": [
+        "openai",
+        "anthropic",
+        "gemini",
+        "mistral"
+      ],
+      "function_calling": [
+        "openai",
+        "anthropic",
+        "mistral"
+      ],
+      "vision": [
+        "openai",
+        "anthropic",
+        "gemini"
+      ]
+    }
+  },
+  "fallback_chains": {
+    "primary_text": [
+      "ollama",
+      "openai",
+      "anthropic",
+      "groq",
+      "mock"
+    ],
+    "nsfw_text": [
       "ollama",
       "mock"
     ],
-    "safe_models": [
-      "openai",
+    "analysis_text": [
       "anthropic",
-      "groq",
+      "openai",
       "gemini",
-      "cohere",
-      "mistral"
+      "mock"
     ],
-    "analysis_models": [
+    "creative_text": [
       "anthropic",
       "openai",
-      "gemini"
-    ],
-    "creative_models": [
-      "openai",
-      "anthropic",
       "cohere",
-      "mistral",
-      "ollama"
+      "ollama",
+      "mock"
     ],
-    "fast_models": [
+    "fast_text": [
       "groq",
-      "ollama"
+      "ollama",
+      "openai",
+      "mock"
+    ],
+    "primary_image": [
+      "openai_dalle",
+      "stability_ai",
+      "mock_image"
+    ],
+    "nsfw_image": [
+      "stability_ai",
+      "mock_image"
+    ],
+    "artistic_image": [
+      "stability_ai",
+      "openai_dalle",
+      "mock_image"
     ]
   },
-  "fallback_behavior": {
-    "max_fallback_attempts": 3,
-    "fallback_delay_seconds": 1,
-    "log_fallback_usage": true,
-    "fail_on_all_fallbacks": true,
-    "retry_on_errors": [
-      "timeout",
-      "rate_limit",
-      "server_error",
-      "connection_error"
-    ]
-  },
-  "performance": {
-    "max_concurrent_requests": 3,
-    "timeout_seconds": 30,
-    "rate_limit_buffer": 0.1,
-    "health_check_interval": 300
+  "performance_tuning": {
+    "concurrent_limits": {
+      "openai": 3,
+      "anthropic": 2,
+      "groq": 5,
+      "ollama": 1,
+      "gemini": 3,
+      "cohere": 3,
+      "mistral": 3,
+      "stability": 1
+    },
+    "rate_limits": {
+      "openai": {
+        "requests_per_minute": 500,
+        "tokens_per_minute": 200000
+      },
+      "anthropic": {
+        "requests_per_minute": 50,
+        "tokens_per_minute": 40000
+      },
+      "groq": {
+        "requests_per_minute": 30,
+        "tokens_per_minute": 6000
+      },
+      "gemini": {
+        "requests_per_minute": 60,
+        "tokens_per_minute": 32000
+      },
+      "cohere": {
+        "requests_per_minute": 100,
+        "tokens_per_minute": 20000
+      },
+      "mistral": {
+        "requests_per_minute": 100,
+        "tokens_per_minute": 20000
+      }
+    },
+    "health_checks": {
+      "enabled": true,
+      "interval_seconds": 300,
+      "timeout_seconds": 10,
+      "failure_threshold": 3,
+      "success_threshold": 2
+    }
   }
 }
