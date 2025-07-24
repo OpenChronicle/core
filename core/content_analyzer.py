@@ -171,8 +171,11 @@ class ContentAnalyzer:
             # NSFW/Toxic Content Detection
             if self.nsfw_classifier:
                 nsfw_result = self.nsfw_classifier(user_input)
-                if isinstance(nsfw_result, list):
+                # Handle nested list format: [[{...}]] -> {...}
+                if isinstance(nsfw_result, list) and len(nsfw_result) > 0:
                     nsfw_result = nsfw_result[0]
+                    if isinstance(nsfw_result, list) and len(nsfw_result) > 0:
+                        nsfw_result = nsfw_result[0]
                 
                 # toxic-bert returns TOXIC or NOT_TOXIC
                 analysis["transformer_results"]["nsfw"] = nsfw_result
@@ -184,8 +187,11 @@ class ContentAnalyzer:
             # Sentiment Analysis
             if self.sentiment_classifier:
                 sentiment_result = self.sentiment_classifier(user_input)
-                if isinstance(sentiment_result, list):
+                # Handle nested list format: [[{...}]] -> {...}
+                if isinstance(sentiment_result, list) and len(sentiment_result) > 0:
                     sentiment_result = sentiment_result[0]
+                    if isinstance(sentiment_result, list) and len(sentiment_result) > 0:
+                        sentiment_result = sentiment_result[0]
                 
                 analysis["transformer_results"]["sentiment"] = sentiment_result
                 analysis["sentiment"] = sentiment_result["label"].lower()
@@ -194,8 +200,11 @@ class ContentAnalyzer:
             # Emotion Detection
             if self.emotion_classifier:
                 emotion_result = self.emotion_classifier(user_input)
-                if isinstance(emotion_result, list):
+                # Handle nested list format: [[{...}]] -> {...}
+                if isinstance(emotion_result, list) and len(emotion_result) > 0:
                     emotion_result = emotion_result[0]
+                    if isinstance(emotion_result, list) and len(emotion_result) > 0:
+                        emotion_result = emotion_result[0]
                 
                 analysis["transformer_results"]["emotion"] = emotion_result
                 analysis["emotions"] = {
@@ -208,6 +217,9 @@ class ContentAnalyzer:
             for result in analysis["transformer_results"].values():
                 if isinstance(result, dict) and "score" in result:
                     confidences.append(result["score"])
+                elif isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict) and "score" in result[0]:
+                    # Handle case where list wasn't properly processed
+                    confidences.append(result[0]["score"])
             
             if confidences:
                 analysis["transformer_confidence"] = sum(confidences) / len(confidences)

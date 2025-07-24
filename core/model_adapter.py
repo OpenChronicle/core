@@ -146,7 +146,8 @@ class OllamaAdapter(ModelAdapter):
         """Initialize Ollama client."""
         try:
             import httpx
-            self.client = httpx.AsyncClient(base_url=self.base_url)
+            timeout = self.config.get('timeout', 30.0)
+            self.client = httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
             
             # Test connection
             response = await self.client.get("/api/tags")
@@ -179,12 +180,14 @@ class OllamaAdapter(ModelAdapter):
                 }
             }
             
+            log_info(f"Ollama request: POST {self.base_url}/api/generate with model={self.model_name}")
             response = await self.client.post("/api/generate", json=payload)  # type: ignore
             response.raise_for_status()
             
             result = response.json()
             return result.get("response", "").strip()
         except Exception as e:
+            log_error(f"Ollama generation failed - base_url: {self.base_url}, model: {self.model_name}, error: {e}")
             raise RuntimeError(f"Ollama generation failed: {e}")
     
     def get_model_info(self) -> Dict[str, Any]:
@@ -374,6 +377,10 @@ class ModelManager:
                     "content_types": model_entry.get("content_types", ["general"]),
                     "description": model_entry.get("description", f"{provider} model adapter")
                 }
+                
+                # Merge config section if it exists
+                if "config" in model_entry:
+                    adapter_config.update(model_entry["config"])
                 
                 # Add max_tokens only for text models, not image models
                 if model_entry.get("type") != "image":

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "default_model": "openai",
-  "analyzer_model": "openai",
+  "default_model": "ollama",
+  "analyzer_model": "ollama",
   "image_model": "openai_dalle",
   "default_image_model": "openai_dalle",
   "image_fallback_chain": ["openai_dalle", "stability_ai", "mock_image"],
@@ -65,7 +65,7 @@
     },
     {
       "name": "ollama",
-      "priority": 4,
+      "priority": 1,
       "fallbacks": [
         "mock"
       ],
@@ -79,7 +79,14 @@
         "creative",
         "mature"
       ],
-      "description": "Local Ollama models - privacy-focused, supports NSFW"
+      "description": "Local Ollama models - privacy-focused, supports NSFW",
+      "config": {
+        "base_url": "http://localhost:11434",
+        "model_name": "gemma3:latest",
+        "timeout": 120,
+        "max_tokens": 2048,
+        "temperature": 0.7
+      }
     },
     {
       "name": "gemini",
