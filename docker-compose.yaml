@@ -2,12 +2,14 @@ version: "3.9"
 
 services:
   openchronicle:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: openchronicle:latest
     container_name: openchronicle
+    user: "1026:100"
     volumes:
-      - ./storypacks:/app/storypacks:ro
-      - ./storage:/app/storage
-      - ./config:/app/config
+      - /volume1/docker/openchronicle:/app
     ports:
       - "8199:8000"
     environment:
@@ -15,45 +17,32 @@ services:
       # Add your API keys here or set them in your system environment
       # - OPENAI_API_KEY=your_key_here
       # - ANTHROPIC_API_KEY=your_key_here
-      # Uncomment next line for embedded Ollama deployment
-      - OLLAMA_HOST=http://ollama:11434
-      # Uncomment next line for external Ollama deployment
-      # - OLLAMA_HOST=http://localhost:11434
+      # Ollama configuration - using ollama-alpha as primary
+      - OLLAMA_HOST=http://ollama-alpha:11434
+      # Backup Ollama instance (for future failover implementation)
+      # - OLLAMA_BACKUP_HOST=http://ollama-omega:11434
     restart: unless-stopped
     # Uncomment next 2 lines for embedded Ollama deployment
-    depends_on:
-      - ollama
+    # depends_on:
+    #   - ollama
     networks:
-      - openchronicle
+      - ollama_openchronicle
 
-  # Embedded Ollama service - comment out entire section if using external LLM
-  ollama:
-    image: ollama/ollama:latest
-    container_name: openchronicle-ollama
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    restart: unless-stopped
-    networks:
-      - openchronicle
-    # Pull and run models for OpenChronicle
-    command: >
-      sh -c "
-        ollama serve &
-        sleep 10 &&
-        ollama pull llama3.2:1b &&
-        ollama pull llama3.2:3b &&
-        wait
-      "
-
-volumes:
-  # Comment out if not using embedded Ollama
-  ollama_data:
-    driver: local
+  # Ollama service (uncomment to use embedded Ollama)
+  # ollama:
+  #   image: ollama/ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   restart: unless-stopped
+  #   networks:
+  #     - ollama_openchronicle
 
 networks:
-  openchronicle:
-    driver: bridge
+  ollama_openchronicle:
+    external: true
+
+# Uncomment if using embedded Ollama
+# volumes:
+#   ollama_data:

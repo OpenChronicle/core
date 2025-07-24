@@ -12,7 +12,7 @@ uvicorn>=0.35.0                  # ASGI server
 jinja2>=3.1.0                    # Template engine
 
 # LLM API Dependencies (install as needed)
-openai>=1.0.0                    # OpenAI GPT models + DALL-E
+openai>=1.0.0                    # OpenAI GPT models + DALL-E (includes Azure OpenAI support)
 anthropic>=0.25.0                # Anthropic Claude models
 google-generativeai>=0.3.0      # Google Gemini models
 groq>=0.4.0                      # Groq fast inference
@@ -22,9 +22,9 @@ transformers>=4.30.0             # Hugging Face models
 torch>=2.0.0                     # PyTorch for transformer inference
 tokenizers>=0.13.0               # Fast tokenization for transformers
 scikit-learn>=1.3.0              # ML utilities for classification
-azure-openai>=1.0.0              # Azure OpenAI
-stability-sdk>=0.3.0             # Stability AI Stable Diffusion
-replicate>=0.15.0                # Replicate API
+# azure-openai>=1.0.0            # Azure OpenAI (support included in openai package)
+# stability-sdk>=0.3.0           # Stability AI Stable Diffusion (optional)
+# replicate>=0.15.0              # Replicate API (optional)
 
 # Image processing
 pillow>=10.0.0                   # Image handling

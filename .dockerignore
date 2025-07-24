@@ -56,7 +56,7 @@ Thumbs.db
 .env.local
 .env.development
 .env.production
-tests/
+# tests/ - commenting out to include tests in Docker build
 .pytest_cache/
 .coverage
 .nyc_output
