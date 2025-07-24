@@ -44,7 +44,7 @@ log_error("Configuration validation failed")
 Validates and manages OpenChronicle model configurations with comprehensive LLM provider support.
 
 **Features:**
-- Validates all model configurations in `config/models.json`
+- Validates all model configurations in `config/model_registry.json`
 - Supports 15+ LLM providers (OpenAI, Anthropic, Google, Cohere, etc.)
 - Image generation model validation (DALL-E, Midjourney, Stable Diffusion)
 - Checks API endpoints, model availability, and configuration completeness
@@ -184,7 +184,7 @@ from backup_manager import BackupManager
 bm = BackupManager('storage/backups')
 
 # Create configuration backup
-backup_file = bm.backup_config('config/models.json')
+backup_file = bm.backup_config('config/model_registry.json')
 
 # Get backup statistics
 stats = bm.get_backup_statistics()
@@ -222,7 +222,7 @@ All utilities use the centralized logging system with logs stored in the `logs/`
 ## Configuration
 
 Utilities use settings from:
-- `config/models.json`: Model configurations
+- `config/model_registry.json`: Model configurations (registry-only)
 - Environment variables for API keys
 - Built-in defaults for maintenance schedules
 
@@ -309,7 +309,7 @@ python utilities/validate_models.py
 - 💡 Gives recommendations for model upgrades
 
 ### `update_models.py`
-Interactive helper for safely updating your `models.json` configuration.
+Use `model_manager.add_model_config()` or edit `model_registry.json` directly for model configuration changes.
 
 **Usage:**
 ```bash
@@ -403,7 +403,7 @@ python utilities/maintenance.py --report-only
 ### 1. **Always Backup**
 All utilities automatically create backups, but you can also manually backup:
 ```bash
-cp config/models.json config/models.json.backup
+cp config/model_registry.json config/model_registry.json.backup
 ```
 
 ### 2. **Validate After Changes**

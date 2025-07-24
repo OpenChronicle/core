@@ -24,8 +24,7 @@ for attempt_adapter in chain:
 ```
 
 ### Configuration Pattern
-- **Primary**: `config/model_registry.json` + individual `config/models/*.json` 
-- **Fallback**: `config/models.json` (legacy)
+- **Primary**: `config/model_registry.json` (registry-only, single source of truth)
 - **Dynamic**: Use `model_manager.add_model_config()` for runtime additions
 
 ### Memory-Scene Synchronization 

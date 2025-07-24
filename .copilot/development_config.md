@@ -99,7 +99,7 @@ python -m pytest tests/ -v
 
 ## Image Generation Integration
 - **Model Registry**: `config/model_registry.json` (unified configuration)
-- **Image Models**: `config/models/openai_dalle.json`, `stability_ai.json`, `mock_image.json`
+- **Image Models**: Configured in `config/model_registry.json` with type: "image"
 - **Engine Function**: `create_image_engine(story_id)` - reads directly from model registry
 - **Storage Path**: `storage/{story_id}/images/`
 - **Integration**: Uses same JSON-based pattern as text models (consistent!)

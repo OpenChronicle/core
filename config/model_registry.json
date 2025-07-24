@@ -149,6 +149,7 @@
     },
     {
       "name": "openai_dalle",
+      "type": "image",
       "priority": 1,
       "fallbacks": [
         "stability_ai",
@@ -161,10 +162,14 @@
         "scene_images",
         "general_images"
       ],
+      "size": "1024x1024",
+      "quality": "standard",
+      "style": "vivid",
       "description": "OpenAI DALL-E models - high quality image generation"
     },
     {
       "name": "stability_ai",
+      "type": "image",
       "priority": 2,
       "fallbacks": [
         "mock_image"
@@ -177,10 +182,14 @@
         "general_images",
         "artistic"
       ],
+      "width": 1024,
+      "height": 1024,
+      "steps": 30,
       "description": "Stability AI models - flexible image generation with style control"
     },
     {
       "name": "mock_image",
+      "type": "image",
       "priority": 99,
       "fallbacks": [],
       "enabled": true,
@@ -191,6 +200,7 @@
         "general_images",
         "testing"
       ],
+      "size": "1024x1024",
       "description": "Mock image generator for testing and development"
     }
   ],

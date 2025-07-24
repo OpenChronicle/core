@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from datetime import datetime, UTC
 from pathlib import Path
 
@@ -21,7 +21,9 @@ class ModelAdapter(ABC):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.model_name = config.get("model_name", "unknown")
-        self.max_tokens = config.get("max_tokens", 2048)
+        # Only set max_tokens for text models, not image models
+        if config.get("type") != "image":
+            self.max_tokens = config.get("max_tokens", 2048)
         self.temperature = config.get("temperature", 0.7)
         self.initialized = False
     
@@ -40,7 +42,7 @@ class ModelAdapter(ABC):
         """Get information about the model."""
         pass
     
-    def log_interaction(self, story_id: str, prompt: str, response: str, metadata: Dict[str, Any] = None):
+    def log_interaction(self, story_id: str, prompt: str, response: str, metadata: Optional[Dict[str, Any]] = None):
         """Log the interaction for debugging/analysis."""
         # Use centralized logging system
         log_model_interaction(
@@ -104,7 +106,7 @@ class OpenAIAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(  # type: ignore
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are a creative storytelling assistant."},
@@ -115,7 +117,10 @@ class OpenAIAdapter(ModelAdapter):
                 stop=kwargs.get("stop_sequences", None)
             )
             
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if content is None:
+                return ""
+            return content.strip()
         except Exception as e:
             raise RuntimeError(f"OpenAI generation failed: {e}")
     
@@ -174,7 +179,7 @@ class OllamaAdapter(ModelAdapter):
                 }
             }
             
-            response = await self.client.post("/api/generate", json=payload)
+            response = await self.client.post("/api/generate", json=payload)  # type: ignore
             response.raise_for_status()
             
             result = response.json()
@@ -291,7 +296,7 @@ class ModelManager:
     
     def __init__(self):
         self.adapters: Dict[str, ModelAdapter] = {}
-        self.default_adapter = None
+        self.default_adapter: Optional[str] = None
         self.config = self._load_config()
     
     def _load_config(self) -> Dict[str, Any]:
@@ -340,9 +345,9 @@ class ModelManager:
         }
 
     def _load_plugin_config(self, registry_file: str) -> Dict[str, Any]:
-        """Load plugin-style model configuration from registry and individual files."""
-        log_info("Loading plugin-style model configuration")
-        log_system_event("plugin_config_loading", f"Loading plugin-style model configuration from {registry_file}")
+        """Load registry-only model configuration (simplified approach)."""
+        log_info("Loading registry-only model configuration")
+        log_system_event("plugin_config_loading", f"Loading registry-only model configuration from {registry_file}")
         
         # Load the registry
         with open(registry_file, "r", encoding="utf-8") as f:
@@ -350,60 +355,64 @@ class ModelManager:
         
         log_system_event("plugin_config_registry", f"Loaded registry with {len(registry['models'])} model entries")
         
-        # Load individual model configurations
-        models_dir = os.path.join("config", "models")
+        # Build adapters directly from registry entries
         adapters = {}
         
         for model_entry in registry["models"]:
-            provider = model_entry["name"]  # Use "name" field from registry
-            model_file = os.path.join(models_dir, f"{provider}.json")
+            if not model_entry.get("enabled", True):
+                continue
+                
+            provider = model_entry["name"]
             
-            if os.path.exists(model_file) and model_entry["enabled"]:
-                try:
-                    with open(model_file, "r", encoding="utf-8") as f:
-                        model_config = json.load(f)
-                    
-                    if model_config.get("enabled", True):
-                        # Convert plugin config to legacy format for compatibility
-                        adapter_config = {
-                            "type": model_config["type"],
-                            "model_name": model_config["api_config"]["model_name"],
-                            "base_url": model_config["api_config"]["base_url"],
-                            "api_key": model_config["api_config"].get("api_key", ""),
-                            "api_key_env": model_config["api_config"].get("api_key_env", ""),
-                            "max_tokens": model_config["limits"]["max_tokens"],
-                            "temperature": model_config["generation_params"]["temperature"],
-                            "top_p": model_config["generation_params"].get("top_p", 0.9),
-                            "top_k": model_config["generation_params"].get("top_k", 40),
-                            "retry_config": model_config["retry_config"],
-                            "content_filtering": model_config["content_filtering"],
-                            "capabilities": model_config["capabilities"],
-                            "limits": model_config["limits"],
-                            "available_models": model_config["available_models"],
-                            "health_check": model_config["health_check"]
-                        }
+            try:
+                # Create adapter config directly from registry entry
+                adapter_config = {
+                    "type": model_entry.get("type", provider),  # Use provider name as type if not specified
+                    "model_name": model_entry.get("model_name", provider),
+                    "temperature": model_entry.get("temperature", 0.7),
+                    "supports_nsfw": model_entry.get("supports_nsfw", False),
+                    "content_types": model_entry.get("content_types", ["general"]),
+                    "description": model_entry.get("description", f"{provider} model adapter")
+                }
+                
+                # Add max_tokens only for text models, not image models
+                if model_entry.get("type") != "image":
+                    adapter_config["max_tokens"] = model_entry.get("max_tokens", 2048)
+                
+                # Add image-specific parameters for image models
+                if model_entry.get("type") == "image":
+                    if "size" in model_entry:
+                        adapter_config["size"] = model_entry["size"]
+                    if "quality" in model_entry:
+                        adapter_config["quality"] = model_entry["quality"]
+                    if "style" in model_entry:
+                        adapter_config["style"] = model_entry["style"]
+                    if "width" in model_entry:
+                        adapter_config["width"] = model_entry["width"]
+                    if "height" in model_entry:
+                        adapter_config["height"] = model_entry["height"]
+                    if "steps" in model_entry:
+                        adapter_config["steps"] = model_entry["steps"]
+                
+                # Add provider-specific configurations
+                if provider == "mock":
+                    adapter_config["responses"] = [
+                        "The story continues with rich detail and engaging narrative.",
+                        "Your character moves forward, discovering new possibilities.",
+                        "The world around you shifts as the tale unfolds."
+                    ]
+                elif provider == "mock_image":
+                    adapter_config["responses"] = [
+                        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzMzNzNkYyIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zNWVtIj5Nb2NrIEltYWdlPC90ZXh0Pgo8L3N2Zz4K"
+                    ]
+                
+                adapters[provider] = adapter_config
+                log_info(f"Loaded model configuration for {provider}")
+                log_system_event("model_config_loaded", f"Loaded model configuration for {provider}")
                         
-                        # Add provider-specific configurations
-                        if provider == "openai":
-                            adapter_config["organization"] = model_config["api_config"].get("organization", "")
-                        elif provider == "anthropic":
-                            adapter_config["version"] = model_config["api_config"].get("version", "2023-06-01")
-                        elif provider == "google":
-                            adapter_config["version"] = model_config["api_config"].get("version", "v1beta")
-                        elif provider == "mock":
-                            adapter_config["responses"] = [
-                                "The story continues with rich detail and engaging narrative.",
-                                "Your character moves forward, discovering new possibilities.",
-                                "The world around you shifts as the tale unfolds."
-                            ]
-                        
-                        adapters[provider] = adapter_config
-                        log_info(f"Loaded model configuration for {provider}")
-                        log_system_event("model_config_loaded", f"Loaded model configuration for {provider}")
-                        
-                except Exception as e:
-                    log_error(f"Failed to load model config for {provider}: {e}")
-                    log_system_event("model_config_error", f"Failed to load model config for {provider}: {e}")
+            except Exception as e:
+                log_error(f"Failed to load model config for {provider}: {e}")
+                log_system_event("model_config_error", f"Failed to load model config for {provider}: {e}")
         
         # Add mock adapter if no other adapters loaded
         if not adapters:
@@ -448,7 +457,7 @@ class ModelManager:
             "registry_version": registry["version"]
         }
         
-        log_info(f"Plugin-style configuration loaded with {len(adapters)} adapters")
+        log_info(f"Registry-only configuration loaded with {len(adapters)} adapters")
         return config
     
     def register_adapter(self, name: str, adapter: ModelAdapter):
@@ -514,9 +523,9 @@ class ModelManager:
         
         return success
     
-    async def generate_response(self, prompt: str, adapter_name: str = None, story_id: str = None, **kwargs) -> str:
+    async def generate_response(self, prompt: str, adapter_name: Optional[str] = None, story_id: Optional[str] = None, **kwargs) -> str:
         """Generate response using specified or default adapter with fallback support."""
-        adapter_name = adapter_name or self.default_adapter
+        adapter_name = adapter_name or self.default_adapter or "mock"
         
         # Use fallback chain if configured
         if "fallback_chains" in self.config and adapter_name in self.config["fallback_chains"]:
@@ -615,10 +624,10 @@ class ModelManager:
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
     
-    def get_adapter_for_content(self, content_type: str, content_flags: Dict[str, Any] = None) -> str:
+    def get_adapter_for_content(self, content_type: str, content_flags: Optional[Dict[str, Any]] = None) -> str:
         """Get the best adapter for specific content type based on content routing rules."""
         if "content_routing" not in self.config:
-            return self.default_adapter
+            return self.default_adapter or "mock"
         
         routing_rules = self.config["content_routing"]
         content_flags = content_flags or {}
@@ -637,7 +646,7 @@ class ModelManager:
                 return preferred_adapter
         
         # Default routing
-        return routing_rules.get("default", self.default_adapter)
+        return routing_rules.get("default", self.default_adapter or "mock")
     
     def get_fallback_chain(self, adapter_name: str) -> List[str]:
         """Get the fallback chain for a specific adapter."""
@@ -646,11 +655,14 @@ class ModelManager:
         
         return self.config["fallback_chains"].get(adapter_name, [adapter_name])
     
-    async def generate_image(self, prompt: str, adapter_name: str = None, **kwargs) -> str:
+    async def generate_image(self, prompt: str, adapter_name: Optional[str] = None, **kwargs) -> str:
         """Generate image using specified or default image adapter."""
         # Use image_adapter from config if no adapter specified
         if adapter_name is None:
             adapter_name = self.config.get("image_adapter", "mock_image")
+        
+        # At this point adapter_name is guaranteed to be a string
+        assert adapter_name is not None  # Type hint for VS Code
         
         if adapter_name not in self.adapters:
             # Try to initialize the adapter
@@ -663,6 +675,8 @@ class ModelManager:
         if not hasattr(adapter, 'generate_image'):
             raise RuntimeError(f"Adapter '{adapter_name}' does not support image generation")
         
+        # Type assertion for VS Code
+        assert isinstance(adapter, ImageAdapter), f"Adapter {adapter_name} is not an image adapter"
         return await adapter.generate_image(prompt, **kwargs)
 
     # ================================
@@ -670,20 +684,53 @@ class ModelManager:
     # ================================
     
     def add_model_config(self, name: str, config: Dict[str, Any], enabled: bool = True) -> bool:
-        """Add a new model configuration dynamically."""
+        """Add a new model configuration dynamically to the registry."""
         try:
-            # Create model config file
-            models_dir = os.path.join("config", "models")
-            os.makedirs(models_dir, exist_ok=True)
+            registry_file = os.path.join("config", "model_registry.json")
             
-            model_file = os.path.join(models_dir, f"{name}.json")
+            # Load existing registry or create new one
+            if os.path.exists(registry_file):
+                with open(registry_file, "r", encoding="utf-8") as f:
+                    registry = json.load(f)
+            else:
+                registry = {
+                    "version": "1.0.0",
+                    "default_model": "mock",
+                    "image_model": "mock_image",
+                    "default_image_model": "mock_image",
+                    "image_fallback_chain": ["mock_image"],
+                    "models": [],
+                    "content_routing": {
+                        "nsfw_models": ["mock"],
+                        "safe_models": ["mock"],
+                        "analysis_models": ["mock"]
+                    }
+                }
             
-            # Write the individual model config
-            with open(model_file, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=2)
+            # Check if model already exists and update, otherwise add new
+            existing_model = None
+            for i, model in enumerate(registry["models"]):
+                if model["name"] == name:
+                    existing_model = i
+                    break
             
-            # Update registry
-            self._update_registry_add_model(name, enabled)
+            # Prepare model entry
+            model_entry = {
+                "name": name,
+                "enabled": enabled,
+                **config  # Include all config fields in the model entry
+            }
+            
+            if existing_model is not None:
+                # Update existing model
+                registry["models"][existing_model] = model_entry
+            else:
+                # Add new model
+                registry["models"].append(model_entry)
+            
+            # Save updated registry
+            with open(registry_file, "w", encoding="utf-8") as f:
+                json.dump(registry, f, indent=2)
             
             # Reload configuration
             self.config = self._load_config()
@@ -696,19 +743,38 @@ class ModelManager:
             return False
     
     def remove_model_config(self, name: str) -> bool:
-        """Remove a model configuration dynamically."""
+        """Remove a model configuration dynamically from the registry."""
         try:
             # Remove from runtime if initialized
             if name in self.adapters:
                 del self.adapters[name]
             
-            # Remove model config file
-            model_file = os.path.join("config", "models", f"{name}.json")
-            if os.path.exists(model_file):
-                os.remove(model_file)
-            
             # Update registry
-            self._update_registry_remove_model(name)
+            registry_file = os.path.join("config", "model_registry.json")
+            
+            if not os.path.exists(registry_file):
+                return True  # Nothing to remove
+            
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            
+            # Remove model from registry
+            registry["models"] = [model for model in registry["models"] if model["name"] != name]
+            
+            # Remove from fallback chains
+            for model_entry in registry["models"]:
+                if "fallbacks" in model_entry and name in model_entry["fallbacks"]:
+                    model_entry["fallbacks"] = [adapter for adapter in model_entry["fallbacks"] if adapter != name]
+            
+            # Remove from content routing
+            if "content_routing" in registry:
+                for route_type, adapters in registry["content_routing"].items():
+                    if isinstance(adapters, list) and name in adapters:
+                        registry["content_routing"][route_type] = [adapter for adapter in adapters if adapter != name]
+            
+            # Save updated registry
+            with open(registry_file, "w", encoding="utf-8") as f:
+                json.dump(registry, f, indent=2)
             
             # Reload configuration
             self.config = self._load_config()
@@ -732,91 +798,6 @@ class ModelManager:
     def disable_model(self, name: str) -> bool:
         """Disable a model in the registry."""
         return self._update_registry_enable_model(name, False)
-    
-    def _update_registry_add_model(self, name: str, enabled: bool = True) -> bool:
-        """Add a model to the registry."""
-        try:
-            registry_file = os.path.join("config", "model_registry.json")
-            
-            # Load existing registry or create new one
-            if os.path.exists(registry_file):
-                with open(registry_file, "r", encoding="utf-8") as f:
-                    registry = json.load(f)
-            else:
-                registry = {
-                    "version": "1.0.0",
-                    "models": [],
-                    "fallback_chains": {},
-                    "content_routing": {}
-                }
-            
-            # Check if model already exists
-            existing_model = None
-            for model in registry["models"]:
-                if model["name"] == name:
-                    existing_model = model
-                    break
-            
-            if existing_model:
-                # Update existing model
-                existing_model["enabled"] = enabled
-            else:
-                # Add new model
-                registry["models"].append({
-                    "name": name,
-                    "enabled": enabled
-                })
-            
-            # Save updated registry
-            with open(registry_file, "w", encoding="utf-8") as f:
-                json.dump(registry, f, indent=2)
-            
-            return True
-            
-        except Exception as e:
-            log_system_event("registry_update_error", f"Failed to update registry for {name}: {e}")
-            return False
-    
-    def _update_registry_remove_model(self, name: str) -> bool:
-        """Remove a model from the registry."""
-        try:
-            registry_file = os.path.join("config", "model_registry.json")
-            
-            if not os.path.exists(registry_file):
-                return True  # Nothing to remove
-            
-            with open(registry_file, "r", encoding="utf-8") as f:
-                registry = json.load(f)
-            
-            # Remove model from registry
-            registry["models"] = [model for model in registry["models"] if model["name"] != name]
-            
-            # Remove from fallback chains
-            if "fallback_chains" in registry:
-                # Remove as primary adapter
-                if name in registry["fallback_chains"]:
-                    del registry["fallback_chains"][name]
-                
-                # Remove from other chains
-                for chain_name, chain in registry["fallback_chains"].items():
-                    if name in chain:
-                        registry["fallback_chains"][chain_name] = [adapter for adapter in chain if adapter != name]
-            
-            # Remove from content routing
-            if "content_routing" in registry:
-                for route_type, adapters in registry["content_routing"].items():
-                    if isinstance(adapters, list) and name in adapters:
-                        registry["content_routing"][route_type] = [adapter for adapter in adapters if adapter != name]
-            
-            # Save updated registry
-            with open(registry_file, "w", encoding="utf-8") as f:
-                json.dump(registry, f, indent=2)
-            
-            return True
-            
-        except Exception as e:
-            log_system_event("registry_remove_error", f"Failed to remove {name} from registry: {e}")
-            return False
     
     def _update_registry_enable_model(self, name: str, enabled: bool) -> bool:
         """Enable or disable a model in the registry."""
@@ -853,59 +834,58 @@ class ModelManager:
             return True
             
         except Exception as e:
+            action = "enabled" if enabled else "disabled"
             log_system_event("registry_enable_error", f"Failed to {action} model {name}: {e}")
             return False
     
     def list_model_configs(self) -> Dict[str, Any]:
-        """List all model configurations with their status."""
+        """List all model configurations with their status from the registry."""
         models_info = {}
         
         # Get registry information
         registry_file = os.path.join("config", "model_registry.json")
-        registry_models = {}
         
         if os.path.exists(registry_file):
-            with open(registry_file, "r", encoding="utf-8") as f:
-                registry = json.load(f)
-                registry_models = {model["name"]: model["enabled"] for model in registry["models"]}
-        
-        # Get model file information
-        models_dir = os.path.join("config", "models")
-        if os.path.exists(models_dir):
-            for model_file in os.listdir(models_dir):
-                if model_file.endswith(".json"):
-                    model_name = model_file[:-5]  # Remove .json extension
-                    model_path = os.path.join(models_dir, model_file)
+            try:
+                with open(registry_file, "r", encoding="utf-8") as f:
+                    registry = json.load(f)
+                
+                for model_entry in registry["models"]:
+                    model_name = model_entry["name"]
+                    models_info[model_name] = {
+                        "type": model_entry.get("type", "text"),
+                        "model_name": model_entry.get("model_name", model_name),
+                        "enabled": model_entry.get("enabled", False),
+                        "initialized": model_name in self.adapters,
+                        "supports_nsfw": model_entry.get("supports_nsfw", False),
+                        "content_types": model_entry.get("content_types", ["general"]),
+                        "description": model_entry.get("description", f"{model_name} model adapter"),
+                        "priority": model_entry.get("priority", 99),
+                        "fallbacks": model_entry.get("fallbacks", [])
+                    }
                     
-                    try:
-                        with open(model_path, "r", encoding="utf-8") as f:
-                            model_config = json.load(f)
-                        
-                        models_info[model_name] = {
-                            "type": model_config.get("type", "unknown"),
-                            "model_name": model_config.get("api_config", {}).get("model_name", "unknown"),
-                            "enabled": registry_models.get(model_name, False),
-                            "initialized": model_name in self.adapters,
-                            "config_file": model_path
-                        }
-                    except Exception as e:
-                        models_info[model_name] = {
-                            "type": "error",
-                            "model_name": "unknown",
-                            "enabled": False,
-                            "initialized": False,
-                            "config_file": model_path,
-                            "error": str(e)
-                        }
+            except Exception as e:
+                log_error(f"Failed to read registry: {e}")
+                models_info["error"] = {
+                    "type": "error",
+                    "error": f"Failed to read registry: {e}"
+                }
+        else:
+            models_info["error"] = {
+                "type": "error", 
+                "error": "Model registry not found"
+            }
         
         return models_info
 
     async def shutdown(self):
         """Shutdown all adapters."""
         for adapter in self.adapters.values():
-            if hasattr(adapter, 'client') and adapter.client:
-                if hasattr(adapter.client, 'aclose'):
-                    await adapter.client.aclose()
+            # Use getattr with default to avoid type checker issues
+            client = getattr(adapter, 'client', None)
+            if client:
+                if hasattr(client, 'aclose'):
+                    await client.aclose()  # type: ignore
 
 # Global model manager instance
 model_manager = ModelManager()
@@ -948,13 +928,18 @@ class AnthropicAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.messages.create(
+            response = await self.client.messages.create(  # type: ignore
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 temperature=kwargs.get("temperature", self.temperature)
             )
-            return response.content[0].text
+            # Handle response content properly for Anthropic
+            if hasattr(response, 'content') and len(response.content) > 0:
+                content_block = response.content[0]
+                if hasattr(content_block, 'text'):
+                    return content_block.text  # type: ignore
+            return ""
         except Exception as e:
             raise RuntimeError(f"Anthropic API error: {e}")
     
@@ -999,7 +984,7 @@ class GeminiAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = self.client.generate_content(
+            response = self.client.generate_content(  # type: ignore
                 prompt,
                 generation_config={
                     "temperature": kwargs.get("temperature", self.temperature),
@@ -1050,13 +1035,16 @@ class GroqAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(  # type: ignore
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 temperature=kwargs.get("temperature", self.temperature)
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content is None:
+                return ""
+            return content
         except Exception as e:
             raise RuntimeError(f"Groq API error: {e}")
     
@@ -1100,7 +1088,7 @@ class CohereAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.generate(
+            response = await self.client.generate(  # type: ignore
                 model=self.model_name,
                 prompt=prompt,
                 max_tokens=kwargs.get("max_tokens", self.max_tokens),
@@ -1151,7 +1139,7 @@ class MistralAdapter(ModelAdapter):
         
         try:
             from mistralai.models.chat_completion import ChatMessage
-            response = await self.client.chat(
+            response = await self.client.chat(  # type: ignore
                 model=self.model_name,
                 messages=[ChatMessage(role="user", content=prompt)],
                 max_tokens=kwargs.get("max_tokens", self.max_tokens),
@@ -1204,7 +1192,7 @@ class HuggingFaceAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.post(
+            response = await self.client.post(  # type: ignore[attr-defined]
                 f"{self.base_url}{self.model_name}",
                 json={
                     "inputs": prompt,
@@ -1265,13 +1253,16 @@ class AzureOpenAIAdapter(ModelAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(  # type: ignore
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 temperature=kwargs.get("temperature", self.temperature)
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content is None:
+                return ""
+            return content
         except Exception as e:
             raise RuntimeError(f"Azure OpenAI API error: {e}")
     
@@ -1338,7 +1329,7 @@ class OpenAIImageAdapter(ImageAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.images.generate(
+            response = await self.client.images.generate(  # type: ignore
                 model=self.model_name,
                 prompt=prompt,
                 size=kwargs.get("size", self.size),
@@ -1346,7 +1337,12 @@ class OpenAIImageAdapter(ImageAdapter):
                 style=kwargs.get("style", self.style),
                 n=1
             )
-            return response.data[0].url
+            if response and response.data and len(response.data) > 0:
+                url = response.data[0].url
+                if url is None:
+                    return ""
+                return str(url)
+            return ""
         except Exception as e:
             raise RuntimeError(f"OpenAI Image API error: {e}")
     
@@ -1397,7 +1393,7 @@ class StabilityAdapter(ImageAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            response = await self.client.post(
+            response = await self.client.post(  # type: ignore
                 f"https://api.stability.ai/v1/generation/{self.model_name}/text-to-image",
                 json={
                     "text_prompts": [{"text": prompt}],
@@ -1458,7 +1454,7 @@ class ReplicateAdapter(ImageAdapter):
             raise RuntimeError("Adapter not initialized")
         
         try:
-            output = self.client.run(
+            output = self.client.run(  # type: ignore
                 self.model_name,
                 input={
                     "prompt": prompt,

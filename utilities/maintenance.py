@@ -10,7 +10,7 @@ import json
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Add the parent directory to the path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -31,7 +31,7 @@ class MaintenanceManager:
         # Log maintenance start
         log_system_event("maintenance_start", f"Maintenance utility started (dry_run: {dry_run})")
         
-    def log_action(self, action: str, details: Dict[str, Any] = None):
+    def log_action(self, action: str, details: Optional[Dict[str, Any]] = None):
         """Log maintenance action."""
         log_entry = {
             "timestamp": datetime.now().isoformat(),
@@ -42,7 +42,7 @@ class MaintenanceManager:
         
         # Use centralized logging
         status = "success" if not details or not details.get("error") else "error"
-        log_maintenance_action(action, details, status)
+        log_maintenance_action(action, details or {}, status)
         
     def check_system_health(self) -> Dict[str, Any]:
         """Perform system health checks."""
@@ -55,7 +55,7 @@ class MaintenanceManager:
         print("🏥 Performing system health checks...")
         
         # Check if main configuration files exist
-        config_files = ["config/models.json", "main.py", "requirements.txt"]
+        config_files = ["config/model_registry.json", "main.py", "requirements.txt"]
         for config_file in config_files:
             file_path = self.root_dir / config_file
             exists = file_path.exists()
@@ -140,31 +140,35 @@ class MaintenanceManager:
             "issues": []
         }
         
-        # Check models.json
-        models_file = self.root_dir / "config" / "models.json"
-        if models_file.exists():
+        # Check model_registry.json
+        registry_file = self.root_dir / "config" / "model_registry.json"
+        if registry_file.exists():
             try:
-                with open(models_file, 'r') as f:
-                    models_config = json.load(f)
+                with open(registry_file, 'r') as f:
+                    registry_config = json.load(f)
                 
-                # Check required fields
-                required_fields = ["default_adapter", "adapters"]
+                # Check required fields for registry
+                required_fields = ["default_model", "models"]
                 for field in required_fields:
-                    if field not in models_config:
+                    if field not in registry_config:
                         issue = f"Missing required field: {field}"
                         validation_result["issues"].append(issue)
                         validation_result["valid"] = False
                         self.logger.error(f"Configuration issue: {issue}")
                 
-                # Check adapters
-                if "adapters" in models_config:
-                    for adapter_name, adapter_config in models_config["adapters"].items():
-                        if not adapter_name.startswith("//"):  # Skip comments
-                            if "type" not in adapter_config:
-                                issue = f"Adapter '{adapter_name}' missing type field"
-                                validation_result["issues"].append(issue)
-                                validation_result["valid"] = False
-                                self.logger.error(f"Configuration issue: {issue}")
+                # Check models in registry
+                if "models" in registry_config:
+                    for model_entry in registry_config["models"]:
+                        if "name" not in model_entry:
+                            issue = f"Model entry missing name field"
+                            validation_result["issues"].append(issue)
+                            validation_result["valid"] = False
+                            self.logger.error(f"Configuration issue: {issue}")
+                        elif "type" not in model_entry:
+                            issue = f"Model '{model_entry['name']}' missing type field"
+                            validation_result["issues"].append(issue)
+                            validation_result["valid"] = False
+                            self.logger.error(f"Configuration issue: {issue}")
                 
                 self.logger.info(f"Configuration validation: {len(validation_result['issues'])} issues found")
                 
@@ -241,7 +245,7 @@ class MaintenanceManager:
         
         return report
     
-    def save_report(self, report: Dict[str, Any], filename: str = None) -> Path:
+    def save_report(self, report: Dict[str, Any], filename: Optional[str] = None) -> Path:
         """Save maintenance report to file."""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -344,7 +348,7 @@ class MaintenanceManager:
         
         return maintenance_results
     
-    def _format_size(self, size_bytes: int) -> str:
+    def _format_size(self, size_bytes: float) -> str:
         """Format file size in human readable format."""
         if size_bytes == 0:
             return "0 B"
