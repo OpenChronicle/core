@@ -75,11 +75,32 @@ class ModelAdapter(ABC):
 class OpenAIAdapter(ModelAdapter):
     """OpenAI GPT adapter."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], model_manager=None):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("OPENAI_API_KEY")
-        self.base_url = config.get("base_url") or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        self.model_manager = model_manager
+        self.base_url = self._get_base_url(config)
         self.client = None
+    
+    def _get_base_url(self, config: Dict[str, Any]) -> str:
+        """Get base URL from config or model manager."""
+        # Check explicit config first
+        if "base_url" in config:
+            return config["base_url"]
+        
+        # Use model manager if available
+        if self.model_manager:
+            try:
+                return self.model_manager.get_provider_base_url("openai")
+            except Exception:
+                pass
+        
+        # Fallback to environment variable only
+        env_url = os.getenv("OPENAI_BASE_URL")
+        if env_url:
+            return env_url
+            
+        raise ValueError("No base URL configured for OpenAI. Please set OPENAI_BASE_URL or configure in registry.")
     
     async def initialize(self) -> bool:
         """Initialize OpenAI client."""
@@ -137,13 +158,31 @@ class OpenAIAdapter(ModelAdapter):
 class OllamaAdapter(ModelAdapter):
     """Ollama local model adapter."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], model_manager=None):
         super().__init__(config)
-        # Use config base_url or fallback to default
-        self.base_url = config.get("base_url")
-        if not self.base_url:
-            # Try to get from environment or use default
-            self.base_url = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        self.model_manager = model_manager
+        self.base_url = self._get_base_url(config)
+        self.client = None
+    
+    def _get_base_url(self, config: Dict[str, Any]) -> str:
+        """Get base URL from config or model manager."""
+        # Check explicit config first
+        if "base_url" in config:
+            return config["base_url"]
+        
+        # Use model manager if available
+        if self.model_manager:
+            try:
+                return self.model_manager.get_provider_base_url("ollama")
+            except Exception:
+                pass
+        
+        # Fallback to environment variable only
+        env_url = os.getenv("OLLAMA_HOST")
+        if env_url:
+            return env_url
+            
+        raise ValueError("No base URL configured for Ollama. Please set OLLAMA_HOST or configure in registry.")
         self.client = None
     
     async def initialize(self) -> bool:
@@ -308,86 +347,32 @@ class ModelManager:
         self.config = self._load_config()
     
     def _load_global_config(self) -> Dict[str, Any]:
-        """Load global configuration with environment variable support."""
-        # Default global configuration
-        default_global_config = {
-            "discovery": {
-                "ollama": {
-                    "enabled": True,
-                    "default_base_url": "http://localhost:11434",
-                    "env_var": "OLLAMA_HOST",
-                    "timeout": 10.0,
-                    "auto_discovery": False,
-                    "discovery_interval": 300
-                },
-                "openai": {
-                    "enabled": True,
-                    "default_base_url": "https://api.openai.com/v1",
-                    "env_var": "OPENAI_BASE_URL"
-                },
-                "anthropic": {
-                    "enabled": True,
-                    "default_base_url": "https://api.anthropic.com",
-                    "env_var": "ANTHROPIC_BASE_URL"
-                }
-            },
-            "defaults": {
-                "timeout": 30.0,
-                "max_tokens": 2048,
-                "temperature": 0.7,
-                "enable_logging": True,
-                "fallback_enabled": True
-            }
-        }
-        
-        # Try to load from registry
+        """Load global configuration from registry."""
         registry_file = os.path.join("config", "model_registry.json")
-        v2_registry_file = os.path.join("config", "model_registry_v2.json")
         
-        # Check for v2 registry first
-        if os.path.exists(v2_registry_file):
-            try:
-                with open(v2_registry_file, "r", encoding="utf-8") as f:
-                    registry = json.load(f)
-                    return self._process_v2_global_config(registry)
-            except Exception as e:
-                log_error(f"Failed to load v2 global config from registry: {e}")
+        if not os.path.exists(registry_file):
+            raise FileNotFoundError(f"Model registry not found at {registry_file}. Please ensure the registry exists.")
         
-        # Fallback to v1 registry
-        if os.path.exists(registry_file):
-            try:
-                with open(registry_file, "r", encoding="utf-8") as f:
-                    registry = json.load(f)
-                    global_config = registry.get("global_config", default_global_config)
-                    
-                    # Apply environment variable overrides
-                    for provider, provider_config in global_config.get("discovery", {}).items():
-                        if "env_var" in provider_config:
-                            env_value = os.getenv(provider_config["env_var"])
-                            if env_value:
-                                provider_config["resolved_base_url"] = env_value
-                                log_info(f"Using environment override for {provider}: {env_value}")
-                            else:
-                                provider_config["resolved_base_url"] = provider_config["default_base_url"]
-                    
-                    log_system_event("global_config_loaded", "Global configuration loaded from v1 registry")
-                    return global_config
-                    
-            except Exception as e:
-                log_error(f"Failed to load global config from v1 registry: {e}")
-        
-        log_system_event("global_config_default", "Using default global configuration")
-        return default_global_config
+        try:
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            
+            return self._process_global_config(registry)
+            
+        except Exception as e:
+            log_error(f"Failed to load global config from registry: {e}")
+            raise
 
-    def _process_v2_global_config(self, registry: Dict[str, Any]) -> Dict[str, Any]:
-        """Process v2 registry format for global configuration."""
+    def _process_global_config(self, registry: Dict[str, Any]) -> Dict[str, Any]:
+        """Process registry format for global configuration."""
         env_config = registry.get("environment_config", {})
-        providers = env_config.get("providers", {})
-        defaults = env_config.get("defaults", {})
-        discovery = env_config.get("discovery", {})
+        global_settings = registry.get("global_settings", {})
+        defaults = registry.get("defaults", {})
         
         # Build discovery config with environment variable resolution
+        providers = env_config.get("providers", {})
         discovery_config = {}
+        
         for provider_name, provider_info in providers.items():
             base_url_env = provider_info.get("base_url_env")
             default_base_url = provider_info.get("default_base_url")
@@ -396,7 +381,8 @@ class ModelManager:
                 "enabled": True,
                 "default_base_url": default_base_url,
                 "env_var": base_url_env,
-                "timeout": provider_info.get("timeout", 30.0)
+                "timeout": provider_info.get("timeout", 30.0),
+                "health_check_enabled": provider_info.get("health_check_enabled", True)
             }
             
             # Apply environment variable override
@@ -408,79 +394,60 @@ class ModelManager:
                 else:
                     discovery_config[provider_name]["resolved_base_url"] = default_base_url
         
-        # Merge discovery settings
-        for provider_name, discovery_settings in discovery.items():
-            if provider_name in discovery_config:
-                discovery_config[provider_name].update(discovery_settings)
-        
         global_config = {
             "discovery": discovery_config,
             "defaults": {
-                "timeout": defaults.get("timeout", 30.0),
-                "max_tokens": defaults.get("max_tokens", 2048),
-                "temperature": defaults.get("temperature", 0.7),
-                "enable_logging": True,
-                "fallback_enabled": True
+                "text_model": defaults.get("text_model", "ollama"),
+                "analyzer_model": defaults.get("analyzer_model", "ollama"),
+                "image_model": defaults.get("image_model", "openai_dalle"),
+                "timeout": 30.0,
+                "max_tokens": 2048,
+                "temperature": 0.7,
+                "enable_logging": global_settings.get("enable_logging", True),
+                "enable_fallbacks": global_settings.get("enable_fallbacks", True),
+                "enable_health_checks": global_settings.get("enable_health_checks", True)
             }
         }
         
-        log_system_event("global_config_loaded", "Global configuration loaded from v2 registry")
+        log_system_event("global_config_loaded", "Global configuration loaded from registry")
         return global_config
 
     def get_provider_base_url(self, provider: str) -> str:
-        """Get the base URL for a provider, respecting environment variables."""
+        """Get the base URL for a provider from registry environment config."""
         try:
-            # Check if we have environment config for this provider
             registry_file = os.path.join("config", "model_registry.json")
-            if os.path.exists(registry_file):
-                with open(registry_file, "r", encoding="utf-8") as f:
-                    registry = json.load(f)
-                
-                # Handle v3 format
-                if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                    env_config = registry.get("environment_config", {})
-                    providers = env_config.get("providers", {})
-                    
-                    if provider in providers:
-                        provider_info = providers[provider]
-                        base_url_env = provider_info.get("base_url_env")
-                        default_base_url = provider_info.get("default_base_url")
-                        
-                        # Check environment variable first
-                        if base_url_env:
-                            env_value = os.getenv(base_url_env)
-                            if env_value:
-                                return env_value
-                        
-                        # Return default if available
-                        if default_base_url:
-                            return default_base_url
-                
-                # v1 format fallback
-                discovery_config = self.global_config.get("discovery", {}).get(provider, {})
-                
-                # Return resolved URL (with env var override) or default
-                resolved_url = discovery_config.get("resolved_base_url")
-                if resolved_url:
-                    return resolved_url
-                    
-                return discovery_config.get("default_base_url", "")
+            if not os.path.exists(registry_file):
+                raise FileNotFoundError(f"Model registry not found at {registry_file}")
+            
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            
+            env_config = registry.get("environment_config", {})
+            providers = env_config.get("providers", {})
+            
+            if provider not in providers:
+                raise ValueError(f"Provider '{provider}' not found in environment_config")
+            
+            provider_info = providers[provider]
+            base_url_env = provider_info.get("base_url_env")
+            default_base_url = provider_info.get("default_base_url")
+            
+            # Check environment variable first
+            if base_url_env:
+                env_value = os.getenv(base_url_env)
+                if env_value:
+                    log_info(f"Using environment override for {provider}: {env_value}")
+                    return env_value
+            
+            # Fall back to default URL from registry
+            if default_base_url:
+                return default_base_url
+            
+            raise ValueError(f"No base URL configured for provider '{provider}'")
                         
         except Exception as e:
             log_error(f"Error getting base URL for provider {provider}: {e}")
-        
-        # Fallback to hardcoded defaults
-        defaults = {
-            "ollama": "http://localhost:11434",
-            "openai": "https://api.openai.com/v1",
-            "anthropic": "https://api.anthropic.com",
-            "groq": "https://api.groq.com/openai/v1",
-            "gemini": "https://generativelanguage.googleapis.com/v1beta",
-            "cohere": "https://api.cohere.ai/v1",
-            "mistral": "https://api.mistral.ai/v1",
-            "stability": "https://api.stability.ai/v1"
-        }
-        return defaults.get(provider, "")
+            raise
 
     def get_global_default(self, key: str, fallback: Any = None) -> Any:
         """Get a global default configuration value."""
@@ -494,10 +461,8 @@ class ModelManager:
                 with open(registry_file, "r", encoding="utf-8") as f:
                     registry = json.load(f)
                 
-                # Handle v3 format
-                if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                    global_settings = registry.get("global_settings", {})
-                    return global_settings.get("intelligent_routing", {})
+                global_settings = registry.get("global_settings", {})
+                return global_settings.get("intelligent_routing", {})
                     
         except Exception as e:
             log_error(f"Error getting intelligent routing config: {e}")
@@ -544,28 +509,20 @@ class ModelManager:
                 with open(registry_file, "r", encoding="utf-8") as f:
                     registry = json.load(f)
                 
-                # Handle v3 format
-                if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                    if model_type == "text":
-                        text_models = registry.get("text_models", {})
-                        for priority_group in ["high_priority", "standard_priority", "testing"]:
-                            if priority_group in text_models:
-                                for model in text_models[priority_group]:
-                                    if model.get("enabled", True):
-                                        enabled_models.append(model)
-                    elif model_type == "image":
-                        image_models = registry.get("image_models", {})
-                        for priority_group in ["primary", "testing"]:
-                            if priority_group in image_models:
-                                for model in image_models[priority_group]:
-                                    if model.get("enabled", True):
-                                        enabled_models.append(model)
-                else:
-                    # v1 format
-                    for model in registry.get("models", []):
-                        if (model.get("type", "text") == model_type and 
-                            model.get("enabled", True)):
-                            enabled_models.append(model)
+                if model_type == "text":
+                    text_models = registry.get("text_models", {})
+                    for priority_group in ["high_priority", "standard_priority", "testing"]:
+                        if priority_group in text_models:
+                            for model in text_models[priority_group]:
+                                if model.get("enabled", True):
+                                    enabled_models.append(model)
+                elif model_type == "image":
+                    image_models = registry.get("image_models", {})
+                    for priority_group in ["primary", "testing"]:
+                        if priority_group in image_models:
+                            for model in image_models[priority_group]:
+                                if model.get("enabled", True):
+                                    enabled_models.append(model)
                     
         except Exception as e:
             log_error(f"Error getting enabled models: {e}")
@@ -573,88 +530,44 @@ class ModelManager:
         return enabled_models
 
     def _load_config(self) -> Dict[str, Any]:
-        """Load model configuration with plugin-style support."""
-        # First, try to load the new model registry
+        """Load model configuration from registry."""
         registry_file = os.path.join("config", "model_registry.json")
-        if os.path.exists(registry_file):
-            log_system_event("model_config_loading", "Loading plugin-style model configuration from registry")
-            return self._load_plugin_config(registry_file)
         
-        # Fallback to legacy models.json
-        config_file = os.path.join("config", "models.json")
-        if os.path.exists(config_file):
-            log_system_event("model_config_loading", "Loading legacy models.json configuration")
-            with open(config_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+        if not os.path.exists(registry_file):
+            raise FileNotFoundError(f"Model registry not found at {registry_file}. Please ensure the registry exists.")
         
-        # Default configuration
-        log_system_event("model_config_loading", "Using default model configuration")
-        return {
-            "default_adapter": "mock",
-            "adapters": {
-                "openai": {
-                    "type": "openai",
-                    "model_name": "gpt-4o-mini",
-                    "max_tokens": 2048,
-                    "temperature": 0.7,
-                    "base_url": os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-                },
-                "ollama": {
-                    "type": "ollama",
-                    "model_name": "llama3.2",
-                    "base_url": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-                    "max_tokens": 2048,
-                    "temperature": 0.7
-                },
-                "mock": {
-                    "type": "mock",
-                    "model_name": "mock-model",
-                    "responses": [
-                        "The story continues with rich detail and engaging narrative.",
-                        "Your character moves forward, discovering new possibilities.",
-                        "The world around you shifts as the tale unfolds."
-                    ]
-                }
-            }
-        }
+        log_system_event("model_config_loading", "Loading model configuration from registry")
+        return self._load_plugin_config(registry_file)
 
     def _load_plugin_config(self, registry_file: str) -> Dict[str, Any]:
-        """Load registry-only model configuration (simplified approach)."""
-        log_info("Loading registry-only model configuration")
-        log_system_event("plugin_config_loading", f"Loading registry-only model configuration from {registry_file}")
+        """Load model configuration from registry."""
+        log_info("Loading registry model configuration")
+        log_system_event("plugin_config_loading", f"Loading registry model configuration from {registry_file}")
         
         # Load the registry
         with open(registry_file, "r", encoding="utf-8") as f:
             registry = json.load(f)
         
-        # Handle both v1 and v3 registry formats
+        # Get models from hierarchical structure
         all_models = []
+        text_models = registry.get("text_models", {})
+        image_models = registry.get("image_models", {})
         
-        # Check for v3 format (schema_version 3.0.0+)
-        if "schema_version" in registry and registry["schema_version"].startswith("3."):
-            # v3 format with text_models and image_models
-            text_models = registry.get("text_models", {})
-            image_models = registry.get("image_models", {})
-            
-            # Collect all text models from different priority groups
-            for priority_group in ["high_priority", "standard_priority", "testing"]:
-                if priority_group in text_models:
-                    for model in text_models[priority_group]:
-                        model["type"] = "text"  # Ensure type is set
-                        all_models.append(model)
-            
-            # Collect all image models from different priority groups
-            for priority_group in ["primary", "testing"]:
-                if priority_group in image_models:
-                    for model in image_models[priority_group]:
-                        model["type"] = "image"  # Ensure type is set
-                        all_models.append(model)
-                        
-            log_system_event("plugin_config_registry", f"Loaded v3 registry with {len(all_models)} model entries")
-        else:
-            # v1 format with flat models array
-            all_models = registry.get("models", [])
-            log_system_event("plugin_config_registry", f"Loaded v1 registry with {len(all_models)} model entries")
+        # Collect all text models from different priority groups
+        for priority_group in ["high_priority", "standard_priority", "testing"]:
+            if priority_group in text_models:
+                for model in text_models[priority_group]:
+                    model["type"] = "text"  # Ensure type is set
+                    all_models.append(model)
+        
+        # Collect all image models from different priority groups
+        for priority_group in ["primary", "testing"]:
+            if priority_group in image_models:
+                for model in image_models[priority_group]:
+                    model["type"] = "image"  # Ensure type is set
+                    all_models.append(model)
+                    
+        log_system_event("plugin_config_registry", f"Loaded registry with {len(all_models)} model entries")
         
         # Build adapters directly from registry entries
         adapters = {}
@@ -733,20 +646,7 @@ class ModelManager:
             log_system_event("model_config_fallback", "No adapters loaded, using mock adapter as fallback")
         
         # Build fallback chains from registry
-        fallback_chains = {}
-        
-        # Handle v3 format fallback chains
-        if "fallback_chains" in registry:
-            fallback_chains = registry["fallback_chains"]
-        else:
-            # Build fallback chains from individual model entries (v1 format)
-            for model_entry in all_models:
-                provider = model_entry["name"]
-                fallbacks = model_entry.get("fallbacks", [])
-                # Ensure the provider itself is included in the chain
-                if provider not in fallbacks:
-                    fallbacks.insert(0, provider)
-                fallback_chains[provider] = fallbacks
+        fallback_chains = registry.get("fallback_chains", {})
         
         # Build content routing
         content_routing = {}
@@ -769,7 +669,7 @@ class ModelManager:
                 }
             }
         
-        # Determine default adapter from v3 format
+        # Determine default adapter from registry format
         default_adapter = "mock"
         if "defaults" in registry:
             default_adapter = registry["defaults"].get("text_model", "mock")
@@ -789,8 +689,7 @@ class ModelManager:
             "default_adapter": default_adapter,
             "adapters": adapters,
             "fallback_chains": fallback_chains,
-            "content_routing": content_routing,
-            "registry_version": registry.get("schema_version", registry.get("version", "1.0.0"))
+            "content_routing": content_routing
         }
         
         log_info(f"Registry-only configuration loaded with {len(adapters)} adapters")
@@ -813,13 +712,13 @@ class ModelManager:
         
         try:
             if adapter_type == "openai":
-                adapter = OpenAIAdapter(adapter_config)
+                adapter = OpenAIAdapter(adapter_config, self)
             elif adapter_type == "ollama":
-                adapter = OllamaAdapter(adapter_config)
+                adapter = OllamaAdapter(adapter_config, self)
             elif adapter_type == "mock":
                 adapter = MockAdapter(adapter_config)
             elif adapter_type == "anthropic":
-                adapter = AnthropicAdapter(adapter_config)
+                adapter = AnthropicAdapter(adapter_config, self)
             elif adapter_type == "gemini":
                 adapter = GeminiAdapter(adapter_config)
             elif adapter_type == "groq":
@@ -833,9 +732,9 @@ class ModelManager:
             elif adapter_type == "azure_openai":
                 adapter = AzureOpenAIAdapter(adapter_config)
             elif adapter_type == "openai_image":
-                adapter = OpenAIImageAdapter(adapter_config)
+                adapter = OpenAIImageAdapter(adapter_config, self)
             elif adapter_type == "stability":
-                adapter = StabilityAdapter(adapter_config)
+                adapter = StabilityAdapter(adapter_config, self)
             elif adapter_type == "replicate":
                 adapter = ReplicateAdapter(adapter_config)
             elif adapter_type == "mock_image":
@@ -1029,9 +928,8 @@ class ModelManager:
                 with open(registry_file, "r", encoding="utf-8") as f:
                     registry = json.load(f)
             else:
-                # Create a basic v3 format registry
+                # Create a basic registry structure
                 registry = {
-                    "schema_version": "3.0.0",
                     "metadata": {
                         "name": "OpenChronicle Model Registry",
                         "description": "Centralized configuration for all AI models and providers",
@@ -1070,56 +968,36 @@ class ModelManager:
                             name.endswith("_dalle") or 
                             "image" in config.get("content_types", []))
             
-            # Handle different registry formats
-            if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                # v3 format - add to appropriate section
-                if is_image_model:
-                    if "image_models" not in registry:
-                        registry["image_models"] = {"testing": []}
-                    if "testing" not in registry["image_models"]:
-                        registry["image_models"]["testing"] = []
-                    
-                    # Check if model already exists
-                    existing_models = registry["image_models"]["testing"]
-                    for i, existing_model in enumerate(existing_models):
-                        if existing_model["name"] == name:
-                            existing_models[i] = model_entry
-                            break
-                    else:
-                        registry["image_models"]["testing"].append(model_entry)
-                else:
-                    # Text model
-                    if "text_models" not in registry:
-                        registry["text_models"] = {"testing": []}
-                    if "testing" not in registry["text_models"]:
-                        registry["text_models"]["testing"] = []
-                    
-                    # Check if model already exists
-                    existing_models = registry["text_models"]["testing"]
-                    for i, existing_model in enumerate(existing_models):
-                        if existing_model["name"] == name:
-                            existing_models[i] = model_entry
-                            break
-                    else:
-                        registry["text_models"]["testing"].append(model_entry)
-            else:
-                # v1 format - add to models array
-                if "models" not in registry:
-                    registry["models"] = []
+            # Add to appropriate section
+            if is_image_model:
+                if "image_models" not in registry:
+                    registry["image_models"] = {"testing": []}
+                if "testing" not in registry["image_models"]:
+                    registry["image_models"]["testing"] = []
                 
                 # Check if model already exists
-                existing_model = None
-                for i, model in enumerate(registry["models"]):
-                    if model["name"] == name:
-                        existing_model = i
+                existing_models = registry["image_models"]["testing"]
+                for i, existing_model in enumerate(existing_models):
+                    if existing_model["name"] == name:
+                        existing_models[i] = model_entry
                         break
-                
-                if existing_model is not None:
-                    # Update existing model
-                    registry["models"][existing_model] = model_entry
                 else:
-                    # Add new model
-                    registry["models"].append(model_entry)
+                    registry["image_models"]["testing"].append(model_entry)
+            else:
+                # Text model
+                if "text_models" not in registry:
+                    registry["text_models"] = {"testing": []}
+                if "testing" not in registry["text_models"]:
+                    registry["text_models"]["testing"] = []
+                
+                # Check if model already exists
+                existing_models = registry["text_models"]["testing"]
+                for i, existing_model in enumerate(existing_models):
+                    if existing_model["name"] == name:
+                        existing_models[i] = model_entry
+                        break
+                else:
+                    registry["text_models"]["testing"].append(model_entry)
             
             # Save updated registry
             with open(registry_file, "w", encoding="utf-8") as f:
@@ -1151,74 +1029,56 @@ class ModelManager:
             with open(registry_file, "r", encoding="utf-8") as f:
                 registry = json.load(f)
             
-            # Handle different registry formats
-            if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                # v3 format - remove from text_models and image_models
-                model_removed = False
-                
-                # Check text models
-                text_models = registry.get("text_models", {})
-                for priority_group in ["high_priority", "standard_priority", "testing"]:
-                    if priority_group in text_models:
-                        original_count = len(text_models[priority_group])
-                        text_models[priority_group] = [
-                            model for model in text_models[priority_group] 
-                            if model["name"] != name
+            # Remove from text_models and image_models
+            model_removed = False
+            
+            # Check text models
+            text_models = registry.get("text_models", {})
+            for priority_group in ["high_priority", "standard_priority", "testing"]:
+                if priority_group in text_models:
+                    original_count = len(text_models[priority_group])
+                    text_models[priority_group] = [
+                        model for model in text_models[priority_group] 
+                        if model["name"] != name
+                    ]
+                    if len(text_models[priority_group]) < original_count:
+                        model_removed = True
+            
+            # Check image models
+            image_models = registry.get("image_models", {})
+            for priority_group in ["primary", "testing"]:
+                if priority_group in image_models:
+                    original_count = len(image_models[priority_group])
+                    image_models[priority_group] = [
+                        model for model in image_models[priority_group] 
+                        if model["name"] != name
+                    ]
+                    if len(image_models[priority_group]) < original_count:
+                        model_removed = True
+            
+            # Remove from fallback chains
+            if "fallback_chains" in registry:
+                for chain_name, chain in registry["fallback_chains"].items():
+                    if isinstance(chain, list) and name in chain:
+                        registry["fallback_chains"][chain_name] = [
+                            adapter for adapter in chain if adapter != name
                         ]
-                        if len(text_models[priority_group]) < original_count:
-                            model_removed = True
-                
-                # Check image models
-                image_models = registry.get("image_models", {})
-                for priority_group in ["primary", "testing"]:
-                    if priority_group in image_models:
-                        original_count = len(image_models[priority_group])
-                        image_models[priority_group] = [
-                            model for model in image_models[priority_group] 
-                            if model["name"] != name
-                        ]
-                        if len(image_models[priority_group]) < original_count:
-                            model_removed = True
-                
-                # Remove from fallback chains
-                if "fallback_chains" in registry:
-                    for chain_name, chain in registry["fallback_chains"].items():
-                        if isinstance(chain, list) and name in chain:
-                            registry["fallback_chains"][chain_name] = [
-                                adapter for adapter in chain if adapter != name
-                            ]
-                
-                # Remove from content routing
-                if "content_routing" in registry:
-                    for route_type, route_config in registry["content_routing"].items():
-                        if isinstance(route_config, dict):
-                            if "allowed_models" in route_config and isinstance(route_config["allowed_models"], list):
-                                if name in route_config["allowed_models"]:
-                                    route_config["allowed_models"] = [
-                                        model for model in route_config["allowed_models"] if model != name
-                                    ]
-                            if route_config.get("default_model") == name:
-                                # Set to first available model or mock
-                                if route_config["allowed_models"]:
-                                    route_config["default_model"] = route_config["allowed_models"][0]
-                                else:
-                                    route_config["default_model"] = "mock"
-            else:
-                # v1 format - remove from models array
-                original_count = len(registry.get("models", []))
-                registry["models"] = [model for model in registry.get("models", []) if model["name"] != name]
-                model_removed = len(registry["models"]) < original_count
-                
-                # Remove from fallback chains
-                for model_entry in registry["models"]:
-                    if "fallbacks" in model_entry and name in model_entry["fallbacks"]:
-                        model_entry["fallbacks"] = [adapter for adapter in model_entry["fallbacks"] if adapter != name]
-                
-                # Remove from content routing
-                if "content_routing" in registry:
-                    for route_type, adapters in registry["content_routing"].items():
-                        if isinstance(adapters, list) and name in adapters:
-                            registry["content_routing"][route_type] = [adapter for adapter in adapters if adapter != name]
+            
+            # Remove from content routing
+            if "content_routing" in registry:
+                for route_type, route_config in registry["content_routing"].items():
+                    if isinstance(route_config, dict):
+                        if "allowed_models" in route_config and isinstance(route_config["allowed_models"], list):
+                            if name in route_config["allowed_models"]:
+                                route_config["allowed_models"] = [
+                                    model for model in route_config["allowed_models"] if model != name
+                                ]
+                        if route_config.get("default_model") == name:
+                            # Set to first available model or mock
+                            if route_config["allowed_models"]:
+                                route_config["default_model"] = route_config["allowed_models"][0]
+                            else:
+                                route_config["default_model"] = "mock"
             
             # Save updated registry if a model was actually removed
             if model_removed:
@@ -1262,40 +1122,33 @@ class ModelManager:
             with open(registry_file, "r", encoding="utf-8") as f:
                 registry = json.load(f)
             
-            # Handle different registry formats
+            # Search in text_models and image_models
             model_found = False
             
-            if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                # v3 format - search in text_models and image_models
-                text_models = registry.get("text_models", {})
-                for priority_group in ["high_priority", "standard_priority", "testing"]:
-                    if priority_group in text_models:
-                        for model in text_models[priority_group]:
+            # Check text models
+            text_models = registry.get("text_models", {})
+            for priority_group in ["high_priority", "standard_priority", "testing"]:
+                if priority_group in text_models:
+                    for model in text_models[priority_group]:
+                        if model["name"] == name:
+                            model["enabled"] = enabled
+                            model_found = True
+                            break
+                    if model_found:
+                        break
+            
+            # Check image models if not found in text
+            if not model_found:
+                image_models = registry.get("image_models", {})
+                for priority_group in ["primary", "testing"]:
+                    if priority_group in image_models:
+                        for model in image_models[priority_group]:
                             if model["name"] == name:
                                 model["enabled"] = enabled
                                 model_found = True
                                 break
                         if model_found:
                             break
-                
-                if not model_found:
-                    image_models = registry.get("image_models", {})
-                    for priority_group in ["primary", "testing"]:
-                        if priority_group in image_models:
-                            for model in image_models[priority_group]:
-                                if model["name"] == name:
-                                    model["enabled"] = enabled
-                                    model_found = True
-                                    break
-                            if model_found:
-                                break
-            else:
-                # v1 format - search in models array
-                for model in registry.get("models", []):
-                    if model["name"] == name:
-                        model["enabled"] = enabled
-                        model_found = True
-                        break
             
             if not model_found:
                 return False  # Model not found
@@ -1332,30 +1185,24 @@ class ModelManager:
                 with open(registry_file, "r", encoding="utf-8") as f:
                     registry = json.load(f)
                 
-                # Handle both v1 and v3 registry formats
+                # Collect all models from registry structure
                 all_models = []
                 
-                if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                    # v3 format with text_models and image_models
-                    text_models = registry.get("text_models", {})
-                    image_models = registry.get("image_models", {})
-                    
-                    # Collect all text models from different priority groups
-                    for priority_group in ["high_priority", "standard_priority", "testing"]:
-                        if priority_group in text_models:
-                            for model in text_models[priority_group]:
-                                model["type"] = "text"  # Ensure type is set
-                                all_models.append(model)
-                    
-                    # Collect all image models from different priority groups
-                    for priority_group in ["primary", "testing"]:
-                        if priority_group in image_models:
-                            for model in image_models[priority_group]:
-                                model["type"] = "image"  # Ensure type is set
-                                all_models.append(model)
-                else:
-                    # v1 format with flat models array
-                    all_models = registry.get("models", [])
+                # Collect text models from different priority groups
+                text_models = registry.get("text_models", {})
+                for priority_group in ["high_priority", "standard_priority", "testing"]:
+                    if priority_group in text_models:
+                        for model in text_models[priority_group]:
+                            model["type"] = "text"  # Ensure type is set
+                            all_models.append(model)
+                
+                # Collect image models from different priority groups
+                image_models = registry.get("image_models", {})
+                for priority_group in ["primary", "testing"]:
+                    if priority_group in image_models:
+                        for model in image_models[priority_group]:
+                            model["type"] = "image"  # Ensure type is set
+                            all_models.append(model)
                 
                 for model_entry in all_models:
                     model_name = model_entry["name"]
@@ -1566,27 +1413,16 @@ class ModelManager:
         # Check existing models to avoid duplicates
         existing_ollama_models = set()
         
-        # Handle both v1 and v3 registry formats when checking for existing models
-        if "schema_version" in registry and registry["schema_version"].startswith("3."):
-            # v3 format - check text_models sections
-            text_models = registry.get("text_models", {})
-            for priority_group in ["high_priority", "standard_priority", "testing"]:
-                if priority_group in text_models:
-                    for model_entry in text_models[priority_group]:
-                        if (model_entry.get("provider") == "ollama" or 
-                            model_entry["name"].startswith("ollama_")):
-                            model_name = model_entry.get("model_name", "")
-                            if model_name:
-                                existing_ollama_models.add(model_name)
-        else:
-            # v1 format - check models array
-            for model_entry in registry.get("models", []):
-                if model_entry.get("type") == "ollama" or model_entry["name"].startswith("ollama_"):
-                    model_name = model_entry.get("config", {}).get("model_name", "")
-                    if not model_name:
+        # Check for existing Ollama models in registry
+        text_models = registry.get("text_models", {})
+        for priority_group in ["high_priority", "standard_priority", "testing"]:
+            if priority_group in text_models:
+                for model_entry in text_models[priority_group]:
+                    if (model_entry.get("provider") == "ollama" or 
+                        model_entry["name"].startswith("ollama_")):
                         model_name = model_entry.get("model_name", "")
-                    if model_name:
-                        existing_ollama_models.add(model_name)
+                        if model_name:
+                            existing_ollama_models.add(model_name)
         
         current_priority = priority_start
         
@@ -1639,23 +1475,13 @@ class ModelManager:
             if model_info["capabilities"]["analysis"]:
                 new_model_entry["content_types"].append("analysis")
             
-            # Add to the appropriate section based on registry format
-            if "schema_version" in registry and registry["schema_version"].startswith("3."):
-                # v3 format - add to text_models testing section
-                if "text_models" not in registry:
-                    registry["text_models"] = {"testing": []}
-                if "testing" not in registry["text_models"]:
-                    registry["text_models"]["testing"] = []
-                
-                registry["text_models"]["testing"].append(new_model_entry)
-            else:
-                # v1 format - add to models array
-                if "models" not in registry:
-                    registry["models"] = []
-                
-                # Convert to v1 format
-                new_model_entry["type"] = "ollama"
-                registry["models"].append(new_model_entry)
+            # Add to text_models testing section
+            if "text_models" not in registry:
+                registry["text_models"] = {"testing": []}
+            if "testing" not in registry["text_models"]:
+                registry["text_models"]["testing"] = []
+            
+            registry["text_models"]["testing"].append(new_model_entry)
             
             results["added_models"].append({
                 "registry_name": registry_name,
@@ -1713,10 +1539,32 @@ model_manager = ModelManager()
 class AnthropicAdapter(ModelAdapter):
     """Anthropic Claude adapter."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], model_manager=None):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("ANTHROPIC_API_KEY")
-        self.base_url = config.get("base_url") or os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
+        self.model_manager = model_manager
+        self.base_url = self._get_base_url(config)
+        self.client = None
+    
+    def _get_base_url(self, config: Dict[str, Any]) -> str:
+        """Get base URL from config or model manager."""
+        # Check explicit config first
+        if "base_url" in config:
+            return config["base_url"]
+        
+        # Use model manager if available
+        if self.model_manager:
+            try:
+                return self.model_manager.get_provider_base_url("anthropic")
+            except Exception:
+                pass
+        
+        # Fallback to environment variable only
+        env_url = os.getenv("ANTHROPIC_BASE_URL")
+        if env_url:
+            return env_url
+            
+        raise ValueError("No base URL configured for Anthropic. Please set ANTHROPIC_BASE_URL or configure in registry.")
         self.client = None
     
     async def initialize(self) -> bool:
@@ -2111,13 +1959,35 @@ class ImageAdapter(ModelAdapter):
 class OpenAIImageAdapter(ImageAdapter):
     """OpenAI DALL-E image adapter."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], model_manager=None):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("OPENAI_API_KEY")
-        self.base_url = config.get("base_url", "https://api.openai.com/v1")
+        self.model_manager = model_manager
+        self.base_url = self._get_base_url(config)
         self.size = config.get("size", "1024x1024")
         self.quality = config.get("quality", "standard")
         self.style = config.get("style", "vivid")
+        self.client = None
+    
+    def _get_base_url(self, config: Dict[str, Any]) -> str:
+        """Get base URL from config or model manager."""
+        # Check explicit config first
+        if "base_url" in config:
+            return config["base_url"]
+        
+        # Use model manager if available
+        if self.model_manager:
+            try:
+                return self.model_manager.get_provider_base_url("openai")
+            except Exception:
+                pass
+        
+        # Fallback to environment variable only
+        env_url = os.getenv("OPENAI_BASE_URL")
+        if env_url:
+            return env_url
+            
+        raise ValueError("No base URL configured for OpenAI. Please set OPENAI_BASE_URL or configure in registry.")
         self.client = None
     
     async def initialize(self) -> bool:
@@ -2176,13 +2046,36 @@ class OpenAIImageAdapter(ImageAdapter):
 class StabilityAdapter(ImageAdapter):
     """Stability AI Stable Diffusion adapter."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], model_manager=None):
         super().__init__(config)
         self.api_key = config.get("api_key") or os.getenv("STABILITY_API_KEY")
+        self.model_manager = model_manager
+        self.base_url = self._get_base_url(config)
         self.width = config.get("width", 1024)
         self.height = config.get("height", 1024)
         self.steps = config.get("steps", 30)
         self.cfg_scale = config.get("cfg_scale", 7)
+        self.client = None
+    
+    def _get_base_url(self, config: Dict[str, Any]) -> str:
+        """Get base URL from config or model manager."""
+        # Check explicit config first
+        if "base_url" in config:
+            return config["base_url"]
+        
+        # Use model manager if available
+        if self.model_manager:
+            try:
+                return self.model_manager.get_provider_base_url("stability")
+            except Exception:
+                pass
+        
+        # Fallback to environment variable only
+        env_url = os.getenv("STABILITY_BASE_URL")
+        if env_url:
+            return env_url
+            
+        raise ValueError("No base URL configured for Stability. Please set STABILITY_BASE_URL or configure in registry.")
         self.client = None
     
     async def initialize(self) -> bool:
@@ -2210,7 +2103,7 @@ class StabilityAdapter(ImageAdapter):
         
         try:
             response = await self.client.post(  # type: ignore
-                f"https://api.stability.ai/v1/generation/{self.model_name}/text-to-image",
+                f"{self.base_url}/generation/{self.model_name}/text-to-image",
                 json={
                     "text_prompts": [{"text": prompt}],
                     "cfg_scale": kwargs.get("cfg_scale", self.cfg_scale),

@@ -56,39 +56,26 @@ def get_image_config_from_registry(story_path: str) -> Dict[str, Any]:
     """Get image configuration from the model registry."""
     registry = load_model_registry()
     
-    # Handle both v1 and v3 registry formats
+    # Get from image_models sections
+    image_model_data = registry.get("image_models", {})
     image_models = {}
-    fallback_chain = []
     
-    if "schema_version" in registry and registry["schema_version"].startswith("3."):
-        # v3 format - get from image_models sections
-        image_model_data = registry.get("image_models", {})
-        
-        # Collect image models from all priority groups
-        all_image_models = []
-        for priority_group in ["primary", "testing"]:
-            if priority_group in image_model_data:
-                all_image_models.extend(image_model_data[priority_group])
-        
-        # Build image models dict
-        for model in all_image_models:
-            model_name = model["name"]
-            image_models[model_name] = model
-        
-        # Get fallback chain from registry
-        fallback_chain = registry.get("fallback_chains", {}).get("primary_image", ["mock_image"])
-        
-        # Get default image model
-        default_image_model = registry.get("defaults", {}).get("image_model", "mock_image")
-    else:
-        # v1 format - get from flat models array
-        for model in registry.get("models", []):
-            if model.get("name") in ["openai_dalle", "stability_ai", "mock_image"]:
-                image_models[model["name"]] = model
-        
-        # Get fallback chain from registry
-        fallback_chain = registry.get("image_fallback_chain", ["mock_image"])
-        default_image_model = registry.get("default_image_model", "mock_image")
+    # Collect image models from all priority groups
+    all_image_models = []
+    for priority_group in ["primary", "testing"]:
+        if priority_group in image_model_data:
+            all_image_models.extend(image_model_data[priority_group])
+    
+    # Build image models dict
+    for model in all_image_models:
+        model_name = model["name"]
+        image_models[model_name] = model
+    
+    # Get fallback chain from registry
+    fallback_chain = registry.get("fallback_chains", {}).get("primary_image", ["mock_image"])
+    
+    # Get default image model
+    default_image_model = registry.get("defaults", {}).get("image_model", "mock_image")
     
     # Build adapter configuration
     adapters = {}
