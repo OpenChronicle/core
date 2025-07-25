@@ -230,8 +230,14 @@ class OllamaAdapter(ModelAdapter):
             result = response.json()
             return result.get("response", "").strip()
         except Exception as e:
-            log_error(f"Ollama generation failed - base_url: {self.base_url}, model: {self.model_name}, error: {e}")
-            raise RuntimeError(f"Ollama generation failed: {e}")
+            # Check if this is a model-not-found error (common when user removes model)
+            error_msg = str(e).lower()
+            if "not found" in error_msg or "does not exist" in error_msg or "404" in error_msg:
+                log_error(f"Ollama model '{self.model_name}' not found - user may have removed it from Ollama")
+                raise RuntimeError(f"Ollama model '{self.model_name}' not found. Model may have been removed from Ollama server.")
+            else:
+                log_error(f"Ollama generation failed - base_url: {self.base_url}, model: {self.model_name}, error: {e}")
+                raise RuntimeError(f"Ollama generation failed: {e}")
     
     def get_model_info(self) -> Dict[str, Any]:
         """Get Ollama model information."""
@@ -1006,6 +1012,9 @@ class ModelManager:
             # Reload configuration
             self.config = self._load_config()
             
+            # Sync to runtime state for immediate tracking
+            self.sync_dynamic_models_to_runtime_state([name])
+            
             log_system_event("dynamic_model_add", f"Added model configuration: {name}")
             return True
             
@@ -1087,6 +1096,9 @@ class ModelManager:
                 
                 # Reload configuration
                 self.config = self._load_config()
+                
+                # Remove from runtime state
+                self.sync_dynamic_models_to_runtime_state([], [name])
                 
                 # Update default adapter if needed
                 if self.default_adapter == name:
@@ -1232,6 +1244,220 @@ class ModelManager:
             }
         
         return models_info
+
+    async def sync_ollama_models(self, auto_enable: bool = True, remove_missing: bool = False) -> Dict[str, Any]:
+        """
+        Synchronize registry with currently available Ollama models.
+        
+        Args:
+            auto_enable: Whether to enable newly discovered models
+            remove_missing: Whether to disable models no longer available in Ollama
+            
+        Returns:
+            Dictionary with sync results
+        """
+        try:
+            # Discover current models
+            discovery_result = await self.discover_ollama_models()
+            if "error" in discovery_result:
+                return {"error": f"Failed to discover models: {discovery_result['error']}"}
+            
+            current_ollama_models = set(discovery_result["models"].keys())
+            
+            # Get registered Ollama models
+            registry_file = os.path.join("config", "model_registry.json")
+            if not os.path.exists(registry_file):
+                return {"error": "Model registry not found"}
+            
+            with open(registry_file, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            
+            registered_ollama_models = set()
+            text_models = registry.get("text_models", {})
+            
+            for priority_group in ["high_priority", "standard_priority", "testing"]:
+                if priority_group in text_models:
+                    for model_entry in text_models[priority_group]:
+                        if model_entry.get("provider") == "ollama":
+                            model_name = model_entry.get("model_name", "")
+                            if model_name:
+                                registered_ollama_models.add(model_name)
+            
+            # Find differences
+            new_models = current_ollama_models - registered_ollama_models
+            missing_models = registered_ollama_models - current_ollama_models
+            
+            results = {
+                "current_models": len(current_ollama_models),
+                "registered_models": len(registered_ollama_models),
+                "new_models": list(new_models),
+                "missing_models": list(missing_models),
+                "added_count": 0,
+                "disabled_count": 0,
+                "errors": []
+            }
+            
+            # Add new models
+            if new_models:
+                add_result = await self.add_discovered_ollama_models(auto_enable=auto_enable)
+                if "error" not in add_result:
+                    results["added_count"] = len(add_result.get("added_models", []))
+                else:
+                    results["errors"].append(f"Failed to add new models: {add_result['error']}")
+            
+            # Disable missing models if requested
+            if remove_missing and missing_models:
+                for model_name in missing_models:
+                    # Find the registry name for this model
+                    registry_name = None
+                    for priority_group in ["high_priority", "standard_priority", "testing"]:
+                        if priority_group in text_models:
+                            for model_entry in text_models[priority_group]:
+                                if (model_entry.get("provider") == "ollama" and 
+                                    model_entry.get("model_name") == model_name):
+                                    registry_name = model_entry["name"]
+                                    break
+                        if registry_name:
+                            break
+                    
+                    if registry_name:
+                        if self.disable_model(registry_name):
+                            results["disabled_count"] += 1
+                            log_info(f"Disabled missing Ollama model: {registry_name} ({model_name})")
+                        else:
+                            results["errors"].append(f"Failed to disable missing model: {registry_name}")
+            
+            log_system_event("ollama_sync", f"Synced Ollama models: +{results['added_count']} new, -{results['disabled_count']} missing")
+            return results
+            
+        except Exception as e:
+            error_msg = f"Failed to sync Ollama models: {e}"
+            log_error(error_msg)
+            return {"error": error_msg}
+
+    def sync_dynamic_models_to_runtime_state(self, added_models: Optional[List[str]] = None, removed_models: Optional[List[str]] = None) -> bool:
+        """
+        Synchronize dynamic models with runtime state for complete tracking and monitoring.
+        
+        Args:
+            added_models: List of model names that were added (optional, will sync all if None)
+            removed_models: List of model names that were removed (optional)
+            
+        Returns:
+            bool: True if synchronization was successful
+        """
+        try:
+            runtime_state_file = os.path.join("storage", "runtime", "runtime_state.json")
+            
+            # Load existing runtime state or create new one
+            if os.path.exists(runtime_state_file):
+                with open(runtime_state_file, "r", encoding="utf-8") as f:
+                    runtime_state = json.load(f)
+            else:
+                # Create basic runtime state structure
+                os.makedirs(os.path.dirname(runtime_state_file), exist_ok=True)
+                runtime_state = {
+                    "metadata": {
+                        "name": "OpenChronicle Model Runtime State",
+                        "description": "Dynamic runtime state and analytics for AI models",
+                        "last_updated": datetime.now(UTC).isoformat(),
+                        "auto_generated": True
+                    },
+                    "global_runtime": {
+                        "intelligent_routing_active": True,
+                        "learning_mode_active": True,
+                        "last_recommendation_update": datetime.now(UTC).isoformat(),
+                        "total_requests_today": 0,
+                        "system_performance_score": 0.5
+                    },
+                    "model_states": {},
+                    "content_routing_state": {
+                        "nsfw_content": {"current_recommendation": "mock", "recommendation_confidence": 0.5},
+                        "safe_content": {"current_recommendation": "mock", "recommendation_confidence": 0.5}
+                    },
+                    "performance_analytics": {
+                        "daily_stats": {
+                            "date": datetime.now(UTC).strftime("%Y-%m-%d"),
+                            "total_requests": 0,
+                            "total_tokens": 0,
+                            "total_images": 0,
+                            "average_response_time": 0,
+                            "overall_success_rate": 1.0,
+                            "total_cost": 0.0
+                        }
+                    }
+                }
+            
+            # If no specific models provided, sync all current models from registry
+            if added_models is None:
+                all_models = self.get_available_adapters()
+                added_models = [model for model in all_models if model not in runtime_state.get("model_states", {})]
+            
+            # Add new models to runtime state
+            for model_name in (added_models or []):
+                if model_name not in runtime_state["model_states"]:
+                    # Get model info from config
+                    model_config = self.config["adapters"].get(model_name, {})
+                    provider = model_config.get("type", "unknown")
+                    
+                    # Create default runtime state entry
+                    runtime_state["model_states"][model_name] = {
+                        "health_status": "unknown",
+                        "last_health_check": None,
+                        "average_response_time": 0,
+                        "success_rate": 0,
+                        "cost_per_request": model_config.get("cost_per_token", 0.0) * 1000,  # Estimate per request
+                        "requests_today": 0,
+                        "total_tokens_used": 0,
+                        "average_quality_score": 0,
+                        "user_preference_score": 0.5,
+                        "consecutive_failures": 0,
+                        "auto_disabled": False,
+                        "user_overrides": {
+                            "enabled": None,
+                            "priority": None,
+                            "model_name": None,
+                            "supports_nsfw": None,
+                            "last_modified": None,
+                            "override_reason": None
+                        }
+                    }
+                    
+                    # Add image-specific fields for image models
+                    if model_config.get("type") == "image":
+                        runtime_state["model_states"][model_name]["total_images_generated"] = 0
+                    
+                    log_info(f"Added runtime state entry for dynamic model: {model_name}")
+            
+            # Remove models from runtime state
+            for model_name in (removed_models or []):
+                if model_name in runtime_state["model_states"]:
+                    del runtime_state["model_states"][model_name]
+                    log_info(f"Removed runtime state entry for model: {model_name}")
+                
+                # Update content routing recommendations if they pointed to removed model
+                for route_type, route_config in runtime_state.get("content_routing_state", {}).items():
+                    if isinstance(route_config, dict) and route_config.get("current_recommendation") == model_name:
+                        # Find alternative model
+                        available_models = list(runtime_state["model_states"].keys())
+                        route_config["current_recommendation"] = available_models[0] if available_models else "mock"
+                        route_config["last_recommendation_change"] = datetime.now(UTC).isoformat()
+                        route_config["recommendation_confidence"] = 0.5  # Reset confidence
+            
+            # Update metadata
+            runtime_state["metadata"]["last_updated"] = datetime.now(UTC).isoformat()
+            
+            # Save updated runtime state
+            with open(runtime_state_file, "w", encoding="utf-8") as f:
+                json.dump(runtime_state, f, indent=2)
+            
+            log_system_event("runtime_state_sync", f"Synchronized runtime state: +{len(added_models or [])} added, -{len(removed_models or [])} removed")
+            return True
+            
+        except Exception as e:
+            log_error(f"Failed to sync runtime state: {e}")
+            log_system_event("runtime_state_sync_error", f"Failed to sync runtime state: {e}")
+            return False
 
     async def discover_ollama_models(self, base_url: Optional[str] = None) -> Dict[str, Any]:
         """

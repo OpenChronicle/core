@@ -295,6 +295,12 @@
         ],
         "description": "Mock model for testing and development",
         "fallbacks": []
+      },
+      {
+        "name": "test-sync",
+        "enabled": true,
+        "type": "mock",
+        "model_name": "test-sync"
       }
     ]
   },

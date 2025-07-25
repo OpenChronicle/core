@@ -3,10 +3,9 @@
   "metadata": {
     "name": "OpenChronicle Model Runtime State",
     "description": "Dynamic runtime state and analytics for AI models",
-    "last_updated": "2025-07-24T10:30:00Z",
+    "last_updated": "2025-07-25T00:36:16.132003+00:00",
     "auto_generated": true
   },
-  
   "global_runtime": {
     "intelligent_routing_active": true,
     "learning_mode_active": true,
@@ -14,7 +13,6 @@
     "total_requests_today": 127,
     "system_performance_score": 0.92
   },
-  
   "model_states": {
     "ollama": {
       "health_status": "healthy",
@@ -246,9 +244,29 @@
         "last_modified": null,
         "override_reason": null
       }
+    },
+    "test-sync": {
+      "health_status": "unknown",
+      "last_health_check": null,
+      "average_response_time": 0,
+      "success_rate": 0,
+      "cost_per_request": 0.0,
+      "requests_today": 0,
+      "total_tokens_used": 0,
+      "average_quality_score": 0,
+      "user_preference_score": 0.5,
+      "consecutive_failures": 0,
+      "auto_disabled": false,
+      "user_overrides": {
+        "enabled": null,
+        "priority": null,
+        "model_name": null,
+        "supports_nsfw": null,
+        "last_modified": null,
+        "override_reason": null
+      }
     }
   },
-  
   "content_routing_state": {
     "nsfw_content": {
       "current_recommendation": "ollama",
@@ -281,7 +299,6 @@
       "user_override_active": false
     }
   },
-  
   "performance_analytics": {
     "daily_stats": {
       "date": "2025-07-24",
