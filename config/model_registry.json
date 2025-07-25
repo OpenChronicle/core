@@ -77,7 +77,12 @@
           "test_payload": {
             "model": "claude-3-haiku-20240307",
             "max_tokens": 1,
-            "messages": [{"role": "user", "content": "test"}]
+            "messages": [
+              {
+                "role": "user",
+                "content": "test"
+              }
+            ]
           },
           "setup_url": "https://console.anthropic.com/account/keys",
           "service_name": "Anthropic (Claude)",
