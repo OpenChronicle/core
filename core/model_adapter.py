@@ -12,15 +12,14 @@ from typing import Dict, Any, Optional, List, Union
 from datetime import datetime, UTC
 from pathlib import Path
 
-# Add utilities to path for logging system
-sys.path.append(str(Path(__file__).parent.parent / "utilities"))
-from logging_system import log_model_interaction, log_system_event, log_info, log_error
-
 # Optional imports for enhanced error handling
 try:
     import httpx
 except ImportError:
     httpx = None
+
+# Import logging system
+from utilities.logging_system import log_model_interaction, log_system_event, log_info, log_error
 
 class ModelAdapter(ABC):
     """Abstract base class for model adapters."""
@@ -1015,151 +1014,145 @@ class ModelManager:
     
     def _validate_api_key_smart(self, name: str, adapter_config: Dict[str, Any], adapter_type: str) -> Dict[str, Any]:
         """
-        Smart API key validation that actually tests the key with a lightweight API call.
+        Registry-driven API key validation that works with any provider defined in the model registry.
         
         Returns:
             Dict with validation result including recommendations for missing/invalid keys
         """
-        # Define API key environment variables and endpoints
-        api_providers = {
-            "openai": {
-                "env_vars": ["OPENAI_API_KEY"],
-                "test_endpoint": "https://api.openai.com/v1/models",
-                "test_method": self._test_openai_api_key,
-                "setup_guide": "https://platform.openai.com/api-keys"
-            },
-            "anthropic": {
-                "env_vars": ["ANTHROPIC_API_KEY"],
-                "test_endpoint": "https://api.anthropic.com/v1/messages",
-                "test_method": self._test_anthropic_api_key,
-                "setup_guide": "https://console.anthropic.com/account/keys"
-            },
-            "gemini": {
-                "env_vars": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
-                "test_endpoint": "https://generativelanguage.googleapis.com/v1/models",
-                "test_method": self._test_gemini_api_key,
-                "setup_guide": "https://makersuite.google.com/app/apikey"
-            },
-            "groq": {
-                "env_vars": ["GROQ_API_KEY"],
-                "test_endpoint": "https://api.groq.com/openai/v1/models",
-                "test_method": self._test_groq_api_key,
-                "setup_guide": "https://console.groq.com/keys"
-            },
-            "cohere": {
-                "env_vars": ["COHERE_API_KEY"],
-                "test_endpoint": "https://api.cohere.ai/v1/models",
-                "test_method": self._test_cohere_api_key,
-                "setup_guide": "https://dashboard.cohere.com/api-keys"
-            },
-            "mistral": {
-                "env_vars": ["MISTRAL_API_KEY"],
-                "test_endpoint": "https://api.mistral.ai/v1/models",
-                "test_method": self._test_mistral_api_key,
-                "setup_guide": "https://console.mistral.ai/api-keys/"
-            }
-        }
+        # Get provider validation config from registry
+        provider_config = self.global_config.get("environment_config", {}).get("providers", {}).get(adapter_type)
+        if not provider_config:
+            return {"valid": True, "reason": "No validation config found", "can_enable_later": False, "recommendation": "Local adapter ready"}
         
-        provider_info = api_providers.get(adapter_type)
-        if not provider_info:
+        validation_config = provider_config.get("validation", {})
+        if not validation_config.get("requires_api_key", False):
             return {"valid": True, "reason": "No API key required", "can_enable_later": False, "recommendation": "Local adapter ready"}
         
         # Check if API key is provided
+        api_key_env = provider_config.get("api_key_env")
         api_key = adapter_config.get("api_key")
-        if not api_key:
-            # Check environment variables
-            for env_var in provider_info["env_vars"]:
-                api_key = os.getenv(env_var)
-                if api_key:
-                    break
+        if not api_key and api_key_env:
+            api_key = os.getenv(api_key_env)
         
         if not api_key:
-            env_var_list = " or ".join(provider_info["env_vars"])
+            env_var_info = f" ({api_key_env})" if api_key_env else ""
+            setup_url = validation_config.get("setup_url", "provider's website")
+            service_name = validation_config.get("service_name", adapter_type.title())
+            
             return {
                 "valid": False,
                 "reason": f"Missing API key for {adapter_type}",
                 "can_enable_later": True,
-                "recommendation": f"Set {env_var_list} environment variable or add api_key to config. Get your key at: {provider_info['setup_guide']}"
+                "recommendation": f"Set {api_key_env or 'API key'} environment variable or add api_key to config. Get your key at: {setup_url} for {service_name}"
             }
         
-        # Validate API key format
-        if not self._validate_api_key_format(api_key, adapter_type):
+        # Validate API key format if specified
+        api_key_format = validation_config.get("api_key_format")
+        if api_key_format and not self._validate_api_key_format_regex(api_key, api_key_format):
+            setup_url = validation_config.get("setup_url", "provider's website")
             return {
                 "valid": False,
                 "reason": f"Invalid API key format for {adapter_type}",
                 "can_enable_later": True,
-                "recommendation": f"Check your API key format. Get a valid key at: {provider_info['setup_guide']}"
+                "recommendation": f"Check your API key format. Expected pattern: {api_key_format}. Get a valid key at: {setup_url}"
             }
         
-        # Test API key with lightweight call
-        if provider_info.get("test_method"):
-            try:
-                is_valid, error_msg = provider_info["test_method"](api_key, adapter_config)
-                if not is_valid:
-                    return {
-                        "valid": False,
-                        "reason": f"API key validation failed: {error_msg}",
-                        "can_enable_later": True,
-                        "recommendation": f"Verify your API key is active and has appropriate permissions. Get a new key at: {provider_info['setup_guide']}"
-                    }
-            except Exception as e:
-                # If API test fails due to network/other issues, allow the adapter but log the issue
-                log_error(f"Could not validate {adapter_type} API key due to network error: {e}")
+        # Test API key with provider's health endpoint
+        try:
+            is_valid, error_msg = self._test_api_key_generic(api_key, adapter_type, provider_config, validation_config)
+            if not is_valid:
+                setup_url = validation_config.get("setup_url", "provider's website")
                 return {
-                    "valid": True,
-                    "reason": f"API key present but could not validate due to network error",
-                    "can_enable_later": False,
-                    "recommendation": "Network validation failed, proceeding with provided API key"
+                    "valid": False,
+                    "reason": f"API key validation failed: {error_msg}",
+                    "can_enable_later": True,
+                    "recommendation": f"Verify your API key is active and has appropriate permissions. Get a new key at: {setup_url}"
                 }
+        except Exception as e:
+            # If API test fails due to network/other issues, allow the adapter but log the issue
+            log_error(f"Could not validate {adapter_type} API key due to network error: {e}")
+            return {
+                "valid": True,
+                "reason": f"API key present but could not validate due to network error",
+                "can_enable_later": False,
+                "recommendation": "Network validation failed, proceeding with provided API key"
+            }
         
+        service_name = validation_config.get("service_name", adapter_type.title())
         return {
             "valid": True,
             "reason": "API key validated successfully",
             "can_enable_later": False,
-            "recommendation": f"{adapter_type.title()} adapter ready for use"
+            "recommendation": f"{service_name} adapter ready for use"
         }
     
-    def _validate_api_key_format(self, api_key: str, adapter_type: str) -> bool:
-        """Validate API key format for different providers."""
+    def _validate_api_key_format_regex(self, api_key: str, pattern: str) -> bool:
+        """Validate API key format using regex pattern from registry."""
         if not api_key or len(api_key.strip()) < 10:
             return False
         
-        # Provider-specific format validation
-        api_key = api_key.strip()
-        
-        if adapter_type == "openai":
-            return api_key.startswith("sk-") and len(api_key) > 20
-        elif adapter_type == "anthropic":
-            return api_key.startswith("sk-ant-") and len(api_key) > 30
-        elif adapter_type == "gemini":
-            return len(api_key) > 20 and not api_key.startswith("sk-")
-        elif adapter_type == "groq":
-            return api_key.startswith("gsk_") and len(api_key) > 30
-        elif adapter_type == "cohere":
-            return len(api_key) > 20 and not api_key.startswith("sk-")
-        elif adapter_type == "mistral":
-            return len(api_key) > 20
-        
-        return True  # Unknown format, assume valid
+        try:
+            import re
+            return bool(re.match(pattern, api_key.strip()))
+        except Exception:
+            # If regex fails, fall back to basic validation
+            return len(api_key.strip()) > 10
     
-    def _test_openai_api_key(self, api_key: str, config: Dict[str, Any]) -> tuple[bool, str]:
-        """Test OpenAI API key with a lightweight request."""
+    def _test_api_key_generic(self, api_key: str, provider_type: str, provider_config: Dict[str, Any], validation_config: Dict[str, Any]) -> tuple[bool, str]:
+        """
+        Generic API key testing using configuration from the model registry.
+        Works with any provider that has validation config defined.
+        """
         try:
             if httpx is None:
                 return True, "httpx not available, skipping validation"
             
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
+            # Build the URL
+            base_url = provider_config.get("default_base_url", "")
+            health_endpoint = validation_config.get("health_endpoint", "/")
             
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get("https://api.openai.com/v1/models", headers=headers)
+            # Handle different auth formats
+            auth_format = validation_config.get("auth_format", "Bearer {api_key}")
+            headers = {}
+            params = {}
+            url = base_url + health_endpoint
+            
+            # Set up authentication
+            if "?" in auth_format:
+                # Query parameter auth (like Gemini)
+                url += auth_format.format(api_key=api_key)
+            else:
+                # Header auth
+                auth_header = validation_config.get("auth_header", "Authorization")
+                headers[auth_header] = auth_format.format(api_key=api_key)
+            
+            # Add extra headers if specified
+            extra_headers = validation_config.get("extra_headers", {})
+            headers.update(extra_headers)
+            
+            # Add default content type if not specified
+            if "Content-Type" not in headers:
+                headers["Content-Type"] = "application/json"
+            
+            timeout = provider_config.get("timeout", 10)
+            method = validation_config.get("method", "GET").upper()
+            test_payload = validation_config.get("test_payload")
+            
+            with httpx.Client(timeout=timeout) as client:
+                if method == "POST" and test_payload:
+                    response = client.post(url, headers=headers, json=test_payload)
+                elif method == "POST":
+                    response = client.post(url, headers=headers)
+                else:
+                    response = client.get(url, headers=headers)
                 
+                # Check response status
                 if response.status_code == 200:
                     return True, "API key valid"
                 elif response.status_code == 401:
                     return False, "Invalid API key"
+                elif response.status_code == 403:
+                    return False, "API key lacks required permissions"
                 elif response.status_code == 429:
                     return False, "API key rate limited or quota exceeded"
                 else:
@@ -1168,138 +1161,8 @@ class ModelManager:
         except Exception as e:
             return False, f"API test failed: {e}"
     
-    def _test_anthropic_api_key(self, api_key: str, config: Dict[str, Any]) -> tuple[bool, str]:
-        """Test Anthropic API key with a lightweight request."""
-        try:
-            if httpx is None:
-                return True, "httpx not available, skipping validation"
-            
-            headers = {
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json"
-            }
-            
-            # Use a minimal request to test the key
-            data = {
-                "model": "claude-3-haiku-20240307",
-                "max_tokens": 1,
-                "messages": [{"role": "user", "content": "test"}]
-            }
-            
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post("https://api.anthropic.com/v1/messages", headers=headers, json=data)
-                
-                if response.status_code == 200:
-                    return True, "API key valid"
-                elif response.status_code == 401:
-                    return False, "Invalid API key"
-                elif response.status_code == 429:
-                    return False, "API key rate limited or quota exceeded"
-                else:
-                    return False, f"API returned status {response.status_code}"
-                    
-        except Exception as e:
-            return False, f"API test failed: {e}"
-    
-    def _test_gemini_api_key(self, api_key: str, config: Dict[str, Any]) -> tuple[bool, str]:
-        """Test Gemini API key with a lightweight request."""
-        try:
-            if httpx is None:
-                return True, "httpx not available, skipping validation"
-            
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get(f"https://generativelanguage.googleapis.com/v1/models?key={api_key}")
-                
-                if response.status_code == 200:
-                    return True, "API key valid"
-                elif response.status_code == 401 or response.status_code == 403:
-                    return False, "Invalid API key or insufficient permissions"
-                elif response.status_code == 429:
-                    return False, "API key rate limited or quota exceeded"
-                else:
-                    return False, f"API returned status {response.status_code}"
-                    
-        except Exception as e:
-            return False, f"API test failed: {e}"
-    
-    def _test_groq_api_key(self, api_key: str, config: Dict[str, Any]) -> tuple[bool, str]:
-        """Test Groq API key with a lightweight request."""
-        try:
-            if httpx is None:
-                return True, "httpx not available, skipping validation"
-            
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get("https://api.groq.com/openai/v1/models", headers=headers)
-                
-                if response.status_code == 200:
-                    return True, "API key valid"
-                elif response.status_code == 401:
-                    return False, "Invalid API key"
-                elif response.status_code == 429:
-                    return False, "API key rate limited or quota exceeded"
-                else:
-                    return False, f"API returned status {response.status_code}"
-                    
-        except Exception as e:
-            return False, f"API test failed: {e}"
-    
-    def _test_cohere_api_key(self, api_key: str, config: Dict[str, Any]) -> tuple[bool, str]:
-        """Test Cohere API key with a lightweight request."""
-        try:
-            if httpx is None:
-                return True, "httpx not available, skipping validation"
-            
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get("https://api.cohere.ai/v1/models", headers=headers)
-                
-                if response.status_code == 200:
-                    return True, "API key valid"
-                elif response.status_code == 401:
-                    return False, "Invalid API key"
-                elif response.status_code == 429:
-                    return False, "API key rate limited or quota exceeded"
-                else:
-                    return False, f"API returned status {response.status_code}"
-                    
-        except Exception as e:
-            return False, f"API test failed: {e}"
-    
-    def _test_mistral_api_key(self, api_key: str, config: Dict[str, Any]) -> tuple[bool, str]:
-        """Test Mistral API key with a lightweight request."""
-        try:
-            if httpx is None:
-                return True, "httpx not available, skipping validation"
-            
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get("https://api.mistral.ai/v1/models", headers=headers)
-                
-                if response.status_code == 200:
-                    return True, "API key valid"
-                elif response.status_code == 401:
-                    return False, "Invalid API key"
-                elif response.status_code == 429:
-                    return False, "API key rate limited or quota exceeded"
-                else:
-                    return False, f"API returned status {response.status_code}"
-                    
-        except Exception as e:
-            return False, f"API test failed: {e}"
+    # Note: All API key validation methods have been consolidated into registry-driven approach
+    # See _validate_api_key_smart(), _validate_api_key_format_regex(), and _test_api_key_generic()
     
     def get_adapter_status_summary(self) -> Dict[str, Any]:
         """
@@ -1418,97 +1281,46 @@ class ModelManager:
     
     def get_api_key_setup_guide(self) -> Dict[str, Any]:
         """
-        Generate a comprehensive API key setup guide for users.
+        Generate a comprehensive API key setup guide for users using model registry configuration.
         
         Returns:
-            Dict with setup instructions for each provider
+            Dict with setup instructions for each provider from the model registry
         """
-        api_providers = {
-            "openai": {
-                "service_name": "OpenAI (GPT-4, GPT-3.5)",
-                "setup_url": "https://platform.openai.com/api-keys",
-                "env_var": "OPENAI_API_KEY",
-                "description": "Access to GPT-4, GPT-3.5 Turbo, and DALL-E models",
-                "pricing": "Pay-per-use, free tier available",
-                "steps": [
-                    "1. Visit https://platform.openai.com/api-keys",
-                    "2. Sign in or create an OpenAI account",
-                    "3. Click 'Create new secret key'",
-                    "4. Copy the key (starts with 'sk-')",
-                    "5. Set environment variable: OPENAI_API_KEY=your_key_here"
-                ]
-            },
-            "anthropic": {
-                "service_name": "Anthropic (Claude)",
-                "setup_url": "https://console.anthropic.com/account/keys",
-                "env_var": "ANTHROPIC_API_KEY",
-                "description": "Access to Claude 3 Opus, Sonnet, and Haiku models",
-                "pricing": "Pay-per-use, competitive rates",
-                "steps": [
-                    "1. Visit https://console.anthropic.com/account/keys",
-                    "2. Sign in or create an Anthropic account",
-                    "3. Click 'Create Key'",
-                    "4. Copy the key (starts with 'sk-ant-')",
-                    "5. Set environment variable: ANTHROPIC_API_KEY=your_key_here"
-                ]
-            },
-            "gemini": {
-                "service_name": "Google Gemini",
-                "setup_url": "https://makersuite.google.com/app/apikey",
-                "env_var": "GEMINI_API_KEY",
-                "description": "Access to Gemini Pro and other Google AI models",
-                "pricing": "Generous free tier, pay-per-use beyond limits",
-                "steps": [
-                    "1. Visit https://makersuite.google.com/app/apikey",
-                    "2. Sign in with your Google account",
-                    "3. Click 'Get API key' or 'Create API key'",
-                    "4. Copy the generated key",
-                    "5. Set environment variable: GEMINI_API_KEY=your_key_here"
-                ]
-            },
-            "groq": {
-                "service_name": "Groq (Ultra-fast inference)",
-                "setup_url": "https://console.groq.com/keys",
-                "env_var": "GROQ_API_KEY",
-                "description": "Ultra-fast inference for Llama, Mixtral, and other models",
-                "pricing": "Generous free tier, very fast responses",
-                "steps": [
-                    "1. Visit https://console.groq.com/keys",
-                    "2. Sign in or create a Groq account",
-                    "3. Click 'Create API Key'",
-                    "4. Copy the key (starts with 'gsk_')",
-                    "5. Set environment variable: GROQ_API_KEY=your_key_here"
-                ]
-            },
-            "cohere": {
-                "service_name": "Cohere",
-                "setup_url": "https://dashboard.cohere.com/api-keys",
-                "env_var": "COHERE_API_KEY",
-                "description": "Access to Command and other Cohere models",
-                "pricing": "Free tier available, pay-per-use",
-                "steps": [
-                    "1. Visit https://dashboard.cohere.com/api-keys",
-                    "2. Sign in or create a Cohere account",
-                    "3. Click 'New API Key'",
-                    "4. Copy the generated key",
-                    "5. Set environment variable: COHERE_API_KEY=your_key_here"
-                ]
-            },
-            "mistral": {
-                "service_name": "Mistral AI",
-                "setup_url": "https://console.mistral.ai/api-keys/",
-                "env_var": "MISTRAL_API_KEY",
-                "description": "Access to Mistral 7B, 8x7B, and other efficient models",
-                "pricing": "Competitive pricing, efficient models",
-                "steps": [
-                    "1. Visit https://console.mistral.ai/api-keys/",
-                    "2. Sign in or create a Mistral account",
-                    "3. Click 'Create new key'",
-                    "4. Copy the generated key",
-                    "5. Set environment variable: MISTRAL_API_KEY=your_key_here"
-                ]
-            }
-        }
+        api_providers = {}
+        
+        # Build provider info from model registry
+        for adapter_name, config in self.config.get("adapters", {}).items():
+            if isinstance(config, dict) and "type" in config:
+                provider_type = config["type"]
+                
+                # Skip local/self-hosted providers that don't need API keys
+                if provider_type in ["local", "ollama", "litellm"]:
+                    continue
+                
+                validation_config = config.get("validation", {})
+                if not validation_config.get("requires_api_key", False):
+                    continue
+                
+                # Extract provider info from registry
+                provider_info = {
+                    "service_name": config.get("description", f"{provider_type.title()} AI"),
+                    "setup_url": validation_config.get("setup_url", f"https://{provider_type}.com/api-keys"),
+                    "env_var": validation_config.get("env_var", f"{provider_type.upper()}_API_KEY"),
+                    "description": config.get("description", f"Access to {config.get('model_name', 'AI models')}"),
+                    "pricing": validation_config.get("pricing", "Pay-per-use"),
+                    "api_key_format": validation_config.get("api_key_format", ""),
+                    "steps": [
+                        f"1. Visit {validation_config.get('setup_url', f'https://{provider_type}.com/api-keys')}",
+                        f"2. Sign in or create a {provider_type.title()} account",
+                        "3. Generate a new API key",
+                        f"4. Copy the key{' (format: ' + validation_config.get('api_key_format', '') + ')' if validation_config.get('api_key_format') else ''}",
+                        f"5. Set environment variable: {validation_config.get('env_var', f'{provider_type.upper()}_API_KEY')}=your_key_here"
+                    ]
+                }
+                
+                # Avoid duplicates - use the first adapter of each type
+                if provider_type not in api_providers:
+                    api_providers[provider_type] = provider_info
         
         # Add status information
         setup_guide = {
