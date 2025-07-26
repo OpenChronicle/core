@@ -13,13 +13,9 @@ OpenChronicle templates provide flexible, import-adaptable character and scene d
 - **`scene_template.json`** - Scene metadata with optional enhancements  
 - **`meta_template.json`** - Story metadata and organizational features
 - **`style_guide_template.json`** - Writing style and tone guidance
-
-### **Supporting Templates:**
-- **`memory_template.json`** - Memory system structures
-- **`conversation_thread_template.json`** - Dialogue tracking
-- **`current_state_template.json`** - Story state snapshots
-- **`history_template.json`** - Historical event tracking
 - **`instructions_template.json`** - AI behavior guidance
+
+**Note**: Memory tracking, conversation threading, current state snapshots, and historical event tracking are automatically handled by OpenChronicle's engines (MemoryManager, SceneLogger, CharacterInteractionEngine, TimelineBuilder) and do not require separate templates.
 
 ---
 
