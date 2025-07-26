@@ -1,0 +1,299 @@
+{
+  "template_info": {
+    "name": "OpenChronicle Content Tables Template",
+    "description": "Optional procedural content generation systems for sophisticated storytelling",
+    "version": "1.0",
+    "purpose": "Provides hierarchical loot tables, regional bestiaries, and encounter content systems"
+  },
+  "loot_and_rewards": {
+    "_optional": true,
+    "universal_loot_tables": {
+      "_optional": true,
+      "common_items": {
+        "{{COMMON_ITEM_1_ID}}": {
+          "name": "{{COMMON_ITEM_1_NAME}}",
+          "type": "{{WEAPON_ARMOR_TOOL_CONSUMABLE_TRINKET}}",
+          "description": "{{ITEM_DESCRIPTION}}",
+          "mechanical_properties": ["{{PROPERTY_1}}", "{{PROPERTY_2}}"],
+          "narrative_significance": "{{STORY_RELEVANCE}}",
+          "regional_variants": {
+            "_optional": true,
+            "{{REGION_ID}}": "{{REGIONAL_VARIATION_DESCRIPTION}}"
+          }
+        }
+      },
+      "uncommon_items": {
+        "{{UNCOMMON_ITEM_1_ID}}": {
+          "name": "{{UNCOMMON_ITEM_1_NAME}}",
+          "type": "{{ITEM_TYPE}}",
+          "description": "{{ITEM_DESCRIPTION}}",
+          "special_properties": ["{{PROPERTY_1}}", "{{PROPERTY_2}}"],
+          "acquisition_methods": ["{{METHOD_1}}", "{{METHOD_2}}"],
+          "story_hooks": ["{{HOOK_1}}", "{{HOOK_2}}"],
+          "cultural_significance": "{{CULTURAL_MEANING}}"
+        }
+      },
+      "rare_items": {
+        "{{RARE_ITEM_1_ID}}": {
+          "name": "{{RARE_ITEM_1_NAME}}",
+          "type": "{{ITEM_TYPE}}",
+          "description": "{{ITEM_DESCRIPTION}}",
+          "magical_properties": ["{{PROPERTY_1}}", "{{PROPERTY_2}}"],
+          "history": "{{ITEM_BACKSTORY}}",
+          "requirements": ["{{REQUIREMENT_1}}", "{{REQUIREMENT_2}}"],
+          "consequences_of_use": ["{{CONSEQUENCE_1}}", "{{CONSEQUENCE_2}}"],
+          "legend_status": "{{LEGEND_LEVEL}}"
+        }
+      },
+      "unique_items": {
+        "{{UNIQUE_ITEM_1_ID}}": {
+          "name": "{{UNIQUE_ITEM_1_NAME}}",
+          "type": "{{ARTIFACT_RELIC_LEGENDARY_CURSED}}",
+          "description": "{{ITEM_DESCRIPTION}}",
+          "extraordinary_properties": ["{{PROPERTY_1}}", "{{PROPERTY_2}}"],
+          "creation_story": "{{ORIGIN_TALE}}",
+          "current_location": "{{LOCATION_OR_HOLDER}}",
+          "seekers": ["{{SEEKER_1}}", "{{SEEKER_2}}"],
+          "plot_significance": "{{MAJOR_STORY_ROLE}}",
+          "world_impact": ["{{IMPACT_1}}", "{{IMPACT_2}}"]
+        }
+      }
+    },
+    "regional_loot_specialties": {
+      "_optional": true,
+      "{{REGION_ID}}": {
+        "regional_materials": ["{{MATERIAL_1}}", "{{MATERIAL_2}}"],
+        "crafting_traditions": ["{{TRADITION_1}}", "{{TRADITION_2}}"],
+        "signature_items": ["{{SIGNATURE_1}}", "{{SIGNATURE_2}}"],
+        "trade_goods": ["{{TRADE_GOOD_1}}", "{{TRADE_GOOD_2}}"],
+        "forbidden_items": ["{{FORBIDDEN_1}}", "{{FORBIDDEN_2}}"]
+      }
+    },
+    "narrative_reward_systems": {
+      "_optional": true,
+      "achievement_rewards": {
+        "{{ACHIEVEMENT_1_ID}}": {
+          "achievement_name": "{{ACHIEVEMENT_NAME}}",
+          "trigger_conditions": ["{{CONDITION_1}}", "{{CONDITION_2}}"],
+          "reward_type": "{{ITEM_ABILITY_KNOWLEDGE_RELATIONSHIP}}",
+          "reward_description": "{{REWARD_DETAILS}}",
+          "ongoing_benefits": ["{{BENEFIT_1}}", "{{BENEFIT_2}}"]
+        }
+      },
+      "relationship_rewards": {
+        "{{RELATIONSHIP_1_ID}}": {
+          "relationship_type": "{{FACTION_INDIVIDUAL_COMMUNITY}}",
+          "relationship_level": "{{UNKNOWN_NEUTRAL_FRIENDLY_TRUSTED_BELOVED}}",
+          "available_rewards": ["{{REWARD_1}}", "{{REWARD_2}}"],
+          "special_privileges": ["{{PRIVILEGE_1}}", "{{PRIVILEGE_2}}"],
+          "story_opportunities": ["{{OPPORTUNITY_1}}", "{{OPPORTUNITY_2}}"]
+        }
+      }
+    }
+  },
+  "creature_systems": {
+    "_optional": true,
+    "regional_bestiaries": {
+      "{{REGION_ID}}": {
+        "common_creatures": {
+          "{{CREATURE_1_ID}}": {
+            "name": "{{CREATURE_1_NAME}}",
+            "type": "{{NATURAL_MAGICAL_SUPERNATURAL_CONSTRUCT}}",
+            "habitat": "{{PREFERRED_ENVIRONMENT}}",
+            "behavior": "{{BEHAVIOR_DESCRIPTION}}",
+            "threat_level": "{{HARMLESS_MINOR_MODERATE_DANGEROUS}}",
+            "narrative_role": "{{ATMOSPHERIC_CHALLENGE_ALLY_NEUTRAL}}",
+            "story_hooks": ["{{HOOK_1}}", "{{HOOK_2}}"],
+            "cultural_significance": "{{CULTURAL_MEANING}}"
+          }
+        },
+        "uncommon_creatures": {
+          "{{CREATURE_1_ID}}": {
+            "name": "{{CREATURE_1_NAME}}",
+            "type": "{{CREATURE_TYPE}}",
+            "rarity_reason": "{{WHY_UNCOMMON}}",
+            "special_abilities": ["{{ABILITY_1}}", "{{ABILITY_2}}"],
+            "encounter_conditions": ["{{CONDITION_1}}", "{{CONDITION_2}}"],
+            "behavioral_patterns": "{{ADVANCED_BEHAVIOR}}",
+            "legend_status": "{{LOCAL_REGIONAL_MYTHICAL}}",
+            "story_potential": ["{{POTENTIAL_1}}", "{{POTENTIAL_2}}"]
+          }
+        },
+        "rare_creatures": {
+          "{{CREATURE_1_ID}}": {
+            "name": "{{CREATURE_1_NAME}}",
+            "type": "{{CREATURE_TYPE}}",
+            "uniqueness": "{{WHAT_MAKES_RARE}}",
+            "extraordinary_abilities": ["{{ABILITY_1}}", "{{ABILITY_2}}"],
+            "appearance_triggers": ["{{TRIGGER_1}}", "{{TRIGGER_2}}"],
+            "intelligence_level": "{{ANIMAL_HUMAN_SUPERHUMAN}}",
+            "motivations": ["{{MOTIVATION_1}}", "{{MOTIVATION_2}}"],
+            "historical_encounters": ["{{ENCOUNTER_1}}", "{{ENCOUNTER_2}}"],
+            "prophecy_connections": ["{{PROPHECY_1}}", "{{PROPHECY_2}}"]
+          }
+        },
+        "unique_creatures": {
+          "{{CREATURE_1_ID}}": {
+            "name": "{{CREATURE_1_NAME}}",
+            "title": "{{LEGENDARY_TITLE}}",
+            "nature": "{{ANCIENT_DIVINE_CURSED_CREATED}}",
+            "legendary_abilities": ["{{ABILITY_1}}", "{{ABILITY_2}}"],
+            "world_impact": "{{REGIONAL_GLOBAL_PLANAR}}",
+            "current_status": "{{ACTIVE_SLEEPING_BOUND_DEAD_TRANSFORMED}}",
+            "awakening_conditions": ["{{CONDITION_1}}", "{{CONDITION_2}}"],
+            "goals_and_agenda": ["{{GOAL_1}}", "{{GOAL_2}}"],
+            "allies_and_enemies": {
+              "allies": ["{{ALLY_1}}", "{{ALLY_2}}"],
+              "enemies": ["{{ENEMY_1}}", "{{ENEMY_2}}"]
+            },
+            "plot_significance": "{{CENTRAL_MAJOR_SUPPORTING_BACKGROUND}}"
+          }
+        }
+      }
+    },
+    "thematic_creature_groups": {
+      "_optional": true,
+      "{{THEME_1_ID}}": {
+        "theme_name": "{{THEME_NAME}}",
+        "theme_description": "{{THEME_DESCRIPTION}}",
+        "creatures": ["{{CREATURE_1}}", "{{CREATURE_2}}"],
+        "shared_characteristics": ["{{CHARACTERISTIC_1}}", "{{CHARACTERISTIC_2}}"],
+        "narrative_function": "{{STORY_PURPOSE}}",
+        "encounter_contexts": ["{{CONTEXT_1}}", "{{CONTEXT_2}}"]
+      }
+    },
+    "creature_interaction_systems": {
+      "_optional": true,
+      "social_creatures": {
+        "{{CREATURE_ID}}": {
+          "communication_methods": ["{{METHOD_1}}", "{{METHOD_2}}"],
+          "diplomacy_potential": "{{NONE_LIMITED_MODERATE_HIGH}}",
+          "alliance_possibilities": ["{{POSSIBILITY_1}}", "{{POSSIBILITY_2}}"],
+          "cultural_protocols": ["{{PROTOCOL_1}}", "{{PROTOCOL_2}}"],
+          "trade_or_exchange": ["{{EXCHANGE_1}}", "{{EXCHANGE_2}}"]
+        }
+      },
+      "territorial_dynamics": {
+        "{{TERRITORY_1_ID}}": {
+          "controlling_creature": "{{CREATURE_NAME}}",
+          "territory_boundaries": "{{BOUNDARY_DESCRIPTION}}",
+          "territorial_behavior": "{{BEHAVIOR_DESCRIPTION}}",
+          "intrusion_consequences": ["{{CONSEQUENCE_1}}", "{{CONSEQUENCE_2}}"],
+          "coexistence_opportunities": ["{{OPPORTUNITY_1}}", "{{OPPORTUNITY_2}}"]
+        }
+      }
+    }
+  },
+  "encounter_content": {
+    "_optional": true,
+    "encounter_types": {
+      "_optional": true,
+      "exploration_encounters": {
+        "{{ENCOUNTER_1_ID}}": {
+          "name": "{{ENCOUNTER_1_NAME}}",
+          "type": "{{DISCOVERY_OBSTACLE_MYSTERY_WONDER}}",
+          "description": "{{ENCOUNTER_DESCRIPTION}}",
+          "required_setup": ["{{SETUP_1}}", "{{SETUP_2}}"],
+          "participant_roles": ["{{ROLE_1}}", "{{ROLE_2}}"],
+          "potential_outcomes": ["{{OUTCOME_1}}", "{{OUTCOME_2}}"],
+          "follow_up_opportunities": ["{{OPPORTUNITY_1}}", "{{OPPORTUNITY_2}}"]
+        }
+      },
+      "social_encounters": {
+        "{{ENCOUNTER_1_ID}}": {
+          "name": "{{ENCOUNTER_1_NAME}}",
+          "type": "{{NEGOTIATION_CELEBRATION_CONFLICT_CEREMONY}}",
+          "participants": ["{{PARTICIPANT_1}}", "{{PARTICIPANT_2}}"],
+          "context": "{{ENCOUNTER_CONTEXT}}",
+          "stakes": ["{{STAKE_1}}", "{{STAKE_2}}"],
+          "success_criteria": ["{{CRITERIA_1}}", "{{CRITERIA_2}}"],
+          "failure_consequences": ["{{CONSEQUENCE_1}}", "{{CONSEQUENCE_2}}"],
+          "relationship_impacts": ["{{IMPACT_1}}", "{{IMPACT_2}}"]
+        }
+      },
+      "magical_encounters": {
+        "{{ENCOUNTER_1_ID}}": {
+          "name": "{{ENCOUNTER_1_NAME}}",
+          "type": "{{PHENOMENON_RITUAL_ARTIFACT_ENTITY}}",
+          "magical_nature": "{{MAGICAL_DESCRIPTION}}",
+          "interaction_methods": ["{{METHOD_1}}", "{{METHOD_2}}"],
+          "magical_requirements": ["{{REQUIREMENT_1}}", "{{REQUIREMENT_2}}"],
+          "magical_risks": ["{{RISK_1}}", "{{RISK_2}}"],
+          "transformation_potential": ["{{POTENTIAL_1}}", "{{POTENTIAL_2}}"],
+          "knowledge_gained": ["{{KNOWLEDGE_1}}", "{{KNOWLEDGE_2}}"]
+        }
+      }
+    },
+    "encounter_modifiers": {
+      "_optional": true,
+      "environmental_modifiers": {
+        "weather_effects": {
+          "{{WEATHER_TYPE}}": ["{{MODIFIER_1}}", "{{MODIFIER_2}}"]
+        },
+        "time_of_day_effects": {
+          "{{TIME_PERIOD}}": ["{{MODIFIER_1}}", "{{MODIFIER_2}}"]
+        },
+        "magical_field_effects": {
+          "{{FIELD_TYPE}}": ["{{MODIFIER_1}}", "{{MODIFIER_2}}"]
+        }
+      },
+      "cultural_modifiers": {
+        "{{CULTURE_ID}}": {
+          "cultural_lens": ["{{LENS_1}}", "{{LENS_2}}"],
+          "modified_interactions": ["{{INTERACTION_1}}", "{{INTERACTION_2}}"],
+          "cultural_taboos": ["{{TABOO_1}}", "{{TABOO_2}}"],
+          "cultural_advantages": ["{{ADVANTAGE_1}}", "{{ADVANTAGE_2}}"]
+        }
+      }
+    }
+  },
+  "discovery_systems": {
+    "_optional": true,
+    "knowledge_fragments": {
+      "_optional": true,
+      "{{KNOWLEDGE_1_ID}}": {
+        "name": "{{KNOWLEDGE_1_NAME}}",
+        "type": "{{HISTORICAL_MAGICAL_CULTURAL_PERSONAL}}",
+        "significance": "{{LOCAL_REGIONAL_GLOBAL_COSMIC}}",
+        "discovery_methods": ["{{METHOD_1}}", "{{METHOD_2}}"],
+        "prerequisites": ["{{PREREQUISITE_1}}", "{{PREREQUISITE_2}}"],
+        "revelation_impact": ["{{IMPACT_1}}", "{{IMPACT_2}}"],
+        "related_knowledge": ["{{RELATED_1}}", "{{RELATED_2}}"],
+        "narrative_consequences": ["{{CONSEQUENCE_1}}", "{{CONSEQUENCE_2}}"]
+      }
+    },
+    "mystery_elements": {
+      "_optional": true,
+      "{{MYSTERY_1_ID}}": {
+        "mystery_name": "{{MYSTERY_1_NAME}}",
+        "mystery_type": "{{DISAPPEARANCE_ORIGIN_PURPOSE_IDENTITY}}",
+        "complexity_level": "{{SIMPLE_MODERATE_COMPLEX_LAYERED}}",
+        "clue_trail": [
+          {
+            "clue_stage": 1,
+            "clue_description": "{{CLUE_1_DESCRIPTION}}",
+            "discovery_location": "{{CLUE_1_LOCATION}}",
+            "discovery_method": "{{CLUE_1_METHOD}}"
+          }
+        ],
+        "red_herrings": ["{{RED_HERRING_1}}", "{{RED_HERRING_2}}"],
+        "revelation_conditions": ["{{CONDITION_1}}", "{{CONDITION_2}}"],
+        "solution_consequences": ["{{CONSEQUENCE_1}}", "{{CONSEQUENCE_2}}"]
+      }
+    }
+  },
+  "integration_notes": {
+    "_optional": true,
+    "engine_compatibility": {
+      "narrative_dice_engine": "Content tables provide rich random generation options",
+      "character_interaction_engine": "Creature social systems enhance character relationships",
+      "scene_logger": "Encounter content and discoveries enrich scene documentation",
+      "content_analyzer": "Discovery systems provide meaningful story progression elements"
+    },
+    "usage_guidelines": {
+      "implementation": "Start with basic loot tables and regional creatures, expand as needed",
+      "customization": "Adapt creature abilities and encounter types to your story themes",
+      "balance": "Use rarity tiers to maintain narrative significance of special discoveries"
+    }
+  }
+}

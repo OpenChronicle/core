@@ -1,0 +1,220 @@
+{
+  "template_info": {
+    "name": "OpenChronicle World Systems Template",
+    "description": "Optional world-building enhancements for sophisticated storytelling environments",
+    "version": "1.0",
+    "purpose": "Provides optional magical geography, calendar systems, and regional characteristics"
+  },
+  "world_overview": {
+    "_optional": true,
+    "world_name": "{{WORLD_NAME}}",
+    "world_type": "{{FANTASY_MODERN_SCIFI_HISTORICAL}}",
+    "core_themes": ["{{THEME_1}}", "{{THEME_2}}"],
+    "magical_level": "{{NONE_LOW_MODERATE_HIGH_REALITY_BENDING}}"
+  },
+  "regional_structure": {
+    "_optional": true,
+    "regions": {
+      "{{REGION_1_ID}}": {
+        "name": "{{REGION_1_NAME}}",
+        "description": "{{REGION_1_DESCRIPTION}}",
+        "climate": "{{TEMPERATE_COLD_HOT_TROPICAL_MAGICAL}}",
+        "predominant_races": ["{{RACE_1}}", "{{RACE_2}}"],
+        "notable_cities": ["{{CITY_1}}", "{{CITY_2}}"],
+        "ports_and_access": ["{{PORT_1}}", "{{ACCESS_ROUTE_1}}"],
+        "regional_characteristics": {
+          "_optional": true,
+          "atmosphere": "{{REGIONAL_MOOD_AND_FEEL}}",
+          "natural_features": ["{{FEATURE_1}}", "{{FEATURE_2}}"],
+          "cultural_elements": ["{{CULTURE_1}}", "{{CULTURE_2}}"],
+          "economic_focus": "{{TRADE_AGRICULTURE_MILITARY_MAGICAL}}"
+        },
+        "connections": {
+          "_optional": true,
+          "borders": ["{{ADJACENT_REGION_1}}", "{{ADJACENT_REGION_2}}"],
+          "trade_routes": ["{{ROUTE_1}}", "{{ROUTE_2}}"],
+          "political_relationships": {
+            "{{OTHER_REGION_1}}": "{{ALLIED_NEUTRAL_HOSTILE_COMPLEX}}",
+            "{{OTHER_REGION_2}}": "{{RELATIONSHIP_TYPE}}"
+          }
+        }
+      }
+    }
+  },
+  "magical_geography": {
+    "_optional": true,
+    "leyline_network": {
+      "_optional": true,
+      "leylines": {
+        "{{LEYLINE_1_ID}}": {
+          "name": "{{LEYLINE_1_NAME}}",
+          "element_type": "{{FIRE_WATER_EARTH_AIR_SPIRIT_DEATH_LIFE}}",
+          "stability": "{{STABLE_VOLATILE_BROKEN_SURGING}}",
+          "path_regions": ["{{REGION_1}}", "{{REGION_2}}"],
+          "nexus_points": ["{{NEXUS_1}}", "{{NEXUS_2}}"],
+          "magical_effects": ["{{EFFECT_1}}", "{{EFFECT_2}}"]
+        }
+      },
+      "nexus_points": {
+        "_optional": true,
+        "{{NEXUS_1_ID}}": {
+          "name": "{{NEXUS_1_NAME}}",
+          "location": "{{NEXUS_1_LOCATION}}",
+          "convergence_type": "{{LEYLINE_INTERSECTION_TYPE}}",
+          "power_level": "{{MINOR_MODERATE_MAJOR_LEGENDARY}}",
+          "effects": ["{{NEXUS_EFFECT_1}}", "{{NEXUS_EFFECT_2}}"],
+          "guardians_or_inhabitants": ["{{GUARDIAN_1}}", "{{GUARDIAN_2}}"]
+        }
+      },
+      "surge_zones": {
+        "_optional": true,
+        "{{SURGE_ZONE_1_ID}}": {
+          "name": "{{SURGE_ZONE_1_NAME}}",
+          "location": "{{SURGE_ZONE_LOCATION}}",
+          "surge_type": "{{MAGICAL_BREACH_ELEMENTAL_TEMPORAL_DIMENSIONAL}}",
+          "frequency": "{{CONSTANT_PERIODIC_RARE_TRIGGERED}}",
+          "effects": ["{{SURGE_EFFECT_1}}", "{{SURGE_EFFECT_2}}"],
+          "dangers": ["{{DANGER_1}}", "{{DANGER_2}}"]
+        }
+      }
+    }
+  },
+  "temporal_systems": {
+    "_optional": true,
+    "calendar_structure": {
+      "_optional": true,
+      "year_length": "{{DAYS_PER_YEAR}}",
+      "seasons": {
+        "{{SEASON_1_ID}}": {
+          "name": "{{SEASON_1_NAME}}",
+          "duration": "{{SEASON_1_DURATION}}",
+          "months": ["{{MONTH_1}}", "{{MONTH_2}}"],
+          "characteristics": "{{SEASON_1_DESCRIPTION}}",
+          "magical_influence": "{{SEASON_1_MAGIC}}",
+          "regional_strength": ["{{STRONG_REGION_1}}", "{{STRONG_REGION_2}}"]
+        }
+      },
+      "months": {
+        "{{MONTH_1_ID}}": {
+          "name": "{{MONTH_1_NAME}}",
+          "days": "{{DAYS_IN_MONTH}}",
+          "season": "{{PARENT_SEASON}}",
+          "description": "{{MONTH_1_DESCRIPTION}}",
+          "cultural_significance": "{{MONTH_1_CULTURE}}"
+        }
+      }
+    },
+    "celestial_bodies": {
+      "_optional": true,
+      "{{CELESTIAL_1_ID}}": {
+        "name": "{{CELESTIAL_1_NAME}}",
+        "type": "{{SUN_MOON_PLANET_STAR_MAGICAL}}",
+        "cycle_length": "{{CYCLE_DURATION}}",
+        "influence": "{{MAGICAL_TIDAL_EMOTIONAL_SPIRITUAL}}",
+        "special_events": ["{{EVENT_1}}", "{{EVENT_2}}"],
+        "cultural_significance": "{{CELESTIAL_1_CULTURE}}"
+      }
+    },
+    "special_days": {
+      "_optional": true,
+      "{{SPECIAL_DAY_1_ID}}": {
+        "name": "{{SPECIAL_DAY_1_NAME}}",
+        "frequency": "{{ANNUAL_RARE_CYCLICAL}}",
+        "description": "{{SPECIAL_DAY_DESCRIPTION}}",
+        "effects": ["{{EFFECT_1}}", "{{EFFECT_2}}"],
+        "cultural_impact": "{{CELEBRATION_FEAR_REVERENCE_CHAOS}}",
+        "story_opportunities": ["{{OPPORTUNITY_1}}", "{{OPPORTUNITY_2}}"]
+      }
+    }
+  },
+  "cultural_systems": {
+    "_optional": true,
+    "festivals_and_celebrations": {
+      "_optional": true,
+      "universal_festivals": {
+        "{{UNIVERSAL_FESTIVAL_1_ID}}": {
+          "name": "{{UNIVERSAL_FESTIVAL_1_NAME}}",
+          "date": "{{FESTIVAL_DATE}}",
+          "description": "{{FESTIVAL_DESCRIPTION}}",
+          "significance": "{{CULTURAL_SIGNIFICANCE}}",
+          "activities": ["{{ACTIVITY_1}}", "{{ACTIVITY_2}}"],
+          "story_hooks": ["{{HOOK_1}}", "{{HOOK_2}}"]
+        }
+      },
+      "regional_festivals": {
+        "{{REGION_ID}}": {
+          "{{REGIONAL_FESTIVAL_1_ID}}": {
+            "name": "{{REGIONAL_FESTIVAL_1_NAME}}",
+            "date": "{{FESTIVAL_DATE}}",
+            "description": "{{FESTIVAL_DESCRIPTION}}",
+            "unique_elements": ["{{ELEMENT_1}}", "{{ELEMENT_2}}"],
+            "participants": ["{{PARTICIPANT_TYPE_1}}", "{{PARTICIPANT_TYPE_2}}"],
+            "narrative_potential": ["{{POTENTIAL_1}}", "{{POTENTIAL_2}}"]
+          }
+        }
+      }
+    },
+    "trade_and_economy": {
+      "_optional": true,
+      "currency_systems": {
+        "_optional": true,
+        "{{CURRENCY_1_ID}}": {
+          "name": "{{CURRENCY_1_NAME}}",
+          "type": "{{COIN_BARTER_MAGICAL_DIGITAL}}",
+          "regions_accepted": ["{{REGION_1}}", "{{REGION_2}}"],
+          "special_properties": ["{{PROPERTY_1}}", "{{PROPERTY_2}}"]
+        }
+      },
+      "trade_routes": {
+        "_optional": true,
+        "{{TRADE_ROUTE_1_ID}}": {
+          "name": "{{TRADE_ROUTE_1_NAME}}",
+          "path": ["{{LOCATION_1}}", "{{LOCATION_2}}", "{{LOCATION_3}}"],
+          "primary_goods": ["{{GOOD_1}}", "{{GOOD_2}}"],
+          "dangers": ["{{DANGER_1}}", "{{DANGER_2}}"],
+          "travel_time": "{{DURATION}}",
+          "story_opportunities": ["{{OPPORTUNITY_1}}", "{{OPPORTUNITY_2}}"]
+        }
+      }
+    }
+  },
+  "environmental_dynamics": {
+    "_optional": true,
+    "weather_patterns": {
+      "_optional": true,
+      "{{WEATHER_PATTERN_1_ID}}": {
+        "name": "{{WEATHER_PATTERN_1_NAME}}",
+        "type": "{{NATURAL_MAGICAL_SUPERNATURAL}}",
+        "affected_regions": ["{{REGION_1}}", "{{REGION_2}}"],
+        "frequency": "{{COMMON_SEASONAL_RARE_TRIGGERED}}",
+        "effects": ["{{EFFECT_1}}", "{{EFFECT_2}}"],
+        "story_impact": ["{{IMPACT_1}}", "{{IMPACT_2}}"]
+      }
+    },
+    "natural_phenomena": {
+      "_optional": true,
+      "{{PHENOMENON_1_ID}}": {
+        "name": "{{PHENOMENON_1_NAME}}",
+        "type": "{{GEOLOGICAL_MAGICAL_CELESTIAL_TEMPORAL}}",
+        "location": "{{PHENOMENON_LOCATION}}",
+        "description": "{{PHENOMENON_DESCRIPTION}}",
+        "effects_on_inhabitants": ["{{EFFECT_1}}", "{{EFFECT_2}}"],
+        "narrative_significance": "{{SIGNIFICANCE_DESCRIPTION}}"
+      }
+    }
+  },
+  "integration_notes": {
+    "_optional": true,
+    "engine_compatibility": {
+      "timeline_builder": "Calendar and temporal systems integrate with story progression",
+      "memory_manager": "Regional and cultural information enhances character context",
+      "scene_logger": "Environmental and cultural details enrich scene descriptions",
+      "narrative_dice_engine": "Magical geography and temporal cycles can influence random events"
+    },
+    "usage_guidelines": {
+      "implementation": "All sections are optional - use only what enhances your specific story",
+      "customization": "Expand arrays and add regions/systems as needed for your world",
+      "complexity_management": "Start with basic regional structure, add magical/temporal systems gradually"
+    }
+  }
+}
