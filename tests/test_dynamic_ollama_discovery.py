@@ -183,8 +183,8 @@ class TestDynamicOllamaDiscovery:
         with patch('os.path.exists', return_value=False):
             result = await manager.add_discovered_ollama_models()
         
-        assert "errors" in result
-        assert any("registry not found" in error.lower() for error in result["errors"])
+        assert "error" in result
+        assert "registry not found" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_add_discovered_ollama_models_registry_not_found(self):
@@ -194,8 +194,8 @@ class TestDynamicOllamaDiscovery:
         with patch('os.path.exists', return_value=False):
             result = await manager.add_discovered_ollama_models()
         
-        assert "errors" in result
-        assert any("registry not found" in error.lower() for error in result["errors"])
+        assert "error" in result
+        assert "registry not found" in result["error"].lower()
 
 if __name__ == "__main__":
     # Run a simple test if executed directly

@@ -66,46 +66,34 @@ def log_print(message, level=logging.INFO):
 
 def test_project_structure():
     """Validate overall project structure and architecture."""
-    try:
-        expected_dirs = ['core', 'storage', 'storypacks', 'tests']
-        expected_files = ['main.py', 'requirements.txt', 'README.md', 'LICENSE.md', 'Dockerfile', 'docker-compose.yaml']
-        
-        # Check project root structure
-        for directory in expected_dirs:
-            dir_path = os.path.join(project_root, directory)
-            if not os.path.exists(dir_path):
-                log_print(f"[FAIL] Missing required directory: {directory}", logging.ERROR)
-                return False
-            log_print(f"[PASS] Found required directory: {directory}")
-        
-        for file in expected_files:
-            file_path = os.path.join(project_root, file)
-            if not os.path.exists(file_path):
-                log_print(f"[FAIL] Missing required file: {file}", logging.ERROR)
-                return False
-            log_print(f"[PASS] Found required file: {file}")
-        
-        # Validate core module structure
-        core_modules = [
-            'story_loader.py', 'context_builder.py', 'scene_logger.py',
-            'memory_manager.py', 'database.py', 'model_adapter.py',
-            'content_analyzer.py', 'token_manager.py', 'rollback_engine.py',
-            'timeline_builder.py', 'bookmark_manager.py'
-        ]
-        
-        core_path = os.path.join(project_root, 'core')
-        for module in core_modules:
-            module_path = os.path.join(core_path, module)
-            if not os.path.exists(module_path):
-                log_print(f"[FAIL] Missing core module: {module}", logging.ERROR)
-                return False
-        
-        log_print("[PASS] Project structure validation complete")
-        return True
-    except Exception as e:
-        log_print(f"[FAIL] Project structure error: {e}", logging.ERROR)
-        log_print(traceback.format_exc(), logging.ERROR)
-        return False
+    expected_dirs = ['core', 'storage', 'storypacks', 'tests']
+    expected_files = ['main.py', 'requirements.txt', 'README.md', 'LICENSE.md', 'Dockerfile', 'docker-compose.yaml']
+    
+    # Check project root structure
+    for directory in expected_dirs:
+        dir_path = os.path.join(project_root, directory)
+        assert os.path.exists(dir_path), f"Missing required directory: {directory}"
+        log_print(f"[PASS] Found required directory: {directory}")
+    
+    for file in expected_files:
+        file_path = os.path.join(project_root, file)
+        assert os.path.exists(file_path), f"Missing required file: {file}"
+        log_print(f"[PASS] Found required file: {file}")
+    
+    # Validate core module structure
+    core_modules = [
+        'story_loader.py', 'context_builder.py', 'scene_logger.py',
+        'memory_manager.py', 'database.py', 'model_adapter.py',
+        'content_analyzer.py', 'token_manager.py', 'rollback_engine.py',
+        'timeline_builder.py', 'bookmark_manager.py'
+    ]
+    
+    core_path = os.path.join(project_root, 'core')
+    for module in core_modules:
+        module_path = os.path.join(core_path, module)
+        assert os.path.exists(module_path), f"Missing core module: {module}"
+    
+    log_print("[PASS] Project structure validation complete")
 
 def test_import_dependencies():
     """Validate all import dependencies and circular imports."""

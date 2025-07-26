@@ -2235,7 +2235,12 @@ class ModelManager:
         """
         # Use provided URL or get from configuration
         if base_url is None:
-            base_url = self.get_provider_base_url("ollama")
+            try:
+                base_url = self.get_provider_base_url("ollama")
+            except FileNotFoundError as e:
+                log_error(f"Error getting base URL for provider ollama: {e}")
+                return {"error": f"Model registry not found. {e}"}
+            
             if not base_url:
                 return {"error": "No Ollama base URL configured. Set OLLAMA_HOST environment variable or update registry."}
         

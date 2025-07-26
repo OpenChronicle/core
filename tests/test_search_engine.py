@@ -882,8 +882,8 @@ class TestSearchExport(unittest.TestCase):
         results = self.engine.search_all("library")
         
         # Export to JSON
-        if hasattr(self.engine, 'export_results'):
-            json_data = self.engine.export_results(results, format='json')
+        if hasattr(self.engine, 'export_search_results'):
+            json_data = self.engine.export_search_results(results, format='json')
             
             # Should be valid JSON
             parsed = json.loads(json_data)
