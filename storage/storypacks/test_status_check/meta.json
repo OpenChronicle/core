@@ -1,0 +1,13 @@
+{
+  "story_name": "{{STORY_NAME}}",
+  "title": "Test Status Check",
+  "author": "OpenChronicle Import Tool",
+  "basic_settings": {
+    "genre": "{{FANTASY_SCIFI_MODERN_HISTORICAL}}"
+  },
+  "name": "test_status_check",
+  "version": "1.0.0",
+  "description": "Imported storypack: test_status_check",
+  "created": "2025-07-27",
+  "last_modified": "2025-07-27"
+}

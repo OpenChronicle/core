@@ -101,8 +101,9 @@
 
 ### Immediate (This Week)
 - ✅ **Documentation alignment** - COMPLETED
+- ✅ **Storypack importer consolidation** - COMPLETED
+- ✅ **Test organization** - COMPLETED  
 - ⏳ **Final test validation** - Minor edge cases
-- ⏳ **Performance baseline** - Current metrics capture
 
 ### Short Term (Next 2 Weeks)  
 - 🎯 **Multi-provider image generation** - Stability AI, others

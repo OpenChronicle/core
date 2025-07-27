@@ -616,30 +616,205 @@ def quick_import_test(storypack_name: str = "test_import") -> Dict[str, Any]:
     return importer.run_basic_import(storypack_name)
 
 
-if __name__ == "__main__":
-    # Simple test when run directly
+def cli_main():
+    """
+    Command-line interface for storypack importing.
+    
+    Usage:
+        python -m utilities.storypack_importer <source_directory> <storypack_name> [options]
+        
+    Examples:
+        # Basic import
+        python -m utilities.storypack_importer "C:/my_story" "fantasy_realm" --basic
+        
+        # AI-powered import  
+        python -m utilities.storypack_importer "C:/my_story" "fantasy_realm" --ai
+        
+        # Preview mode
+        python -m utilities.storypack_importer "C:/my_story" "preview" --preview
+    """
+    import argparse
+    import sys
+    import asyncio
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(
+        description="Import story content into OpenChronicle storypacks",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  Basic file import:
+    python -m utilities.storypack_importer "C:/my_story" "fantasy_realm" --basic
+    
+  AI-powered analysis:
+    python -m utilities.storypack_importer "C:/my_story" "fantasy_realm" --ai
+    
+  Preview mode:
+    python -m utilities.storypack_importer "C:/my_story" "preview" --preview
+        """
+    )
+    
+    parser.add_argument("source_directory", 
+                       help="Source directory containing story files")
+    parser.add_argument("storypack_name", 
+                       help="Name for the new storypack")
+    
+    # Import mode options
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument("--basic", action="store_true",
+                           help="Basic import (file discovery only)")
+    mode_group.add_argument("--ai", action="store_true", 
+                           help="AI-powered import (full content analysis)")
+    mode_group.add_argument("--preview", action="store_true",
+                           help="Preview mode (show what would be imported)")
+    
+    # Optional parameters
+    parser.add_argument("--verbose", "-v", action="store_true",
+                       help="Verbose output")
+    parser.add_argument("--dry-run", action="store_true",
+                       help="Show what would be done without executing")
+    
+    args = parser.parse_args()
+    
+    # Validate arguments
+    source_path = Path(args.source_directory)
+    if not source_path.exists():
+        print(f"Error: Source directory '{args.source_directory}' does not exist")
+        sys.exit(1)
+    
+    if not source_path.is_dir():
+        print(f"Error: '{args.source_directory}' is not a directory")
+        sys.exit(1)
+    
+    # Run the import
+    try:
+        asyncio.run(_run_cli_import(args))
+    except KeyboardInterrupt:
+        print("\nImport cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error during import: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+async def _run_cli_import(args):
+    """Execute the CLI storypack import operation"""
+    
     print("OpenChronicle Storypack Importer")
     print("=" * 40)
+    print(f"Source: {args.source_directory}")
+    print(f"Storypack: {args.storypack_name}")
     
-    importer = StorypackImporter()
+    if args.preview:
+        print("Mode: PREVIEW (no files will be created)")
+    elif args.basic:
+        print("Mode: BASIC (file discovery only)")
+    elif args.ai:
+        print("Mode: AI-POWERED (full content analysis)")
     
-    # Get import summary
-    summary = importer.get_import_summary()
-    print(f"Source files found: {sum(len(files) for files in summary['discovered_files'].values())}")
-    print(f"Templates available: {len(summary['available_templates'])}")
-    print(f"AI available: {summary['ai_available']}")
-    print(f"Import ready: {summary['import_ready']}")
+    print()
     
-    if summary['validation_issues']:
-        print("Issues:")
-        for issue in summary['validation_issues']:
-            print(f"  - {issue}")
+    # Initialize the importer with source directory
+    print("Initializing importer...")
+    source_path = Path(args.source_directory).resolve()
+    importer = StorypackImporter(source_path)
     
-    # Run basic test if ready
-    if summary['import_ready']:
-        print("\nRunning basic import test...")
-        result = quick_import_test()
-        if result['success']:
-            print(f"✅ Test import successful: {result['storypack_name']}")
+    if args.preview:
+        # Preview mode - discover files and show what would be imported
+        print("Discovering files...")
+        discovered_files = importer.discover_source_files()
+        
+        print(f"\nDiscovered files by category:")
+        total_files = 0
+        for category, files in discovered_files.items():
+            if files:
+                print(f"\n{category.upper()} ({len(files)} files):")
+                for file_path in files:
+                    rel_path = os.path.relpath(file_path, args.source_directory)
+                    print(f"  - {rel_path}")
+                total_files += len(files)
+        
+        print(f"\nTotal files to import: {total_files}")
+        
+        if args.ai:
+            print("\nAI Analysis would be performed on all discovered files")
+            print("AI capabilities:")
+            try:
+                ai_ready = importer.test_ai_capabilities()
+                if ai_ready:
+                    print("  ✓ Content categorization")
+                    print("  ✓ Character extraction")
+                    print("  ✓ Location extraction") 
+                    print("  ✓ Lore extraction")
+                    print("  ✓ Metadata generation")
+                else:
+                    print("  ✗ AI analysis not available (no working models)")
+            except Exception as e:
+                print(f"  ✗ AI unavailable: {e}")
+        
+    elif args.basic:
+        # Basic import
+        print("Starting basic import...")
+        if args.dry_run:
+            print("DRY RUN: No files will be created")
+            return
+        
+        # Validate readiness
+        ready, issues = importer.validate_import_readiness()
+        if not ready:
+            print("Import readiness check failed:")
+            for issue in issues:
+                print(f"  - {issue}")
+            sys.exit(1)
+        
+        result = importer.run_basic_import(args.storypack_name)
+        
+        if result["success"]:
+            print(f"✓ Basic import completed successfully!")
+            print(f"  Storypack: {result['storypack_path']}")
+            print(f"  Templates used: {len(result.get('templates_used', []))}")
+            discovered_files = result.get('discovered_files', {})
+            total_files = sum(len(files) for files in discovered_files.values())
+            print(f"  Source files discovered: {total_files}")
         else:
-            print(f"❌ Test import failed: {result.get('error', 'Unknown error')}")
+            print(f"✗ Import failed: {result.get('error', 'Unknown error')}")
+            sys.exit(1)
+    
+    elif args.ai:
+        # AI-powered import
+        print("Starting AI-powered import...")
+        print("This may take several minutes depending on content volume...")
+        
+        if args.dry_run:
+            print("DRY RUN: No files will be created")
+            return
+        
+        # Validate readiness
+        ready, issues = importer.validate_import_readiness()
+        if not ready:
+            print("Import readiness check failed:")
+            for issue in issues:
+                print(f"  - {issue}")
+            sys.exit(1)
+        
+        result = await importer.run_ai_import(args.storypack_name)
+        
+        if result["success"]:
+            print(f"✓ AI import completed successfully!")
+            print(f"  Storypack: {result['storypack_path']}")
+            print(f"  Files processed: {result['files_processed']}")
+            metadata_confidence = result.get('metadata', {}).get('confidence', 0)
+            print(f"  Analysis confidence: {metadata_confidence:.1%}")
+            print(f"  Detailed analysis: import_analysis.json")
+        else:
+            print(f"✗ Import failed: {result.get('error', 'Unknown error')}")
+            sys.exit(1)
+    
+    print("\nImport complete!")
+
+
+if __name__ == "__main__":
+    cli_main()
