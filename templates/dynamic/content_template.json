@@ -1,0 +1,261 @@
+{
+  "template_info": {
+    "name": "OpenChronicle Content Template",
+    "description": "Pure procedural generation tables for dynamic storytelling",
+    "version": "1.0",
+    "purpose": "Provides content generation tables for items, creatures, and encounters",
+    "required_fields": [],
+    "optional_fields": "Any field marked with '_optional': true can be safely deleted",
+    "usage": "Delete entire fields/sections with '_optional': true, or just the '_optional' key to make field required",
+    "import_adaptability": {
+      "arrays_expandable": "All arrays can contain any number of entries - template shows minimum structure",
+      "content_scaling": "All content tables can expand infinitely based on story needs",
+      "flexible_structure": "Import processes should expand arrays and adapt field counts dynamically"
+    },
+    "application_behavior": {
+      "empty_optional_fields": "Application will automatically ignore optional fields that are empty, null, or contain only placeholder values",
+      "unused_optional_fields": "Optional fields left as {{PLACEHOLDER}} values will be treated as unused and ignored",
+      "processing_logic": "Only populated optional fields with actual content will be processed by the application"
+    }
+  },
+  "items": {
+    "_optional": true,
+    "common_items": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many common items as needed",
+      "value": [
+        {
+          "name": "{{ITEM_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{WEAPON_ARMOR_TOOL_CONSUMABLE}}"
+          },
+          "description": {
+            "_optional": true,
+            "value": "{{ITEM_DESCRIPTION}}"
+          },
+          "properties": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many properties as needed",
+            "value": [
+              "{{PROPERTY}}",
+              "{{PROPERTY}}"
+            ]
+          }
+        }
+      ]
+    },
+    "rare_items": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many rare items as needed",
+      "value": [
+        {
+          "name": "{{ITEM_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{ITEM_TYPE}}"
+          },
+          "description": {
+            "_optional": true,
+            "value": "{{ITEM_DESCRIPTION}}"
+          },
+          "special_properties": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many special properties as needed",
+            "value": [
+              "{{PROPERTY}}",
+              "{{PROPERTY}}"
+            ]
+          },
+          "history": {
+            "_optional": true,
+            "value": "{{ITEM_BACKSTORY}}"
+          }
+        }
+      ]
+    }
+  },
+  "creatures": {
+    "_optional": true,
+    "common_creatures": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many common creatures as needed",
+      "value": [
+        {
+          "name": "{{CREATURE_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{NATURAL_MAGICAL_CONSTRUCT}}"
+          },
+          "habitat": {
+            "_optional": true,
+            "value": "{{PREFERRED_ENVIRONMENT}}"
+          },
+          "behavior": {
+            "_optional": true,
+            "value": "{{BEHAVIOR_DESCRIPTION}}"
+          },
+          "threat_level": {
+            "_optional": true,
+            "value": "{{HARMLESS_MINOR_MODERATE_DANGEROUS}}"
+          }
+        }
+      ]
+    },
+    "rare_creatures": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many rare creatures as needed",
+      "value": [
+        {
+          "name": "{{CREATURE_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{CREATURE_TYPE}}"
+          },
+          "uniqueness": {
+            "_optional": true,
+            "value": "{{WHAT_MAKES_RARE}}"
+          },
+          "special_abilities": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many abilities as needed",
+            "value": [
+              "{{ABILITY}}",
+              "{{ABILITY}}"
+            ]
+          },
+          "legend_status": {
+            "_optional": true,
+            "value": "{{LOCAL_REGIONAL_MYTHICAL}}"
+          }
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "_optional": true,
+    "social_encounters": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many social encounters as needed",
+      "value": [
+        {
+          "name": "{{ENCOUNTER_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{NEGOTIATION_CELEBRATION_CONFLICT}}"
+          },
+          "participants": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many participants as needed",
+            "value": [
+              "{{PARTICIPANT}}",
+              "{{PARTICIPANT}}"
+            ]
+          },
+          "context": {
+            "_optional": true,
+            "value": "{{ENCOUNTER_CONTEXT}}"
+          },
+          "potential_outcomes": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many outcomes as needed",
+            "value": [
+              "{{OUTCOME}}",
+              "{{OUTCOME}}"
+            ]
+          }
+        }
+      ]
+    },
+    "exploration_encounters": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many exploration encounters as needed",
+      "value": [
+        {
+          "name": "{{ENCOUNTER_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{DISCOVERY_OBSTACLE_MYSTERY}}"
+          },
+          "description": {
+            "_optional": true,
+            "value": "{{ENCOUNTER_DESCRIPTION}}"
+          },
+          "setup_requirements": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many requirements as needed",
+            "value": [
+              "{{REQUIREMENT}}",
+              "{{REQUIREMENT}}"
+            ]
+          },
+          "story_opportunities": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many opportunities as needed",
+            "value": [
+              "{{OPPORTUNITY}}",
+              "{{OPPORTUNITY}}"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "discoveries": {
+    "_optional": true,
+    "knowledge": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many knowledge pieces as needed",
+      "value": [
+        {
+          "name": "{{KNOWLEDGE_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{HISTORICAL_MAGICAL_CULTURAL}}"
+          },
+          "significance": {
+            "_optional": true,
+            "value": "{{LOCAL_REGIONAL_GLOBAL}}"
+          },
+          "discovery_method": {
+            "_optional": true,
+            "value": "{{HOW_TO_DISCOVER}}"
+          },
+          "impact": {
+            "_optional": true,
+            "value": "{{STORY_IMPACT}}"
+          }
+        }
+      ]
+    },
+    "mysteries": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many mysteries as needed",
+      "value": [
+        {
+          "name": "{{MYSTERY_NAME}}",
+          "type": {
+            "_optional": true,
+            "value": "{{DISAPPEARANCE_ORIGIN_PURPOSE}}"
+          },
+          "complexity": {
+            "_optional": true,
+            "value": "{{SIMPLE_MODERATE_COMPLEX}}"
+          },
+          "clues": {
+            "_optional": true,
+            "_comment": "Array can expand - add as many clues as needed",
+            "value": [
+              "{{CLUE}}",
+              "{{CLUE}}"
+            ]
+          },
+          "resolution_impact": {
+            "_optional": true,
+            "value": "{{RESOLUTION_CONSEQUENCES}}"
+          }
+        }
+      ]
+    }
+  }
+}
