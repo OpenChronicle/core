@@ -19,6 +19,38 @@ from unittest.mock import Mock, patch, AsyncMock
 from utilities.storypack_importer import StorypackImporter, quick_import_test
 
 
+# Global list to track created storypacks for cleanup
+_created_storypacks = []
+
+
+def track_storypack(storypack_path):
+    """Track a storypack for cleanup."""
+    global _created_storypacks
+    path = Path(storypack_path)
+    if path not in _created_storypacks:
+        _created_storypacks.append(path)
+
+
+def cleanup_tracked_storypacks():
+    """Clean up only the storypacks we explicitly created."""
+    global _created_storypacks
+    for storypack_path in _created_storypacks:
+        if storypack_path.exists():
+            try:
+                shutil.rmtree(storypack_path)
+                print(f"Cleaned up tracked storypack: {storypack_path.name}")
+            except Exception as e:
+                print(f"Warning: Could not clean up {storypack_path.name}: {e}")
+    _created_storypacks.clear()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def test_session_cleanup():
+    """Clean up tracked storypacks at the end of test session."""
+    yield
+    cleanup_tracked_storypacks()
+
+
 class TestStorypackImporter:
     """Test cases for the StorypackImporter class."""
     
@@ -99,6 +131,10 @@ class TestStorypackImporter:
         
         result = importer.run_basic_import(storypack_name)
         
+        # Track the created storypack for cleanup
+        storypack_path = Path(result["storypack_path"])
+        track_storypack(storypack_path)
+        
         # Check result structure
         assert result["success"] is True
         assert result["storypack_name"] == storypack_name
@@ -107,7 +143,6 @@ class TestStorypackImporter:
         assert "templates_used" in result
         
         # Check that storypack was created
-        storypack_path = Path(result["storypack_path"])
         assert storypack_path.exists()
         assert (storypack_path / "meta.json").exists()
         
@@ -116,10 +151,6 @@ class TestStorypackImporter:
         assert len(discovered["characters"]) == 2
         assert len(discovered["locations"]) == 1
         assert len(discovered["lore"]) == 1
-        
-        # Cleanup
-        if storypack_path.exists():
-            shutil.rmtree(storypack_path)
     
     @pytest.mark.asyncio
     async def test_ai_import(self, importer):
@@ -145,17 +176,16 @@ class TestStorypackImporter:
             
             result = await importer.run_ai_import(storypack_name)
             
+            # Track the created storypack for cleanup
+            storypack_path = Path(result["storypack_path"])
+            track_storypack(storypack_path)
+            
             # Check result structure
             assert result["success"] is True
             assert result["storypack_name"] == storypack_name
             assert "files_processed" in result
             assert "analysis_results" in result
             assert "metadata" in result
-            
-            # Cleanup
-            storypack_path = Path(result["storypack_path"])
-            if storypack_path.exists():
-                shutil.rmtree(storypack_path)
     
     def test_get_import_summary(self, importer):
         """Test import summary generation."""
@@ -226,6 +256,15 @@ class TestStorypackImporterAI:
     async def test_ai_capabilities_test(self, mock_importer):
         """Test AI capabilities testing."""
         # Mock AI test responses
+        mock_importer.content_analyzer.find_working_analysis_models = AsyncMock(
+            return_value=[
+                {"name": "mock", "suitability_score": 0.9},
+                {"name": "test-sync", "suitability_score": 0.8}
+            ]
+        )
+        mock_importer.content_analyzer.analyze_imported_content = AsyncMock(
+            return_value={"characters": [{"name": "Sarah"}], "content_type": "narrative"}
+        )
         mock_importer.content_analyzer.analyze_content_category = AsyncMock(
             return_value={"content_type": "test", "confidence": 0.8}
         )
@@ -245,13 +284,13 @@ class TestQuickImportFunction:
     def test_quick_import_test(self):
         """Test the quick import test function."""
         with patch('utilities.storypack_importer.StorypackImporter') as MockImporter:
-            # Mock the importer behavior
+            # Mock the importer behavior to avoid creating real files
             mock_instance = MockImporter.return_value
             mock_instance.validate_import_readiness.return_value = (True, [])
             mock_instance.run_basic_import.return_value = {
                 "success": True,
                 "storypack_name": "test_import",
-                "storypack_path": "/fake/path",
+                "storypack_path": "/fake/path/that/does/not/exist",  # Use fake path
                 "discovered_files": {"characters": [], "locations": [], "lore": []}
             }
             
@@ -259,22 +298,65 @@ class TestQuickImportFunction:
             
             assert result["success"] is True
             assert result["storypack_name"] == "test_import"
+            # No need to track this since it's a fake path
 
 
 class TestStorageAndCleanup:
     """Test cases for storage management and cleanup."""
     
-    def test_storypack_creation_structure(self):
-        """Test that created storypacks have correct structure."""
-        # This test would verify the directory structure
-        # and required files are created properly
-        pass
+    @pytest.fixture
+    def temp_source_dir(self):
+        """Create a temporary directory with test source files."""
+        temp_dir = Path(tempfile.mkdtemp())
+        
+        # Create test directory structure
+        (temp_dir / "characters").mkdir()
+        (temp_dir / "test.txt").write_text("Test content")
+        
+        yield temp_dir
+        
+        # Cleanup
+        shutil.rmtree(temp_dir)
     
-    def test_cleanup_on_failure(self):
-        """Test that partial imports are cleaned up on failure."""
-        # This test would verify that failed imports don't leave
-        # partial storypack structures behind
-        pass
+    @pytest.fixture
+    def importer(self, temp_source_dir):
+        """Create a StorypackImporter instance with test source directory."""
+        return StorypackImporter(temp_source_dir)
+    
+    def test_storypack_creation_structure(self, importer):
+        """Test that created storypacks have correct structure."""
+        storypack_name = "test_structure_validation"
+        
+        result = importer.run_basic_import(storypack_name)
+        storypack_path = Path(result["storypack_path"])
+        track_storypack(storypack_path)
+        
+        # Verify directory structure (based on create_storypack_structure method)
+        assert storypack_path.exists()
+        assert (storypack_path / "meta.json").exists()
+        assert (storypack_path / "characters").exists()
+        assert (storypack_path / "canon").exists()
+        assert (storypack_path / "memory").exists()
+    
+    def test_cleanup_tracking(self):
+        """Test that our tracking system works correctly."""
+        # Create a temporary test directory to simulate a storypack
+        temp_dir = Path(tempfile.mkdtemp(prefix="test_cleanup_"))
+        temp_dir.mkdir(exist_ok=True)
+        (temp_dir / "test_file.txt").write_text("test content")
+        
+        # Track it
+        track_storypack(temp_dir)
+        
+        # Verify it's tracked
+        assert temp_dir in _created_storypacks
+        
+        # Clean up manually for this test
+        cleanup_tracked_storypacks()
+        
+        # Verify it was cleaned up
+        assert not temp_dir.exists()
+        assert len(_created_storypacks) == 0
 
 
 class TestCLIIntegration:

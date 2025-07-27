@@ -480,6 +480,17 @@ FodyWeavers.xsd
 test_development.py
 temp_test*.py
 
+# Test artifacts and temporary storypacks
+storage/storypacks/test_*
+storage/storypacks/*test*
+storage/storypacks/cli_test*
+test_cleanup_*
+temp_storypack_*
+
+# Pytest artifacts
+.pytest_cache/
+*.pytest_cache/
+
 # OS-specific files
 .DS_Store
 .DS_Store?
