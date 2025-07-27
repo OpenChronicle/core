@@ -70,7 +70,7 @@ class ModelAdapter(ABC):
         }
         
         # Create logs directory if it doesn't exist
-        logs_dir = os.path.join("storage", story_id, "logs")
+        logs_dir = os.path.join("storage", "temp", "test_data", story_id, "logs")
         os.makedirs(logs_dir, exist_ok=True)
         
         # Log to file
@@ -2111,7 +2111,7 @@ class ModelManager:
             bool: True if synchronization was successful
         """
         try:
-            runtime_state_file = os.path.join("storage", "runtime", "runtime_state.json")
+            runtime_state_file = os.path.join("storage", "data", "runtime", "runtime_state.json")
             
             # Load existing runtime state or create new one
             if os.path.exists(runtime_state_file):
@@ -2522,7 +2522,7 @@ class ModelManager:
     def _load_runtime_state(self) -> Dict[str, Any]:
         """Load runtime state from storage."""
         try:
-            runtime_state_file = os.path.join("storage", "runtime", "runtime_state.json")
+            runtime_state_file = os.path.join("storage", "data", "runtime", "runtime_state.json")
             
             if os.path.exists(runtime_state_file):
                 with open(runtime_state_file, "r", encoding="utf-8") as f:
@@ -2548,7 +2548,7 @@ class ModelManager:
     def _save_runtime_state(self, runtime_state: Dict[str, Any]) -> bool:
         """Save runtime state to storage."""
         try:
-            runtime_state_file = os.path.join("storage", "runtime", "runtime_state.json")
+            runtime_state_file = os.path.join("storage", "data", "runtime", "runtime_state.json")
             os.makedirs(os.path.dirname(runtime_state_file), exist_ok=True)
             
             # Update metadata

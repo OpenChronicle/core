@@ -70,15 +70,21 @@ class TestDatabaseUtilities:
     
     def test_get_db_path(self, temp_story_id):
         """Test database path generation."""
-        path = get_db_path(temp_story_id)
-        expected = os.path.join("storage", temp_story_id, "openchronicle.db")
+        # Test with explicit test flag
+        path = get_db_path(temp_story_id, is_test=True)
+        expected = os.path.join("storage", "temp", "test_data", temp_story_id, "openchronicle.db")
         assert path == expected
+        
+        # Test production path
+        prod_path = get_db_path(temp_story_id, is_test=False)
+        expected_prod = os.path.join("storage", "storypacks", temp_story_id, "openchronicle.db")
+        assert prod_path == expected_prod
     
     def test_ensure_db_dir(self, temp_story_id, temp_storage_dir):
         """Test database directory creation."""
-        ensure_db_dir(temp_story_id)
+        ensure_db_dir(temp_story_id, is_test=True)
         
-        expected_dir = os.path.join(temp_storage_dir, "storage", temp_story_id)
+        expected_dir = os.path.join(temp_storage_dir, "storage", "temp", "test_data", temp_story_id)
         assert os.path.exists(expected_dir)
     
     def test_check_fts_support(self):

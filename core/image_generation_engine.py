@@ -503,8 +503,8 @@ def create_image_engine(story_id: str, config: Optional[Dict[str, Any]] = None) 
     """Create and configure an image generation engine for a story using model registry"""
     try:
         # Convert story_id to story path - follow the same pattern as other modules
-        # Most modules use storage/<story_id> for file storage
-        story_path = f"storage/{story_id}"
+        # Most modules use storage/temp/test_data/<story_id> for file storage
+        story_path = f"storage/temp/test_data/{story_id}"
         
         # Get image configuration from model registry
         image_config = get_image_config_from_registry(story_path)
@@ -525,7 +525,7 @@ def create_image_engine(story_id: str, config: Optional[Dict[str, Any]] = None) 
             },
             "default_adapter": "mock"
         }
-        story_path = f"storage/{story_id}"
+        story_path = f"storage/temp/test_data/{story_id}"
         return ImageGenerationEngine(story_path, fallback_config)
 
 

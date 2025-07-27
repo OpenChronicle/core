@@ -15,19 +15,38 @@ def has_fts5_support():
     except sqlite3.OperationalError:
         return False
 
-def get_db_path(story_id):
-    """Get the path to the SQLite database for a story."""
-    return os.path.join("storage", story_id, "openchronicle.db")
+def _is_test_context():
+    """Detect if we're running in a test context."""
+    import sys
+    # Check if pytest is running
+    return 'pytest' in sys.modules or 'unittest' in sys.modules
 
-def ensure_db_dir(story_id):
+def get_db_path(story_id, is_test=None):
+    """Get the path to the SQLite database for a story.
+    
+    Args:
+        story_id: The story identifier
+        is_test: Whether this is for test data. If None, auto-detects test context.
+    """
+    if is_test is None:
+        is_test = _is_test_context()
+    
+    if is_test:
+        # Test data goes in temp folder
+        return os.path.join("storage", "temp", "test_data", story_id, "openchronicle.db")
+    else:
+        # Production data goes in storypacks
+        return os.path.join("storage", "storypacks", story_id, "openchronicle.db")
+
+def ensure_db_dir(story_id, is_test=None):
     """Ensure the database directory exists."""
-    db_path = get_db_path(story_id)
+    db_path = get_db_path(story_id, is_test)
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-def init_database(story_id):
+def init_database(story_id, is_test=None):
     """Initialize the database with required tables."""
-    ensure_db_dir(story_id)
-    db_path = get_db_path(story_id)
+    ensure_db_dir(story_id, is_test)
+    db_path = get_db_path(story_id, is_test)
     
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
@@ -223,20 +242,20 @@ def init_database(story_id):
         
         conn.commit()
 
-def get_connection(story_id):
+def get_connection(story_id, is_test=None):
     """Get a database connection for a story."""
     # Only initialize database if it doesn't exist
-    db_path = get_db_path(story_id)
+    db_path = get_db_path(story_id, is_test)
     if not os.path.exists(db_path):
-        init_database(story_id)
+        init_database(story_id, is_test)
     
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row  # Enable column access by name
     return conn
 
-def execute_query(story_id, query, params=None):
+def execute_query(story_id, query, params=None, is_test=None):
     """Execute a query and return results."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         if params:
             cursor.execute(query, params)
@@ -244,9 +263,9 @@ def execute_query(story_id, query, params=None):
             cursor.execute(query)
         return cursor.fetchall()
 
-def execute_update(story_id, query, params=None):
+def execute_update(story_id, query, params=None, is_test=None):
     """Execute an update/insert query."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         if params:
             cursor.execute(query, params)
@@ -255,9 +274,9 @@ def execute_update(story_id, query, params=None):
         conn.commit()
         return cursor.rowcount
 
-def execute_insert(story_id, query, params=None):
+def execute_insert(story_id, query, params=None, is_test=None):
     """Execute an insert query and return the last row ID."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         if params:
             cursor.execute(query, params)
@@ -269,9 +288,9 @@ def execute_insert(story_id, query, params=None):
 def migrate_from_json(story_id):
     """Migrate existing JSON data to SQLite."""
     # Check if there's existing JSON data to migrate
-    scenes_dir = os.path.join("storage", story_id, "scenes")
-    memory_dir = os.path.join("storage", story_id, "memory")
-    rollback_dir = os.path.join("storage", story_id, "rollback")
+    scenes_dir = os.path.join("storage", "temp", "test_data", story_id, "scenes")
+    memory_dir = os.path.join("storage", "temp", "test_data", story_id, "memory")
+    rollback_dir = os.path.join("storage", "temp", "test_data", story_id, "rollback")
     
     if not any(os.path.exists(d) for d in [scenes_dir, memory_dir, rollback_dir]):
         return {"migrated": 0, "message": "No JSON data to migrate"}
@@ -351,9 +370,9 @@ def migrate_from_json(story_id):
 
 def cleanup_json_files(story_id):
     """Clean up old JSON files after successful migration."""
-    scenes_dir = os.path.join("storage", story_id, "scenes")
-    memory_dir = os.path.join("storage", story_id, "memory")
-    rollback_dir = os.path.join("storage", story_id, "rollback")
+    scenes_dir = os.path.join("storage", "temp", "test_data", story_id, "scenes")
+    memory_dir = os.path.join("storage", "temp", "test_data", story_id, "memory")
+    rollback_dir = os.path.join("storage", "temp", "test_data", story_id, "rollback")
     
     cleaned_count = 0
     
@@ -367,9 +386,9 @@ def cleanup_json_files(story_id):
     
     return {"cleaned": cleaned_count, "message": f"Cleaned {cleaned_count} JSON files"}
 
-def get_database_stats(story_id):
+def get_database_stats(story_id, is_test=None):
     """Get database statistics."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         
         stats = {}
@@ -391,7 +410,7 @@ def get_database_stats(story_id):
         stats['rollback_points_count'] = cursor.fetchone()[0]
         
         # Database size
-        db_path = get_db_path(story_id)
+        db_path = get_db_path(story_id, is_test)
         if os.path.exists(db_path):
             stats['database_size_mb'] = round(os.path.getsize(db_path) / (1024 * 1024), 2)
         else:
@@ -399,9 +418,9 @@ def get_database_stats(story_id):
         
         return stats
 
-def optimize_fts_index(story_id):
+def optimize_fts_index(story_id, is_test=None):
     """Optimize FTS5 indexes for better performance."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         
         # Optimize scenes FTS5 index
@@ -412,9 +431,9 @@ def optimize_fts_index(story_id):
         
         conn.commit()
 
-def rebuild_fts_index(story_id):
+def rebuild_fts_index(story_id, is_test=None):
     """Rebuild FTS5 indexes from scratch."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         
         # Rebuild scenes FTS5 index
@@ -425,9 +444,9 @@ def rebuild_fts_index(story_id):
         
         conn.commit()
 
-def get_fts_stats(story_id):
+def get_fts_stats(story_id, is_test=None):
     """Get FTS5 index statistics."""
-    with get_connection(story_id) as conn:
+    with get_connection(story_id, is_test) as conn:
         cursor = conn.cursor()
         
         stats = {}

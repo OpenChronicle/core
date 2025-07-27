@@ -118,7 +118,7 @@ class IntelligentResponseEngine:
     5. Adapting future responses based on performance history
     """
     
-    def __init__(self, data_dir: str = "storage/response_engine"):
+    def __init__(self, data_dir: str = "storage/temp/test_data/response_engine"):
         """Initialize the Intelligent Response Engine."""
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)

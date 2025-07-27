@@ -50,7 +50,9 @@ python -c "from core.model_adapter import ModelManager; print('OK')"
 # Test with mocks only (FAST - minimal test subset)
 python main.py --test --max-iterations 1
 
-# Full test suite (SLOW - 400+ tests, allow 5-10 minutes)
+# Full test suite (SLOW - 400+ tests, allow 5-10 minutes minimum)
+# NOTE: OpenChronicle's comprehensive test suite requires patience
+# Wait at least 5-10 minutes for complete test execution
 python -m pytest tests/ -v
 
 # Specific module testing
