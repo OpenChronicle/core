@@ -17,8 +17,9 @@ OpenChronicle templates provide flexible, import-adaptable character and scene d
 
 ### **Advanced World-Building Templates (Optional):**
 - **`world_template.json`** - Sophisticated world systems (magical geography, calendar, cultures)
-- **`dynamic_narrative_template.json`** - Faction networks and narrative progression mechanics
-- **`content_tables_template.json`** - Procedural content generation (creatures, loot, encounters)
+- **`narrative_template.json`** - Faction networks and narrative progression mechanics
+- **`content_template.json`** - Procedural content generation (creatures, loot, encounters)
+- **`chatbot_template.json`** - AI chatbot configuration for single-voice persona management
 
 **Note**: Memory tracking, conversation threading, current state snapshots, and historical event tracking are automatically handled by OpenChronicle's engines (MemoryManager, SceneLogger, CharacterInteractionEngine, TimelineBuilder) and do not require separate templates.
 

@@ -1,0 +1,107 @@
+{
+  "template_info": {
+    "name": "OpenChronicle Chatbot Template",
+    "description": "Single-voice chatbot configuration with personality and interaction guidelines",
+    "version": "1.0",
+    "purpose": "Provides chatbot identity, response patterns, and interaction rules for consistent AI persona",
+    "required_fields": ["bot_name", "bot_role", "personality.core_traits"],
+    "optional_fields": "Any field marked with '_optional': true can be safely deleted",
+    "usage": "Delete entire fields/sections with '_optional': true, or just the '_optional' key to make field required",
+    "import_adaptability": {
+      "arrays_expandable": "All arrays can contain any number of entries - template shows minimum structure",
+      "flexible_structure": "Import processes should expand arrays and adapt field counts dynamically"
+    },
+    "application_behavior": {
+      "empty_optional_fields": "Application will automatically ignore optional fields that are empty, null, or contain only placeholder values",
+      "unused_optional_fields": "Optional fields left as {{PLACEHOLDER}} values will be treated as unused and ignored",
+      "processing_logic": "Only populated optional fields with actual content will be processed by the application"
+    }
+  },
+  "bot_name": "{{BOT_NAME}}",
+  "bot_role": "{{ASSISTANT_EXPERT_COMPANION_SUPPORT}}",
+  "personality": {
+    "core_traits": [
+      "{{TRAIT}}",
+      "{{TRAIT}}",
+      "{{TRAIT}}"
+    ],
+    "communication_style": {
+      "_optional": true,
+      "value": "{{FORMAL_CASUAL_FRIENDLY_PROFESSIONAL}}"
+    },
+    "emotional_tone": {
+      "_optional": true,
+      "value": "{{WARM_NEUTRAL_ENTHUSIASTIC_CALM}}"
+    },
+    "expertise_areas": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many expertise areas as needed",
+      "value": [
+        "{{EXPERTISE}}",
+        "{{EXPERTISE}}"
+      ]
+    }
+  },
+  "response_guidelines": {
+    "_optional": true,
+    "response_length": {
+      "_optional": true,
+      "value": "{{BRIEF_MODERATE_DETAILED}}"
+    },
+    "interaction_style": {
+      "_optional": true,
+      "value": "{{HELPFUL_CONVERSATIONAL_INFORMATIVE}}"
+    },
+    "speech_patterns": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many patterns as needed",
+      "value": [
+        "{{PATTERN}}",
+        "{{PATTERN}}"
+      ]
+    },
+    "preferred_phrases": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many phrases as needed",
+      "value": [
+        "{{PHRASE}}",
+        "{{PHRASE}}"
+      ]
+    }
+  },
+  "behavior_rules": {
+    "_optional": true,
+    "capabilities": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many capabilities as needed",
+      "value": [
+        "{{CAPABILITY}}",
+        "{{CAPABILITY}}"
+      ]
+    },
+    "limitations": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many limitations as needed",
+      "value": [
+        "{{LIMITATION}}",
+        "{{LIMITATION}}"
+      ]
+    },
+    "conversation_boundaries": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many boundaries as needed",
+      "value": [
+        "{{BOUNDARY}}",
+        "{{BOUNDARY}}"
+      ]
+    },
+    "fallback_responses": {
+      "_optional": true,
+      "_comment": "Array can expand - add as many fallback responses as needed",
+      "value": [
+        "{{FALLBACK}}",
+        "{{FALLBACK}}"
+      ]
+    }
+  }
+}
