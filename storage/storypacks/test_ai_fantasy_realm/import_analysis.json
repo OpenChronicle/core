@@ -1,0 +1,101 @@
+{
+  "storypack_name": "test_ai_fantasy_realm",
+  "import_timestamp": "2025-07-27T04:08:32.489675+00:00",
+  "metadata": {
+    "title": "test_ai_fantasy_realm",
+    "confidence": 0.0
+  },
+  "analysis_results": [
+    {
+      "file_path": "D:\\OneDrive\\GitHub\\OpenChronicle\\openchronicle-core\\analysis\\import_staging\\characters\\knight_commander.txt",
+      "category_analysis": {
+        "primary_category": "unknown",
+        "confidence": 0.0
+      },
+      "extracted_data": {
+        "content": "Sir Marcus Thorne - Knight Commander of the Silver Order\n\nMarcus Thorne stands tall at six feet, his weathered face bearing the scars of countless battles. At 45 years old, he has served the Silver Order for over two decades, rising through the ranks through skill, honor, and unwavering dedication. His steel-gray hair is kept short in military fashion, and his piercing blue eyes seem to see through any deception.\n\nMarcus wields Dawnbreaker, a legendary sword forged from meteoric steel that glows with a faint blue light at sunrise and sunset. The blade was passed down from his mentor, Sir Gareth, who died protecting the last heir of the royal bloodline during the War of Broken Crowns.\n\nAs Knight Commander, Marcus leads 200 knights and maintains order in the troubled borderlands. He is known for his strategic mind, his protective nature toward younger knights, and his dry sense of humor that helps maintain morale during dark times. Despite his stern exterior, Marcus has a soft spot for orphans and has quietly funded several orphanages throughout the kingdom.\n\nMarcus harbors a secret guilt over his failure to save a village from bandits early in his career, which drives his current obsession with protecting the innocent. He has a complicated relationship with Lady Elara Moonwhisper, the court mage, with whom he shares a history from their younger days.\n\nKey relationships:\n- Mentor: Sir Gareth (deceased)\n- Romantic interest: Lady Elara Moonwhisper\n- Prot\u00e9g\u00e9: Sir Kael Brightshield (young knight)\n- Rival: Captain Roderick the Bold (ambitious rival within the order)\n",
+        "type": "unknown"
+      },
+      "processing_timestamp": "2025-07-27T04:08:32.371859+00:00",
+      "source_content_length": 1586,
+      "ai_processing": true
+    },
+    {
+      "file_path": "D:\\OneDrive\\GitHub\\OpenChronicle\\openchronicle-core\\analysis\\import_staging\\characters\\marcus_thorne.txt",
+      "category_analysis": {
+        "primary_category": "unknown",
+        "confidence": 0.0
+      },
+      "extracted_data": {
+        "content": "Sir Marcus Thorne is a veteran knight of the Silver Order. At 45 years old, he bears the scars of countless battles but maintains an unwavering sense of honor. His sword, Dawnbreaker, was forged from meteoric steel and glows with a faint blue light. Marcus is known for his dry wit and protective nature toward younger knights.\n\nHe stands tall at six feet, with graying brown hair and steel-blue eyes that have seen too much war. A jagged scar runs from his left temple to his jaw, a reminder of the Battle of Crimson Fields. Despite his weathered appearance, Marcus moves with the grace of a seasoned warrior.\n\nPersonality-wise, Marcus is pragmatic and direct, preferring action to lengthy discussions. He has a mentor relationship with several young knights and is fiercely loyal to his oath. His greatest fear is failing those under his protection.\n\nRelationships:\n- Mentor to Sir Elena Brightshield\n- Sworn brother to Captain Aldric Stone\n- Serves under Lord Commander Gareth Vale\n- Has a complicated past with Lady Evelyn Moonwhisper\n",
+        "type": "unknown"
+      },
+      "processing_timestamp": "2025-07-27T04:08:32.401014+00:00",
+      "source_content_length": 1039,
+      "ai_processing": true
+    },
+    {
+      "file_path": "D:\\OneDrive\\GitHub\\OpenChronicle\\openchronicle-core\\analysis\\import_staging\\locations\\silverdale_capital.txt",
+      "category_analysis": {
+        "primary_category": "unknown",
+        "confidence": 0.0
+      },
+      "extracted_data": {
+        "content": "Silverdale - The Shining Capital\n\nSilverdale stands as the crown jewel of the kingdom, built upon seven hills overlooking the confluence of two major rivers. The city's name comes from the distinctive silver-veined marble used in its construction, which catches and reflects sunlight throughout the day, making the city visible from miles away.\n\nThe city is divided into distinct districts:\n\nThe Crown District sits atop the highest hill, housing the Royal Palace and the noble estates. The palace itself is a marvel of architecture, with spires that pierce the clouds and walls that have never been breached in the city's 500-year history.\n\nThe Merchant Quarter bustles with activity around the Grand Bazaar, where traders from across the known world come to sell their wares. The famous Silverdale Mint produces the kingdom's currency, and the Merchant's Guild maintains its headquarters in a building that rivals the palace in grandeur.\n\nThe Harbor District controls the city's lifeblood - trade flowing up and down the rivers. Massive docks can accommodate the largest vessels, and the Harbor Master's tower serves as both a lighthouse and a customs house.\n\nThe Scholar's Row houses the Great Library, the Royal Academy, and numerous schools and workshops. The library is said to contain the largest collection of books and scrolls in the known world, including texts from the lost civilization of the First Kingdom.\n\nThe Common Quarter provides homes for the working folk, with its famous taverns, craftsmen's shops, and the Fighter's Guild. The district has a warm, community feeling despite being the most populated area of the city.\n\nSilverdale's population swells to over 200,000 during festival seasons, but normally houses about 150,000 residents. The city's magical defenses include a powerful ward that prevents scrying and teleportation within the city limits without proper authorization.\n",
+        "type": "unknown"
+      },
+      "processing_timestamp": "2025-07-27T04:08:32.428056+00:00",
+      "source_content_length": 1904,
+      "ai_processing": true
+    },
+    {
+      "file_path": "D:\\OneDrive\\GitHub\\OpenChronicle\\openchronicle-core\\analysis\\import_staging\\locations\\whispering_woods.txt",
+      "category_analysis": {
+        "primary_category": "unknown",
+        "confidence": 0.0
+      },
+      "extracted_data": {
+        "content": "The Whispering Woods stretch for miles north of Silverdale. Ancient oaks tower overhead, their branches forming a canopy so thick that sunlight barely touches the forest floor. Travelers report hearing voices in the wind, leading to local legends of spirits trapped within the trees.\n\nThe forest is divided into three distinct regions:\n- The Outer Ring: Relatively safe, frequented by hunters and herbalists\n- The Deep Woods: Dangerous territory where few dare to venture\n- The Heart Grove: A sacred area containing the Shrine of the Old Gods\n\nNotable features include the Crystal Spring, whose waters are said to have healing properties, and the Shadowmere, a dark pond where the barrier between worlds grows thin. Ancient runestones mark paths through the forest, though many have been overgrown by centuries of neglect.\n\nThe local wildlife includes silver wolves, moonlight deer, and the occasional treant. The woods are also home to the Whisper Wraiths, ethereal beings that guard the forest's secrets.\n",
+        "type": "unknown"
+      },
+      "processing_timestamp": "2025-07-27T04:08:32.438586+00:00",
+      "source_content_length": 1007,
+      "ai_processing": true
+    },
+    {
+      "file_path": "D:\\OneDrive\\GitHub\\OpenChronicle\\openchronicle-core\\analysis\\import_staging\\lore\\silver_order_history.txt",
+      "category_analysis": {
+        "primary_category": "unknown",
+        "confidence": 0.0
+      },
+      "extracted_data": {
+        "content": "The Silver Order - Guardians of the Realm\n\nThe Silver Order was founded three centuries ago by Sir Caelum the Pure, a paladin who united various knightly orders under a single banner to protect the realm from the increasing threats of dark magic and otherworldly incursions.\n\nThe Order's core principles were established in the Silver Codex:\n- Protection of the innocent above all else\n- Unwavering loyalty to the Crown and realm\n- Mastery of both sword and spirit\n- Brotherhood among all knights regardless of birth\n- Eternal vigilance against the forces of darkness\n\nAt its height during the Third Age, the Silver Order commanded over 2,000 knights organized into twelve companies, each led by a Knight Commander. They maintained fortresses across the realm and served as both peacekeepers and defenders against supernatural threats.\n\nThe Order's distinctive silver armor was enchanted to resist dark magic and blessed by the High Clerics of the Temple of Light. Each knight carried a silver-blessed weapon and wore a cloak bearing the Order's symbol: a silver star surrounded by twelve smaller stars, representing unity and guidance.\n\nThe Order's hierarchy:\n- Grand Master: Supreme leader of the entire Order\n- Knight Commanders: Leaders of the twelve companies\n- Knight Captains: Leaders of individual squadrons\n- Knights Errant: Full knights undertaking quests\n- Knight Brothers: Standard knights of the Order\n- Squires: Apprentice knights in training\n\nTraining in the Silver Order was rigorous, taking seven years to complete:\n- Years 1-2: Physical conditioning and basic combat\n- Years 3-4: Advanced weapons training and tactics\n- Years 5-6: Spiritual development and oath preparation\n- Year 7: The Trial of Silver - a secret test that only 60% pass\n\nThe Order maintained several sacred sites:\n- The Silverhold - The primary fortress and training ground\n- The Shrine of Fallen Stars - Memorial to knights who died in service\n- The Hall of Trials - Where the final tests were conducted\n- The Vault of Oaths - Repository of all sworn commitments\n\nAfter the War of Broken Crowns and the Great Sundering, the Order officially disbanded when Grand Master Sir Aldwin declared that they had failed in their primary duty to protect the realm. Many knights became wandering sellswords, hermits, or founded smaller knightly orders. However, rumors persist that a secret remnant of the Order still operates in the shadows, protecting certain bloodlines and searching for the fragments of the Eternal Flame.\n",
+        "type": "unknown"
+      },
+      "processing_timestamp": "2025-07-27T04:08:32.465322+00:00",
+      "source_content_length": 2503,
+      "ai_processing": true
+    },
+    {
+      "file_path": "D:\\OneDrive\\GitHub\\OpenChronicle\\openchronicle-core\\analysis\\import_staging\\lore\\war_of_broken_crowns.txt",
+      "category_analysis": {
+        "primary_category": "unknown",
+        "confidence": 0.0
+      },
+      "extracted_data": {
+        "content": "The War of Broken Crowns (Third Age, Years 847-854)\n\nThis devastating conflict lasted seven years and marked the end of the Third Age. Three powerful kingdoms - Valeria, Drakmoor, and the Northern Reaches - fought for control of the Eternal Flame, a legendary artifact said to grant immortality to its wielder.\n\nThe war began when the Flame was discovered in the ruins of the ancient city of Aethros. Each kingdom claimed rightful ownership based on different historical precedents:\n- Valeria: Descendants of the Flame's original creators\n- Drakmoor: Conquered the city where it was found\n- Northern Reaches: Possessed the key to unlock its power\n\nKey battles included:\n- The Siege of Ironhold (Year 849): Valeria's greatest fortress falls\n- The Battle of Crimson Fields (Year 851): Massive casualties on all sides\n- The Sundering of Aethros (Year 854): The final, catastrophic battle\n\nThe war ended when Prince Aldwin of Valeria, in desperation, shattered the Eternal Flame rather than let it fall into enemy hands. The destruction released a magical wave that forever changed the world, beginning the current Age of Shadows. The Flame's pieces were scattered across the realm, becoming objects of legend and quests for future generations.\n",
+        "type": "unknown"
+      },
+      "processing_timestamp": "2025-07-27T04:08:32.474209+00:00",
+      "source_content_length": 1241,
+      "ai_processing": true
+    }
+  ],
+  "processing_summary": {
+    "total_files": 6,
+    "ai_processed": 6,
+    "categories": [
+      "unknown"
+    ]
+  }
+}

@@ -15,8 +15,9 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, UTC
 
 # Import OpenChronicle infrastructure
-from utilities.logging_system import get_logger, log_system_event
+from utilities.logging_system import get_logger, log_system_event, log_error, log_info, log_warning
 from core.model_adapter import ModelManager
+from core.content_analyzer import ContentAnalyzer
 
 
 class StorypackImporter:
@@ -37,6 +38,7 @@ class StorypackImporter:
         
         # Initialize ModelManager for AI processing
         self.model_manager = None
+        self.content_analyzer = None
         self.ai_available = False
         
         # Supported file types
@@ -63,10 +65,13 @@ class StorypackImporter:
             available_adapters = self.model_manager.get_available_adapters()
             
             if available_adapters:
+                # Initialize content analyzer with model manager
+                self.content_analyzer = ContentAnalyzer(self.model_manager)
                 self.ai_available = True
                 log_system_event("storypack_importer", "AI capabilities initialized", {
                     "available_adapters": available_adapters,
-                    "ai_enabled": True
+                    "ai_enabled": True,
+                    "content_analyzer": True
                 })
                 return True
             else:
@@ -82,6 +87,72 @@ class StorypackImporter:
                 "error": str(e),
                 "ai_enabled": False
             })
+            return False
+
+    async def test_ai_capabilities(self):
+        """Test AI models and their capabilities for import operations."""
+        log_info("Testing AI model capabilities for storypack import...")
+        
+        # Find working models for analysis
+        working_models = await self.content_analyzer.find_working_analysis_models()
+        
+        if not working_models:
+            log_warning("No working AI models found! Import will use basic text processing only.")
+            print("\n>>> WARNING: No AI models available for enhanced import processing!")
+            print("    The import will proceed with basic functionality only.")
+            return False
+        
+        print(f"\n>>> AI Model Discovery Results:")
+        print(f"    Found {len(working_models)} working model(s) for analysis")
+        
+        # Show the top models with their scores
+        for i, model in enumerate(working_models[:3], 1):
+            status = "[SELECTED]" if i == 1 else "[BACKUP]"
+            print(f"    {i}. {model['name']} {status}")
+            print(f"       Score: {model['suitability_score']:.1f}/100")
+            print(f"       Response time: {model.get('response_time', 0):.2f}s")
+            if model.get('suitability_reason'):
+                print(f"       Suitability: {model['suitability_reason']}")
+            print()
+        
+        # Test the top model with a sample analysis
+        best_model = working_models[0]['name']
+        log_info(f"Testing advanced capabilities with model: {best_model}")
+        
+        test_content = """
+        # Chapter 1: The Beginning
+        
+        Sarah walked through the misty forest, her heart pounding with anticipation. 
+        The ancient trees seemed to whisper secrets of the past, and she knew her 
+        adventure was just beginning.
+        
+        **Characters:**
+        - Sarah: A young explorer with a brave heart
+        - The Forest Spirit: An ancient guardian of the woods
+        """
+        
+        try:
+            analysis = await self.content_analyzer.analyze_imported_content(
+                test_content, "Chapter 1", "test_analysis"
+            )
+            
+            if analysis and analysis.get('characters'):
+                print(f">>> AI Analysis Test: SUCCESS")
+                print(f"    Model '{best_model}' successfully analyzed test content")
+                print(f"    Detected {len(analysis['characters'])} character(s)")
+                print(f"    Analysis depth: {analysis.get('complexity', 'Unknown')}")
+                log_info("AI capabilities test passed - enhanced import available")
+                return True
+            else:
+                print(f">>> AI Analysis Test: LIMITED")
+                print(f"    Model responded but analysis was incomplete")
+                log_warning("AI model available but analysis capabilities limited")
+                return True  # Still usable, just limited
+                
+        except Exception as e:
+            print(f">>> AI Analysis Test: FAILED")
+            print(f"    Error: {str(e)[:100]}...")
+            log_error(f"AI analysis test failed: {e}")
             return False
     
     def discover_source_files(self) -> Dict[str, List[Path]]:
@@ -375,6 +446,166 @@ class StorypackImporter:
         elif isinstance(data, list):
             for item in data:
                 self._clean_optional_fields(item)
+
+    async def analyze_content_with_ai(self, file_path: Path, content: str) -> Dict[str, Any]:
+        """Analyze content using AI-powered content analyzer."""
+        try:
+            log_system_event("storypack_importer", "AI content analysis started", {
+                "file": file_path.name,
+                "content_length": len(content)
+            })
+            
+            if not self.ai_available or not self.content_analyzer:
+                raise Exception("AI capabilities not available")
+            
+            # First, determine content category
+            category_result = await self.content_analyzer.analyze_content_category(content)
+            primary_category = category_result.get("primary_category", "unknown")
+            
+            # Extract specific data based on category
+            extracted_data = {}
+            if primary_category == "character":
+                extracted_data = await self.content_analyzer.extract_character_data(content)
+            elif primary_category == "location":
+                extracted_data = await self.content_analyzer.extract_location_data(content)
+            elif primary_category == "lore":
+                extracted_data = await self.content_analyzer.extract_lore_data(content)
+            else:
+                # For other content types, use general analysis
+                extracted_data = {"content": content, "type": primary_category}
+            
+            # Combine category analysis with extracted data
+            result = {
+                "file_path": str(file_path),
+                "category_analysis": category_result,
+                "extracted_data": extracted_data,
+                "processing_timestamp": datetime.now(UTC).isoformat(),
+                "source_content_length": len(content),
+                "ai_processing": True
+            }
+            
+            log_system_event("storypack_importer", "AI content analysis completed", {
+                "file": file_path.name,
+                "category": primary_category,
+                "confidence": extracted_data.get('confidence', 0.0),
+                "success": True
+            })
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"AI content analysis failed for {file_path.name}: {e}")
+            log_system_event("storypack_importer", "AI content analysis failed", {
+                "file": file_path.name,
+                "error": str(e),
+                "fallback_used": True
+            })
+            
+            return {
+                "file_path": str(file_path),
+                "error": str(e),
+                "fallback_content": content,
+                "processing_timestamp": datetime.now(UTC).isoformat(),
+                "ai_processing": False
+            }
+
+    async def run_ai_import(self, storypack_name: str) -> Dict[str, Any]:
+        """Run a full AI-powered import process."""
+        try:
+            log_system_event("storypack_importer", "AI import process started", {
+                "storypack_name": storypack_name
+            })
+            
+            # Validate readiness
+            is_ready, issues = self.validate_import_readiness()
+            if not is_ready:
+                return {
+                    "success": False,
+                    "error": "Import validation failed",
+                    "issues": issues
+                }
+            
+            # Initialize AI if not already done
+            if not self.ai_available:
+                if not self.initialize_ai():
+                    return {
+                        "success": False,
+                        "error": "AI initialization failed"
+                    }
+            
+            # Discover and analyze files
+            discovered_files = self.discover_source_files()
+            analysis_results = []
+            
+            for category, files in discovered_files.items():
+                for file_path in files:
+                    try:
+                        content = file_path.read_text(encoding='utf-8')
+                        analysis = await self.analyze_content_with_ai(file_path, content)
+                        analysis_results.append(analysis)
+                    except Exception as e:
+                        self.logger.error(f"Failed to process {file_path}: {e}")
+            
+            # Generate metadata for the entire storypack
+            all_content = []
+            for result in analysis_results:
+                if "fallback_content" in result:
+                    all_content.append(result["fallback_content"])
+                elif "extracted_data" in result and "content" in result["extracted_data"]:
+                    all_content.append(result["extracted_data"]["content"])
+            
+            metadata = {}
+            if self.content_analyzer:
+                metadata = await self.content_analyzer.generate_import_metadata(all_content, storypack_name)
+            
+            # Create storypack structure
+            storypack_path = self.create_storypack_structure(storypack_name)
+            
+            # Save analysis results
+            analysis_file = storypack_path / "import_analysis.json"
+            analysis_data = {
+                "storypack_name": storypack_name,
+                "import_timestamp": datetime.now(UTC).isoformat(),
+                "metadata": metadata,
+                "analysis_results": analysis_results,
+                "processing_summary": {
+                    "total_files": len(analysis_results),
+                    "ai_processed": len([r for r in analysis_results if r.get("ai_processing", False)]),
+                    "categories": list(set(r.get("category_analysis", {}).get("primary_category", "unknown") 
+                                         for r in analysis_results))
+                }
+            }
+            
+            with analysis_file.open('w', encoding='utf-8') as f:
+                json.dump(analysis_data, f, indent=2)
+            
+            log_system_event("storypack_importer", "AI import process completed", {
+                "storypack_name": storypack_name,
+                "files_processed": len(analysis_results),
+                "output_path": str(storypack_path)
+            })
+            
+            return {
+                "success": True,
+                "storypack_name": storypack_name,
+                "storypack_path": str(storypack_path),
+                "files_processed": len(analysis_results),
+                "analysis_results": analysis_results,
+                "metadata": metadata
+            }
+            
+        except Exception as e:
+            self.logger.error(f"AI import process failed: {e}")
+            log_system_event("storypack_importer", "AI import process failed", {
+                "storypack_name": storypack_name,
+                "error": str(e)
+            })
+            
+            return {
+                "success": False,
+                "error": str(e),
+                "storypack_name": storypack_name
+            }
 
 
 # Convenience function for quick testing

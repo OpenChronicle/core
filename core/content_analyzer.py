@@ -11,9 +11,8 @@ from typing import Dict, List, Any, Optional, Tuple, Union, cast
 from datetime import datetime, UTC
 from pathlib import Path
 
-# Add utilities to path for logging system
-sys.path.append(str(Path(__file__).parent.parent / "utilities"))
-from logging_system import log_model_interaction, log_system_event, log_info, log_error, log_warning
+# Import logging utilities
+from utilities.logging_system import log_model_interaction, log_system_event, log_info, log_error, log_warning
 
 # Optional transformer imports with graceful fallback
 try:
@@ -130,13 +129,22 @@ class ContentAnalyzer:
             self.sentiment_classifier = None
             self.emotion_classifier = None
         
-    def get_best_analysis_model(self, content_type: str = "general") -> str:
-        """Get the best model for content analysis based on dynamic configuration."""
+    def get_best_analysis_model(self, content_type: str = "general", allow_fallbacks: bool = True) -> str:
+        """
+        Get the best available model for content analysis with intelligent selection and fallback strategies.
+        
+        Args:
+            content_type: Type of content to analyze (general, creative, analysis, etc.)
+            allow_fallbacks: Whether to allow fallback to less suitable models
+            
+        Returns:
+            Model name string, or "mock" as ultimate fallback
+        """
         # Get content routing from registry
         config = self.model_manager.config
         content_routing = config.get("content_routing", {})
         
-        # Select model based on content type
+        # Select model candidates based on content type
         if content_type == "nsfw":
             candidates = content_routing.get("nsfw_models", [])
         elif content_type == "creative":
@@ -155,11 +163,251 @@ class ContentAnalyzer:
         if not enabled_models:
             log_warning("No enabled models for content analysis, using fallback")
             return "mock"
+        
+        # First pass: Test preferred models for suitability
+        suitable_models = []
+        unsuitable_models = []
+        
+        for model_name in enabled_models:
+            suitability = self._check_model_suitability(model_name, content_type)
+            if suitability["suitable"]:
+                suitable_models.append((model_name, suitability["score"], suitability["reason"]))
+                log_info(f"✓ Model {model_name} suitable for {content_type}: {suitability['reason']}")
+            else:
+                unsuitable_models.append((model_name, suitability["score"], suitability["reason"]))
+                log_warning(f"✗ Model {model_name} not suitable for {content_type}: {suitability['reason']}")
+        
+        # If we have suitable models, use the best one
+        if suitable_models:
+            suitable_models.sort(key=lambda x: x[1], reverse=True)
+            selected = suitable_models[0][0]
+            log_info(f"Selected {selected} for {content_type} content analysis (score: {suitable_models[0][1]:.2f})")
+            return selected
+        
+        # Second pass: Try fallback strategies if no suitable models found
+        if allow_fallbacks and unsuitable_models:
+            log_warning(f"No ideal models for {content_type}, evaluating fallback options...")
             
-        # Select the first available model (they're ordered by preference)
-        selected = enabled_models[0]
-        log_info(f"Selected {selected} for {content_type} content analysis")
+            # Check if any models are "good enough" (score > 0.1)
+            acceptable_fallbacks = [(name, score, reason) for name, score, reason in unsuitable_models if score > 0.1]
+            
+            if acceptable_fallbacks:
+                acceptable_fallbacks.sort(key=lambda x: x[1], reverse=True)
+                fallback_model = acceptable_fallbacks[0][0]
+                log_warning(f"Using fallback model {fallback_model} for {content_type} (score: {acceptable_fallbacks[0][1]:.2f})")
+                log_warning(f"Fallback reason: {acceptable_fallbacks[0][2]}")
+                
+                # Check if we should suggest user actions
+                self._suggest_model_improvements(content_type, unsuitable_models, acceptable_fallbacks)
+                
+                return fallback_model
+        
+        # Third pass: Check if there are any other enabled models not in preferred list
+        if allow_fallbacks:
+            all_models = self.model_manager.list_model_configs()
+            other_models = [name for name in all_models.keys() 
+                          if all_models[name].get("enabled", True) and name not in enabled_models]
+            
+            if other_models:
+                log_warning(f"Testing non-preferred models for {content_type}...")
+                
+                for model_name in other_models:
+                    suitability = self._check_model_suitability(model_name, content_type)
+                    if suitability["suitable"]:
+                        log_warning(f"Found alternative model {model_name} suitable for {content_type}: {suitability['reason']}")
+                        return model_name
+        
+        # Ultimate fallback with user guidance
+        log_error(f"No suitable models found for {content_type} content analysis")
+        self._provide_model_guidance(content_type, unsuitable_models)
+        
+        return "mock"
+        
+        log_info(f"Selected {selected} for {content_type} content analysis (score: {suitable_models[0][1]:.2f})")
         return selected
+
+    def _check_model_suitability(self, model_name: str, content_type: str) -> Dict[str, Any]:
+        """Check if a model is suitable for the given content type."""
+        try:
+            # Get model configuration
+            model_configs = self.model_manager.list_model_configs()
+            if model_name not in model_configs:
+                return {"suitable": False, "reason": "Model not in configuration", "score": 0.0}
+            
+            model_config = model_configs[model_name]
+            
+            # Check if model is enabled
+            if not model_config.get("enabled", True):
+                return {"suitable": False, "reason": "Model disabled in configuration", "score": 0.0}
+            
+            # Get model info to check actual model name and type
+            model_info = model_config.get("model_name", "").lower()
+            provider_type = model_config.get("type", "").lower()
+            
+            # Score based on model suitability for content analysis
+            score = 0.0
+            suitability_reasons = []
+            
+            # Base score for any working model
+            score += 0.3
+            suitability_reasons.append("basic functionality")
+            
+            # Bonus for models known to be good at analysis
+            if any(analysis_model in model_info for analysis_model in [
+                "gpt-4", "gpt-3.5", "claude", "llama", "mistral", "gemini"
+            ]):
+                score += 0.4
+                suitability_reasons.append("analysis-capable model")
+            
+            # Penalty for code-specific models (as you mentioned codellama)
+            if any(code_model in model_info for code_model in [
+                "codellama", "code-", "coding", "programmer", "coder"
+            ]):
+                score -= 0.3
+                suitability_reasons.append("code-focused model (less suitable for general analysis)")
+            
+            # Bonus for instruction-following models
+            if any(instruct_model in model_info for instruct_model in [
+                "instruct", "chat", "turbo", "assistant"
+            ]):
+                score += 0.2
+                suitability_reasons.append("instruction-following variant")
+            
+            # Penalty for very small models (likely not good for complex analysis)
+            if any(small_indicator in model_info for small_indicator in [
+                "7b", "3b", "1b", "mini", "nano", "tiny"
+            ]):
+                score -= 0.1
+                suitability_reasons.append("small model size")
+            
+            # Bonus for larger models
+            if any(large_indicator in model_info for large_indicator in [
+                "70b", "34b", "30b", "13b", "large", "xl"
+            ]):
+                score += 0.2
+                suitability_reasons.append("larger model size")
+            
+            # Special handling for mock adapter (always suitable as fallback)
+            if model_name == "mock":
+                score = 0.1  # Low but non-zero score
+                suitability_reasons = ["fallback mock adapter"]
+            
+            # Determine suitability threshold
+            threshold = 0.2
+            suitable = score >= threshold
+            
+            reason = f"Score: {score:.2f} ({', '.join(suitability_reasons)})"
+            
+            return {
+                "suitable": suitable,
+                "score": score,
+                "reason": reason,
+                "model_info": model_info,
+                "provider_type": provider_type
+            }
+            
+        except Exception as e:
+            log_error(f"Error checking model suitability for {model_name}: {e}")
+            return {"suitable": False, "reason": f"Error during check: {e}", "score": 0.0}
+
+    async def test_model_availability(self, model_name: str) -> Dict[str, Any]:
+        """Test if a model is actually available and responsive."""
+        try:
+            log_info(f"Testing availability of model: {model_name}")
+            
+            # Try to initialize the adapter if not already done
+            if model_name not in self.model_manager.adapters:
+                success = await self.model_manager.initialize_adapter(model_name)
+                if not success:
+                    return {"available": False, "reason": "Failed to initialize adapter", "response_time": None}
+            
+            # Get the initialized adapter
+            adapter = self.model_manager.adapters.get(model_name)
+            if not adapter:
+                return {"available": False, "reason": "No adapter found", "response_time": None}
+            
+            # Try a simple test prompt
+            import time
+            start_time = time.time()
+            
+            test_prompt = "Hello, please respond with 'OK' to confirm you are working."
+            
+            try:
+                response = await adapter.generate_response(test_prompt)
+                response_time = time.time() - start_time
+                
+                # Check if we got a reasonable response
+                if response and len(response.strip()) > 0:
+                    return {
+                        "available": True,
+                        "reason": "Model responded successfully",
+                        "response_time": response_time,
+                        "test_response": response[:100] + "..." if len(response) > 100 else response
+                    }
+                else:
+                    return {
+                        "available": False,
+                        "reason": "Empty or invalid response",
+                        "response_time": response_time
+                    }
+                    
+            except Exception as e:
+                response_time = time.time() - start_time
+                return {
+                    "available": False,
+                    "reason": f"Model error: {str(e)[:200]}",
+                    "response_time": response_time
+                }
+                
+        except Exception as e:
+            log_error(f"Error testing model availability for {model_name}: {e}")
+            return {"available": False, "reason": f"Test failed: {e}", "response_time": None}
+
+    async def find_working_analysis_models(self, content_type: str = "analysis") -> List[Dict[str, Any]]:
+        """Find all working models suitable for analysis, sorted by suitability."""
+        log_info(f"Searching for working analysis models for content type: {content_type}")
+        
+        # Get all configured models
+        all_models = self.model_manager.list_model_configs()
+        working_models = []
+        
+        for model_name, model_config in all_models.items():
+            # Skip disabled models
+            if not model_config.get("enabled", True):
+                continue
+                
+            # Check suitability first (faster than availability test)
+            suitability = self._check_model_suitability(model_name, content_type)
+            if not suitability["suitable"]:
+                continue
+            
+            # Test actual availability
+            availability = await self.test_model_availability(model_name)
+            
+            if availability["available"]:
+                working_models.append({
+                    "name": model_name,
+                    "suitability_score": suitability["score"],
+                    "suitability_reason": suitability["reason"],
+                    "response_time": availability["response_time"],
+                    "test_response": availability.get("test_response", ""),
+                    "provider_type": suitability.get("provider_type", "unknown")
+                })
+                log_info(f">> {model_name} is working (score: {suitability['score']:.2f}, "
+                        f"response time: {availability['response_time']:.2f}s)")
+            else:
+                log_warning(f">> {model_name} is not available: {availability['reason']}")
+        
+        # Sort by suitability score, then by response time
+        working_models.sort(key=lambda x: (x["suitability_score"], -x["response_time"]), reverse=True)
+        
+        log_system_event("model_discovery", f"Found {len(working_models)} working analysis models", {
+            "content_type": content_type,
+            "working_models": [m["name"] for m in working_models],
+            "total_tested": len(all_models)
+        })
+        
+        return working_models
         
     def _analyze_with_transformers(self, user_input: str) -> Dict[str, Any]:
         """Use transformer models for advanced content analysis."""
@@ -839,26 +1087,672 @@ Response (JSON only):"""
         
         return recommendation
 
-# For testing purposes
-if __name__ == "__main__":
-    # Initialize test
-    logging.basicConfig(level=logging.INFO)
-    from model_adapter import ModelManager
+    # ============================================================================
+    # STORYPACK IMPORT ANALYSIS METHODS
+    # ============================================================================
     
-    model_manager = ModelManager()
-    content_analyzer = ContentAnalyzer(model_manager)
+    async def extract_character_data(self, content: str) -> Dict[str, Any]:
+        """Extract character information from raw text content."""
+        log_info(f"Extracting character data from content ({len(content)} chars)")
+        
+        prompt = f"""Analyze this text and extract character information. Return ONLY valid JSON.
+
+Text: {content}
+
+Extract character details in this exact JSON format:
+{{
+    "name": "Character's full name",
+    "description": "Physical appearance and basic description",
+    "personality": "Personality traits and characteristics", 
+    "background": "Character's history and background",
+    "relationships": ["List of mentioned relationships or connections"],
+    "traits": ["Key personality traits"],
+    "skills": ["Mentioned abilities or skills"],
+    "equipment": ["Weapons, items, or possessions mentioned"],
+    "role": "Character's role or position",
+    "motivation": "What drives this character",
+    "confidence": 0.85
+}}
+
+If multiple characters are found, return an array of character objects.
+Return empty object {{}} if no clear character information found."""
+
+        try:
+            model = self.get_best_analysis_model("analysis")
+            log_model_interaction("character_extraction", model, len(prompt), 0)
+            
+            # Initialize adapter if needed
+            if model not in self.model_manager.adapters:
+                success = await self.model_manager.initialize_adapter(model)
+                if not success:
+                    raise Exception(f"Failed to initialize adapter for model: {model}")
+            
+            adapter = self.model_manager.adapters.get(model)
+            if not adapter:
+                raise Exception(f"No adapter available for model: {model}")
+            
+            response = await adapter.generate_response(prompt)
+            
+            # Log actual response length
+            log_model_interaction("character_extraction", model, len(prompt), len(response))
+            
+            # Try to parse JSON response
+            try:
+                result = json.loads(response)
+                log_info(f"Successfully extracted character data: {result.get('name', 'multiple/unknown')}")
+                return result
+            except json.JSONDecodeError:
+                log_warning("Failed to parse character extraction JSON, attempting cleanup")
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                    return result
+                else:
+                    log_error("No valid JSON found in character extraction response")
+                    return {}
+                    
+        except Exception as e:
+            log_error(f"Character extraction failed: {e}")
+            return {}
+
+    async def extract_location_data(self, content: str) -> Dict[str, Any]:
+        """Extract location information from raw text content."""
+        log_info(f"Extracting location data from content ({len(content)} chars)")
+        
+        prompt = f"""Analyze this text and extract location information. Return ONLY valid JSON.
+
+Text: {content}
+
+Extract location details in this exact JSON format:
+{{
+    "name": "Location name",
+    "description": "Detailed description of the location",
+    "type": "city|forest|dungeon|castle|etc",
+    "climate": "Climate or weather patterns",
+    "notable_features": ["List of interesting features or landmarks"],
+    "inhabitants": ["Types of creatures or people found here"],
+    "dangers": ["Potential threats or hazards"],
+    "resources": ["Available resources or materials"],
+    "connections": ["Connected locations or travel routes"],
+    "significance": "Why this location is important",
+    "atmosphere": "Mood or feeling of the place",
+    "confidence": 0.85
+}}
+
+If multiple locations are found, return an array of location objects.
+Return empty object {{}} if no clear location information found."""
+
+        try:
+            model = self.get_best_analysis_model("analysis")
+            log_model_interaction("location_extraction", model, len(prompt), 0)
+            
+            # Initialize adapter if needed
+            if model not in self.model_manager.adapters:
+                success = await self.model_manager.initialize_adapter(model)
+                if not success:
+                    raise Exception(f"Failed to initialize adapter for model: {model}")
+            
+            adapter = self.model_manager.adapters.get(model)
+            if not adapter:
+                raise Exception(f"No adapter available for model: {model}")
+            
+            response = await adapter.generate_response(prompt)
+            
+            # Log actual response length
+            log_model_interaction("location_extraction", model, len(prompt), len(response))
+            
+            # Try to parse JSON response
+            try:
+                result = json.loads(response)
+                log_info(f"Successfully extracted location data: {result.get('name', 'multiple/unknown')}")
+                return result
+            except json.JSONDecodeError:
+                log_warning("Failed to parse location extraction JSON, attempting cleanup")
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                    return result
+                else:
+                    log_error("No valid JSON found in location extraction response")
+                    return {}
+                    
+        except Exception as e:
+            log_error(f"Location extraction failed: {e}")
+            return {}
+
+    async def extract_lore_data(self, content: str) -> Dict[str, Any]:
+        """Extract world-building and lore information from raw text content."""
+        log_info(f"Extracting lore data from content ({len(content)} chars)")
+        
+        prompt = f"""Analyze this text and extract world-building/lore information. Return ONLY valid JSON.
+
+Text: {content}
+
+Extract lore details in this exact JSON format:
+{{
+    "title": "Name or title of this lore element",
+    "category": "history|religion|magic|culture|politics|etc",
+    "description": "Detailed explanation of this lore element", 
+    "time_period": "When this occurred or applies",
+    "key_figures": ["Important people involved"],
+    "locations": ["Places where this is relevant"],
+    "significance": "Why this is important to the world",
+    "related_events": ["Connected historical events"],
+    "cultural_impact": "How this affects society or culture",
+    "mysteries": ["Unexplained aspects or secrets"],
+    "source": "Origin or authority of this knowledge",
+    "confidence": 0.85
+}}
+
+If multiple lore elements are found, return an array of lore objects.
+Return empty object {{}} if no clear lore information found."""
+
+        try:
+            model = self.get_best_analysis_model("analysis")
+            log_model_interaction("lore_extraction", model, len(prompt), 0)
+            
+            # Initialize adapter if needed
+            if model not in self.model_manager.adapters:
+                success = await self.model_manager.initialize_adapter(model)
+                if not success:
+                    raise Exception(f"Failed to initialize adapter for model: {model}")
+            
+            adapter = self.model_manager.adapters.get(model)
+            if not adapter:
+                raise Exception(f"No adapter available for model: {model}")
+            
+            response = await adapter.generate_response(prompt)
+            
+            # Log actual response length
+            log_model_interaction("lore_extraction", model, len(prompt), len(response))
+            
+            # Try to parse JSON response
+            try:
+                result = json.loads(response)
+                log_info(f"Successfully extracted lore data: {result.get('title', 'multiple/unknown')}")
+                return result
+            except json.JSONDecodeError:
+                log_warning("Failed to parse lore extraction JSON, attempting cleanup")
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                    return result
+                else:
+                    log_error("No valid JSON found in lore extraction response")
+                    return {}
+                    
+        except Exception as e:
+            log_error(f"Lore extraction failed: {e}")
+            return {}
+
+    async def analyze_content_category(self, content: str) -> Dict[str, Any]:
+        """Determine the primary category and metadata for content."""
+        log_info(f"Analyzing content category ({len(content)} chars)")
+        
+        prompt = f"""Analyze this text and categorize it for story import. Return ONLY valid JSON.
+
+Text: {content}
+
+Determine the content category in this exact JSON format:
+{{
+    "primary_category": "character|location|lore|narrative|dialogue|description",
+    "secondary_categories": ["Additional relevant categories"],
+    "confidence": 0.85,
+    "genre_indicators": ["fantasy|sci-fi|modern|historical|etc"],
+    "tone": "dark|light|serious|humorous|epic|intimate|etc",
+    "complexity": "simple|moderate|complex",
+    "content_type": "worldbuilding|character_development|plot|background|etc",
+    "suggested_templates": ["List of template files that would work for this content"],
+    "key_themes": ["Major themes present in the content"],
+    "target_audience": "general|young_adult|adult|mature",
+    "processing_priority": "high|medium|low"
+}}"""
+
+        try:
+            model = self.get_best_analysis_model("analysis")
+            log_model_interaction("category_analysis", model, len(prompt), 0)
+            
+            # Initialize adapter if needed
+            if model not in self.model_manager.adapters:
+                success = await self.model_manager.initialize_adapter(model)
+                if not success:
+                    raise Exception(f"Failed to initialize adapter for model: {model}")
+            
+            adapter = self.model_manager.adapters.get(model)
+            if not adapter:
+                raise Exception(f"No adapter available for model: {model}")
+            
+            response = await adapter.generate_response(prompt)
+            
+            # Log actual response length
+            log_model_interaction("category_analysis", model, len(prompt), len(response))
+            
+            # Try to parse JSON response
+            try:
+                result = json.loads(response)
+                log_info(f"Successfully analyzed content category: {result.get('primary_category', 'unknown')}")
+                return result
+            except json.JSONDecodeError:
+                log_warning("Failed to parse category analysis JSON, attempting cleanup")
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                    return result
+                else:
+                    log_error("No valid JSON found in category analysis response")
+                    return {"primary_category": "unknown", "confidence": 0.0}
+                    
+        except Exception as e:
+            log_error(f"Category analysis failed: {e}")
+            return {"primary_category": "unknown", "confidence": 0.0}
+
+    async def generate_import_metadata(self, all_content: List[str], storypack_name: str) -> Dict[str, Any]:
+        """Generate metadata for the entire storypack based on all content."""
+        log_info(f"Generating import metadata for storypack: {storypack_name}")
+        
+        # Combine content samples for analysis
+        combined_content = "\n\n---\n\n".join(all_content[:5])  # Use first 5 pieces
+        
+        prompt = f"""Analyze these story materials and generate comprehensive metadata. Return ONLY valid JSON.
+
+Storypack Name: {storypack_name}
+
+Content Samples:
+{combined_content}
+
+Generate metadata in this exact JSON format:
+{{
+    "title": "Suggested story title",
+    "genre": "Primary genre classification",
+    "subgenres": ["Additional genre elements"],
+    "setting": "Time period and world type",
+    "tone": "Overall story tone and mood",
+    "themes": ["Major themes present"],
+    "target_audience": "Intended audience",
+    "content_rating": "G|PG|PG-13|R",
+    "estimated_length": "short|medium|long|epic",
+    "complexity_level": "beginner|intermediate|advanced",
+    "key_elements": ["Most important story elements"],
+    "recommended_models": ["LLM models that would work well"],
+    "content_warnings": ["Any content that might need warnings"],
+    "story_focus": "character_driven|plot_driven|world_building|etc",
+    "narrative_style": "first_person|third_person|multiple_pov|etc",
+    "confidence": 0.85
+}}"""
+
+        try:
+            model = self.get_best_analysis_model("analysis")
+            log_model_interaction("metadata_generation", model, len(prompt), 0)
+            
+            # Initialize adapter if needed
+            if model not in self.model_manager.adapters:
+                success = await self.model_manager.initialize_adapter(model)
+                if not success:
+                    raise Exception(f"Failed to initialize adapter for model: {model}")
+            
+            adapter = self.model_manager.adapters.get(model)
+            if not adapter:
+                raise Exception(f"No adapter available for model: {model}")
+            if not adapter:
+                raise Exception(f"No adapter available for model: {model}")
+            
+            response = await adapter.generate_response(prompt)
+            
+            # Log actual response length
+            log_model_interaction("metadata_generation", model, len(prompt), len(response))
+            
+            # Try to parse JSON response
+            try:
+                result = json.loads(response)
+                log_info(f"Successfully generated metadata for: {storypack_name}")
+                return result
+            except json.JSONDecodeError:
+                log_warning("Failed to parse metadata JSON, attempting cleanup")
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                    return result
+                else:
+                    log_error("No valid JSON found in metadata response")
+                    return {"title": storypack_name, "confidence": 0.0}
+                    
+        except Exception as e:
+            log_error(f"Metadata generation failed: {e}")
+            return {"title": storypack_name, "confidence": 0.0}
     
-    # Test the system
-    test_content = "Lyra draws her sword and attacks the dragon"
-    print(f"Analyzing: {test_content}")
+    async def analyze_imported_content(self, content: str, content_name: str, analysis_type: str = "general") -> Dict[str, Any]:
+        """
+        Analyze imported content for storypack processing.
+        
+        Args:
+            content: The content to analyze
+            content_name: Human-readable name for the content
+            analysis_type: Type of analysis to perform
+            
+        Returns:
+            Dictionary containing analysis results
+        """
+        try:
+            log_info(f"Analyzing imported content: {content_name} ({len(content)} chars)")
+            
+            # Get the best model for this analysis
+            best_model = self.get_best_analysis_model(analysis_type)
+            if not best_model:
+                log_warning("No suitable model available for content analysis")
+                return {
+                    "success": False,
+                    "error": "No AI model available",
+                    "basic_analysis": self._basic_content_analysis(content)
+                }
+            
+            # Analyze content category
+            category_analysis = await self.analyze_content_category(content)
+            
+            # Extract characters (if any)
+            characters = await self.extract_characters(content, content_name)
+            
+            # Basic structure analysis
+            structure = self._analyze_content_structure(content)
+            
+            result = {
+                "success": True,
+                "content_name": content_name,
+                "analysis_type": analysis_type,
+                "model_used": best_model,
+                "category_analysis": category_analysis,
+                "characters": characters,
+                "structure": structure,
+                "complexity": "advanced" if len(characters) > 0 else "basic",
+                "word_count": len(content.split()),
+                "char_count": len(content)
+            }
+            
+            log_info(f"Content analysis complete for {content_name}: {len(characters)} characters found")
+            return result
+            
+        except Exception as e:
+            log_error(f"Error analyzing imported content {content_name}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "content_name": content_name,
+                "basic_analysis": self._basic_content_analysis(content)
+            }
     
-    # Test content type detection
-    content_type_result = content_analyzer.detect_content_type(test_content)
-    print(f"Content type detection: {content_type_result}")
+    def _basic_content_analysis(self, content: str) -> Dict[str, Any]:
+        """Provide basic content analysis without AI."""
+        words = content.split()
+        lines = content.split('\n')
+        
+        # Look for simple patterns
+        has_dialogue = any(line.strip().startswith('"') or line.strip().startswith("'") for line in lines)
+        has_headers = any(line.strip().startswith('#') for line in lines)
+        has_markdown = '**' in content or '*' in content or '[' in content
+        
+        return {
+            "word_count": len(words),
+            "line_count": len(lines),
+            "has_dialogue": has_dialogue,
+            "has_headers": has_headers,
+            "has_markdown": has_markdown,
+            "estimated_category": "narrative" if has_dialogue else "description"
+        }
     
-    # Test model recommendation
-    content_type_str = content_type_result.get("content_type", "general")
-    model = content_analyzer.get_best_analysis_model(content_type_str)
-    print(f"Recommended model: {model}")
-    
-    print("Content analysis system test complete!")
+    def _analyze_content_structure(self, content: str) -> Dict[str, Any]:
+        """Analyze the structure of content."""
+        lines = content.split('\n')
+        
+        structure = {
+            "total_lines": len(lines),
+            "non_empty_lines": len([l for l in lines if l.strip()]),
+            "paragraphs": len([l for l in lines if l.strip() == ""]) + 1,
+            "has_sections": any(line.strip().startswith('#') for line in lines),
+            "average_line_length": sum(len(line) for line in lines) / len(lines) if lines else 0
+        }
+        
+        return structure
+
+    async def extract_characters(self, content: str, content_name: str) -> List[Dict[str, Any]]:
+        """
+        Extract characters from content for import analysis.
+        
+        Args:
+            content: The content to analyze
+            content_name: Human-readable name for the content
+            
+        Returns:
+            List of character dictionaries
+        """
+        try:
+            # Use existing character extraction method
+            character_data = await self.extract_character_data(content)
+            
+            # Convert to list format if it's a single character
+            if isinstance(character_data, dict) and character_data:
+                # Check if it's a single character object or empty
+                if "name" in character_data:
+                    return [character_data]
+                else:
+                    return []
+            elif isinstance(character_data, list):
+                return character_data
+            else:
+                return []
+                
+        except Exception as e:
+            log_error(f"Error extracting characters from {content_name}: {e}")
+            return []
+
+    def _suggest_model_improvements(self, content_type: str, unsuitable_models: List[tuple], fallback_models: List[tuple]):
+        """Suggest improvements to the user for better model selection."""
+        try:
+            suggestions = []
+            
+            # Analyze why models were unsuitable
+            code_models = [name for name, score, reason in unsuitable_models if "code-focused" in reason]
+            small_models = [name for name, score, reason in unsuitable_models if "small model" in reason]
+            
+            if code_models:
+                suggestions.append(f"Consider disabling code-focused models for content analysis: {', '.join(code_models)}")
+            
+            if small_models:
+                suggestions.append(f"Small models detected ({', '.join(small_models)}) - consider using larger variants")
+            
+            # Check for Ollama models that could be pulled
+            self._check_ollama_alternatives(content_type, suggestions)
+            
+            if suggestions:
+                log_warning("Model Selection Suggestions:")
+                for i, suggestion in enumerate(suggestions, 1):
+                    log_warning(f"  {i}. {suggestion}")
+                    
+        except Exception as e:
+            log_error(f"Error generating model suggestions: {e}")
+
+    def _check_ollama_alternatives(self, content_type: str, suggestions: List[str]):
+        """Check if better Ollama models could be pulled for this content type."""
+        try:
+            # Get Ollama configuration
+            model_configs = self.model_manager.list_model_configs()
+            ollama_config = model_configs.get("ollama", {})
+            
+            if ollama_config.get("type") == "ollama":
+                # Suggest better models for specific content types
+                content_recommendations = {
+                    "analysis": ["llama3.1:8b-instruct", "mistral:7b-instruct", "qwen2:7b-instruct"],
+                    "creative": ["llama3.1:8b", "mistral:7b", "gemma2:9b"],
+                    "general": ["llama3.2:3b", "phi3:3.8b", "qwen2:1.5b"]
+                }
+                
+                recommended = content_recommendations.get(content_type, content_recommendations["general"])
+                suggestions.append(f"Consider pulling better Ollama models for {content_type}: {', '.join(recommended)}")
+                suggestions.append("Use: ollama pull <model_name> to install")
+                
+        except Exception as e:
+            log_error(f"Error checking Ollama alternatives: {e}")
+
+    def _provide_model_guidance(self, content_type: str, unsuitable_models: List[tuple]):
+        """Provide guidance when no suitable models are available."""
+        try:
+            log_warning("=" * 50)
+            log_warning("MODEL SELECTION GUIDANCE")
+            log_warning("=" * 50)
+            
+            if unsuitable_models:
+                log_warning("Available but unsuitable models:")
+                for name, score, reason in unsuitable_models:
+                    log_warning(f"  • {name}: {reason} (score: {score:.2f})")
+            
+            log_warning("\nRecommended actions:")
+            
+            if content_type == "analysis":
+                log_warning("  1. Install analysis-focused models: ollama pull llama3.1:8b-instruct")
+                log_warning("  2. Enable OpenAI/Anthropic adapters with API keys")
+                log_warning("  3. Consider disabling code-focused models")
+            elif content_type == "creative":
+                log_warning("  1. Install creative models: ollama pull llama3.1:8b")
+                log_warning("  2. Use larger model variants (13b+ recommended)")
+            else:
+                log_warning("  1. Install general-purpose models: ollama pull llama3.2:3b")
+                log_warning("  2. Check model_registry.json configuration")
+            
+            log_warning("  3. Verify Ollama is running: http://localhost:11434")
+            log_warning("  4. Check system resources and consider model optimization")
+            log_warning("=" * 50)
+            
+        except Exception as e:
+            log_error(f"Error providing model guidance: {e}")
+
+    async def suggest_model_management_actions(self, content_type: str, system_resources: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Suggest model management actions based on system state and requirements.
+        
+        Args:
+            content_type: The type of content being analyzed
+            system_resources: Optional system resource information
+            
+        Returns:
+            Dictionary with suggested actions
+        """
+        try:
+            suggestions = {
+                "actions": [],
+                "priority": "medium",
+                "resource_impact": "low",
+                "estimated_improvement": "medium"
+            }
+            
+            # Check current model availability
+            working_models = await self.find_working_analysis_models(content_type)
+            all_models = self.model_manager.list_model_configs()
+            
+            # Analyze system state and generate suggestions
+            working_analysis_models = [m for m in working_models if m["name"] not in ["mock", "mock_image"]]
+            
+            if len(working_models) == 0:
+                suggestions["priority"] = "high"
+                suggestions["actions"].append({
+                    "type": "install_model", 
+                    "description": f"No working models found - install suitable model for {content_type} content",
+                    "commands": self._get_install_commands(content_type)
+                })
+            
+            elif len(working_analysis_models) == 0:
+                # Only mock models available
+                suggestions["priority"] = "high"
+                suggestions["actions"].append({
+                    "type": "replace_mock",
+                    "description": "Only mock/test models available - install actual AI model",
+                    "commands": self._get_install_commands(content_type)
+                })
+            
+            elif len(working_analysis_models) < 2:
+                # Very limited options - suggest more models
+                suggestions["priority"] = "medium"
+                suggestions["actions"].append({
+                    "type": "expand_options",
+                    "description": f"Limited model options for {content_type} - install additional models for redundancy",
+                    "commands": self._get_install_commands(content_type)
+                })
+            
+            # Check quality of available models
+            if working_analysis_models:
+                best_score = max(m["suitability_score"] for m in working_analysis_models)
+                if best_score < 0.7:
+                    suggestions["actions"].append({
+                        "type": "improve_quality",
+                        "description": f"Available models have low suitability scores (best: {best_score:.2f}) - consider better alternatives",
+                        "commands": self._get_install_commands(content_type),
+                        "current_best_score": best_score
+                    })
+            
+            # Check for API key opportunities
+            api_models = ["openai", "anthropic", "groq", "gemini"]
+            missing_api_models = [name for name in api_models if name in all_models and not working_analysis_models]
+            if missing_api_models and len(working_analysis_models) < 3:
+                suggestions["actions"].append({
+                    "type": "enable_api_models",
+                    "description": "Enable cloud API models for better performance and reliability",
+                    "models": missing_api_models,
+                    "commands": [f"Add API key for {model}" for model in missing_api_models[:2]]
+                })
+            
+            # Check for resource optimization opportunities
+            if system_resources:
+                memory_usage = system_resources.get("memory_percent", 0)
+                if memory_usage > 80:
+                    suggestions["actions"].append({
+                        "type": "optimize_resources",
+                        "description": "System memory usage high - consider model optimization",
+                        "commands": ["Consider smaller model variants", "Enable model offloading"]
+                    })
+            
+            # Check for unsuitable models that could be disabled
+            unsuitable_models = []
+            for model_name in all_models.keys():
+                if all_models[model_name].get("enabled", True):
+                    suitability = self._check_model_suitability(model_name, content_type)
+                    if not suitability["suitable"] and "code-focused" in suitability.get("reason", ""):
+                        unsuitable_models.append(model_name)
+            
+            if unsuitable_models:
+                suggestions["actions"].append({
+                    "type": "disable_unsuitable",
+                    "description": f"Disable code-focused models for {content_type} tasks",
+                    "models": unsuitable_models
+                })
+            
+            return suggestions
+            
+        except Exception as e:
+            log_error(f"Error generating model management suggestions: {e}")
+            return {"actions": [], "priority": "low", "error": str(e)}
+
+    def _get_install_commands(self, content_type: str) -> List[str]:
+        """Get installation commands for recommended models."""
+        commands = {
+            "analysis": [
+                "ollama pull llama3.1:8b-instruct",
+                "ollama pull mistral:7b-instruct"
+            ],
+            "creative": [
+                "ollama pull llama3.1:8b",
+                "ollama pull mistral:7b"
+            ],
+            "general": [
+                "ollama pull llama3.2:3b",
+                "ollama pull phi3:3.8b"
+            ]
+        }
+        
+        return commands.get(content_type, commands["general"])
