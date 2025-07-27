@@ -53,6 +53,10 @@ storage/data/runtime/
 storage/data/profiles/
 storage/backups/
 
+# Import staging directory - ignore contents but keep README
+import/*
+!import/README.md
+
 # Obsolete files
 *.old.ignoreme
 # Preserve foundational README for project history
