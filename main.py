@@ -352,7 +352,7 @@ def parse_arguments():
     parser.add_argument('--remove-key', type=str, metavar='PROVIDER',
                         help='Remove stored API key for provider')
     parser.add_argument('--keyring-info', action='store_true',
-                        help='Show keyring backend information')
+                        help='Show keyring backend information (also: python utilities/api_key_manager.py --help)')
     
     return parser.parse_args()
 

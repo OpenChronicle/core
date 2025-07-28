@@ -281,3 +281,155 @@ def prompt_and_store_key(provider: str) -> bool:
     except Exception as e:
         print(f"❌ Error: {e}")
         return False
+
+
+def main():
+    """
+    CLI interface for API key management.
+    Can be run independently: python utilities/api_key_manager.py
+    """
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="OpenChronicle API Key Manager - Secure storage for AI provider API keys",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python utilities/api_key_manager.py --set openai
+  python utilities/api_key_manager.py --list
+  python utilities/api_key_manager.py --remove anthropic
+  python utilities/api_key_manager.py --info
+  python utilities/api_key_manager.py --interactive
+
+Supported providers:
+  openai, anthropic, google/gemini, groq, cohere, mistral, huggingface, azure
+        """
+    )
+    
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--set', type=str, metavar='PROVIDER',
+                      help='Interactively set API key for provider')
+    group.add_argument('--list', action='store_true',
+                      help='List all stored API keys')
+    group.add_argument('--remove', type=str, metavar='PROVIDER',
+                      help='Remove API key for provider')
+    group.add_argument('--info', action='store_true',
+                      help='Show keyring backend information')
+    group.add_argument('--interactive', action='store_true',
+                      help='Interactive API key management mode')
+    
+    args = parser.parse_args()
+    
+    # Handle commands
+    try:
+        if args.set:
+            success = prompt_and_store_key(args.set)
+            sys.exit(0 if success else 1)
+            
+        elif args.list:
+            keys = list_stored_keys()
+            if keys:
+                print("🔑 Stored API keys:")
+                for provider in sorted(keys):
+                    print(f"  ✅ {provider}")
+                print(f"\nTotal: {len(keys)} API keys stored")
+                print(f"Backend: {get_keyring_info()['backend']}")
+            else:
+                print("📭 No API keys stored")
+                print("Use --set PROVIDER to store API keys securely.")
+            
+        elif args.remove:
+            provider = args.remove.lower()
+            if remove_api_key(provider):
+                print(f"✅ Removed API key for {provider}")
+            else:
+                print(f"❌ No API key found for {provider}")
+                
+        elif args.info:
+            info = get_keyring_info()
+            print("🔐 Keyring Information:")
+            print(f"  Backend: {info['backend']}")
+            print(f"  Available: {info['available']}")
+            if info['available']:
+                print(f"  Service: {KEYRING_SERVICE}")
+                print("\n📋 Supported providers:")
+                for provider in sorted(PROVIDER_MAPPING.keys()):
+                    print(f"    • {provider}")
+            else:
+                print("  ⚠️  Keyring not available - install with: pip install keyring")
+                
+        elif args.interactive:
+            interactive_mode()
+            
+    except KeyboardInterrupt:
+        print("\n❌ Cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
+def interactive_mode():
+    """Interactive mode for API key management."""
+    print("🔐 OpenChronicle API Key Manager - Interactive Mode")
+    print("=" * 50)
+    
+    while True:
+        print("\nCommands:")
+        print("  1. Set API key")
+        print("  2. List stored keys")
+        print("  3. Remove API key") 
+        print("  4. Show keyring info")
+        print("  5. Exit")
+        
+        try:
+            choice = input("\nSelect option (1-5): ").strip()
+            
+            if choice == '1':
+                provider = input("Enter provider name: ").strip().lower()
+                if provider:
+                    prompt_and_store_key(provider)
+                else:
+                    print("❌ Invalid provider name")
+                    
+            elif choice == '2':
+                keys = list_stored_keys()
+                if keys:
+                    print("\n🔑 Stored API keys:")
+                    for provider in sorted(keys):
+                        print(f"  ✅ {provider}")
+                    print(f"\nTotal: {len(keys)} keys")
+                else:
+                    print("\n📭 No API keys stored")
+                    
+            elif choice == '3':
+                provider = input("Enter provider to remove: ").strip().lower()
+                if provider:
+                    if remove_api_key(provider):
+                        print(f"✅ Removed API key for {provider}")
+                    else:
+                        print(f"❌ No API key found for {provider}")
+                else:
+                    print("❌ Invalid provider name")
+                    
+            elif choice == '4':
+                info = get_keyring_info()
+                print(f"\n🔐 Backend: {info['backend']}")
+                print(f"Available: {info['available']}")
+                
+            elif choice == '5':
+                print("👋 Goodbye!")
+                break
+                
+            else:
+                print("❌ Invalid option. Please select 1-5.")
+                
+        except KeyboardInterrupt:
+            print("\n👋 Goodbye!")
+            break
+        except Exception as e:
+            print(f"❌ Error: {e}")
+
+
+if __name__ == "__main__":
+    main()
