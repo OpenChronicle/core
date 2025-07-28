@@ -206,7 +206,7 @@
         "provider": "ollama",
         "enabled": true,
         "priority": 1,
-        "model_name": "llama3.2:latest",
+        "model_name": "neural-chat:latest",
         "supports_nsfw": true,
         "content_types": [
           "general",
@@ -387,7 +387,7 @@
           "mature",
           "testing"
         ],
-        "description": "Mock model for testing and development",
+        "description": "Mock model for testing and development - NOT FOR PRODUCTION USE",
         "fallbacks": []
       },
       {
@@ -461,7 +461,7 @@
           "general_images",
           "testing"
         ],
-        "description": "Mock image generator for testing and development",
+        "description": "Mock image generator for testing and development - NOT FOR PRODUCTION USE",
         "fallbacks": [],
         "config": {
           "size": "1024x1024"

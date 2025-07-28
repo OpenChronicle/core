@@ -433,7 +433,10 @@ async def main():
         print(f"{status_icon(True)} Model ready: {model_manager.default_adapter}")
     except Exception as e:
         print(f"{status_icon(False)} Model initialization failed: {e}")
-        print(f"{emoji('⚠️ ')}Continuing with mock responses...")
+        print(f"{emoji('🚨 ')}CRITICAL WARNING: No real AI models available!")
+        print(f"{emoji('⚠️ ')}System will use MOCK responses - NOT suitable for production use!")
+        print(f"{emoji('💡 ')}Please configure at least one working AI provider for real functionality.")
+        print(f"{emoji('⚠️ ')}Continuing with mock responses for testing purposes only...")
     
     # Handle non-interactive mode
     if args.non_interactive:

@@ -239,6 +239,11 @@ class MockImageAdapter(ImageAdapter):
         """Generate a mock colored square image"""
         start_time = time.time()
         
+        # ALWAYS warn when mock image adapter is used
+        from utilities.logging_system import log_system_event
+        log_system_event("mock_image_adapter_usage", 
+                        "WARNING: Mock image adapter generating placeholder image - NOT real AI art!")
+        
         try:
             # Simulate generation delay
             await asyncio.sleep(0.5)

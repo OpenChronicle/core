@@ -42,6 +42,8 @@ def load_model_registry() -> Dict[str, Any]:
     config_path = Path(__file__).parent.parent / "config" / "model_registry.json"
     
     if not config_path.exists():
+        logger.warning("CRITICAL: No model registry found - defaulting to mock image adapter!")
+        logger.warning("Mock image adapter provides placeholder images only - NOT for production use!")
         return {"default_image_model": "mock_image", "image_fallback_chain": ["mock_image"]}
     
     try:
@@ -49,6 +51,8 @@ def load_model_registry() -> Dict[str, Any]:
             return json.load(f)
     except Exception as e:
         logger.error(f"Error loading model registry: {e}")
+        logger.warning("CRITICAL: Model registry corrupted - defaulting to mock image adapter!")
+        logger.warning("Mock image adapter provides placeholder images only - NOT for production use!")
         return {"default_image_model": "mock_image", "image_fallback_chain": ["mock_image"]}
 
 

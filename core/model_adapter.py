@@ -278,6 +278,10 @@ class MockAdapter(ModelAdapter):
         if not self.initialized:
             raise RuntimeError("Adapter not initialized")
         
+        # ALWAYS warn when mock adapter is used for generation
+        log_system_event("mock_adapter_usage", 
+                        "WARNING: Mock adapter generating simulated response - NOT real AI!")
+        
         # Check if this is an analysis prompt
         if "JSON format" in prompt and "content_type" in prompt:
             # Generate mock analysis JSON
@@ -675,7 +679,8 @@ class ModelManager:
                     "The world around you shifts as the tale unfolds."
                 ]
             }
-            log_system_event("model_config_fallback", "No adapters loaded, using mock adapter as fallback")
+            log_system_event("model_config_fallback", "CRITICAL: No adapters loaded, using mock adapter as emergency fallback")
+            log_system_event("mock_adapter_warning", "Mock adapter provides simulated responses only - NOT for production use!")
         
         # Build fallback chains from registry
         fallback_chains = registry.get("fallback_chains", {})

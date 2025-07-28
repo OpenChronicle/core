@@ -181,6 +181,12 @@ class ContentAnalyzer:
         if suitable_models:
             suitable_models.sort(key=lambda x: x[1], reverse=True)
             selected = suitable_models[0][0]
+            
+            # Warn if mock adapter is selected for real AI work
+            if selected == "mock":
+                log_warning("WARNING: Mock adapter selected for AI processing - this provides simulated responses only!")
+                log_warning("For real AI functionality, please configure Ollama, OpenAI, Anthropic, or another AI provider.")
+            
             log_info(f"Selected {selected} for {content_type} content analysis (score: {suitable_models[0][1]:.2f})")
             return selected
         
@@ -221,10 +227,10 @@ class ContentAnalyzer:
         log_error(f"No suitable models found for {content_type} content analysis")
         self._provide_model_guidance(content_type, unsuitable_models)
         
-        return "mock"
+        log_warning("WARNING: Falling back to mock adapter - this provides simulated responses only!")
+        log_warning("For real AI functionality, please configure Ollama, OpenAI, Anthropic, or another AI provider.")
         
-        log_info(f"Selected {selected} for {content_type} content analysis (score: {suitable_models[0][1]:.2f})")
-        return selected
+        return "mock"
 
     def _check_model_suitability(self, model_name: str, content_type: str) -> Dict[str, Any]:
         """Check if a model is suitable for the given content type."""
@@ -290,7 +296,7 @@ class ContentAnalyzer:
             # Special handling for mock adapter (always suitable as fallback)
             if model_name == "mock":
                 score = 0.1  # Low but non-zero score
-                suitability_reasons = ["fallback mock adapter"]
+                suitability_reasons = ["fallback mock adapter - NOT FOR PRODUCTION USE"]
             
             # Determine suitability threshold
             threshold = 0.2
@@ -793,6 +799,8 @@ class ContentAnalyzer:
             else:
                 recommended = "mock"
                 routing_reason = "Emergency fallback to mock model"
+                log_warning("WARNING: Using mock adapter for AI processing - this is for testing only and will not provide real AI functionality!")
+                log_warning("Please configure a real AI model (Ollama, OpenAI, Anthropic, etc.) for production use.")
         else:
             recommended = enabled_models[0]  # First in priority order
         
@@ -1057,13 +1065,18 @@ Response (JSON only):"""
         content_flags = analysis.get("content_flags", [])
         token_priority = analysis.get("token_priority", "medium")
         
-        # Default routing
+        # Default routing - prioritize real AI models over mock
         recommendation = {
-            "adapter": "mock",  # Default to mock for safety
+            "adapter": "ollama",  # Prefer local AI over mock
             "max_tokens": 1024,
             "temperature": 0.7,
             "content_filter": False
         }
+        
+        # Warn if we have to use mock as default (indicates no real AI available)
+        if not hasattr(self, 'model_manager') or not self.model_manager:
+            log_warning("CRITICAL: No ModelManager available - routing recommendation may default to mock adapter!")
+            recommendation["adapter"] = "mock"
         
         # Adjust based on content flags (list format)
         if ("nsfw" in content_flags or "explicit" in content_flags or 
@@ -1316,6 +1329,11 @@ Determine the content category in this exact JSON format:
 
         try:
             model = self.get_best_analysis_model("analysis")
+            
+            # Warn if using mock adapter for real content analysis
+            if model == "mock":
+                log_warning("Using mock adapter for content category analysis - results will be simulated!")
+            
             log_model_interaction("category_analysis", model, len(prompt), 0)
             
             # Initialize adapter if needed
@@ -1607,6 +1625,9 @@ Generate metadata in this exact JSON format:
             log_warning("=" * 50)
             log_warning("MODEL SELECTION GUIDANCE")
             log_warning("=" * 50)
+            log_warning("IMPORTANT: System will fall back to mock adapter which provides")
+            log_warning("simulated responses only - NOT real AI functionality!")
+            log_warning("")
             
             if unsuitable_models:
                 log_warning("Available but unsuitable models:")
