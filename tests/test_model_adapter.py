@@ -188,6 +188,59 @@ class TestModelManagerAdapterManagement:
             adapters = manager.get_available_adapters()
             
             assert "openai" in adapters
+    
+    def test_get_available_adapters_vs_actually_working(self):
+        """Test the core issue: get_available_adapters() returns config adapters, not working ones.
+        
+        This test validates that get_available_adapters() currently returns ALL configured
+        adapters regardless of whether they're actually initialized and working.
+        This is the root cause of OpenChronicle appearing to have AI capabilities
+        even when running standalone.
+        """
+        with patch.object(ModelManager, '_load_global_config'), \
+             patch.object(ModelManager, '_load_config'), \
+             patch.object(ModelManager, '_validate_all_configured_adapters'):
+            
+            manager = ModelManager()
+            
+            # Set up config with multiple adapters
+            manager.config = {
+                "adapters": {
+                    "openai": {"type": "openai"},
+                    "ollama": {"type": "ollama"}, 
+                    "anthropic": {"type": "anthropic"},
+                    "mock": {"type": "mock"}
+                }
+            }
+            
+            # Get what the ModelManager CLAIMS is available
+            claimed_available = manager.get_available_adapters()
+            
+            # Get what's actually initialized and working
+            actually_working = list(manager.adapters.keys())
+            
+            print(f"\nDEBUG: Claimed available: {claimed_available}")
+            print(f"DEBUG: Actually working: {actually_working}")
+            print(f"DEBUG: Disabled adapters: {list(manager.disabled_adapters.keys())}")
+            
+            # This demonstrates the core architectural issue:
+            # get_available_adapters() returns configuration keys, not actual availability
+            assert len(claimed_available) >= len(actually_working), \
+                "get_available_adapters() should return at least as many as actually working"
+            
+            # More specifically, it should return ALL configured adapters
+            assert set(claimed_available) == set(manager.config["adapters"].keys()), \
+                "get_available_adapters() should return exactly the configured adapter names"
+            
+            # External adapters should be in disabled list if validation worked properly
+            external_adapters = ['ollama', 'openai', 'anthropic']
+            disabled_external = [name for name in external_adapters if name in manager.disabled_adapters]
+            
+            print(f"DEBUG: External adapters marked disabled: {disabled_external}")
+            
+            # NOTE: This test exposes the architectural limitation that needs fixing:
+            # get_available_adapters() should filter by actual initialization status,
+            # not just return the configuration list
 
 
 class TestModelManagerResponseGeneration:
