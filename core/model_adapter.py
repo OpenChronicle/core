@@ -1588,9 +1588,43 @@ class ModelManager:
             
             return response
     
-    def get_available_adapters(self) -> List[str]:
-        """Get list of available adapters."""
-        return list(self.config["adapters"].keys())
+    def get_available_adapters(self, standalone_mode: bool = None) -> List[str]:
+        """
+        Get list of actually available and working adapters.
+        
+        Args:
+            standalone_mode: If True, only return local/mock adapters. 
+                           If False, return all working adapters.
+                           If None (default), auto-detect based on environment.
+        
+        Returns:
+            List of adapter names that are actually available and working.
+        """
+        # Auto-detect standalone mode if not specified
+        if standalone_mode is None:
+            standalone_mode = self._is_standalone_mode()
+        
+        available = []
+        
+        # Always include successfully initialized adapters
+        for name in self.adapters.keys():
+            if standalone_mode:
+                # In standalone mode, only include local/mock adapters
+                adapter_type = self.config["adapters"][name].get("type", "unknown")
+                if adapter_type in ["mock", "mock_image", "local", "transformers"]:
+                    available.append(name)
+            else:
+                # In normal mode, include all working adapters
+                available.append(name)
+        
+        # In standalone mode, ensure mock is available as fallback
+        if standalone_mode and not available:
+            mock_adapters = [name for name, config in self.config["adapters"].items() 
+                           if config.get("type") in ["mock", "mock_image"]]
+            if mock_adapters:
+                available.extend(mock_adapters)
+        
+        return available
     
     def get_adapter_info(self, name: str) -> Dict[str, Any]:
         """Get information about a specific adapter."""
