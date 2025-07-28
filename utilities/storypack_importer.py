@@ -1108,26 +1108,30 @@ def cli_main():
         epilog="""
 Examples:
   Basic file import:
-    python -m utilities.storypack_importer "C:/my_story" "fantasy_realm" --basic
+    python -m utilities.storypack_importer --source "C:/my_story" --name "fantasy_realm" --basic
     
   AI-powered analysis:
-    python -m utilities.storypack_importer "C:/my_story" "fantasy_realm" --ai
+    python -m utilities.storypack_importer --source "C:/my_story" --name "fantasy_realm" --ai
     
   Preview mode:
-    python -m utilities.storypack_importer "C:/my_story" "preview" --preview
+    python -m utilities.storypack_importer --source "C:/my_story" --name "preview" --preview
     
   Scan import directory:
-    python -m utilities.storypack_importer "" "" --scan
+    python -m utilities.storypack_importer --scan
     
   Import from import directory:
-    python -m utilities.storypack_importer "" "my_story_folder" --import-dir --basic
+    python -m utilities.storypack_importer --import-dir "FantasyAdventure" --basic
+    python -m utilities.storypack_importer --import-dir "BattleChasers" --ai
         """
     )
     
-    parser.add_argument("source_directory", nargs="?", default="",
+    # Source and target specifications
+    parser.add_argument("--source", "-s", 
                        help="Source directory containing story files")
-    parser.add_argument("storypack_name", nargs="?", default="",
+    parser.add_argument("--name", "-n",
                        help="Name for the new storypack")
+    parser.add_argument("--import-dir", "-d",
+                       help="Import a specific directory from the import folder")
     
     # Import mode options
     mode_group = parser.add_mutually_exclusive_group(required=True)
@@ -1140,10 +1144,6 @@ Examples:
     mode_group.add_argument("--scan", action="store_true",
                            help="Scan import directory for available imports")
     
-    # Special modes
-    parser.add_argument("--import-dir", action="store_true",
-                       help="Import a specific directory from import folder (use with --basic or --ai)")
-    
     # Optional parameters
     parser.add_argument("--verbose", "-v", action="store_true",
                        help="Verbose output")
@@ -1154,25 +1154,29 @@ Examples:
     
     # Validate arguments
     if args.scan:
-        # Scan mode doesn't need source directory validation
+        # Scan mode doesn't need any other arguments
         pass
     elif args.import_dir:
-        # Import directory mode needs storypack name and either --basic or --ai
-        if not args.storypack_name or args.storypack_name == "":
-            print("Error: Directory name required for --import-dir mode")
-            sys.exit(1)
+        # Import directory mode - directory name is provided via --import-dir
         if not (args.basic or args.ai):
-            print("Error: --import-dir mode requires either --basic or --ai")
+            print("Error: --import-dir requires either --basic or --ai")
             sys.exit(1)
     else:
-        # Other modes need source directory validation
-        source_path = Path(args.source_directory)
+        # Direct import modes need source directory and name
+        if not args.source:
+            print("Error: --source directory required for direct import modes")
+            sys.exit(1)
+        if not args.name:
+            print("Error: --name required for direct import modes")
+            sys.exit(1)
+            
+        source_path = Path(args.source)
         if not source_path.exists():
-            print(f"Error: Source directory '{args.source_directory}' does not exist")
+            print(f"Error: Source directory '{args.source}' does not exist")
             sys.exit(1)
         
         if not source_path.is_dir():
-            print(f"Error: '{args.source_directory}' is not a directory")
+            print(f"Error: '{args.source}' is not a directory")
             sys.exit(1)
     
     # Run the import
@@ -1230,14 +1234,14 @@ async def _run_cli_import(args):
                 print(f"    Source: {existing['source_path']}")
         
         print("\nTo import a candidate:")
-        print("  python -m utilities.storypack_importer \"\" \"folder_name\" --import-dir --basic")
-        print("  python -m utilities.storypack_importer \"\" \"folder_name\" --import-dir --ai")
+        print("  python -m utilities.storypack_importer --import-dir \"folder_name\" --basic")
+        print("  python -m utilities.storypack_importer --import-dir \"folder_name\" --ai")
         
         return
     
     elif args.import_dir:
         print(f"Mode: IMPORT DIRECTORY")
-        print(f"Directory: {args.storypack_name}")
+        print(f"Directory: {args.import_dir}")
         
         if args.basic:
             print("Import Mode: BASIC")
@@ -1254,9 +1258,9 @@ async def _run_cli_import(args):
         importer = StorypackImporter()
         
         # Check if directory exists in import folder
-        import_path = importer.source_dir / args.storypack_name
+        import_path = importer.source_dir / args.import_dir
         if not import_path.exists():
-            print(f"❌ Directory '{args.storypack_name}' not found in import folder")
+            print(f"❌ Directory '{args.import_dir}' not found in import folder")
             print(f"Expected location: {import_path}")
             # Show available directories
             scan_result = importer.scan_import_directory()
@@ -1269,10 +1273,10 @@ async def _run_cli_import(args):
         # Run the import
         if args.basic:
             print("Starting basic import from directory...")
-            result = importer.import_from_directory(args.storypack_name, "basic")
+            result = importer.import_from_directory(args.import_dir, "basic")
         else:  # args.ai
             print("Starting AI import from directory...")
-            result = await importer.run_ai_import_from_directory(args.storypack_name)
+            result = await importer.run_ai_import_from_directory(args.import_dir)
         
         if result["success"]:
             print(f"✅ Import completed successfully!")
@@ -1289,9 +1293,9 @@ async def _run_cli_import(args):
         
         return
     
-    # Original modes (basic, ai, preview) - handle as before
-    print(f"Source: {args.source_directory}")
-    print(f"Storypack: {args.storypack_name}")
+    # Direct import modes (basic, ai, preview) - handle as before
+    print(f"Source: {args.source}")
+    print(f"Storypack: {args.name}")
     
     if args.preview:
         print("Mode: PREVIEW (no files will be created)")
@@ -1304,7 +1308,7 @@ async def _run_cli_import(args):
     
     # Initialize the importer with source directory
     print("Initializing importer...")
-    source_path = Path(args.source_directory).resolve()
+    source_path = Path(args.source).resolve()
     importer = StorypackImporter(source_path)
     
     if args.preview:
@@ -1318,7 +1322,7 @@ async def _run_cli_import(args):
             if files:
                 print(f"\n{category.upper()} ({len(files)} files):")
                 for file_path in files:
-                    rel_path = os.path.relpath(file_path, args.source_directory)
+                    rel_path = os.path.relpath(file_path, args.source)
                     print(f"  - {rel_path}")
                 total_files += len(files)
         
@@ -1355,7 +1359,7 @@ async def _run_cli_import(args):
                 print(f"  - {issue}")
             sys.exit(1)
         
-        result = importer.run_basic_import(args.storypack_name)
+        result = importer.run_basic_import(args.name)
         
         if result["success"]:
             print(f"✓ Basic import completed successfully!")
@@ -1385,7 +1389,7 @@ async def _run_cli_import(args):
                 print(f"  - {issue}")
             sys.exit(1)
         
-        result = await importer.run_ai_import(args.storypack_name)
+        result = await importer.run_ai_import(args.name)
         
         if result["success"]:
             print(f"✓ AI import completed successfully!")
