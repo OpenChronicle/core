@@ -1455,6 +1455,55 @@ class ModelManager:
             "total_active_adapters": len(self.adapters)
         }
     
+    def _is_standalone_mode(self) -> bool:
+        """
+        Detect if we're in standalone mode (no external AI services available).
+        
+        Standalone mode is detected when:
+        1. No external adapters are working (all in disabled_adapters)
+        2. No valid API keys for external services
+        3. Network connectivity issues
+        4. Only mock/local adapters are initialized
+        
+        Returns:
+            True if we should operate in standalone mode, False otherwise
+        """
+        # Count working external adapters (non-mock, non-local)
+        external_adapters = 0
+        local_adapters = 0
+        
+        for name, adapter in self.adapters.items():
+            if name in self.disabled_adapters:
+                continue
+                
+            adapter_config = self.config.get("adapters", {}).get(name, {})
+            adapter_type = adapter_config.get("type", name)
+            
+            if adapter_type in ["mock", "mock_image", "local", "transformers"]:
+                local_adapters += 1
+            elif adapter_type == "ollama":
+                # Ollama is local but requires service to be running
+                # Consider it local if it's working, external if disabled
+                if name not in self.disabled_adapters:
+                    local_adapters += 1
+            else:
+                external_adapters += 1
+        
+        # We're in standalone mode if:
+        # 1. No external adapters are working, OR
+        # 2. We have no working adapters at all, OR  
+        # 3. Only local/mock adapters are working
+        if external_adapters == 0:
+            if local_adapters > 0:
+                log_system_event("standalone_mode_detected", 
+                               f"Standalone mode: {local_adapters} local adapters, {external_adapters} external")
+            else:
+                log_system_event("standalone_mode_detected", 
+                               "Standalone mode: No working adapters detected")
+            return True
+        
+        return False
+
     def _test_connectivity(self, base_url: str, timeout: float = 5.0) -> bool:
         """Test basic connectivity to a URL."""
         try:
@@ -1588,9 +1637,14 @@ class ModelManager:
             
             return response
     
-    def get_available_adapters(self, standalone_mode: bool = None) -> List[str]:
+    def get_available_adapters(self, standalone_mode: Optional[bool] = None) -> List[str]:
         """
-        Get list of actually available and working adapters.
+        Get list of actually available and working adapters (standalone-first architecture).
+        
+        Only returns adapters that are:
+        1. Successfully initialized (in self.adapters)
+        2. Not in disabled_adapters
+        3. Match standalone mode requirements
         
         Args:
             standalone_mode: If True, only return local/mock adapters. 
@@ -1606,23 +1660,45 @@ class ModelManager:
         
         available = []
         
-        # Always include successfully initialized adapters
+        # Only include adapters that are actually initialized and not disabled
         for name in self.adapters.keys():
+            # Skip disabled adapters
+            if name in self.disabled_adapters:
+                continue
+                
+            # Get adapter type from config
+            adapter_config = self.config.get("adapters", {}).get(name, {})
+            adapter_type = adapter_config.get("type", name)
+            
             if standalone_mode:
                 # In standalone mode, only include local/mock adapters
-                adapter_type = self.config["adapters"][name].get("type", "unknown")
-                if adapter_type in ["mock", "mock_image", "local", "transformers"]:
+                if adapter_type in ["mock", "mock_image", "local", "transformers", "ollama"]:
+                    # For ollama, only include if it's actually accessible (not disabled)
+                    if adapter_type == "ollama" and name in self.disabled_adapters:
+                        continue
                     available.append(name)
             else:
-                # In normal mode, include all working adapters
+                # In normal mode, include all working (non-disabled) adapters
                 available.append(name)
         
-        # In standalone mode, ensure mock is available as fallback
-        if standalone_mode and not available:
-            mock_adapters = [name for name, config in self.config["adapters"].items() 
-                           if config.get("type") in ["mock", "mock_image"]]
-            if mock_adapters:
-                available.extend(mock_adapters)
+        # Fallback: ensure mock adapters are available if no others work
+        if not available:
+            # Look for mock adapters in config that we can enable
+            for name, config in self.config.get("adapters", {}).items():
+                if config.get("type") in ["mock", "mock_image"]:
+                    if standalone_mode or not available:
+                        # Initialize mock adapter if not already done
+                        if name not in self.adapters:
+                            try:
+                                adapter = self._create_adapter_instance(config.get("type"), config)
+                                self.adapters[name] = adapter
+                                log_system_event("standalone_fallback", 
+                                                f"Initialized {name} as standalone fallback")
+                            except Exception as e:
+                                log_error(f"Failed to initialize fallback adapter {name}: {e}")
+                                continue
+                        available.append(name)
+                        break  # Only need one mock adapter
         
         return available
     
