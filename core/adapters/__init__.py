@@ -11,10 +11,10 @@ of template method pattern and inheritance from BaseAPIAdapter.
 from .base import ModelAdapter, BaseAPIAdapter, ImageAdapter
 from .exceptions import AdapterError, AdapterNotFoundError, AdapterInitializationError
 
-# Provider adapters will be imported here once implemented
-# from .providers.openai import OpenAIAdapter
-# from .providers.ollama import OllamaAdapter
-# from .providers.anthropic import AnthropicAdapter
+# Provider adapters - proof of concept implementations
+from .providers.openai import OpenAIAdapter
+from .providers.ollama import OllamaAdapter
+from .providers.anthropic import AnthropicAdapter
 
 __all__ = [
     # Base classes
@@ -27,8 +27,8 @@ __all__ = [
     'AdapterNotFoundError',
     'AdapterInitializationError',
     
-    # Provider adapters (to be added)
-    # 'OpenAIAdapter',
-    # 'OllamaAdapter',
-    # 'AnthropicAdapter',
+    # Provider adapters - proof of concept
+    'OpenAIAdapter',
+    'OllamaAdapter',
+    'AnthropicAdapter',
 ]
