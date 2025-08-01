@@ -289,11 +289,18 @@
 
   "next_priorities": [
     {
+      "item": "CRITICAL: Core Module Refactoring Initiative",
+      "priority": "critical",
+      "target": "2025-09-15",
+      "estimated_effort": "6-8 weeks",
+      "notes": "Comprehensive refactoring of model_adapter.py (4,425 lines) and core module consolidation. See REFACTORING_STRATEGY.md for detailed implementation plan."
+    },
+    {
       "item": "Enhanced Stress Testing Framework", 
-      "priority": "high",
-      "target": "2025-09-05",
-      "estimated_effort": "1-2 weeks",
-      "notes": "Comprehensive narrative validation under extreme conditions"
+      "priority": "medium",
+      "target": "2025-09-20",
+      "estimated_effort": "2-3 weeks",
+      "notes": "Comprehensive narrative validation under extreme conditions - deferred until after refactoring"
     },
     {
       "item": "Audio Generation Engine",
@@ -340,15 +347,20 @@
   ],
 
   "current_focus": {
-    "documentation_consolidation": {
-      "status": "in_progress",
-      "target": "2025-07-27",
-      "description": "Eliminating fragmented status tracking across multiple files"
+    "core_refactoring_initiative": {
+      "status": "ready_to_start",
+      "priority": "critical",
+      "target": "2025-09-15",
+      "description": "Comprehensive refactoring of model_adapter.py and core module consolidation",
+      "strategy_document": "REFACTORING_STRATEGY.md",
+      "estimated_effort": "6-8 weeks",
+      "next_phase": "Phase 1: Foundation Layer (Week 1-2)"
     },
     "next_development_task": {
       "item": "Enhanced Stress Testing Framework",
-      "priority": "high",
-      "status": "planned"
+      "priority": "medium",
+      "status": "deferred_for_refactoring",
+      "notes": "Deferred until after core refactoring to avoid conflicts"
     }
   },
 
