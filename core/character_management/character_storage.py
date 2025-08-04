@@ -28,15 +28,19 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
     
     def __init__(self, config: Optional[Dict] = None):
         """Initialize character storage manager."""
-        super().__init__(config)
-        CharacterEventHandler.__init__(self)
+        # Store config first
+        self.config = config or {}
         
-        # Configuration
+        # Set storage configuration before calling parent init
         self.storage_path = self.config.get('storage_path', 'storage/characters')
         self.cache_enabled = self.config.get('cache_enabled', True)
         self.auto_save = self.config.get('auto_save', True)
         self.backup_enabled = self.config.get('backup_enabled', True)
         self.max_cache_size = self.config.get('max_cache_size', 1000)
+        
+        # Initialize base classes properly
+        CharacterEngineBase.__init__(self, self.config)
+        CharacterEventHandler.__init__(self)
         
         # Storage
         self.character_cache: Dict[str, CharacterData] = {}

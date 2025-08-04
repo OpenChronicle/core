@@ -17,7 +17,7 @@ if project_root not in sys.path:
 
 from core.model_manager_compat import ModelManager
 from core.content_analyzer import ContentAnalyzer
-from core.character_style_manager import CharacterStyleManager
+from core.character_management import CharacterOrchestrator
 from core.token_manager import TokenManager
 from core.context_builder import build_context_with_dynamic_models
 from core.story_loader import load_storypack
@@ -50,7 +50,7 @@ async def test_dynamic_model_integration():
     
     # Test 2: Character Style Management
     print("\n2. Testing Character Style Management:")
-    character_manager = CharacterStyleManager(model_manager)
+    character_manager = CharacterOrchestrator()
     
     # Load demo story to test character styles
     try:

@@ -61,7 +61,43 @@ class CharacterOrchestrator(CharacterEventHandler):
         self.storage.subscribe_to_event('character_updated', self._on_character_updated)
         self.storage.subscribe_to_event('character_created', self._on_character_created)
         
+        # Auto-load default components unless disabled
+        if self.config.get('auto_load_components', True):
+            self.load_default_components()
+        
         logger.info("Character orchestrator initialized")
+    
+    def load_default_components(self) -> None:
+        """Load the default character management components."""
+        try:
+            # Import and register components
+            from .stats import StatsBehaviorEngine
+            from .interactions import InteractionDynamicsEngine
+            from .consistency import ConsistencyValidationEngine
+            from .presentation import PresentationStyleEngine
+            
+            # Create and register components
+            stats_config = self.config.get('stats', {})
+            self.stats_component = StatsBehaviorEngine(stats_config)
+            self.register_component('stats', self.stats_component)
+            
+            interactions_config = self.config.get('interactions', {})
+            self.interactions_component = InteractionDynamicsEngine(interactions_config)
+            self.register_component('interactions', self.interactions_component)
+            
+            consistency_config = self.config.get('consistency', {})
+            self.consistency_component = ConsistencyValidationEngine(consistency_config)
+            self.register_component('consistency', self.consistency_component)
+            
+            presentation_config = self.config.get('presentation', {})
+            self.presentation_component = PresentationStyleEngine(presentation_config)
+            self.register_component('presentation', self.presentation_component)
+            
+            logger.info("Default character components loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to load default components: {e}")
+            raise
     
     def register_component(self, component_name: str, component: CharacterEngineBase) -> None:
         """Register a character management component."""
@@ -100,7 +136,7 @@ class CharacterOrchestrator(CharacterEventHandler):
     # Character Lifecycle Management
     # =============================================================================
     
-    def create_character(self, character_id: str, character_data: Optional[Dict] = None) -> CharacterData:
+    def create_character(self, character_id: str, character_data: Optional[Dict] = None) -> str:
         """Create a new character with all components initialized."""
         # Create character through storage
         character = self.storage.initialize_character(character_id, character_data)
@@ -118,7 +154,7 @@ class CharacterOrchestrator(CharacterEventHandler):
             'components': list(self.components.keys())
         })
         
-        return character
+        return character_id
     
     def get_character(self, character_id: str) -> Optional[CharacterData]:
         """Get complete character data."""

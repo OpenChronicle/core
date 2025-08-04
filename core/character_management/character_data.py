@@ -341,8 +341,10 @@ class CharacterData(CharacterDataMixin):
         """Get data for a specific component."""
         component_map = {
             'stats': self.stats,
+            'interactions': {'relationships': self.relationships},
             'consistency': self.consistency_profile, 
             'style': self.style_profile,
+            'presentation': self.style_profile,  # Alias for style
             'current_state': self.current_state
         }
         return component_map.get(component_name)
@@ -351,9 +353,15 @@ class CharacterData(CharacterDataMixin):
         """Set data for a specific component."""
         if component_name == 'stats':
             self.stats = data
+        elif component_name == 'interactions':
+            # Handle interactions data which may contain relationships
+            if isinstance(data, dict) and 'relationships' in data:
+                self.relationships = data['relationships']
+            else:
+                self.relationships = data
         elif component_name == 'consistency':
             self.consistency_profile = data
-        elif component_name == 'style':
+        elif component_name in ['style', 'presentation']:
             self.style_profile = data
         elif component_name == 'current_state':
             self.current_state = data

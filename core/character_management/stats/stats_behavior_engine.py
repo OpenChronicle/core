@@ -57,17 +57,17 @@ class StatsBehaviorEngine(CharacterEngineBase, CharacterBehaviorProvider, Charac
         
         self.logger.info("Stats behavior engine initialized")
     
-    def initialize_character(self, character_id: str, initial_stats: Optional[Dict[str, int]] = None) -> CharacterStats:
+    def initialize_character(self, character_id: str, **kwargs) -> CharacterStats:
         """Initialize character statistics."""
         if character_id in self.character_data:
             stats = self.character_data[character_id]
             
-            # Update stats if provided
-            if initial_stats:
-                for stat_name, value in initial_stats.items():
+            # Update stats if provided in kwargs
+            for stat_name, value in kwargs.items():
+                if isinstance(value, (int, float)):
                     try:
                         stat_type = CharacterStatType(stat_name)
-                        stats.update_stat(stat_type, value, "Character initialization")
+                        stats.update_stat(stat_type, int(value), "Character initialization")
                     except ValueError:
                         self.logger.warning(f"Unknown stat type: {stat_name}")
             
@@ -76,12 +76,12 @@ class StatsBehaviorEngine(CharacterEngineBase, CharacterBehaviorProvider, Charac
         # Create new character stats
         stats = CharacterStats(character_id=character_id)
         
-        # Apply initial stats if provided
-        if initial_stats:
-            for stat_name, value in initial_stats.items():
+        # Apply initial stats from kwargs
+        for stat_name, value in kwargs.items():
+            if isinstance(value, (int, float)):
                 try:
                     stat_type = CharacterStatType(stat_name)
-                    stats.stats[stat_type] = max(1, min(10, value))
+                    stats.stats[stat_type] = max(1, min(10, int(value)))
                 except ValueError:
                     self.logger.warning(f"Unknown stat type: {stat_name}")
         
