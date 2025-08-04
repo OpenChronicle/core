@@ -15,7 +15,7 @@ import random
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from core.model_adapter import ModelAdapter
+from core.model_adapters.model_adapter_base import ModelAdapter
 from utilities.logging_system import log_system_event, log_info, log_error
 
 

@@ -45,7 +45,7 @@ scene_logger.save_scene(story_id, scene_data, memory_snapshot)
 ## Testing & Development Commands
 ```powershell
 # Quick validation
-python -c "from core.model_adapter import ModelManager; print('OK')"
+python -c "from core.model_manager_compat import ModelManager; print('OK')"
 
 # Test with mocks only (FAST - minimal test subset)
 python main.py --test --max-iterations 1

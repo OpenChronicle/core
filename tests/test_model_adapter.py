@@ -12,12 +12,12 @@ import os
 from unittest.mock import Mock, patch, AsyncMock, MagicMock, mock_open
 from pathlib import Path
 
-from core.model_adapter import (
+from core.model_manager_compat import (
     ModelManager,
-    ModelAdapter,
-    OpenAIAdapter,
-    OllamaAdapter
+    ModelAdapter
 )
+from core.model_adapters.providers.openai_adapter import OpenAIAdapter
+from core.model_adapters.providers.ollama_adapter import OllamaAdapter
 from tests.mocks.mock_adapters import MockAdapter, MockImageAdapter
 
 
