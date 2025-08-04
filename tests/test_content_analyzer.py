@@ -9,7 +9,7 @@ import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 
 from core.content_analyzer import ContentAnalyzer
-from core.model_adapter import ModelManager
+from core.model_manager_compat import ModelManager
 
 
 @pytest.fixture

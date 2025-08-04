@@ -274,7 +274,7 @@ class TestIntegration:
     def test_registry_with_existing_model_manager(self):
         """Test that registry works alongside existing ModelManager."""
         try:
-            from core.model_adapter import ModelManager
+            from core.model_manager_compat import ModelManager
             
             # Create both systems
             manager = ModelManager()

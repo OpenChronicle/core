@@ -18,7 +18,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from core.content_analyzer import ContentAnalyzer
-from core.model_adapter import ModelManager
+from core.model_manager_compat import ModelManager
 
 
 class TransformerAnalysisExamples:

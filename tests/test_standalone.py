@@ -20,7 +20,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Test imports
-from core.model_adapter import ModelManager
+from core.model_manager_compat import ModelManager
 from core.content_analyzer import ContentAnalyzer
 import main
 

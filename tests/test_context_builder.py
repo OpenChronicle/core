@@ -18,7 +18,7 @@ from core.context_builder import (
     load_canon_snippets,
     json_to_readable_text
 )
-from core.model_adapter import ModelManager
+from core.model_manager_compat import ModelManager
 
 
 @pytest.fixture
