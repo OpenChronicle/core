@@ -1,58 +1,62 @@
 """
-Unified adapter factory with registry integration.
+Dynamic adapter factory with Phase 2.0 configuration system.
 
-This factory consolidates adapter creation logic from both the original adapters/factory.py
-and model_management/adapter_factory.py, providing a single, clean interface for
-adapter creation with full registry integration.
+This factory uses the dynamic configuration system that automatically
+discovers providers from individual JSON files in config/models/.
 
 Following OpenChronicle naming convention: adapter_factory.py
 """
 
 import logging
 from typing import Dict, Any, Type, Optional, List, Union
+from pathlib import Path
 
 from .api_adapter_base import BaseAPIAdapter, LocalModelAdapter
 from .adapter_exceptions import AdapterNotFoundError, AdapterInitializationError
-from ..model_registry.registry_manager import RegistryManager
+from ..model_registry.dynamic_registry_manager import DynamicRegistryManager
 
 logger = logging.getLogger(__name__)
 
 
 class AdapterFactory:
     """
-    Unified factory for creating model adapters with registry integration.
+    Dynamic adapter factory with content-driven provider discovery.
     
-    This factory consolidates adapter creation logic and creates adapter instances
-    based on registry configuration, automatically injecting provider-specific
-    settings and validation rules.
+    This factory integrates with the Phase 2.0 dynamic configuration system,
+    automatically discovering providers from individual configuration files
+    and enabling runtime provider management.
     
     Key Features:
-    - Registry-aware adapter creation
-    - Provider configuration injection
-    - Dynamic adapter registration
-    - Fallback chain support
+    - Content-driven provider discovery using DynamicRegistryManager
+    - Runtime provider addition/removal
+    - Multi-model support per provider
     - Enhanced error handling and logging
     """
     
-    def __init__(self, registry_manager: RegistryManager):
+    def __init__(self, models_dir: str = "config/models/", settings_file: str = "config/registry_settings.json"):
         """
-        Initialize the adapter factory with registry integration.
+        Initialize the adapter factory with dynamic configuration.
         
         Args:
-            registry_manager: Registry manager for configuration and validation
+            models_dir: Directory containing individual provider config files
+            settings_file: Path to global registry settings
         """
-        self.registry = registry_manager
+        self.registry = DynamicRegistryManager(models_dir, settings_file)
         self.providers: Dict[str, Type[BaseAPIAdapter]] = {}
-        self._register_default_adapters()
+        self.adapter_instances: Dict[str, BaseAPIAdapter] = {}
         
-        logger.info(f"AdapterFactory initialized with {len(self.providers)} providers")
+        self._register_default_adapters()
+        self._discover_available_providers()
+        
+        logger.info(f"AdapterFactory initialized with {len(self.get_available_providers())} providers")
+        logger.info(f"Available configurations: {len(self.get_available_configurations())}")
     
     def _register_default_adapters(self) -> None:
-        """Register default adapter mappings from available providers."""
+        """Register default adapter class mappings."""
         try:
             # Import adapters dynamically to avoid circular imports
             from .providers.openai_adapter import OpenAIAdapter
-            from .providers.ollama_adapter import OllamaAdapter  
+            from .providers.ollama_adapter import OllamaAdapter
             from .providers.anthropic_adapter import AnthropicAdapter
             
             self.providers.update({
@@ -61,31 +65,47 @@ class AdapterFactory:
                 'anthropic': AnthropicAdapter,
             })
             
-            logger.info(f"Registered {len(self.providers)} default adapters: {list(self.providers.keys())}")
+            # Try to register additional adapters if available
+            try:
+                from .providers.gemini_adapter import GeminiAdapter
+                self.providers['gemini'] = GeminiAdapter
+            except ImportError:
+                logger.debug("Gemini adapter not available")
+            
+            try:
+                from .providers.groq_adapter import GroqAdapter
+                self.providers['groq'] = GroqAdapter
+            except ImportError:
+                logger.debug("Groq adapter not available")
+            
+            try:
+                from .providers.transformers_adapter import TransformersAdapter
+                self.providers['transformers'] = TransformersAdapter
+            except ImportError:
+                logger.debug("Transformers adapter not available")
+                
+            logger.info(f"Registered {len(self.providers)} adapter classes")
             
         except ImportError as e:
             logger.warning(f"Could not import some adapters: {e}")
-            # Try to register what we can
-            try:
-                from .providers.openai_adapter import OpenAIAdapter
-                self.providers['openai'] = OpenAIAdapter
-                logger.info("Registered OpenAI adapter")
-            except ImportError:
-                pass
+    
+    def _discover_available_providers(self) -> None:
+        """Discover available providers from configurations without adapter implementations."""
+        try:
+            # Get all provider types from configurations
+            config_providers = set()
+            providers_data = self.registry.discover_providers()
+            
+            for provider_name, configs in providers_data.items():
+                config_providers.add(provider_name)
+            
+            # Log providers without adapter implementations
+            missing_adapters = config_providers - set(self.providers.keys())
+            if missing_adapters:
+                logger.info(f"Found configurations for providers without adapter implementations: {list(missing_adapters)}")
                 
-            try:
-                from .providers.ollama_adapter import OllamaAdapter
-                self.providers['ollama'] = OllamaAdapter
-                logger.info("Registered Ollama adapter")
-            except ImportError:
-                pass
-                
-            try:
-                from .providers.anthropic_adapter import AnthropicAdapter
-                self.providers['anthropic'] = AnthropicAdapter
-                logger.info("Registered Anthropic adapter")
-            except ImportError:
-                pass
+        except Exception as e:
+            logger.warning(f"Error discovering providers: {e}")
     
     def register_adapter(self, provider: str, adapter_class: Type[BaseAPIAdapter]) -> None:
         """
@@ -95,267 +115,200 @@ class AdapterFactory:
             provider: Provider name (e.g., 'openai', 'anthropic')
             adapter_class: Adapter class implementing BaseAPIAdapter
         """
+        if not issubclass(adapter_class, BaseAPIAdapter):
+            raise ValueError(f"Adapter class must inherit from BaseAPIAdapter")
+        
         self.providers[provider] = adapter_class
         logger.info(f"Registered custom adapter for provider: {provider}")
     
     def get_available_providers(self) -> List[str]:
-        """Get list of available provider names."""
+        """Get list of providers with registered adapter classes."""
         return list(self.providers.keys())
     
-    def create_adapter(
-        self, 
-        provider: str, 
-        model_name: str,
-        custom_config: Optional[Dict[str, Any]] = None
-    ) -> BaseAPIAdapter:
+    def get_available_configurations(self) -> List[str]:
+        """Get list of all available configuration names."""
+        try:
+            all_configs = []
+            providers = self.registry.discover_providers()
+            for provider_name, configs in providers.items():
+                for config in configs:
+                    config_name = config.get('config_name', f"{provider_name}_default")
+                    all_configs.append(config_name)
+            return all_configs
+        except Exception as e:
+            logger.warning(f"Error getting configurations: {e}")
+            return []
+    
+    def get_provider_models(self, provider: str) -> List[Dict[str, Any]]:
         """
-        Create adapter instance from provider and model information.
+        Get all model configurations for a specific provider.
         
         Args:
-            provider: Provider name (e.g., 'openai', 'anthropic')
-            model_name: Model name to use
-            custom_config: Optional custom configuration to override registry
+            provider: Provider name
+            
+        Returns:
+            List of model configurations for the provider
+        """
+        try:
+            return self.registry.get_provider_models(provider)
+        except Exception as e:
+            logger.warning(f"Could not get models for provider {provider}: {e}")
+            return []
+    
+    def create_adapter(self, config_name_or_provider: str, custom_config: Optional[Dict[str, Any]] = None) -> BaseAPIAdapter:
+        """
+        Create an adapter instance from configuration name or provider.
+        
+        Args:
+            config_name_or_provider: Configuration name or provider name
+            custom_config: Optional configuration overrides
             
         Returns:
             Initialized adapter instance
             
         Raises:
-            AdapterNotFoundError: If provider is not registered
-            AdapterInitializationError: If adapter fails to initialize
+            AdapterNotFoundError: If configuration/provider not found
+            AdapterInitializationError: If adapter initialization fails
         """
-        if provider not in self.providers:
-            available = list(self.providers.keys())
-            raise AdapterNotFoundError(f"Unknown provider: {provider}. Available: {available}")
+        # Try as configuration name first (more specific)
+        if config_name_or_provider in self.get_available_configurations():
+            return self._create_adapter_from_config(config_name_or_provider, custom_config)
         
-        adapter_class = self.providers[provider]
+        # Try as provider name
+        if config_name_or_provider in self.get_available_providers():
+            return self._create_adapter_from_provider(config_name_or_provider, custom_config)
         
+        # If neither found, provide helpful error
+        available_configs = self.get_available_configurations()
+        available_providers = self.get_available_providers()
+        raise AdapterNotFoundError(
+            f"'{config_name_or_provider}' not found. "
+            f"Available configs: {available_configs[:3]}... "
+            f"Available providers: {available_providers}"
+        )
+    
+    def _create_adapter_from_config(self, config_name: str, custom_config: Optional[Dict[str, Any]] = None) -> BaseAPIAdapter:
+        """Create adapter from specific configuration name."""
         try:
-            # Get enhanced config with registry integration
-            config = self._get_enhanced_config(provider, model_name, custom_config)
+            # Get the configuration
+            config = self.registry.get_model_config(config_name)
+            if not config:
+                raise AdapterNotFoundError(f"Configuration '{config_name}' not found")
+            
+            # Extract provider from config
+            provider = config.get('provider')
+            if not provider:
+                raise AdapterInitializationError(f"No provider specified in configuration '{config_name}'")
+            
+            # Check if we have an adapter class for this provider
+            if provider not in self.providers:
+                raise AdapterNotFoundError(f"No adapter class registered for provider '{provider}'")
+            
+            # Merge custom config if provided
+            final_config = config.copy()
+            if custom_config:
+                final_config.update(custom_config)
             
             # Create adapter instance
-            adapter = adapter_class(model_name, config)
+            adapter_class = self.providers[provider]
+            adapter = adapter_class(config_name, final_config)
             
-            logger.info(f"Created {provider} adapter for model: {model_name}")
+            logger.info(f"Created {provider} adapter from config: {config_name}")
             return adapter
             
         except Exception as e:
-            logger.error(f"Failed to create {provider} adapter: {e}")
-            raise AdapterInitializationError(provider, f"Adapter creation failed: {e}")
+            logger.error(f"Failed to create adapter from config '{config_name}': {e}")
+            raise AdapterInitializationError(f"Adapter creation failed: {e}")
     
-    def create_adapter_from_config(
-        self, 
-        model_config: Dict[str, Any],
-        model_manager: Optional[Any] = None
-    ) -> BaseAPIAdapter:
-        """
-        Create adapter instance from model configuration dictionary.
-        
-        This method provides backward compatibility with the original factory interface.
-        
-        Args:
-            model_config: Model configuration from registry or elsewhere
-            model_manager: Optional reference to model manager (for compatibility)
-            
-        Returns:
-            Initialized adapter instance
-        """
-        # Extract provider and model name from config
-        provider = model_config.get("name") or model_config.get("provider")
-        model_name = model_config.get("model_name") or model_config.get("model")
-        
-        if not provider:
-            raise AdapterInitializationError(None, "No provider specified in config")
-        
-        if not model_name:
-            raise AdapterInitializationError(provider, "No model name specified in config")
-        
-        return self.create_adapter(provider, model_name, model_config)
-    
-    def _get_enhanced_config(
-        self, 
-        provider: str, 
-        model_name: str, 
-        custom_config: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Create enhanced configuration by merging registry config with custom config.
-        
-        Args:
-            provider: Provider name
-            model_name: Model name
-            custom_config: Custom configuration to merge
-            
-        Returns:
-            Enhanced configuration dictionary
-        """
-        # Start with registry configuration
+    def _create_adapter_from_provider(self, provider: str, custom_config: Optional[Dict[str, Any]] = None) -> BaseAPIAdapter:
+        """Create adapter using provider default configuration."""
         try:
-            registry_config = self.registry.get_provider_config(provider)
+            # Get default configuration for provider
+            provider_configs = self.get_provider_models(provider)
+            if not provider_configs:
+                # Create minimal config if none exists
+                config = {
+                    "provider": provider,
+                    "display_name": f"Default {provider.title()}",
+                    "enabled": True
+                }
+            else:
+                # Use first available config as default
+                config = provider_configs[0].copy()
+            
+            # Merge custom config if provided
+            if custom_config:
+                config.update(custom_config)
+            
+            # Create adapter instance
+            adapter_class = self.providers[provider]
+            adapter = adapter_class(f"default_{provider}", config)
+            
+            logger.info(f"Created default {provider} adapter")
+            return adapter
+            
         except Exception as e:
-            logger.warning(f"Could not get registry config for {provider}: {e}")
-            registry_config = {}
-        
-        # Create base configuration
-        config = {
-            "provider": provider,
-            "model_name": model_name,
-            **registry_config
-        }
-        
-        # Merge custom configuration if provided
-        if custom_config:
-            config.update(custom_config)
-        
-        # Add registry-specific enhancements
-        config = self._add_registry_enhancements(config, provider, model_name)
-        
-        return config
+            logger.error(f"Failed to create adapter for provider '{provider}': {e}")
+            raise AdapterInitializationError(f"Adapter creation failed: {e}")
     
-    def _add_registry_enhancements(
-        self, 
-        config: Dict[str, Any], 
-        provider: str, 
-        model_name: str
-    ) -> Dict[str, Any]:
-        """
-        Add registry-specific enhancements to configuration.
-        
-        Args:
-            config: Base configuration
-            provider: Provider name
-            model_name: Model name
-            
-        Returns:
-            Enhanced configuration with registry features
-        """
+    def has_provider(self, provider_name: str) -> bool:
+        """Check if a provider is available."""
+        return (provider_name in self.get_available_providers() or
+                provider_name in self.get_available_configurations())
+    
+    def validate_configuration(self, provider_name: str, config: Dict[str, Any]) -> bool:
+        """Validate configuration for a provider."""
+        return self.has_provider(provider_name)
+    
+    def get_adapter_info(self, config_name: str) -> Optional[Dict[str, Any]]:
+        """Get adapter information including configuration requirements."""
         try:
-            # Add model-specific configuration from registry
-            model_config = self.registry.get_model_config(provider, model_name)
-            if model_config:
-                config.update(model_config)
-            
-            # Add provider validation rules
-            validation_rules = self.registry.get_validation_rules(provider)
-            if validation_rules:
-                config["validation_rules"] = validation_rules
-            
-            # Add health check configuration
-            health_config = self.registry.get_health_check_config(provider)
-            if health_config:
-                config["health_check"] = health_config
-            
-            # Add rate limiting configuration
-            rate_limit_config = self.registry.get_rate_limit_config(provider)
-            if rate_limit_config:
-                config["rate_limits"] = rate_limit_config
-                
-        except Exception as e:
-            logger.warning(f"Could not enhance config with registry data: {e}")
-        
-        return config
+            return self.registry.get_model_config(config_name)
+        except Exception:
+            return None
     
     def get_fallback_chain(self, provider: str) -> List[str]:
-        """
-        Get fallback chain for a provider from registry.
-        
-        Args:
-            provider: Provider name
-            
-        Returns:
-            List of provider names in fallback order
-        """
+        """Get fallback chain for a provider."""
         try:
-            return self.registry.get_fallback_chain(provider)
-        except Exception as e:
-            logger.warning(f"Could not get fallback chain for {provider}: {e}")
-            return [provider]  # Return single provider as fallback
-    
-    def create_fallback_adapters(
-        self, 
-        provider: str, 
-        model_name: str,
-        custom_config: Optional[Dict[str, Any]] = None
-    ) -> List[BaseAPIAdapter]:
-        """
-        Create adapters for entire fallback chain.
-        
-        Args:
-            provider: Primary provider name
-            model_name: Model name
-            custom_config: Custom configuration
-            
-        Returns:
-            List of adapters in fallback order
-        """
-        fallback_chain = self.get_fallback_chain(provider)
-        adapters = []
-        
-        for fallback_provider in fallback_chain:
-            try:
-                adapter = self.create_adapter(fallback_provider, model_name, custom_config)
-                adapters.append(adapter)
-            except Exception as e:
-                logger.warning(f"Could not create fallback adapter for {fallback_provider}: {e}")
-        
-        return adapters
-    
-    def validate_provider_config(self, provider: str) -> bool:
-        """
-        Validate that a provider is properly configured.
-        
-        Args:
-            provider: Provider name to validate
-            
-        Returns:
-            True if provider is valid and configured
-        """
-        if provider not in self.providers:
-            return False
-        
-        try:
-            # Check if registry has configuration for this provider
-            config = self.registry.get_provider_config(provider)
-            return bool(config)
+            # For now, return simple fallback to just the provider
+            # This could be enhanced later with actual fallback configuration
+            return [provider] if provider in self.providers else []
         except Exception:
+            return []
+    
+    def add_runtime_config(self, config_name: str, config: Dict[str, Any]) -> bool:
+        """Add a new configuration at runtime."""
+        try:
+            success = self.registry.add_model_config(config_name, config)
+            if success:
+                logger.info(f"Added runtime configuration: {config_name}")
+            return success
+        except Exception as e:
+            logger.error(f"Failed to add runtime config '{config_name}': {e}")
             return False
     
-    def get_adapter_info(self, provider: str) -> Optional[Dict[str, Any]]:
-        """
-        Get information about a specific adapter.
-        
-        Args:
-            provider: Provider name
-            
-        Returns:
-            Adapter information dictionary or None if not found
-        """
-        if provider not in self.providers:
-            return None
-        
-        adapter_class = self.providers[provider]
-        
-        return {
-            "provider": provider,
-            "adapter_class": adapter_class.__name__,
-            "module": adapter_class.__module__,
-            "is_local": issubclass(adapter_class, LocalModelAdapter),
-            "registry_configured": self.validate_provider_config(provider)
-        }
+    def remove_runtime_config(self, config_name: str) -> bool:
+        """Remove a configuration at runtime."""
+        try:
+            success = self.registry.remove_model_config(config_name)
+            if success:
+                logger.info(f"Removed runtime configuration: {config_name}")
+            return success
+        except Exception as e:
+            logger.error(f"Failed to remove runtime config '{config_name}': {e}")
+            return False
     
-    def get_factory_status(self) -> Dict[str, Any]:
-        """
-        Get comprehensive factory status information.
-        
-        Returns:
-            Factory status dictionary
-        """
+    def refresh_configurations(self) -> Dict[str, Any]:
+        """Refresh configurations from disk."""
+        return self.registry.refresh_providers()
+    
+    @property
+    def status(self) -> Dict[str, Any]:
+        """Get factory status information."""
         return {
-            "total_providers": len(self.providers),
-            "available_providers": list(self.providers.keys()),
-            "registry_status": self.registry.get_status() if hasattr(self.registry, 'get_status') else "unknown",
-            "provider_info": {
-                provider: self.get_adapter_info(provider) 
-                for provider in self.providers.keys()
-            }
+            "mode": "dynamic",
+            "total_providers": len(self.get_available_providers()),
+            "total_configs": len(self.get_available_configurations()),
+            "config_directory": str(self.registry.models_dir),
+            "registered_adapters": list(self.providers.keys())
         }
