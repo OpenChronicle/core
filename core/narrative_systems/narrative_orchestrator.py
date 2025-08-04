@@ -1,7 +1,17 @@
 """
 OpenChronicle Core - Narrative Systems Orchestrator
 
-Main coordinator for all narrative systems including response intelligence,
+Main coordinator for all narrative systems including respo            log_system_event(
+                "narrative_orchestrator_init",
+                "ResponseOrchestrator initialized successfully"
+            )
+            
+            # Initialize mechanics orchestrator
+            self.mechanics_orchestrator = MechanicsOrchestrator()
+            log_system_event(
+                "narrative_orchestrator_init",
+                "MechanicsOrchestrator initialized successfully"
+            )gence,
 narrative mechanics, consistency validation, and emotional stability.
 
 This module follows the proven orchestrator pattern established in:
@@ -109,6 +119,7 @@ class NarrativeOrchestrator:
         try:
             # Initialize response orchestrator
             from .response import ResponseOrchestrator
+            from .mechanics import MechanicsOrchestrator
             response_dir = self.data_dir / "response"
             self.response_orchestrator = ResponseOrchestrator(
                 str(response_dir), 
@@ -117,12 +128,21 @@ class NarrativeOrchestrator:
             
             log_system_event(
                 "response_orchestrator_init",
-                "ResponseOrchestrator initialized successfully"
+ResponseOrchestrator initialized successfully
+            )
+            
+            # Initialize mechanics orchestrator
+            self.mechanics_orchestrator = MechanicsOrchestrator()
+            log_system_event(
+                "narrative_orchestrator_init",
+                "MechanicsOrchestrator initialized successfully"
+
             )
             
         except Exception as e:
             log_error(f"Error initializing response orchestrator: {e}")
             self.response_orchestrator = None
+            self.mechanics_orchestrator = None
     
     def _load_configuration(self) -> Dict[str, Any]:
         """Load narrative system configuration."""
