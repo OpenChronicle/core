@@ -65,7 +65,7 @@ Use this checklist when starting new sprints or after major changes to ensure al
 
 ```powershell
 # Quick configuration validation
-python -c "from core.model_manager_compat import ModelManager; print('ModelManager OK')"
+python -c "from core.model_management import ModelOrchestrator; print('ModelOrchestrator OK')"
 
 # Test environment alignment
 python -c "import yaml, httpx; from PIL import Image; print('Dependencies OK')"

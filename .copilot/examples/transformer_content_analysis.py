@@ -18,7 +18,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from core.content_analysis import ContentAnalysisOrchestrator as ContentAnalyzer
-from core.model_manager_compat import ModelManager
+from core.model_management import ModelOrchestrator
 
 
 class TransformerAnalysisExamples:
@@ -30,7 +30,7 @@ class TransformerAnalysisExamples:
     
     async def setup(self):
         """Initialize the model manager and content analyzer."""
-        self.model_manager = ModelManager()
+        self.model_manager = ModelOrchestrator()
         await self.model_manager.initialize_adapter("mock")
         
         # Initialize with transformers enabled (will gracefully fall back if not available)

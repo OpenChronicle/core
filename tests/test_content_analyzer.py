@@ -9,13 +9,13 @@ import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 
 from core.content_analysis import ContentAnalysisOrchestrator as ContentAnalyzer
-from core.model_manager_compat import ModelManager
+from core.model_management import ModelOrchestrator
 
 
 @pytest.fixture
 def mock_model_manager():
     """Create a mock ModelManager for testing."""
-    manager = Mock(spec=ModelManager)
+    manager = Mock(spec=ModelOrchestrator)
     manager.generate_response = AsyncMock(return_value="""
     Content Analysis:
     - Type: dialogue

@@ -17,7 +17,7 @@ from datetime import datetime, UTC
 
 # Import OpenChronicle infrastructure
 from utilities.logging_system import get_logger, log_system_event, log_error, log_info, log_warning
-from core.model_manager_compat import ModelManager
+from core.memory_management import MemoryOrchestrator
 from core.content_analysis import ContentAnalysisOrchestrator as ContentAnalyzer
 
 
@@ -37,8 +37,8 @@ class StorypackImporter:
         self.output_dir = output_dir or self.root_dir / "storage" / "storypacks"
         self.templates_dir = self.root_dir / "templates"
         
-        # Initialize ModelManager for AI processing
-        self.model_manager = None
+        # Initialize MemoryOrchestrator for memory management
+        self.memory_orchestrator = None
         self.content_analyzer = None
         self.ai_available = False
         
@@ -62,7 +62,7 @@ class StorypackImporter:
     def initialize_ai(self) -> bool:
         """Initialize AI capabilities if available."""
         try:
-            self.model_manager = ModelManager()
+            self.memory_orchestrator = MemoryOrchestrator()
             available_adapters = self.model_manager.get_available_adapters()
             
             if available_adapters:

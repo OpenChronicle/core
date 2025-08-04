@@ -23,7 +23,7 @@ Since OpenChronicle is still in development on a branch (`integration/core-modul
 # Remove these compatibility layers:
 ModelManager = ModelOrchestrator  # Not needed
 ContentAnalyzer = ContentAnalysisOrchestrator  # Not needed
-from core.model_manager_compat import ModelManager  # Delete entire file
+from core.model_management import ModelOrchestrator  # Use direct modular orchestrator
 ```
 
 **Direct Approach:**
@@ -58,7 +58,7 @@ from core.character_management import CharacterOrchestrator
 ### **Immediate Tasks:**
 
 1. **Remove Compatibility Files**:
-   - Delete `core/model_manager_compat.py` (if it exists)
+   - No more `core/model_manager_compat.py` file needed
    - Remove alias assignments (`ContentAnalyzer = ContentAnalysisOrchestrator`)
    - Update all imports to use direct paths
 

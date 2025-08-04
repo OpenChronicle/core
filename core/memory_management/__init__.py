@@ -1,100 +1,21 @@
 """
-Memory Management System
+Memory Management System Package
+==============================
 
-This package provides a comprehensive modular memory management system for the
-OpenChronicle narrative AI engine, replacing the monolithic memory_manager.py
-with specialized components.
+This package provides a comprehensive memory management system for OpenChronicle,
+organized into specialized components for different aspects of memory handling.
 
-Components:
-- Persistence Layer: Database operations, serialization, snapshots
-- Character Management: Character-specific memory operations
-- Context Management: Context generation and world state management
-- Shared Models: Common data structures and utilities
+Package Structure:
+- persistence/: Data storage and retrieval components
+- character/: Character-specific memory management
+- context/: Context generation and world state management  
+- shared/: Common models and utilities
+- memory_orchestrator.py: Main coordination interface
 
-Usage:
-    from .memory_orchestrator import MemoryOrchestrator
-    from .persistence import MemoryRepository, MemorySerializer, SnapshotManager
-    from .character import CharacterManager, MoodTracker, VoiceManager
-    from .context import ContextBuilder, WorldStateManager, SceneContextManager
-    from .shared import MemorySnapshot, CharacterMemory, VoiceProfile
+Created as part of Phase 5B Memory Management Enhancement
 """
 
-# Persistence layer components
-from .persistence import (
-    MemoryRepository, 
-    MemorySerializer, 
-    SnapshotManager,
-    DatabaseConnector
-)
+# Main orchestrator (primary interface)
+from .memory_orchestrator import MemoryOrchestrator
 
-# Character management components
-from .character import (
-    CharacterManager,
-    MoodTracker, 
-    MoodAnalysis,
-    MoodRecommendation,
-    VoiceManager,
-    VoiceAnalysis, 
-    VoiceRecommendation
-)
-
-# Context management components
-from .context import (
-    ContextBuilder,
-    ContextConfiguration,
-    ContextMetrics,
-    WorldStateManager,
-    WorldStateAnalysis, 
-    WorldStateUpdate,
-    EventFilter,
-    SceneContextManager,
-    SceneContext,
-    SceneTransition,
-    ContextContinuity
-)
-
-# Shared models and utilities
-from .shared import (
-    MemorySnapshot,
-    CharacterMemory, 
-    VoiceProfile,
-    DatabaseManager,
-    MemoryUtilities
-)
-
-__all__ = [
-    # Persistence layer
-    'MemoryRepository',
-    'MemorySerializer', 
-    'SnapshotManager',
-    'DatabaseConnector',
-    
-    # Character management
-    'CharacterManager',
-    'MoodTracker',
-    'MoodAnalysis',
-    'MoodRecommendation', 
-    'VoiceManager',
-    'VoiceAnalysis',
-    'VoiceRecommendation',
-    
-    # Context management
-    'ContextBuilder',
-    'ContextConfiguration',
-    'ContextMetrics',
-    'WorldStateManager',
-    'WorldStateAnalysis',
-    'WorldStateUpdate',
-    'EventFilter',
-    'SceneContextManager',
-    'SceneContext',
-    'SceneTransition',
-    'ContextContinuity',
-    
-    # Shared components
-    'MemorySnapshot',
-    'CharacterMemory',
-    'VoiceProfile',
-    'DatabaseManager',
-    'MemoryUtilities'
-]
+__all__ = ['MemoryOrchestrator']

@@ -18,7 +18,7 @@ from core.context_builder import (
     load_canon_snippets,
     json_to_readable_text
 )
-from core.model_manager_compat import ModelManager
+from core.model_management import ModelOrchestrator
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def sample_story_data(temp_story_dir):
 @pytest.fixture
 def mock_model_manager():
     """Create mock ModelManager."""
-    manager = Mock(spec=ModelManager)
+    manager = Mock(spec=ModelOrchestrator)
     manager.generate_response = AsyncMock(return_value="Mock analysis response")
     manager.get_adapter_info = Mock(return_value={"max_tokens": 4096})
     return manager

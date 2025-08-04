@@ -12,7 +12,8 @@ import os
 from unittest.mock import Mock, patch, AsyncMock, MagicMock, mock_open
 from pathlib import Path
 
-from core.model_manager_compat import (
+from core.model_management import ModelOrchestrator
+from core.model_adapter import (
     ModelManager,
     ModelAdapter
 )

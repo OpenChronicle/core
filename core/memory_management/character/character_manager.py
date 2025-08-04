@@ -29,9 +29,9 @@ class CharacterUpdateResult:
 class CharacterManager:
     """Manages character-specific memory operations."""
     
-    def __init__(self, repository: MemoryRepository):
+    def __init__(self, repository: MemoryRepository = None):
         """Initialize character manager."""
-        self.repository = repository
+        self.repository = repository or MemoryRepository()
     
     def update_character(self, story_id: str, character_name: str, 
                         updates: Dict[str, Any]) -> CharacterUpdateResult:

@@ -15,7 +15,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from core.model_manager_compat import ModelManager
+from core.model_management import ModelOrchestrator as ModelManager
 from core.content_analysis import ContentAnalysisOrchestrator as ContentAnalyzer
 from core.character_management import CharacterOrchestrator
 from core.token_manager import TokenManager

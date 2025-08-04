@@ -16,14 +16,14 @@ Usage:
 """
 
 from .character_manager import CharacterManager
-from .mood_tracker import MoodTracker, MoodAnalysis, MoodRecommendation
+from .mood_tracker import MoodTracker, MoodAnalysis, MoodPattern
 from .voice_manager import VoiceManager, VoiceAnalysis, VoiceRecommendation
 
 __all__ = [
     'CharacterManager',
     'MoodTracker', 
     'MoodAnalysis',
-    'MoodRecommendation',
+    'MoodPattern',
     'VoiceManager',
     'VoiceAnalysis', 
     'VoiceRecommendation'

@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.model_manager_compat import ModelManager
+from core.model_management import ModelOrchestrator as ModelManager
 
 class TestDynamicOllamaDiscovery:
     """Test dynamic Ollama model discovery functionality."""

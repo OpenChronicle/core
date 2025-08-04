@@ -35,6 +35,46 @@ class RecentEvent:
     data: Optional[Dict[str, Any]] = None
 
 
+@dataclass 
+class WorldEvent:
+    """Represents a significant world event."""
+    description: str
+    event_type: str = "general"
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    data: Dict[str, Any] = field(default_factory=dict)
+    characters_involved: List[str] = field(default_factory=list)
+    location: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary format."""
+        return {
+            "description": self.description,
+            "event_type": self.event_type,
+            "timestamp": self.timestamp.isoformat(),
+            "data": self.data,
+            "characters_involved": self.characters_involved,
+            "location": self.location
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'WorldEvent':
+        """Create from dictionary format."""
+        timestamp_str = data.get("timestamp", "")
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        except:
+            timestamp = datetime.now(UTC)
+        
+        return cls(
+            description=data.get("description", ""),
+            event_type=data.get("event_type", "general"),
+            timestamp=timestamp,
+            data=data.get("data", {}),
+            characters_involved=data.get("characters_involved", []),
+            location=data.get("location")
+        )
+
+
 @dataclass
 class MoodEntry:
     """Represents a character mood entry."""

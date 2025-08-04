@@ -156,7 +156,7 @@ python discover_ollama_models.py
 
 # Programmatic discovery
 python -c "
-from core.model_manager_compat import ModelManager
+from core.model_management import ModelOrchestrator
 import asyncio
 
 async def discover():

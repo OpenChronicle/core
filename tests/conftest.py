@@ -85,13 +85,13 @@ def test_registry_path():
 @pytest.fixture
 def mock_model_manager(test_registry_path):
     """Create ModelManager instance using test registry."""
-    from core.model_manager_compat import ModelManager
-    with patch.object(ModelManager, '_load_registry') as mock_load:
+    from core.model_management import ModelOrchestrator
+    with patch.object(ModelOrchestrator, '_load_registry') as mock_load:
         with open(test_registry_path, 'r') as f:
             test_config = json.load(f)
         mock_load.return_value = test_config
         
-        manager = ModelManager()
+        manager = ModelOrchestrator()
         return manager
 
 
