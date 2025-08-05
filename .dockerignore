@@ -73,14 +73,36 @@ htmlcov/
 pytest.ini
 tox.ini
 
+# Test artifacts - comprehensive exclusion
+test_cleanup_*
+temp_test*
+temp_storypack_*
+storage/temp/test_data/
+storage/temp/test_stories/
+storage/storypacks/test_*
+storage/storypacks/*test*
+storage/storypacks/cli_test*
+
 # Logs and runtime data
 *.log
+*.jsonl
 logs/
+storage/temp/
+storage/data/*.db
+storage/data/memory.db
+storage/**/openchronicle.db
+storage/backups/
+storage/data/performance/
+storage/data/runtime/
+storage/data/profiles/
+# Include core storage structure but exclude data files
 storage/
 !storage/.gitkeep
 
-# Documentation (include key docs in Docker)
-docs/
+# Documentation (include live docs from root, exclude subfolders)
+docs/*/
+docs/consolidation/
+docs/archive/
 documentation_archive_*/
 analysis/
 *.old
@@ -100,3 +122,15 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Configuration backups
+config/models.json.backup.*
+
+# Import staging directory - ignore contents but keep README
+import/*
+!import/README.md
+
+# Obsolete files
+*.old.ignoreme
+# Preserve foundational README for project history
+!README.md.old.ignoreme

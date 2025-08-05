@@ -39,8 +39,12 @@ venv.bak/
 .env.local
 .env.production
 storage/*/openchronicle.db
+storage/**/openchronicle.db
 storage/*/logs/
 storage/*/exports/
+storage/temp/
+storage/data/memory.db
+storage/data/*.db
 *.jsonl
 *.log
 
@@ -54,10 +58,23 @@ storage/data/performance/
 storage/data/runtime/
 storage/data/profiles/
 storage/data/memory.db
+storage/data/*.db
 storage/backups/
 
 # Documentation archives
 documentation_archive_*/
+docs/archive/
+docs/consolidation/
+
+# Test artifacts - comprehensive exclusion
+test_cleanup_*
+temp_test*
+temp_storypack_*
+storage/temp/test_data/
+storage/temp/test_stories/
+storage/storypacks/test_*
+storage/storypacks/*test*
+storage/storypacks/cli_test*
 
 # Import staging directory - ignore contents but keep README
 import/*
