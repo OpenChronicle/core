@@ -62,7 +62,7 @@ def safe_teardown_temp_dir(temp_dir, original_cwd, engine=None):
         shutil.rmtree(temp_dir)
 
 from core.scene_logger import save_scene, load_scene, update_scene_label, get_scenes_by_label, get_labeled_scenes
-from core.bookmark_manager import BookmarkManager
+from core.management_systems import BookmarkManager
 from core.timeline_builder import TimelineBuilder
 from core.database import init_database
 

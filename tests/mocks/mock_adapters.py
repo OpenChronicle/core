@@ -15,15 +15,16 @@ import random
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from core.model_adapters.model_adapter_base import ModelAdapter
+from core.model_adapters.api_adapter_base import BaseAPIAdapter
 from utilities.logging_system import log_system_event, log_info, log_error
 
 
-class MockAdapter(ModelAdapter):
+class MockAdapter(BaseAPIAdapter):
     """Mock text adapter for testing and development."""
     
     def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
+        # Extract model name from config
+        model_name = config.get("model_name", "mock-model")
         self.responses = config.get("responses", [
             "The story continues with rich detail and engaging narrative.",
             "Your character moves forward, discovering new possibilities.", 
@@ -32,6 +33,35 @@ class MockAdapter(ModelAdapter):
             "The path ahead becomes clearer as you proceed."
         ])
         self.current_index = 0
+        
+        # Store config and model name without calling super().__init__()
+        # This bypasses the API key requirement for testing
+        self.model_name = model_name
+        self.config = config or {}
+        self.client = None
+        self.api_key = "mock-key"  # Dummy key for testing
+        self.base_url = None
+        
+        # Common configuration
+        self.max_tokens = self.config.get("max_tokens", 2000)
+        self.temperature = self.config.get("temperature", 0.7)
+        self.timeout = self.config.get("timeout", 30)
+        self.initialized = False
+        
+        log_info(f"Initializing Mock adapter for model: {model_name}")
+        
+    def get_provider_name(self) -> str:
+        """Return the provider name."""
+        return "mock"
+        
+    def get_api_key_env_var(self) -> str:
+        """Return the environment variable name for the API key."""
+        return "MOCK_API_KEY"
+        
+    async def _create_client(self):
+        """Create mock client."""
+        log_system_event("mock_adapter_init", "Mock text adapter initialized for testing")
+        return "mock_client"  # Return a simple mock client
         
     async def initialize(self) -> bool:
         """Initialize mock adapter."""
@@ -68,20 +98,50 @@ class MockAdapter(ModelAdapter):
             "model_name": self.model_name,
             "responses_count": len(self.responses),
             "current_index": self.current_index,
-            "initialized": self.initialized,
+            "initialized": getattr(self, 'initialized', False),
             "warning": "This is a MOCK adapter - provides simulated responses only!"
         }
 
 
-class MockImageAdapter(ModelAdapter):
+class MockImageAdapter(BaseAPIAdapter):
     """Mock image adapter for testing and development."""
     
     def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
+        # Extract model name from config
+        model_name = config.get("model_name", "mock-image-model")
         self.responses = config.get("responses", [
             "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzMzNzNkYyIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zNWVtIj5Nb2NrIEltYWdlPC90ZXh0Pgo8L3N2Zz4K"
         ])
         self.current_index = 0
+        
+        # Store config and model name without calling super().__init__()
+        # This bypasses the API key requirement for testing
+        self.model_name = model_name
+        self.config = config or {}
+        self.client = None
+        self.api_key = "mock-image-key"  # Dummy key for testing
+        self.base_url = None
+        
+        # Common configuration
+        self.max_tokens = self.config.get("max_tokens", 2000)
+        self.temperature = self.config.get("temperature", 0.7)
+        self.timeout = self.config.get("timeout", 30)
+        self.initialized = False
+        
+        log_info(f"Initializing Mock image adapter for model: {model_name}")
+        
+    def get_provider_name(self) -> str:
+        """Return the provider name."""
+        return "mock"
+        
+    def get_api_key_env_var(self) -> str:
+        """Return the environment variable name for the API key."""
+        return "MOCK_API_KEY"
+        
+    async def _create_client(self):
+        """Create mock image client."""
+        log_system_event("mock_image_adapter_init", "Mock image adapter initialized for testing")
+        return "mock_image_client"  # Return a simple mock client
         
     async def initialize(self) -> bool:
         """Initialize mock image adapter."""
@@ -108,12 +168,12 @@ class MockImageAdapter(ModelAdapter):
             "model_name": self.model_name,
             "responses_count": len(self.responses),
             "current_index": self.current_index,
-            "initialized": self.initialized,
+            "initialized": getattr(self, 'initialized', False),
             "warning": "This is a MOCK image adapter - provides simulated images only!"
         }
 
 
-def create_mock_adapter(adapter_type: str, config: Dict[str, Any]) -> Optional[ModelAdapter]:
+def create_mock_adapter(adapter_type: str, config: Dict[str, Any]) -> Optional[BaseAPIAdapter]:
     """
     Factory function to create mock adapters.
     

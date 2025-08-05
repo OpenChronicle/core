@@ -7,7 +7,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from core.bookmark_manager import BookmarkManager
+from core.management_systems import BookmarkManager
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def temp_story_id():
 def bookmark_manager(temp_story_id):
     """Create BookmarkManager instance for testing."""
     # Mock the database initialization to avoid file system dependencies
-    with patch('core.bookmark_manager.init_database'):
+    with patch('core.management_systems.bookmark.bookmark_manager.init_database'):
         manager = BookmarkManager(temp_story_id)
         return manager
 

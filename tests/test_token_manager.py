@@ -8,7 +8,7 @@ import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 
-from core.token_manager import TokenManager
+from core.management_systems import TokenManager
 
 
 @pytest.fixture

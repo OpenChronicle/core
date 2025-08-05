@@ -18,7 +18,7 @@ if project_root not in sys.path:
 from core.model_management import ModelOrchestrator as ModelManager
 from core.content_analysis import ContentAnalysisOrchestrator as ContentAnalyzer
 from core.character_management import CharacterOrchestrator
-from core.token_manager import TokenManager
+from core.management_systems import TokenManager
 from core.context_systems.context_orchestrator import ContextOrchestrator
 from core.story_loader import load_storypack
 
