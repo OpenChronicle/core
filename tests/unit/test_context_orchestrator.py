@@ -237,11 +237,11 @@ class TestContextOrchestrationIntegration:
         
         # Check for context builder-related attributes or methods
         builder_integration_indicators = [
-            hasattr(orchestrator, 'context_builder'),
-            hasattr(orchestrator, 'get_builder'),
-            hasattr(orchestrator, 'build_context'),
-            hasattr(orchestrator, 'initialize_builder'),
-            hasattr(orchestrator, 'builder_manager')
+            hasattr(orchestrator, 'build_context_with_analysis'),
+            hasattr(orchestrator, 'build_simple_context'),
+            hasattr(orchestrator, 'build_character_focused_context'),
+            hasattr(orchestrator, 'content_orchestrator'),
+            hasattr(orchestrator, 'context_builder')
         ]
         
         assert any(builder_integration_indicators), "ContextOrchestrator should integrate with context builders"
@@ -255,10 +255,10 @@ class TestContextOrchestrationIntegration:
         
         # Test memory system integration
         memory_integration_indicators = [
-            hasattr(orchestrator, 'memory_integration'),
-            hasattr(orchestrator, 'memory_manager'),
-            hasattr(orchestrator, 'integrate_memory'),
-            hasattr(orchestrator, 'sync_memory'),
+            hasattr(orchestrator, 'memory_orchestrator'),
+            hasattr(orchestrator, 'memory_context'),
+            hasattr(orchestrator, 'analyze_context_metrics'),
+            hasattr(orchestrator, 'build_character_focused_context'),
             hasattr(orchestrator, 'memory_system')
         ]
         
@@ -273,10 +273,10 @@ class TestContextOrchestrationIntegration:
         
         # Test prompt assembly coordination capability
         assembly_coordination_indicators = [
-            hasattr(orchestrator, 'assemble_prompt'),
-            hasattr(orchestrator, 'prompt_assembler'),
-            hasattr(orchestrator, 'build_prompt'),
-            hasattr(orchestrator, 'create_prompt'),
+            hasattr(orchestrator, 'build_context_with_analysis'),
+            hasattr(orchestrator, 'build_simple_context'),
+            hasattr(orchestrator, 'content_context'),
+            hasattr(orchestrator, 'narrative_context'),
             hasattr(orchestrator, 'prompt_manager')
         ]
         

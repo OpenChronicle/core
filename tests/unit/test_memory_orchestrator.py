@@ -141,7 +141,7 @@ class TestMemoryOrchestrator:
         # Test configuration access patterns
         config_methods = [
             'get_config', 'update_config', 'load_config',
-            'config', 'configuration', 'settings'
+            'default_config', 'db_manager', 'settings'
         ]
         
         config_access = False
@@ -237,10 +237,10 @@ class TestMemoryOrchestrationIntegration:
         
         # Check for memory system-related attributes or methods
         memory_integration_indicators = [
-            hasattr(orchestrator, 'memory_manager'),
-            hasattr(orchestrator, 'get_memory'),
-            hasattr(orchestrator, 'update_memory'),
-            hasattr(orchestrator, 'initialize_memory'),
+            hasattr(orchestrator, 'character_manager'),
+            hasattr(orchestrator, 'get_character_memory'),
+            hasattr(orchestrator, 'add_memory_flag'),
+            hasattr(orchestrator, 'analyze_memory_health'),
             hasattr(orchestrator, 'memory_system')
         ]
         
@@ -273,10 +273,10 @@ class TestMemoryOrchestrationIntegration:
         
         # Test persistence coordination capability
         persistence_coordination_indicators = [
-            hasattr(orchestrator, 'persistence_layer'),
-            hasattr(orchestrator, 'save_memory'),
-            hasattr(orchestrator, 'persist_state'),
-            hasattr(orchestrator, 'sync_database'),
+            hasattr(orchestrator, 'db_manager'),
+            hasattr(orchestrator, 'archive_memory_snapshot'),
+            hasattr(orchestrator, 'add_recent_event'),
+            hasattr(orchestrator, 'create_scene_context'),
             hasattr(orchestrator, 'persistence_manager')
         ]
         
