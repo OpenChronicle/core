@@ -91,6 +91,16 @@ class StyleManager:
     def get_style_preset(self, preset_name: str) -> Optional[Dict[str, Any]]:
         """Get a specific style preset"""
         return self.style_presets.get(preset_name)
+    
+    def get_default_style_modifiers(self, image_type: ImageType) -> List[str]:
+        """Get default style modifiers for an image type"""
+        defaults = {
+            ImageType.CHARACTER: ["high quality", "detailed", "portrait"],
+            ImageType.SCENE: ["high quality", "detailed", "landscape", "atmospheric"],
+            ImageType.LOCATION: ["high quality", "detailed", "environment", "architectural"],
+            ImageType.ITEM: ["high quality", "detailed", "object", "studio lighting"]
+        }
+        return defaults.get(image_type, ["high quality", "detailed"])
         
     def get_presets_for_type(self, image_type: ImageType) -> List[str]:
         """Get available presets for image type"""
