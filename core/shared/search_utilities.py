@@ -555,52 +555,6 @@ class SearchUtilities:
         return self.execute_search(story_id, query, 'character_memories', columns, filters, options)
 
 
-# Backward compatibility functions for existing code
-def search_scenes_fts(story_id: str, query: str, limit: int = 50) -> List[Dict[str, Any]]:
-    """Backward compatibility for search_engine.py FTS search"""
-    search_util = SearchUtilities()
-    options = SearchOptions(limit=limit, include_snippets=True)
-    results = search_util.search_scenes(story_id, query, options=options)
-    
-    # Convert back to old format
-    return [
-        {
-            'scene_id': result.content.get('scene_id'),
-            'input': result.content.get('input'),
-            'output': result.content.get('output'),
-            'scene_label': result.content.get('scene_label'),
-            'timestamp': result.content.get('timestamp'),
-            'score': result.score,
-            'snippet_input': result.snippets.get('input', ''),
-            'snippet_output': result.snippets.get('output', '')
-        }
-        for result in results
-    ]
-
-
-def search_with_pagination(
-    story_id: str,
-    table: str,
-    filters: Dict[str, Any] = None,
-    order_by: str = "timestamp DESC",
-    limit: int = 50,
-    offset: int = 0
-) -> List[Dict[str, Any]]:
-    """Backward compatibility for paginated searches"""
-    search_util = SearchUtilities()
-    options = SearchOptions(
-        limit=limit,
-        offset=offset,
-        order_by=order_by,
-        use_fts=False
-    )
-    
-    results = search_util.execute_search(story_id, "", table, None, filters, options)
-    
-    # Convert back to old format
-    return [result.content for result in results]
-
-
 # Export main classes and functions
 __all__ = [
     'SearchUtilities',
@@ -608,7 +562,5 @@ __all__ = [
     'SearchResult',
     'QueryProcessor',
     'FTSQueryBuilder',
-    'ResultRanker',
-    'search_scenes_fts',
-    'search_with_pagination'
+    'ResultRanker'
 ]

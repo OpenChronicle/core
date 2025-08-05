@@ -143,29 +143,3 @@ class QueryBuilder:
             query_parts.append(f"LIMIT {self._limit}")
         
         return " ".join(query_parts), tuple(self._params)
-
-# Convenience functions for backward compatibility
-def get_db_path(story_id: str, is_test: bool = None) -> str:
-    """Get database path for story."""
-    db_ops = DatabaseOperations(story_id, is_test)
-    return db_ops.db_path
-
-def get_connection(story_id: str, is_test: bool = None):
-    """Get database connection for story."""
-    db_ops = DatabaseOperations(story_id, is_test)
-    return db_ops.get_connection()
-
-def execute_query(story_id: str, query: str, params: tuple = None, is_test: bool = None) -> List[Dict[str, Any]]:
-    """Execute query for story."""
-    db_ops = DatabaseOperations(story_id, is_test)
-    return db_ops.execute_query(query, params)
-
-def execute_update(story_id: str, query: str, params: tuple = None, is_test: bool = None) -> bool:
-    """Execute update for story."""
-    db_ops = DatabaseOperations(story_id, is_test)
-    return db_ops.execute_update(query, params)
-
-def execute_insert(story_id: str, query: str, params: tuple = None, is_test: bool = None) -> Optional[int]:
-    """Execute insert for story."""
-    db_ops = DatabaseOperations(story_id, is_test)
-    return db_ops.execute_insert(query, params)

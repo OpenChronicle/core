@@ -5,27 +5,21 @@ STORYPACKS_DIR = os.path.join(os.getcwd(), "storage", "storypacks")
 
 
 def list_storypacks():
-    """List all valid storypacks with meta.json (preferred) or meta.yaml (legacy)."""
+    """List all valid storypacks with meta.json."""
     storypacks = []
     for name in os.listdir(STORYPACKS_DIR):
         path = os.path.join(STORYPACKS_DIR, name)
         if os.path.isdir(path):
-            # Check for meta.json first, then meta.yaml for backward compatibility
-            if (os.path.exists(os.path.join(path, "meta.json")) or 
-                os.path.exists(os.path.join(path, "meta.yaml"))):
+            # Check for meta.json only
+            if os.path.exists(os.path.join(path, "meta.json")):
                 storypacks.append(name)
     return storypacks
 
 
 def load_meta(path):
-    """Load meta.json or meta.yaml contents."""
-    if path.endswith('.json'):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    else:  # yaml
-        import yaml
-        with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    """Load meta.json contents."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def load_storypack(name):
@@ -34,16 +28,13 @@ def load_storypack(name):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Storypack '{name}' not found in {STORYPACKS_DIR}")
 
-    # Check for meta.json first, then meta.yaml for backward compatibility
+    # Check for meta.json only
     meta_json_path = os.path.join(path, "meta.json")
-    meta_yaml_path = os.path.join(path, "meta.yaml")
     
     if os.path.exists(meta_json_path):
         meta_path = meta_json_path
-    elif os.path.exists(meta_yaml_path):
-        meta_path = meta_yaml_path
     else:
-        raise FileNotFoundError(f"meta.json or meta.yaml missing in storypack '{name}'")
+        raise FileNotFoundError(f"meta.json missing in storypack '{name}'")
 
     meta = load_meta(meta_path)
 

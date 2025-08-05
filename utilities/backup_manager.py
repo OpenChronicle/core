@@ -119,10 +119,6 @@ class BackupManager:
         # Backup models directory
         results["models_directory"] = self.backup_models_directory()
         
-        # Backup legacy models.json if it exists (for compatibility)
-        if (self.config_dir / "models.json").exists():
-            results["legacy_models"] = self.backup_config("models.json")
-        
         return results
     
     def backup_database(self, db_path: Path) -> Optional[Path]:

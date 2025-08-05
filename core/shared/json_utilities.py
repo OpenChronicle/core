@@ -219,20 +219,3 @@ class ConfigJSONMixin:
         Save configuration with pretty formatting.
         """
         return JSONUtilities.save_file(config, config_path, pretty=True, ensure_ascii=False)
-
-# Convenience functions for backward compatibility
-def safe_loads(json_str: str, fallback: Any = None) -> Any:
-    """Backward compatibility function."""
-    return JSONUtilities.safe_loads(json_str, fallback)
-
-def safe_dumps(data: Any, pretty: bool = False) -> str:
-    """Backward compatibility function."""
-    return JSONUtilities.safe_dumps(data, pretty)
-
-def load_json_file(file_path: Union[str, Path]) -> Dict[str, Any]:
-    """Backward compatibility function."""
-    return JSONUtilities.load_file(file_path)
-
-def save_json_file(data: Any, file_path: Union[str, Path]) -> bool:
-    """Backward compatibility function."""
-    return JSONUtilities.save_file(data, file_path)

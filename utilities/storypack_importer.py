@@ -196,7 +196,7 @@ class StorypackImporter:
                         continue
                 
                 # Scan the candidate directory for content
-                discovered_files = self._discover_files_in_directory(item)
+                discovered_files = self.discover_files_in_directory(item)
                 file_count = sum(len(files) for files in discovered_files.values())
                 
                 if file_count > 0:
@@ -224,7 +224,7 @@ class StorypackImporter:
         
         return result
 
-    def _discover_files_in_directory(self, directory: Path) -> Dict[str, List[Path]]:
+    def discover_files_in_directory(self, directory: Path) -> Dict[str, List[Path]]:
         """
         Discover and categorize files in a specific directory.
         
@@ -1050,7 +1050,6 @@ Happy storytelling!
     def discover_source_files(self) -> Dict[str, List[Path]]:
         """
         Discover and categorize source files in the current source directory.
-        This is a wrapper around _discover_files_in_directory for backwards compatibility.
         
         Returns:
             Dictionary mapping content categories to lists of file paths
@@ -1059,7 +1058,7 @@ Happy storytelling!
             self.logger.warning(f"Source directory does not exist: {self.source_dir}")
             return {category: [] for category in self.content_categories.keys()}
         
-        discovered_files = self._discover_files_in_directory(self.source_dir)
+        discovered_files = self.discover_files_in_directory(self.source_dir)
         
         # Log discovery results
         total_files = sum(len(files) for files in discovered_files.values())
