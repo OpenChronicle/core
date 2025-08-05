@@ -21,6 +21,9 @@ from core.scene_systems.scene_orchestrator import SceneOrchestrator
 from core.timeline_systems.timeline_orchestrator import TimelineOrchestrator
 from core.model_management.model_orchestrator import ModelOrchestrator
 
+# Import mock classes
+from tests.mocks.mock_adapters import MockModelOrchestrator, MockDatabaseManager
+
 # Test configuration
 TEST_CONFIG = {
     'test_story_id': 'test_story_pytest',
@@ -102,6 +105,18 @@ def model_orchestrator():
         pytest.skip(f"ModelOrchestrator not available: {e}")
 
 @pytest.fixture
+def mock_model_orchestrator():
+    """Provide mock ModelOrchestrator for testing."""
+    orchestrator = MockModelOrchestrator()
+    yield orchestrator
+
+@pytest.fixture
+def mock_database_manager():
+    """Provide mock database manager for testing."""
+    db_manager = MockDatabaseManager()
+    yield db_manager
+
+@pytest.fixture
 def sample_scene_data():
     """Sample scene data for testing."""
     return {
@@ -141,6 +156,10 @@ def sample_story_config():
 class TestUtils:
     """Utility functions for testing."""
     
+    def __init__(self):
+        import random
+        self.random = random
+    
     @staticmethod
     def validate_scene_data(scene_data: Dict[str, Any]) -> bool:
         """Validate scene data structure."""
@@ -169,11 +188,140 @@ class TestUtils:
             scene = orchestrator.create_scene(**scene_data)
             scenes.append(scene)
         return scenes
+    
+    def generate_test_scene(self) -> Dict[str, Any]:
+        """Generate test scene data for scene orchestrator testing."""
+        return {
+            "scene_id": f"test_scene_{self.random.randint(1000, 9999)}",
+            "user_input": f"Test user input {self.random.randint(1, 100)}",
+            "model_output": f"Test model response {self.random.randint(1, 100)}",
+            "structured_tags": ["test", "scene", "generated"],
+            "timestamp": "2025-01-01T12:00:00Z",
+            "story_id": "test_story",
+            "scene_metadata": {
+                "mood": "test",
+                "characters": ["test_character"],
+                "location": "test_location"
+            }
+        }
+    
+    def generate_test_timeline(self) -> Dict[str, Any]:
+        """Generate test timeline data for timeline orchestrator testing."""
+        return {
+            "timeline_id": f"test_timeline_{self.random.randint(1000, 9999)}",
+            "story_id": "test_story",
+            "entries": [
+                {
+                    "entry_id": f"entry_{i}",
+                    "scene_id": f"scene_{i}",
+                    "timestamp": f"2025-01-01T12:{i:02d}:00Z",
+                    "sequence": i
+                }
+                for i in range(1, 4)
+            ],
+            "metadata": {
+                "created": "2025-01-01T12:00:00Z",
+                "last_updated": "2025-01-01T12:00:00Z",
+                "total_entries": 3
+            }
+        }
+    
+    def generate_test_context(self) -> Dict[str, Any]:
+        """Generate test context data for context orchestrator testing."""
+        return {
+            "context_id": f"test_context_{self.random.randint(1000, 9999)}",
+            "story_id": "test_story",
+            "prompt_data": {
+                "user_input": f"Test context input {self.random.randint(1, 100)}",
+                "system_context": "Test system context",
+                "memory_context": "Test memory context",
+                "character_context": "Test character context"
+            },
+            "optimization_data": {
+                "compressed": True,
+                "token_count": self.random.randint(100, 500),
+                "optimization_level": "standard"
+            },
+            "metadata": {
+                "created": "2025-01-01T12:00:00Z",
+                "context_type": "scene_generation"
+            }
+        }
+    
+    def generate_test_memory(self) -> Dict[str, Any]:
+        """Generate test memory data for memory orchestrator testing."""
+        return {
+            "memory_id": f"test_memory_{self.random.randint(1000, 9999)}",
+            "story_id": "test_story",
+            "character_states": {
+                "main_character": {
+                    "name": "Test Character",
+                    "traits": ["brave", "curious"],
+                    "current_state": "active",
+                    "memory_fragments": [
+                        {
+                            "fragment_id": f"fragment_{i}",
+                            "content": f"Memory fragment {i}",
+                            "importance": self.random.choice(["high", "medium", "low"])
+                        }
+                        for i in range(1, 4)
+                    ]
+                }
+            },
+            "consistency_data": {
+                "validated": True,
+                "last_check": "2025-01-01T12:00:00Z",
+                "inconsistencies": []
+            },
+            "metadata": {
+                "created": "2025-01-01T12:00:00Z",
+                "last_updated": "2025-01-01T12:00:00Z"
+            }
+        }
+    
+    def generate_test_character(self) -> Dict[str, Any]:
+        """Generate test character data for character management testing."""
+        return {
+            "character_id": f"test_char_{self.random.randint(1000, 9999)}",
+            "name": f"Test Character {self.random.randint(1, 100)}",
+            "traits": self.random.sample(["brave", "curious", "wise", "funny", "mysterious"], 3),
+            "backstory": f"Test character backstory {self.random.randint(1, 100)}",
+            "current_state": {
+                "location": "test_location",
+                "mood": self.random.choice(["happy", "sad", "excited", "contemplative"]),
+                "relationships": {
+                    "other_character": "friendly"
+                }
+            },
+            "story_id": "test_story"
+        }
+    
+    def generate_test_memory_with_inconsistencies(self) -> Dict[str, Any]:
+        """Generate test memory data with potential inconsistencies for testing consistency engine."""
+        base_memory = self.generate_test_memory()
+        
+        # Add some inconsistencies for testing
+        base_memory["character_states"]["main_character"]["memory_fragments"].append({
+            "fragment_id": "inconsistent_fragment",
+            "content": "Character was in two places at once",  # Inconsistency
+            "importance": "high"
+        })
+        
+        base_memory["consistency_data"]["validated"] = False
+        base_memory["consistency_data"]["inconsistencies"] = [
+            {
+                "type": "location_conflict",
+                "description": "Character location inconsistency detected",
+                "fragments": ["fragment_1", "inconsistent_fragment"]
+            }
+        ]
+        
+        return base_memory
 
 @pytest.fixture
 def test_utils():
     """Provide test utilities."""
-    return TestUtils
+    return TestUtils()
 
 # Pytest configuration
 def pytest_configure(config):

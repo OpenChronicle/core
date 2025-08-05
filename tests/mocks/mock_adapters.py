@@ -25,6 +25,7 @@ class MockLLMAdapter:
         self.simulate_delay = kwargs.get('simulate_delay', 0.1)
         self.simulate_failures = kwargs.get('simulate_failures', False)
         self.failure_rate = kwargs.get('failure_rate', 0.1)
+        self.config = {}  # Add config attribute for model configuration
         
     def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """Generate mock response."""
@@ -126,10 +127,23 @@ class MockModelOrchestrator:
         self.active_adapter = 'primary_mock'
         self.fallback_chain = ['primary_mock', 'fallback_mock', 'reliable_mock']
         
-    def get_adapter(self, name: str) -> MockLLMAdapter:
+    def get_adapter(self, name: str) -> Optional[MockLLMAdapter]:
         """Get adapter by name."""
         return self.adapters.get(name)
     
+    def get_fallback_chain(self, provider: Optional[str] = None) -> List[str]:
+        """Get fallback chain for a provider."""
+        return self.fallback_chain.copy()
+    
+    def add_model_config(self, provider_name: str, config: Dict[str, Any]):
+        """Add model configuration."""
+        if provider_name not in self.adapters:
+            self.adapters[provider_name] = MockLLMAdapter(provider_name)
+        # Store config in adapter (add config attribute if needed)
+        if not hasattr(self.adapters[provider_name], 'config'):
+            self.adapters[provider_name].config = {}
+        self.adapters[provider_name].config.update(config)
+        
     def generate_with_fallback(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """Generate response with fallback logic."""
         for adapter_name in self.fallback_chain:
