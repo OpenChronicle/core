@@ -21,6 +21,14 @@ from typing import Dict, List, Any, Optional, Union
 from datetime import datetime, timezone
 
 from utilities.logging_system import log_system_event, log_error, log_info, log_warning
+from .schema_validation import (
+    RegistryValidator, 
+    SchemaValidationError, 
+    ModelRegistrySchema,
+    ProviderConfig,
+    validate_registry_config,
+    validate_provider_config
+)
 
 # UTC for consistent timezone handling
 UTC = timezone.utc
@@ -33,6 +41,11 @@ class ConfigurationError(Exception):
 
 class ProviderNotFoundError(Exception):
     """Raised when a requested provider configuration is not found."""
+    pass
+
+
+class RegistryValidationError(Exception):
+    """Raised when registry schema validation fails."""
     pass
 
 
@@ -59,6 +72,9 @@ class RegistryManager:
         self.model_configs = {}
         self.global_settings = {}
         self.last_scan_time = None
+        
+        # Initialize schema validator
+        self.validator = RegistryValidator()
         
         # Ensure models directory exists
         self.models_dir.mkdir(parents=True, exist_ok=True)
@@ -225,7 +241,7 @@ class RegistryManager:
     
     def _validate_model_config(self, config: Dict[str, Any], config_file: Path) -> bool:
         """
-        Validate that a model configuration contains required fields.
+        Validate that a model configuration contains required fields using pydantic schema.
         
         Args:
             config: Configuration dictionary to validate
@@ -234,24 +250,18 @@ class RegistryManager:
         Returns:
             True if configuration is valid, False otherwise
         """
-        required_fields = ["provider", "display_name", "enabled"]
-        
-        for field in required_fields:
-            if field not in config:
-                log_warning(f"Config {config_file} missing recommended field: {field}")
-        
-        # Validate provider name
-        if "provider" in config:
-            if not isinstance(config["provider"], str) or not config["provider"].strip():
-                log_error(f"Config {config_file} has invalid provider name")
-                return False
-        
-        # Validate enabled field if present
-        if "enabled" in config and not isinstance(config["enabled"], bool):
-            log_error(f"Config {config_file} has invalid 'enabled' field (must be boolean)")
+        try:
+            # Use pydantic schema validation for comprehensive validation
+            validated_config = validate_provider_config(config)
+            log_info(f"Config {config_file} passed schema validation")
+            return True
+            
+        except SchemaValidationError as e:
+            log_error(f"Config {config_file} failed schema validation: {e}")
             return False
-        
-        return True
+        except Exception as e:
+            log_error(f"Unexpected error validating config {config_file}: {e}")
+            return False
     
     def get_provider_models(self, provider_name: str) -> List[Dict[str, Any]]:
         """
@@ -434,6 +444,91 @@ class RegistryManager:
                 return "empty"
         except Exception:
             return "error"
+    
+    def validate_registry(self, registry_file: Optional[Union[str, Path]] = None) -> bool:
+        """
+        Validate the complete registry configuration using pydantic schema.
+        
+        Args:
+            registry_file: Optional path to registry file to validate. 
+                          If None, validates the main .copilot/config/model_registry.json
+            
+        Returns:
+            True if validation passes, False otherwise
+        """
+        try:
+            if registry_file is None:
+                # Check the main registry file
+                registry_file = Path(".copilot/config/model_registry.json")
+            else:
+                registry_file = Path(registry_file)
+            
+            if not registry_file.exists():
+                log_warning(f"Registry file not found: {registry_file}")
+                return False
+            
+            # Validate using pydantic schema
+            validated_registry = self.validator.validate_registry_file(registry_file)
+            log_info(f"Registry validation successful: {registry_file}")
+            return True
+            
+        except SchemaValidationError as e:
+            log_error(f"Registry validation failed: {e}")
+            return False
+        except Exception as e:
+            log_error(f"Unexpected error during registry validation: {e}")
+            return False
+    
+    def create_backup(self, file_path: Union[str, Path]) -> Optional[Path]:
+        """
+        Create backup of configuration file before modification.
+        
+        Args:
+            file_path: Path to file to backup
+            
+        Returns:
+            Path to backup file, or None if backup failed
+        """
+        try:
+            backup_path = self.validator.create_backup(file_path)
+            return backup_path
+        except Exception as e:
+            log_error(f"Failed to create backup: {e}")
+            return None
+    
+    def safe_save_config(self, config_name: str, config: Dict[str, Any]) -> bool:
+        """
+        Safely save provider configuration with validation and backup.
+        
+        Args:
+            config_name: Name of the configuration file
+            config: Configuration data to save
+            
+        Returns:
+            True if save was successful, False otherwise
+        """
+        try:
+            # Validate configuration first
+            validated_config = validate_provider_config(config)
+            
+            # Create file path
+            config_file = self.models_dir / f"{config_name}.json"
+            
+            # Save using validator (includes backup)
+            self.validator.safe_save_provider(validated_config, config_file)
+            
+            # Refresh providers to pick up changes
+            self.refresh_providers()
+            
+            log_info(f"Configuration saved successfully: {config_file}")
+            return True
+            
+        except SchemaValidationError as e:
+            log_error(f"Configuration validation failed: {e}")
+            return False
+        except Exception as e:
+            log_error(f"Failed to save configuration: {e}")
+            return False
     
     @property
     def models_dir_path(self) -> str:

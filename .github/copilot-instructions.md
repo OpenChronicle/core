@@ -1,5 +1,11 @@
 # OpenChronicle Copilot Instructions
 
+## ⚠️ **CRITICAL: NO BACKWARDS COMPATIBILITY POLICY** ⚠️
+
+**MANDATORY REFERENCE**: See `.copilot/DEVELOPMENT_PHILOSOPHY.md`
+
+**OpenChronicle is INTERNAL-ONLY development - EMBRACE BREAKING CHANGES for better architecture. When we design a better method, implement it completely and remove the old approach entirely. NO compatibility layers, NO migration paths, NO "legacy" code.**
+
 ## Development Environment
 **Platform**: Windows with PowerShell 5.1
 **Critical Requirements**:

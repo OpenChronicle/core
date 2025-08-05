@@ -7,6 +7,8 @@ sqlalchemy>=2.0.0                # Database ORM
 aiosqlite>=0.21.0                # Async SQLite support
 psutil>=5.9.0                    # System and process utilities for profiling
 keyring>=24.0.0                  # Secure API key storage
+pydantic>=2.5.0                  # Data validation and settings management
+cachetools>=5.3.3                # Caching utilities for performance optimization
 
 # Web framework (for future API development)
 fastapi>=0.116.0                 # FastAPI web framework

@@ -1,0 +1,29 @@
+{
+  "schema_version": "3.1.0",
+  "metadata": {
+    "name": "OpenChronicle Dynamic Model Registry",
+    "description": "Dynamic configuration system for AI models and providers",
+    "last_updated": "2025-08-05T22:07:00.669493+00:00",
+    "maintainer": "OpenChronicle Team"
+  },
+  "defaults": {
+    "text_model": "transformers",
+    "analyzer_model": "transformers",
+    "image_model": "openai_dalle"
+  },
+  "global_settings": {
+    "enable_fallbacks": true,
+    "enable_health_checks": true,
+    "enable_logging": true,
+    "intelligent_routing": {
+      "enabled": true,
+      "learning_mode": true,
+      "user_feedback_weight": 0.3,
+      "performance_history_days": 7,
+      "recommendation_confidence_threshold": 0.75,
+      "auto_switch_on_failure": true,
+      "preserve_user_overrides": true,
+      "runtime_state_file": "config/model_runtime_state.json"
+    }
+  }
+}
