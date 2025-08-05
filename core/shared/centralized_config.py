@@ -147,9 +147,43 @@ class CentralizedConfigManager:
         # Load or create default configuration
         self.config = self._load_or_create_config()
         
+        # Auto-create storage directories on startup
+        self._ensure_storage_directories()
+        
         log_system_event("config_manager_initialized", 
                         "Centralized configuration manager initialized",
                         {"config_path": str(self.config_path)})
+    
+    def _ensure_storage_directories(self):
+        """Ensure all storage directories exist, creating them if necessary."""
+        storage_paths = [
+            self.config.storage.base_storage_path,
+            self.config.storage.scene_storage_path,
+            self.config.storage.character_storage_path,
+            self.config.storage.memory_storage_path,
+            self.config.storage.backup_storage_path
+        ]
+        
+        created_paths = []
+        for path_str in storage_paths:
+            path = Path(path_str)
+            if not path.exists():
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    created_paths.append(str(path))
+                except Exception as e:
+                    log_error(f"Failed to create storage directory {path}: {e}",
+                             context_tags=["config", "directory", "error"])
+        
+        if created_paths:
+            log_info(f"Auto-created {len(created_paths)} missing storage directories",
+                    context_tags=["config", "auto_create", "startup"])
+            for path in created_paths:
+                log_info(f"Created directory: {path}",
+                        context_tags=["config", "directory"])
+        else:
+            log_info("All storage directories already exist",
+                    context_tags=["config", "validation"])
     
     def _load_or_create_config(self) -> SystemConfig:
         """Load configuration from file or create default."""
@@ -263,10 +297,10 @@ class CentralizedConfigManager:
             return None
     
     def validate_config(self) -> List[str]:
-        """Validate configuration and return list of issues."""
+        """Validate configuration and auto-create missing directories."""
         issues = []
         
-        # Validate paths exist
+        # Auto-create and validate storage paths
         storage_paths = [
             self.config.storage.base_storage_path,
             self.config.storage.scene_storage_path,
@@ -275,9 +309,21 @@ class CentralizedConfigManager:
             self.config.storage.backup_storage_path
         ]
         
-        for path in storage_paths:
-            if not Path(path).exists():
-                issues.append(f"Storage path does not exist: {path}")
+        for path_str in storage_paths:
+            path = Path(path_str)
+            if not path.exists():
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    log_info(f"Auto-created missing storage directory: {path}",
+                            context_tags=["config", "auto_create", "directory"])
+                except Exception as e:
+                    issues.append(f"Failed to create storage path: {path} - {e}")
+            
+            # Verify path is accessible after creation
+            if not path.exists():
+                issues.append(f"Storage path still does not exist after creation attempt: {path}")
+            elif not os.access(path, os.W_OK):
+                issues.append(f"Storage path is not writable: {path}")
         
         # Validate performance settings
         if self.config.performance.max_concurrent_requests < 1:
@@ -292,6 +338,14 @@ class CentralizedConfigManager:
         
         if not 0.0 <= self.config.model.temperature <= 2.0:
             issues.append("temperature must be between 0.0 and 2.0")
+        
+        # Log validation completion
+        if not issues:
+            log_info("Configuration validation passed - all directories exist and are writable",
+                    context_tags=["config", "validation", "success"])
+        else:
+            log_warning(f"Configuration validation found {len(issues)} issues",
+                       context_tags=["config", "validation", "issues"])
         
         return issues
     
