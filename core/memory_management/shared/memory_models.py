@@ -123,6 +123,49 @@ class CharacterMemory:
             'arc_progress': self.arc_progress,
             'dialogue_history': self.dialogue_history
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CharacterMemory':
+        """Create CharacterMemory from dictionary data."""
+        # Handle mood_history
+        mood_history = []
+        for entry in data.get('mood_history', []):
+            if isinstance(entry, dict):
+                mood_history.append(MoodEntry(
+                    mood=entry.get('mood', 'neutral'),
+                    context=entry.get('context', ''),
+                    timestamp=entry.get('timestamp', datetime.now())
+                ))
+            else:
+                mood_history.append(entry)
+        
+        # Handle voice_profile
+        voice_data = data.get('voice_profile', {})
+        if isinstance(voice_data, dict):
+            voice_profile = VoiceProfile(
+                style=voice_data.get('style', 'neutral'),
+                tone=voice_data.get('tone', 'balanced'),
+                vocabulary_complexity=voice_data.get('vocabulary_complexity', 'medium'),
+                sentence_structure=voice_data.get('sentence_structure', 'standard'),
+                emotional_range=voice_data.get('emotional_range', 'moderate'),
+                speaking_patterns=voice_data.get('speaking_patterns', []),
+                quirks=voice_data.get('quirks', [])
+            )
+        else:
+            voice_profile = voice_data or VoiceProfile()
+            
+        return cls(
+            name=data.get('name', ''),
+            description=data.get('description', ''),
+            personality=data.get('personality', ''),
+            background=data.get('background', ''),
+            current_mood=data.get('current_mood', 'neutral'),
+            mood_history=mood_history,
+            voice_profile=voice_profile,
+            relationships=data.get('relationships', {}),
+            arc_progress=data.get('arc_progress', {}),
+            dialogue_history=data.get('dialogue_history', [])
+        )
 
 
 @dataclass
@@ -165,6 +208,43 @@ class MemorySnapshot:
     memory_state: MemoryState
     created_at: datetime
     snapshot_type: str = "scene"
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'MemorySnapshot':
+        """Create MemorySnapshot from dictionary data."""
+        # Handle timestamp conversion if needed
+        created_at = data.get('created_at')
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        elif isinstance(created_at, (int, float)):
+            created_at = datetime.fromtimestamp(created_at)
+        elif created_at is None:
+            created_at = datetime.now()
+        
+        # Handle memory_state - create a basic MemoryState if needed
+        memory_state = data.get('memory_state')
+        if isinstance(memory_state, dict):
+            memory_state = MemoryState(
+                characters=memory_state.get('characters', {}),
+                world_state=memory_state.get('world_state', {}),
+                recent_events=memory_state.get('recent_events', []),
+                flags=memory_state.get('flags', [])
+            )
+        elif memory_state is None:
+            memory_state = MemoryState(
+                characters={},
+                world_state={},
+                recent_events=[],
+                flags=[]
+            )
+            
+        return cls(
+            story_id=data.get('story_id', ''),
+            scene_id=data.get('scene_id', ''),
+            memory_state=memory_state,
+            created_at=created_at,
+            snapshot_type=data.get('snapshot_type', 'scene')
+        )
 
 
 @dataclass

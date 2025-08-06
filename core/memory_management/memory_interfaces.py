@@ -25,6 +25,29 @@ class MemorySnapshot:
     active_flags: List[str]
     recent_events: List[Dict[str, Any]]
     metadata: Dict[str, Any]
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'MemorySnapshot':
+        """Create MemorySnapshot from dictionary data."""
+        # Handle timestamp conversion if needed
+        timestamp = data.get('timestamp')
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+        elif isinstance(timestamp, (int, float)):
+            timestamp = datetime.fromtimestamp(timestamp)
+        elif timestamp is None:
+            timestamp = datetime.now()
+            
+        return cls(
+            story_id=data.get('story_id', ''),
+            scene_id=data.get('scene_id', ''),
+            timestamp=timestamp,
+            character_memories=data.get('character_memories', {}),
+            world_state=data.get('world_state', {}),
+            active_flags=data.get('active_flags', []),
+            recent_events=data.get('recent_events', []),
+            metadata=data.get('metadata', {})
+        )
 
 @dataclass
 class CharacterMemory:
@@ -37,6 +60,29 @@ class CharacterMemory:
     voice_profile: Dict[str, Any]
     last_updated: datetime
     metadata: Dict[str, Any]
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CharacterMemory':
+        """Create CharacterMemory from dictionary data."""
+        # Handle timestamp conversion if needed
+        last_updated = data.get('last_updated')
+        if isinstance(last_updated, str):
+            last_updated = datetime.fromisoformat(last_updated)
+        elif isinstance(last_updated, (int, float)):
+            last_updated = datetime.fromtimestamp(last_updated)
+        elif last_updated is None:
+            last_updated = datetime.now()
+            
+        return cls(
+            character_name=data.get('character_name', ''),
+            personality=data.get('personality', {}),
+            relationships=data.get('relationships', {}),
+            experiences=data.get('experiences', []),
+            current_mood=data.get('current_mood', 'neutral'),
+            voice_profile=data.get('voice_profile', {}),
+            last_updated=last_updated,
+            metadata=data.get('metadata', {})
+        )
 
 @dataclass
 class WorldState:
