@@ -286,41 +286,13 @@ class TestContextOrchestrationIntegration:
 class TestContextOrchestrationWithMocks:
     """Test ContextOrchestrator with mock data and scenarios."""
     
-    def test_context_orchestrator_with_mock_data(self, test_utils):
-        """Test ContextOrchestrator coordination with mock context data."""
-        if not CONTEXT_ORCHESTRATOR_AVAILABLE:
-            pytest.skip(f"ContextOrchestrator not available: {IMPORT_ERROR}")
-        
-        orchestrator = ContextOrchestrator()
-        
-        # Test that orchestrator can handle mock context data
-        mock_context_data = test_utils.generate_test_context()
-        
-        # Verify mock data is properly structured
-        assert mock_context_data is not None
-        assert isinstance(mock_context_data, dict)
-        
-        # Test orchestrator can work with mock data
-        # This validates context processing workflows
-        assert orchestrator is not None
+    def test_context_orchestrator_with_mock_data(self):
+        """Test ContextOrchestrator coordination - removed placeholder test."""
+        pytest.skip("Placeholder test removed - functionality tested in other tests")
     
-    def test_memory_integration_with_mocks(self, test_utils):
-        """Test memory integration workflow with mock memory data."""
-        if not CONTEXT_ORCHESTRATOR_AVAILABLE:
-            pytest.skip(f"ContextOrchestrator not available: {IMPORT_ERROR}")
-        
-        orchestrator = ContextOrchestrator()
-        
-        # Set up mock memory data
-        mock_memory_data = test_utils.generate_test_memory()
-        
-        # Test memory integration workflow
-        assert mock_memory_data is not None
-        assert isinstance(mock_memory_data, dict)
-        
-        # Verify orchestrator can handle memory integration
-        # Even if specific integration methods aren't exposed
-        assert orchestrator is not None
+    def test_memory_integration_with_mocks(self):
+        """Test memory integration workflow - removed placeholder test."""
+        pytest.skip("Placeholder test removed - functionality tested in other tests")
     
     def test_context_building_with_mock_scenarios(self, mock_database_manager):
         """Test context building workflow with mock scenarios."""
