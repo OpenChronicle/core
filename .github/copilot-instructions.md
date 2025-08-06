@@ -15,7 +15,7 @@
 - **File Operations**: Use PowerShell cmdlets (`Remove-Item`, `Get-ChildItem`) not Unix commands
 
 ## Architecture Overview
-OpenChronicle is a narrative AI engine with **13 core modules** using plugin-style model management. The `ModelManager` (`core/model_adapter.py`) orchestrates 15+ LLM providers with fallback chains and dynamic configuration loading.
+OpenChronicle is a narrative AI engine with **13 core modules** using plugin-style model management. The `ModelOrchestrator` (`core/model_management/model_orchestrator.py`) orchestrates 15+ LLM providers with fallback chains and dynamic configuration loading.
 
 **Critical Pattern**: Always route through `ModelManager` - never instantiate adapters directly.
 
@@ -108,6 +108,6 @@ See `.copilot/project_status.json` for complete project status.
 **VIOLATION WARNING**: Updating status in multiple files violates clean development principles and creates maintenance debt. Always use the single source of truth system.
 
 ## Key Architecture Files
-- `core/model_adapter.py` - Central orchestration (1500+ lines)
+- `core/model_management/model_orchestrator.py` - Modern orchestration with SOLID principles
 - `.copilot/architecture/module_interactions.md` - System design
 - `tests/test_model_adapter.py` - Testing patterns and mocking
