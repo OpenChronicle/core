@@ -2058,7 +2058,7 @@ class StorypackOrchestrator:
 - Cloud-native deployment
 - Real-time collaboration features
 - Advanced AI model integration (GPT-5, Claude-4)
-- Mobile and web applications
+- Mobile and web applications (OpenWebUI)
 - VS Code and IDE extensions
 - Community template marketplace
 
