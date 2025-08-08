@@ -161,6 +161,23 @@ class CharacterOrchestrator(CharacterEventHandler):
         
         return character_id
     
+    async def add_character(self, name: str, description: str = "", traits: Optional[Dict] = None) -> str:
+        """Add a new character to the story. Expected by integration tests."""
+        character_data = {
+            'name': name,
+            'description': description,
+            'traits': traits or {}
+        }
+        
+        # Use the name as character_id for simplicity
+        character_id = name.lower().replace(' ', '_')
+        
+        # Create the character using existing infrastructure
+        result = self.create_character(character_id, character_data)
+        
+        logger.info(f"Added character {name} with ID {character_id}")
+        return result
+    
     def get_character(self, character_id: str) -> Optional[CharacterData]:
         """Get complete character data."""
         return self.storage.get_character_data(character_id)
@@ -473,6 +490,10 @@ class CharacterOrchestrator(CharacterEventHandler):
                 logger.error(f"Error getting character state from {provider.__class__.__name__}: {e}")
         
         return state
+    
+    async def update_character(self, character_id: str, updates: Dict[str, Any]) -> bool:
+        """Update character information (async wrapper for tests)."""
+        return self.update_character_state(character_id, updates)
     
     def update_character_state(self, character_id: str, state_updates: Dict[str, Any]) -> bool:
         """Update character state across all providers."""
