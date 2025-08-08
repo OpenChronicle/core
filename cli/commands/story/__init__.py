@@ -19,12 +19,27 @@ if str(current_dir) not in sys.path:
 
 from cli.core import StoryCommand, OutputManager
 
+# Import interactive commands
+from .interactive import interactive_app
+
+# Import interactive command
+try:
+    from .interactive import interactive_app
+    INTERACTIVE_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Interactive commands not available: {e}")
+    INTERACTIVE_AVAILABLE = False
+
 # Create the story command group
 story_app = typer.Typer(
     name="story",
     help="Story management and generation commands",
     no_args_is_help=True
 )
+
+# Add interactive sub-commands if available
+if INTERACTIVE_AVAILABLE:
+    story_app.add_typer(interactive_app, name="interactive")
 
 
 class StoryListCommand(StoryCommand):
@@ -117,14 +132,14 @@ class StoryLoadCommand(StoryCommand):
     
     def execute(self, file_path: str, story_id: Optional[str] = None) -> dict:
         """Load a story from file."""
-        file_path = Path(file_path)
+        file_path_obj = Path(file_path)
         
-        if not file_path.exists():
+        if not file_path_obj.exists():
             self.output.error(f"Story file not found: {file_path}")
             return {}
             
         try:
-            story_data = self.read_json_file(file_path)
+            story_data = self.read_json_file(file_path_obj)
             self.output.success(f"Story loaded from {file_path}")
             
             # Display summary
@@ -157,7 +172,7 @@ class StoryGenerateCommand(StoryCommand):
         
         # This would integrate with actual model management
         with self.output.progress_context("Generating story content...") as progress:
-            task = progress.add_task("Processing", total=scenes)
+            task_id = progress.add_task("Processing", total=scenes)
             
             generated_content = []
             for i in range(scenes):
@@ -171,7 +186,7 @@ class StoryGenerateCommand(StoryCommand):
                     "generated_by": model
                 }
                 generated_content.append(scene_content)
-                progress.update(task, advance=1)
+                progress.update(task_id, advance=1)  # type: ignore
                 
         self.output.success(f"Generated {scenes} scenes successfully!")
         return {"scenes": generated_content, "story_id": story_id}

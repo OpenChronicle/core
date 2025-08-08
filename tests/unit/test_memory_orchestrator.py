@@ -188,11 +188,22 @@ class TestMemoryManagementMethods:
             'sync_database', 'persist_memory', 'memory_persistence'
         ]
         
+        # Test actual persistence methods that exist
+        persistence_methods = [
+            'save_current_memory', 'load_current_memory', 'store_memory',
+            'archive_memory_snapshot', 'restore_memory_from_snapshot'
+        ]
+        
         available_persistence_methods = [method for method in persistence_methods 
                                        if hasattr(orchestrator, method)]
         
         if available_persistence_methods:
             assert len(available_persistence_methods) > 0
+            # Test one of the available methods
+            if hasattr(orchestrator, 'save_current_memory'):
+                # Test with dummy data
+                result = orchestrator.save_current_memory("test_story", {"test": "data"})
+                assert isinstance(result, bool), "save_current_memory should return boolean"
         else:
             pytest.skip("Memory persistence methods not exposed in current implementation")
     
@@ -203,17 +214,23 @@ class TestMemoryManagementMethods:
         
         orchestrator = MemoryOrchestrator()
         
-        # Test consistency methods
-        consistency_methods = [
-            'validate_consistency', 'correct_inconsistencies', 'check_memory_integrity',
-            'consistency_check', 'validate_memory', 'memory_validation'
+        # Test character memory consistency through existing methods
+        consistency_test_methods = [
+            'update_character_memory', 'get_character_memory', 'get_character_memory_snapshot'
         ]
         
-        available_consistency_methods = [method for method in consistency_methods 
+        available_consistency_methods = [method for method in consistency_test_methods 
                                        if hasattr(orchestrator, method)]
         
         if available_consistency_methods:
             assert len(available_consistency_methods) > 0
+            # Test memory consistency through character memory operations
+            if hasattr(orchestrator, 'update_character_memory') and hasattr(orchestrator, 'get_character_memory'):
+                # Update character memory
+                orchestrator.update_character_memory("test_story", "test_character", {"mood": "happy"})
+                # Retrieve to verify consistency
+                memory = orchestrator.get_character_memory("test_story", "test_character")
+                assert isinstance(memory, dict), "Character memory should return dictionary"
         else:
             pytest.skip("Consistency engine methods not exposed in current implementation")
 

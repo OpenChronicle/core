@@ -39,11 +39,16 @@ class TestCoreSystemReliability:
         assert Path("config/system_config.json").exists()
         assert Path("requirements.txt").exists()
     
-    @pytest.mark.skipif(True, reason="Integration test - run separately")
     def test_model_orchestrator_basic_functionality(self):
-        """Test basic model orchestrator functionality."""
-        # This would test actual functionality when ready
-        pass
+        """Test basic model orchestrator functionality.""" 
+        # Test basic orchestrator import and creation
+        from core.model_management.model_orchestrator import ModelOrchestrator
+        orchestrator = ModelOrchestrator()
+        
+        # Basic functionality test
+        status = orchestrator.get_status()
+        assert status is not None
+        assert 'system_healthy' in str(status).lower() or 'adapters_count' in str(status).lower()
 
 
 if __name__ == "__main__":
