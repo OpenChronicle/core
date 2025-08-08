@@ -10,6 +10,12 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "asyncio: marks tests as asyncio tests",
+    "session: marks tests as session-based tests requiring state management",
+    "performance: marks tests as performance and benchmarking tests",
+    "concurrency: marks tests as concurrency and thread-safety tests",
+    "workflow: marks tests as end-to-end workflow tests",
+    "requires_models: marks tests requiring LLM model access",
+    "stress: marks tests as stress tests under high load",
 ]
 
 # Asyncio configuration to suppress warnings

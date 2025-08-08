@@ -7,15 +7,19 @@ Provides multi-tier caching (Memory → Redis → Database) for OpenChronicle.
 import json
 import time
 import asyncio
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, TYPE_CHECKING
 from datetime import datetime, UTC, timedelta
 import logging
+
+if TYPE_CHECKING:
+    import redis.asyncio as redis
 
 try:
     import redis.asyncio as redis
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
+    redis = None
     
 from .memory_interfaces import MemorySnapshot, CharacterMemory
 
@@ -151,9 +155,9 @@ class MultiTierCache:
         self._redis_client = None
         self._redis_available = REDIS_AVAILABLE
         
-    async def _get_redis_client(self) -> Optional[redis.Redis]:
+    async def _get_redis_client(self) -> Optional[Any]:
         """Get or create Redis client."""
-        if not self._redis_available:
+        if not self._redis_available or redis is None:
             return None
             
         if self._redis_client is None:

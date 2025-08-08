@@ -24,6 +24,8 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
+    redis = None
+    RedisCluster = None
 
 from .redis_cache import CacheConfig, CacheMetrics, MultiTierCache
 
@@ -229,8 +231,8 @@ class RedisClusterManager:
     def __init__(self, config: DistributedCacheConfig):
         self.config = config
         self.logger = logging.getLogger('openchronicle.cache.cluster')
-        self.clients: Dict[int, redis.Redis] = {}
-        self.cluster_client: Optional[RedisCluster] = None
+        self.clients: Dict[int, Any] = {}
+        self.cluster_client: Optional[Any] = None
         self.partitioner = None
         
         if config.cluster_nodes:
@@ -249,19 +251,20 @@ class RedisClusterManager:
             try:
                 # Initialize individual node clients
                 for i, node in enumerate(self.config.cluster_nodes):
-                    client = redis.Redis(
-                        host=node.host,
-                        port=node.port,
-                        db=node.db,
-                        password=node.password,
-                        decode_responses=True
-                    )
-                    await client.ping()
-                    self.clients[i] = client
-                    self.logger.info(f"Connected to Redis node {i}: {node.host}:{node.port}")
+                    if redis is not None:
+                        client = redis.Redis(
+                            host=node.host,
+                            port=node.port,
+                            db=node.db,
+                            password=node.password,
+                            decode_responses=True
+                        )
+                        await client.ping()
+                        self.clients[i] = client
+                        self.logger.info(f"Connected to Redis node {i}: {node.host}:{node.port}")
                 
                 # Initialize cluster client if enough nodes
-                if len(self.config.cluster_nodes) >= 3:
+                if len(self.config.cluster_nodes) >= 3 and RedisCluster is not None:
                     cluster_startup_nodes = [
                         {"host": node.host, "port": node.port}
                         for node in self.config.cluster_nodes
@@ -285,20 +288,21 @@ class RedisClusterManager:
     async def _initialize_single_node(self):
         """Initialize single Redis node as fallback."""
         try:
-            client = redis.Redis(
-                host=self.config.redis_host,
-                port=self.config.redis_port,
-                db=self.config.redis_db,
-                password=self.config.redis_password,
-                decode_responses=True
-            )
-            await client.ping()
-            self.clients[0] = client
-            self.logger.info(f"Connected to single Redis node: {self.config.redis_host}:{self.config.redis_port}")
+            if redis is not None:
+                client = redis.Redis(
+                    host=self.config.redis_host,
+                    port=self.config.redis_port,
+                    db=self.config.redis_db,
+                    password=self.config.redis_password,
+                    decode_responses=True
+                )
+                await client.ping()
+                self.clients[0] = client
+                self.logger.info(f"Connected to single Redis node: {self.config.redis_host}:{self.config.redis_port}")
         except Exception as e:
             self.logger.error(f"Failed to initialize single Redis node: {e}")
     
-    async def get_client_for_key(self, key: str) -> Tuple[Optional[redis.Redis], int]:
+    async def get_client_for_key(self, key: str) -> Tuple[Optional[Any], int]:
         """Get the appropriate Redis client for a key."""
         if not self.clients:
             return None, -1
@@ -311,7 +315,7 @@ class RedisClusterManager:
             client = list(self.clients.values())[0]
             return client, 0
     
-    async def get_all_clients(self) -> List[Tuple[redis.Redis, int]]:
+    async def get_all_clients(self) -> List[Tuple[Any, int]]:
         """Get all active Redis clients."""
         return [(client, index) for index, client in self.clients.items()]
     
