@@ -15,18 +15,18 @@ import json
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, UTC, timedelta
 
-from core.memory.distributed_cache import (
+from src.openchronicle.infrastructure.memory.distributed_cache import (
     DistributedCacheConfig, ClusterNode, PartitionConfig,
     DistributedCacheMetrics, CachePartitioner, RedisClusterManager,
     CacheWarmingManager, DistributedMultiTierCache,
     create_production_distributed_cache
 )
-from core.memory.performance_analytics import (
+from src.openchronicle.infrastructure.memory.performance_analytics import (
     AlertRule, PerformanceAlert, MetricsCollector, AlertManager,
     PerformanceRecommendationEngine, CacheAnalyticsDashboard,
     create_cache_dashboard
 )
-from core.memory.production_monitoring import (
+from src.openchronicle.infrastructure.memory.production_monitoring import (
     HealthCheckResult, PrometheusExporter, HealthChecker,
     StructuredLogger, ProductionMonitoring, setup_production_monitoring
 )

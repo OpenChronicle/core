@@ -31,12 +31,12 @@ import pytest
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from core.models.model_orchestrator import ModelOrchestrator
-from core.memory.memory_orchestrator import MemoryOrchestrator  
-from core.scenes.scene_orchestrator import SceneOrchestrator
-from core.database.database_orchestrator import startup_health_check
-from core.shared.error_handling import OpenChronicleError, ErrorCategory, ErrorSeverity
-from core.shared.logging_system import log_info, log_error, log_warning
+from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
+from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator  
+from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
+from src.openchronicle.infrastructure.persistence.database_orchestrator import startup_health_check
+from src.openchronicle.shared.error_handling import OpenChronicleError, ErrorCategory, ErrorSeverity
+from src.openchronicle.shared.logging_system import log_info, log_error, log_warning
 
 
 @dataclass

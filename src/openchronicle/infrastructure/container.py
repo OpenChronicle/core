@@ -84,7 +84,7 @@ class LegacyStoryService(StoryService):
         try:
             # Add legacy path
             sys.path.append(str(Path(__file__).parent.parent.parent.parent))
-            from core.story_loader import load_storypack
+            from src.openchronicle.core.story_loader import load_storypack
             
             story_data = load_storypack(story_id)
             
@@ -147,7 +147,7 @@ class LegacyMemoryService(MemoryService):
         try:
             # Add legacy path
             sys.path.append(str(Path(__file__).parent.parent.parent.parent))
-            from core.memory import MemoryOrchestrator
+            from src.openchronicle.infrastructure.memory import MemoryOrchestrator
             
             memory_orchestrator = MemoryOrchestrator()
             return memory_orchestrator.get_memory_summary(story_id)  # Remove await, it's not async
@@ -190,7 +190,7 @@ class LegacyLoggingService:
         """Log info message."""
         try:
             sys.path.append(str(Path(__file__).parent.parent.parent.parent / "utilities"))
-            from core.shared.logging_system import log_info
+            from src.openchronicle.shared.logging_system import log_info
             log_info(message)
         except Exception:
             print(f"INFO: {message}")
@@ -199,7 +199,7 @@ class LegacyLoggingService:
         """Log error message."""
         try:
             sys.path.append(str(Path(__file__).parent.parent.parent.parent / "utilities"))
-            from core.shared.logging_system import log_error
+            from src.openchronicle.shared.logging_system import log_error
             log_error(message)
         except Exception:
             print(f"ERROR: {message}")
@@ -208,7 +208,7 @@ class LegacyLoggingService:
         """Log warning message."""
         try:
             sys.path.append(str(Path(__file__).parent.parent.parent.parent / "utilities"))
-            from core.shared.logging_system import log_warning
+            from src.openchronicle.shared.logging_system import log_warning
             log_warning(message)
         except Exception:
             print(f"WARNING: {message}")

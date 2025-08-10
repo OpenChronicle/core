@@ -11,8 +11,8 @@ from pathlib import Path
 import uuid
 import time
 
-from core.memory.async_memory_orchestrator import AsyncMemoryOrchestrator
-from core.memory.persistence.async_memory_repository import AsyncMemoryRepository
+from src.openchronicle.infrastructure.memory.async_memory_orchestrator import AsyncMemoryOrchestrator
+from src.openchronicle.infrastructure.memory.persistence.async_memory_repository import AsyncMemoryRepository
 
 
 @pytest.mark.asyncio

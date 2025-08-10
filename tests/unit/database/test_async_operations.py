@@ -9,8 +9,8 @@ import tempfile
 import os
 from pathlib import Path
 
-from core.database.async_database_orchestrator import AsyncDatabaseOrchestrator
-from core.shared.async_database_operations import AsyncDatabaseOperations
+from src.openchronicle.infrastructure.persistence.async_database_orchestrator import AsyncDatabaseOrchestrator
+from src.openchronicle.shared.async_database_operations import AsyncDatabaseOperations
 
 
 @pytest.mark.asyncio

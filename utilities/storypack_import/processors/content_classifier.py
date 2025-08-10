@@ -11,7 +11,7 @@ from typing import Dict, Any
 from pathlib import Path
 
 from ..interfaces import IContentClassifier
-from core.shared.logging_system import get_logger
+from src.openchronicle.shared.logging_system import get_logger
 
 
 class ContentClassifier(IContentClassifier):

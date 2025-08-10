@@ -283,7 +283,7 @@ def image_adapter(tier_config):
 @pytest.fixture
 def scene_orchestrator(clean_test_environment):
     """Create a scene orchestrator for testing."""
-    from core.scenes.scene_orchestrator import SceneOrchestrator
+    from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
     story_id = clean_test_environment["story_id"]
     return SceneOrchestrator(story_id=story_id, config={"enable_logging": False})
 
@@ -291,7 +291,7 @@ def scene_orchestrator(clean_test_environment):
 @pytest.fixture
 def timeline_orchestrator(clean_test_environment):
     """Create a timeline orchestrator for testing."""
-    from core.timeline.timeline_orchestrator import TimelineOrchestrator
+    from src.openchronicle.domain.services.timeline.timeline_orchestrator import TimelineOrchestrator
     story_id = clean_test_environment["story_id"]
     return TimelineOrchestrator(story_id=story_id)
 
@@ -299,21 +299,21 @@ def timeline_orchestrator(clean_test_environment):
 @pytest.fixture
 def memory_orchestrator():
     """Create a memory orchestrator for testing."""
-    from core.memory.memory_orchestrator import MemoryOrchestrator
+    from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
     return MemoryOrchestrator()
 
 
 @pytest.fixture
 def context_orchestrator():
     """Create a context orchestrator for testing."""
-    from core.content.context.orchestrator import ContextOrchestrator
+    from src.openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
     return ContextOrchestrator()
 
 
 @pytest.fixture
 def model_orchestrator():
     """Create a model orchestrator for testing."""
-    from core.models.model_orchestrator import ModelOrchestrator
+    from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
     return ModelOrchestrator()
 
 

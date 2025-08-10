@@ -27,7 +27,7 @@ class TestCorePerformance:
     
     def test_logging_system_performance(self, benchmark):
         """Test logging system performance."""
-        from core.shared.logging_system import log_info, log_warning, log_error
+        from src.openchronicle.shared.logging_system import log_info, log_warning, log_error
         
         def log_operations():
             log_info("Performance test info message")
@@ -66,7 +66,7 @@ class TestCorePerformance:
     
     def test_scene_orchestrator_initialization_performance(self, benchmark, temp_story_id):
         """Test scene orchestrator initialization performance."""
-        from core.scenes.scene_orchestrator import SceneOrchestrator
+        from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
         
         def init_scene_orchestrator():
             return SceneOrchestrator(
@@ -83,7 +83,7 @@ class TestCorePerformance:
     
     def test_configuration_loading_performance(self, benchmark):
         """Test configuration loading performance."""
-        from core.database.shared import DatabaseConfig
+        from src.openchronicle.infrastructure.persistence.shared import DatabaseConfig
         
         def load_config():
             return DatabaseConfig()

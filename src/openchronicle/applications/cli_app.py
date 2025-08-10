@@ -273,7 +273,7 @@ class CLIApplication:
         try:
             # Use legacy health check temporarily
             # TODO: Migrate to proper infrastructure service
-            from core.database.database_orchestrator import startup_health_check
+            from src.openchronicle.infrastructure.persistence.database_orchestrator import startup_health_check
             
             health_report = await startup_health_check()
             

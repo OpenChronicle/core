@@ -14,13 +14,13 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from core.shared.security import (
+from src.openchronicle.shared.security import (
     SecurityManager, InputValidator, SQLSecurityValidator, FileAccessManager,
     SecurityMonitor, SecurityContext, SecurityThreatLevel, SecurityViolationType,
     security_manager, validate_user_input, validate_file_path, validate_sql_query
 )
 
-from core.shared.security_decorators import (
+from src.openchronicle.shared.security_decorators import (
     secure_input, secure_file_access, secure_sql_execution,
     rate_limited, security_monitored, require_authentication,
     secure_operation
@@ -361,7 +361,7 @@ class TestGlobalSecurityManager:
     
     def test_security_summary(self):
         """Test getting security summary."""
-        from core.shared.security import get_security_summary
+        from src.openchronicle.shared.security import get_security_summary
         summary = get_security_summary()
         
         assert 'total_violations' in summary

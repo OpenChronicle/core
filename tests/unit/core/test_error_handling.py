@@ -14,7 +14,7 @@ import asyncio
 import pytest
 import time
 from unittest.mock import Mock, patch
-from core.shared.error_handling import (
+from src.openchronicle.shared.error_handling import (
     # Exception classes
     OpenChronicleError,
     ConfigurationError,

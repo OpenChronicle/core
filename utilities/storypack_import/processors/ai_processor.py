@@ -11,7 +11,7 @@ from typing import Dict, List, Tuple, Any, Optional
 from pathlib import Path
 
 from ..interfaces import IAIProcessor, ImportContext
-from core.shared.logging_system import get_logger, log_system_event, log_warning, log_error
+from src.openchronicle.shared.logging_system import get_logger, log_system_event, log_warning, log_error
 
 
 class AIProcessor(IAIProcessor):
@@ -28,7 +28,7 @@ class AIProcessor(IAIProcessor):
         """Initialize AI capabilities."""
         try:
             # Import here to avoid circular dependencies
-            from core.content import ContentAnalysisOrchestrator
+            from src.openchronicle.infrastructure.content import ContentAnalysisOrchestrator
             
             self.content_analyzer = ContentAnalysisOrchestrator()
             
@@ -244,7 +244,7 @@ class AIProcessor(IAIProcessor):
         
         try:
             if not self.content_analyzer:
-                from core.content import ContentAnalysisOrchestrator
+                from src.openchronicle.infrastructure.content import ContentAnalysisOrchestrator
                 self.content_analyzer = ContentAnalysisOrchestrator()
             
             # Test with a simple content sample

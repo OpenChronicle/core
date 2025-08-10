@@ -1,363 +1,312 @@
-#!/usr/bin/env python3
 """
-OpenChronicle - Interactive Story Engine
+OpenChronicle Core - Main Entry Point
 
-Main entry point for the OpenChronicle narrative AI engine.
-This replaces the legacy 817-line main.py with a clean hexagonal architecture.
+Professional API for OpenChronicle's core narrative AI engine.
+Provides clean, centralized access to all core orchestrators and services
+following enterprise software best practices.
 
 Usage:
-    python main.py                          # Interactive mode with demo story
-    python main.py --test                   # Quick system test
-    python main.py --story-id my-story      # Load specific story
-    python main.py --non-interactive        # Automation mode
-    python main.py --api                    # Start API server
-    python main.py --web                    # Start web interface
-    python main.py --cli                    # Force CLI mode (default)
+    from src.openchronicle.domain.models import ModelOrchestrator
+    from src.openchronicle.infrastructure.memory import MemoryOrchestrator
+    from src.openchronicle.domain.services.scenes import SceneOrchestrator
+    
+Architecture:
+    - Domain Layer: Business models and services (narrative, characters, scenes, timeline)
+    - Application Layer: Application services and orchestrators (management)
+    - Infrastructure Layer: Technical components (adapters, persistence, memory)
+    - Interface Layer: CLI, API, web interfaces
 """
 
-import asyncio
 import sys
-import argparse
+import asyncio
 from pathlib import Path
-from typing import Optional, List
+from typing import Dict, Any, Optional, List, Union
+from dataclasses import dataclass
 
-# Ensure we can import from our source
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Ensure module can find its dependencies
+current_dir = Path(__file__).parent
+if str(current_dir.parent.parent) not in sys.path:
+    sys.path.insert(0, str(current_dir.parent.parent))
 
-from openchronicle.infrastructure.container import InfrastructureContainer
-from openchronicle.applications.cli_app import CLIApplication, CLIAppConfig
-from openchronicle.applications.services.story_processing_service import StoryProcessingConfig
+# Core infrastructure with new paths
+from src.openchronicle.shared.logging import get_logger, log_structured_event
+from .shared.error_handling import OpenChronicleError
+from .shared.dependency_injection import get_container
+from .shared.centralized_config import CentralizedConfigManager
 
-# Version information
-__version__ = "0.1.0"  # Sync with pyproject.toml
+# === PRIMARY ORCHESTRATORS ===
+# Main workflow components - most commonly used
 
+try:
+    from .domain.models.model_orchestrator import ModelOrchestrator
+    MODEL_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"ModelOrchestrator not available: {e}")
+    MODEL_AVAILABLE = False
+    ModelOrchestrator = None
 
-def parse_arguments():
-    """Parse command line arguments with full legacy compatibility."""
-    parser = argparse.ArgumentParser(
-        description='OpenChronicle Interactive Story Engine',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python main.py                          # Interactive CLI mode
-  python main.py --test                   # Quick system test
-  python main.py --story-id demo-story    # Load specific story
-  python main.py --non-interactive        # Automation mode
-  python main.py --input "Look around"    # Single input processing
-  python main.py --api                    # Start API server
-  python main.py --web                    # Start web interface
-        """
-    )
+try:
+    from .infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+    MEMORY_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"MemoryOrchestrator not available: {e}")
+    MEMORY_AVAILABLE = False
+    MemoryOrchestrator = None
+
+try:
+    from .domain.services.scenes.scene_orchestrator import SceneOrchestrator
+    SCENE_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"SceneOrchestrator not available: {e}")
+    SCENE_AVAILABLE = False
+    SceneOrchestrator = None
+
+try:
+    from .domain.services.narrative.narrative_orchestrator import NarrativeOrchestrator
+    NARRATIVE_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"NarrativeOrchestrator not available: {e}")
+    NARRATIVE_AVAILABLE = False
+    NarrativeOrchestrator = None
+
+# === SECONDARY SERVICES ===
+# Specialized components for specific workflows
+
+try:
+    from .domain.services.characters.character_orchestrator import CharacterOrchestrator
+    CHARACTER_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"CharacterOrchestrator not available: {e}")
+    CHARACTER_AVAILABLE = False
+    CharacterOrchestrator = None
+
+try:
+    from .domain.services.timeline.timeline_orchestrator import TimelineOrchestrator
+    TIMELINE_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"TimelineOrchestrator not available: {e}")
+    TIMELINE_AVAILABLE = False
+    TimelineOrchestrator = None
+
+try:
+    from .infrastructure.persistence.database_orchestrator import DatabaseOrchestrator
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"DatabaseOrchestrator not available: {e}")
+    DATABASE_AVAILABLE = False
+    DatabaseOrchestrator = None
+
+try:
+    from .infrastructure.images.image_orchestrator import ImageOrchestrator
+    IMAGE_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"ImageOrchestrator not available: {e}")
+    IMAGE_AVAILABLE = False
+    ImageOrchestrator = None
+
+try:
+    from .infrastructure.content.context import ContextOrchestrator
+    CONTEXT_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"ContextOrchestrator not available: {e}")
+    CONTEXT_AVAILABLE = False
+    ContextOrchestrator = None
+
+try:
+    from .infrastructure.content.analysis import ContentAnalysisOrchestrator
+    ANALYSIS_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"ContentAnalysisOrchestrator not available: {e}")
+    ANALYSIS_AVAILABLE = False
+    ContentAnalysisOrchestrator = None
+
+try:
+    from .infrastructure.performance import PerformanceOrchestrator, ModelPerformanceMonitor
+    PERFORMANCE_AVAILABLE = True
+except ImportError as e:
+    log_warning(f"Performance modules not available: {e}")
+    PERFORMANCE_AVAILABLE = False
+    PerformanceOrchestrator = None
+    ModelPerformanceMonitor = None
+
+# === UTILITY FUNCTIONS ===
+
+@dataclass
+class CoreStatus:
+    """System health status for core components."""
+    available_orchestrators: List[str]
+    unavailable_orchestrators: List[str]
+    total_count: int
+    availability_percentage: float
+    core_initialized: bool = False
     
-    # Version argument (standard)
-    parser.add_argument('--version', action='version', version=f'OpenChronicle {__version__}')
-    
-    # Interface selection (new)
-    interface_group = parser.add_argument_group('Interface Options')
-    interface_group.add_argument('--cli', action='store_true', default=True,
-                        help='Use CLI interface (default)')
-    interface_group.add_argument('--api', action='store_true',
-                        help='Start API server interface')
-    interface_group.add_argument('--web', action='store_true', 
-                        help='Start web interface')
-    interface_group.add_argument('--events', action='store_true',
-                        help='Start event/WebSocket interface')
-    interface_group.add_argument('--all-interfaces', action='store_true',
-                        help='Start all interfaces (API, Web, Events)')
-    
-    # CLI-specific options (legacy compatibility)
-    cli_group = parser.add_argument_group('CLI Options')
-    cli_group.add_argument('--test', action='store_true',
-                        help='Run quick system test and exit')
-    cli_group.add_argument('--non-interactive', action='store_true',
-                        help='Run in non-interactive mode (for testing/automation)')
-    cli_group.add_argument('--story-id', type=str, default='demo-story', metavar='ID',
-                        help='Story ID to load (default: demo-story)')
-    cli_group.add_argument('--input', type=str, metavar='TEXT',
-                        help='Single input to process in non-interactive mode')
-    cli_group.add_argument('--max-iterations', type=int, default=1, metavar='N',
-                        help='Maximum iterations in non-interactive mode (default: 1)')
-    cli_group.add_argument('--no-emojis', action='store_true',
-                        help='Disable emoji output for professional/clean display')
-    
-    # API Key management (legacy compatibility)
-    key_group = parser.add_argument_group('API Key Management')
-    key_group.add_argument('--set-key', type=str, metavar='PROVIDER',
-                        help='Store API key for provider (openai, anthropic, etc.)')
-    key_group.add_argument('--list-keys', action='store_true',
-                        help='List stored API keys')
-    key_group.add_argument('--remove-key', type=str, metavar='PROVIDER',
-                        help='Remove stored API key for provider')
-    key_group.add_argument('--keyring-info', action='store_true',
-                        help='Show keyring backend information')
-    
-    return parser.parse_args()
+
+def get_version() -> str:
+    """Get OpenChronicle core version."""
+    try:
+        from .. import __version__
+        return __version__
+    except ImportError:
+        return "development"
 
 
-async def handle_key_management_commands(args) -> bool:
+def get_available_orchestrators() -> Dict[str, bool]:
+    """Get availability status of all orchestrators."""
+    return {
+        'ModelOrchestrator': MODEL_AVAILABLE,
+        'MemoryOrchestrator': MEMORY_AVAILABLE,
+        'SceneOrchestrator': SCENE_AVAILABLE,
+        'NarrativeOrchestrator': NARRATIVE_AVAILABLE,
+        'ContextOrchestrator': CONTEXT_AVAILABLE,
+        'CharacterOrchestrator': CHARACTER_AVAILABLE,
+        'TimelineOrchestrator': TIMELINE_AVAILABLE,
+        'DatabaseOrchestrator': DATABASE_AVAILABLE,
+        'ImageOrchestrator': IMAGE_AVAILABLE,
+        'ContextOrchestrator': CONTEXT_AVAILABLE,
+        'ContentAnalysisOrchestrator': ANALYSIS_AVAILABLE,
+        'PerformanceOrchestrator': PERFORMANCE_AVAILABLE,
+        'ModelPerformanceMonitor': PERFORMANCE_AVAILABLE,
+    }
+
+
+async def health_check() -> CoreStatus:
     """
-    Handle API key management commands (legacy compatibility).
+    Perform comprehensive health check of core systems.
     
     Returns:
-        True if a key command was processed (exit after), False to continue
+        CoreStatus: Detailed health information
     """
-    if not any([args.set_key, args.list_keys, args.remove_key, args.keyring_info]):
-        return False
+    log_system_event("system", "Core health check initiated")
     
-    # Import legacy key management with fallback
-    sys.path.append(str(Path(__file__).parent / "utilities"))
-    try:
-        from api_key_manager import (
-            prompt_and_store_key, list_stored_keys, remove_api_key, 
-            get_keyring_info, is_keyring_available
-        )
-    except ImportError:
-        # Fallback stubs if API key manager is not available
-        def prompt_and_store_key(provider):
-            print(f"❌ API key management not available - api_key_manager module not found")
-            return False
-        def list_stored_keys():
-            print(f"❌ API key management not available - api_key_manager module not found")
-            return []
-        def remove_api_key(provider):
-            print(f"❌ API key management not available - api_key_manager module not found")
-            return False
-        def get_keyring_info():
-            return {
-                'available': False,
-                'backend': 'Not available',
-                'service_name': 'Not available',
-                'supported_providers': [],
-                'reason': 'API key manager module not found',
-                'recommendation': 'Install or configure api_key_manager module'
-            }
-        def is_keyring_available():
-            return False
+    orchestrators = get_available_orchestrators()
+    available = [name for name, status in orchestrators.items() if status]
+    unavailable = [name for name, status in orchestrators.items() if not status]
     
-    def status_icon(success: bool = True) -> str:
-        return "✅" if success else "❌"
+    total = len(orchestrators)
+    availability = (len(available) / total) * 100 if total > 0 else 0
     
-    def emoji(text: str) -> str:
-        return text if not args.no_emojis else ""
-    
-    try:
-        if args.keyring_info:
-            info = get_keyring_info()
-            print(f"\n{emoji('🔐 ')}Keyring Information:")
-            print(f"   Available: {info['available']}")
-            if info['available']:
-                print(f"   Backend: {info['backend']}")
-                print(f"   Service: {info['service_name']}")
-                print(f"   Supported providers: {', '.join(info['supported_providers'])}")
-            else:
-                print(f"   Reason: {info['reason']}")
-                print(f"   Fix: {info['recommendation']}")
-        
-        elif args.list_keys:
-            if not is_keyring_available():
-                print(f"{status_icon(False)} Keyring not available. Install with: pip install keyring")
-                return True
-            
-            stored = list_stored_keys()
-            if not stored:
-                print(f"\n{emoji('🔑 ')}No API keys stored in secure storage.")
-                print("Use --set-key PROVIDER to store API keys securely.")
-            else:
-                print(f"\n{emoji('🗄️ ')}Stored API Keys ({len(stored)}):")
-                for provider in sorted(stored):
-                    print(f"   {emoji('✅ ')}{provider}")
-                print(f"\nUse --remove-key PROVIDER to remove a key.")
-        
-        elif args.set_key:
-            provider = args.set_key.lower()
-            success = prompt_and_store_key(provider)
-            if success:
-                print(f"\n{status_icon(True)} API key management completed successfully!")
-            else:
-                print(f"\n{status_icon(False)} API key setup failed.")
-        
-        elif args.remove_key:
-            provider = args.remove_key.lower()
-            success = remove_api_key(provider)
-            if success:
-                print(f"{status_icon(True)} API key removed for {provider}")
-            else:
-                print(f"{status_icon(False)} Failed to remove API key for {provider}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"{status_icon(False)} Error in key management: {e}")
-        return True
-
-
-async def run_cli_interface(args, container: InfrastructureContainer) -> int:
-    """Run the CLI interface."""
-    
-    # Create CLI application
-    cli_config = CLIAppConfig(
-        use_emojis=not args.no_emojis,
-        default_story_id=args.story_id,
-        enable_health_check=True,
-        enable_interactive_mode=not args.non_interactive,
-        max_iterations_non_interactive=args.max_iterations
+    status = CoreStatus(
+        available_orchestrators=available,
+        unavailable_orchestrators=unavailable,
+        total_count=total,
+        availability_percentage=availability,
+        core_initialized=True
     )
     
-    story_processing_config = StoryProcessingConfig()
-    
-    from openchronicle.applications.cli_app import CLIApplicationFactory
-    
-    cli_app = CLIApplicationFactory.create(
-        story_service=container.story_service(),
-        character_service=container.character_service(), 
-        scene_service=container.scene_service(),
-        memory_service=container.memory_service(),
-        logging_service=container.logging_service(),
-        cache_service=container.cache_service(),
-        config=cli_config,
-        story_processing_config=story_processing_config
-    )
-    
-    # Run startup sequence
-    startup_ok = await cli_app.run_startup_sequence()
-    if not startup_ok:
-        return 1
-    
-    try:
-        # Handle different CLI modes
-        if args.test:
-            success = await cli_app.run_quick_test()
-            return 0 if success else 1
-        
-        elif args.non_interactive:
-            test_inputs = [args.input] if args.input else None
-            await cli_app.run_non_interactive_mode(
-                args.story_id,
-                test_inputs=test_inputs,
-                max_iterations=args.max_iterations
-            )
-            return 0
-        
-        else:
-            # Interactive mode
-            await cli_app.run_interactive_mode(args.story_id)
-            return 0
-            
-    except KeyboardInterrupt:
-        print(f"\n{cli_app._emoji('👋')} Interrupted by user")
-        return 0
-    except Exception as e:
-        print(f"CLI application error: {e}")
-        await container.logging_service().log_error(f"CLI application error: {e}")
-        return 1
-
-
-async def run_api_interface(args) -> int:
-    """Run the API interface."""
-    try:
-        from openchronicle.interfaces.api import APIContainer
-        
-        api_container = APIContainer()
-        app = api_container.app()
-        
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-        return 0
-        
-    except Exception as e:
-        print(f"API interface error: {e}")
-        return 1
-
-
-async def run_web_interface(args) -> int:
-    """Run the web interface."""
-    try:
-        from openchronicle.interfaces.web import WebAppContainer
-        
-        web_container = WebAppContainer()
-        app = web_container.app()
-        
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8080)
-        return 0
-        
-    except Exception as e:
-        print(f"Web interface error: {e}")
-        return 1
-
-
-async def run_events_interface(args) -> int:
-    """Run the events/WebSocket interface."""
-    try:
-        from openchronicle.interfaces.events import EventApplication
-        
-        event_app = EventApplication()
-        await event_app.run()
-        return 0
-        
-    except Exception as e:
-        print(f"Events interface error: {e}")
-        return 1
-
-
-async def run_all_interfaces(args) -> int:
-    """Run all interfaces concurrently."""
-    try:
-        from openchronicle.interfaces import run_all_servers
-        
-        await run_all_servers()
-        return 0
-        
-    except Exception as e:
-        print(f"Multi-interface error: {e}")
-        return 1
-
-
-async def main() -> int:
-    """Main entry point for OpenChronicle."""
-    
-    # Parse arguments
-    args = parse_arguments()
-    
-    # Handle API key management commands first (before heavy imports)
-    if await handle_key_management_commands(args):
-        return 0
-    
-    # Determine which interface to run
-    if args.all_interfaces:
-        return await run_all_interfaces(args)
-    elif args.api:
-        return await run_api_interface(args)
-    elif args.web:
-        return await run_web_interface(args)
-    elif args.events:
-        return await run_events_interface(args)
+    if availability < 50:
+        log_error(f"Core system health critical: {availability:.1f}% availability")
+    elif availability < 80:
+        log_warning(f"Core system health degraded: {availability:.1f}% availability")
     else:
-        # CLI is default, and also handles test and non-interactive modes
+        log_info(f"Core system health good: {availability:.1f}% availability")
+    
+    return status
+
+
+async def initialize_core(config_path: Optional[str] = None) -> bool:
+    """
+    Initialize core OpenChronicle systems.
+    
+    Args:
+        config_path: Optional path to configuration directory
         
-        # Create infrastructure container
-        try:
-            from openchronicle.infrastructure.config import InfrastructureConfig
-            
-            config = InfrastructureConfig()
-            container = InfrastructureContainer(config)
-            
-            return await run_cli_interface(args, container)
-            
-        except Exception as e:
-            print(f"Failed to initialize infrastructure: {e}")
-            return 1
-
-
-if __name__ == "__main__":
+    Returns:
+        bool: True if initialization successful
+    """
     try:
-        exit_code = asyncio.run(main())
-        sys.exit(exit_code)
-    except KeyboardInterrupt:
-        print("\nInterrupted by user")
-        sys.exit(0)
+        log_system_event("system", "Core initialization started")
+        
+        # Initialize dependency injection container
+        container = get_container()
+        log_info("Dependency injection container initialized")
+        
+        # Load centralized configuration
+        if config_path:
+            config = CentralizedConfigManager(config_path)
+        else:
+            config = CentralizedConfigManager()
+        log_info("Centralized configuration loaded")
+        
+        # Perform health check
+        status = await health_check()
+        
+        if status.availability_percentage >= 50:
+            log_system_event("system", f"Core initialization successful - {status.availability_percentage:.1f}% availability")
+            return True
+        else:
+            log_error(f"Core initialization failed - only {status.availability_percentage:.1f}% availability")
+            return False
+            
     except Exception as e:
-        print(f"Fatal error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        log_error(f"Core initialization failed: {e}")
+        return False
+
+
+def create_model_orchestrator(*args, **kwargs) -> Optional[ModelOrchestrator]:
+    """Factory function for ModelOrchestrator with error handling."""
+    if not MODEL_AVAILABLE:
+        log_error("ModelOrchestrator not available")
+        return None
+    return ModelOrchestrator(*args, **kwargs)
+
+
+def create_scene_orchestrator(*args, **kwargs) -> Optional[SceneOrchestrator]:
+    """Factory function for SceneOrchestrator with error handling."""
+    if not SCENE_AVAILABLE:
+        log_error("SceneOrchestrator not available")
+        return None
+    return SceneOrchestrator(*args, **kwargs)
+
+
+def create_memory_orchestrator(*args, **kwargs) -> Optional[MemoryOrchestrator]:
+    """Factory function for MemoryOrchestrator with error handling."""
+    if not MEMORY_AVAILABLE:
+        log_error("MemoryOrchestrator not available")
+        return None
+    return MemoryOrchestrator(*args, **kwargs)
+
+
+# === PUBLIC API ===
+# What gets exposed when using "from core import ..."
+
+__all__ = [
+    # Primary Orchestrators (Most commonly used)
+    'ModelOrchestrator',
+    'MemoryOrchestrator', 
+    'SceneOrchestrator',
+    'NarrativeOrchestrator',
+    'ContextOrchestrator',
+    
+    # Secondary Services (Specialized workflows)
+    'CharacterOrchestrator',
+    'TimelineOrchestrator',
+    'DatabaseOrchestrator',
+    'ImageOrchestrator',
+    'ContextOrchestrator',
+    'ContentAnalysisOrchestrator',
+    
+    # Performance Monitoring
+    'PerformanceOrchestrator',
+    'ModelPerformanceMonitor',
+    
+    # Utility Functions
+    'initialize_core',
+    'health_check',
+    'get_version',
+    'get_available_orchestrators',
+    
+    # Factory Functions (Recommended)
+    'create_model_orchestrator',
+    'create_scene_orchestrator', 
+    'create_memory_orchestrator',
+    
+    # Data Classes
+    'CoreStatus',
+    
+    # Core Infrastructure (from __init__.py)
+    'OpenChronicleError',
+    'get_container',
+]
+
+# Initialize logging
+log_system_event("system", f"Core main module loaded - version {get_version()}")

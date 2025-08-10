@@ -12,13 +12,13 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 # Import core orchestrators
-from core.scenes.scene_orchestrator import SceneOrchestrator
-from core.content.context.orchestrator import ContextOrchestrator
-from core.memory.memory_orchestrator import MemoryOrchestrator
-from core.timeline.timeline_orchestrator import TimelineOrchestrator
-from core.models.model_orchestrator import ModelOrchestrator
-from core.memory.memory_orchestrator import MemoryOrchestrator
-from core.content.context.orchestrator import ContextOrchestrator
+from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
+from src.openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
+from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+from src.openchronicle.domain.services.timeline.timeline_orchestrator import TimelineOrchestrator
+from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
+from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+from src.openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
 
 # Import enhanced mock adapters for isolated testing
 from tests.mocks.mock_adapters import MockModelOrchestrator, MockDatabaseManager
@@ -186,7 +186,7 @@ class TestCompleteSceneGenerationWorkflow:
         story_id = clean_test_environment['story_id']
         
         # Test memory orchestrator basic functionality
-        from core.memory.memory_orchestrator import MemoryOrchestrator
+        from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
         memory_orch = MemoryOrchestrator()
         
         # Test character memory operations
@@ -212,7 +212,7 @@ class TestCompleteSceneGenerationWorkflow:
         story_id = clean_test_environment['story_id']
         
         # Test context orchestrator basic functionality
-        from core.content.context.orchestrator import ContextOrchestrator
+        from src.openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
         context_orch = ContextOrchestrator()
         
         # Test context building with sample data

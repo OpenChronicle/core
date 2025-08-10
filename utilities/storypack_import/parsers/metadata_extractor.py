@@ -13,7 +13,7 @@ from typing import Dict, Any
 from datetime import datetime
 
 from ..interfaces import IMetadataExtractor
-from core.shared.logging_system import get_logger
+from src.openchronicle.shared.logging_system import get_logger
 
 
 class MetadataExtractor(IMetadataExtractor):

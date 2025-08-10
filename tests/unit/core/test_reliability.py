@@ -15,16 +15,16 @@ class TestCoreSystemReliability:
     
     def test_core_imports(self):
         """Test that core modules import without errors."""
-        import core.models
-        import core.memory
-        import core.characters
+        import src.openchronicle.domain.models
+        import src.openchronicle.infrastructure.memory
+        import src.openchronicle.domain.services.characters
         assert True  # If we get here, imports worked
     
     def test_orchestrator_availability(self):
         """Test that orchestrators are available."""
-        from core.models import ModelOrchestrator
-        from core.memory import MemoryOrchestrator
-        from core.characters import CharacterOrchestrator
+        from src.openchronicle.domain.models import ModelOrchestrator
+        from src.openchronicle.infrastructure.memory import MemoryOrchestrator
+        from src.openchronicle.domain.services.characters import CharacterOrchestrator
         
         # Just test that classes exist
         assert ModelOrchestrator is not None
@@ -42,7 +42,7 @@ class TestCoreSystemReliability:
     def test_model_orchestrator_basic_functionality(self):
         """Test basic model orchestrator functionality.""" 
         # Test basic orchestrator import and creation
-        from core.models.model_orchestrator import ModelOrchestrator
+        from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
         orchestrator = ModelOrchestrator()
         
         # Basic functionality test

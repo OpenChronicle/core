@@ -53,6 +53,8 @@ dev = [
     "black>=23.0.0",
     "pre-commit>=3.5.0",
     "bandit>=1.7.0",
+    "safety>=3.0.0",
+    "pip-audit>=2.6.0",
     "coverage>=7.3.0",
 ]
 
@@ -123,6 +125,8 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 target-version = "py311"
 line-length = 88
 src = ["src"]
+
+[tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
@@ -144,14 +148,14 @@ ignore = [
     "RET504",  # Unnecessary variable assignment before return
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/**/*" = ["ARG", "PLR2004"]  # Test files can have unused args and magic values
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["openchronicle"]
 force-single-line = true
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 max-args = 7
 
 [tool.black]

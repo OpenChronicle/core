@@ -45,8 +45,7 @@ from .adapters import (
 )
 
 from .memory import (
-    FileSystemMemoryManager,
-    InMemoryManager
+    MemoryOrchestrator
 )
 
 from .cache import (
@@ -141,17 +140,8 @@ class InfrastructureContainer:
     def get_memory_manager(self):
         """Get memory manager instance."""
         if self._memory_manager is None:
-            if self.config.storage_backend == "filesystem":
-                self._memory_manager = FileSystemMemoryManager(
-                    f"{self.config.storage_path}/memory"
-                )
-            elif self.config.storage_backend == "memory":
-                self._memory_manager = InMemoryManager()
-            else:
-                # Default to filesystem
-                self._memory_manager = FileSystemMemoryManager(
-                    f"{self.config.storage_path}/memory"
-                )
+            # Always use MemoryOrchestrator as the main memory interface
+            self._memory_manager = MemoryOrchestrator()
         
         return self._memory_manager
     
@@ -329,8 +319,7 @@ __all__ = [
     "create_adapter",
     
     # Memory
-    "FileSystemMemoryManager",
-    "InMemoryManager",
+    "MemoryOrchestrator",
     
     # Cache
     "CacheEntry",

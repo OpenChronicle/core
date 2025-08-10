@@ -37,3 +37,18 @@ repos:
       - id: bandit
         args: [-r, .]
         exclude: tests/
+
+  - repo: https://github.com/PyCQA/safety
+    rev: 3.0.1
+    hooks:
+      - id: safety
+        args: [--short-report]
+
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: pip-audit
+        entry: pip-audit
+        language: system
+        types: [python]
+        require_serial: true

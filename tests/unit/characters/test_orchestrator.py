@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from typing import Dict, Any
 
 # Import the orchestrator under test  
-from core.characters.character_orchestrator import CharacterOrchestrator
+from src.openchronicle.domain.services.characters.character_orchestrator import CharacterOrchestrator
 
 
 class TestCharacterManagement:

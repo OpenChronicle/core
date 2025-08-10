@@ -156,7 +156,7 @@ class StoryProcessingService:
         """Build context with intelligent analysis."""
         # Use the legacy context orchestrator temporarily
         # TODO: Migrate to proper domain service once available
-        from core.content.context import ContextOrchestrator
+        from src.openchronicle.infrastructure.content.context import ContextOrchestrator
         
         context_orchestrator = ContextOrchestrator()
         return await context_orchestrator.build_context_with_analysis(user_input, story.to_dict())
@@ -173,7 +173,7 @@ class StoryProcessingService:
         try:
             # Use the legacy model orchestrator temporarily
             # TODO: Migrate to proper infrastructure adapter once available
-            from core.models.model_orchestrator import ModelOrchestrator
+            from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
             
             model_manager = ModelOrchestrator()
             
@@ -203,8 +203,8 @@ class StoryProcessingService:
         try:
             # Use the legacy content analyzer temporarily
             # TODO: Migrate to proper domain service once available
-            from core.content import ContentAnalysisOrchestrator as ContentAnalyzer
-            from core.models.model_orchestrator import ModelOrchestrator
+            from src.openchronicle.infrastructure.content import ContentAnalysisOrchestrator as ContentAnalyzer
+            from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
             
             model_manager = ModelOrchestrator()
             content_analyzer = ContentAnalyzer(model_manager)
@@ -239,7 +239,7 @@ class StoryProcessingService:
         try:
             # Use the legacy scene orchestrator temporarily
             # TODO: Migrate to proper domain service once available
-            from core.scenes.scene_orchestrator import SceneOrchestrator
+            from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
             
             scene_orchestrator = SceneOrchestrator(story_id)
             scene_id = scene_orchestrator.save_scene(

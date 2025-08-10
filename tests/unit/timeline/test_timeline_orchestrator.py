@@ -10,7 +10,7 @@ from typing import Dict, Any
 
 # Test the actual orchestrator import
 try:
-    from core.timeline.timeline_orchestrator import TimelineOrchestrator
+    from src.openchronicle.domain.services.timeline.timeline_orchestrator import TimelineOrchestrator
     TIMELINE_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     TIMELINE_ORCHESTRATOR_AVAILABLE = False

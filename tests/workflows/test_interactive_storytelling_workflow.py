@@ -21,12 +21,12 @@ import time
 from typing import Dict, Any, List
 
 # Import core systems
-from core.memory import MemoryOrchestrator
-from core.characters import CharacterOrchestrator
-from core.scenes import SceneOrchestrator
-from core.content.context import ContextOrchestrator
-from core.models import ModelOrchestrator
-from core.database import DatabaseOrchestrator
+from src.openchronicle.infrastructure.memory import MemoryOrchestrator
+from src.openchronicle.domain.services.characters import CharacterOrchestrator
+from src.openchronicle.domain.services.scenes import SceneOrchestrator
+from src.openchronicle.infrastructure.content.context import ContextOrchestrator
+from src.openchronicle.domain.models import ModelOrchestrator
+from src.openchronicle.infrastructure.persistence import DatabaseOrchestrator
 
 # Import test utilities
 from tests.mocks.mock_adapters import MockModelOrchestrator

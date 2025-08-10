@@ -22,7 +22,7 @@ from typing import Dict, Any, List, Optional
 
 # Test the ContextOrchestrator import availability
 try:
-    from core.content.context.orchestrator import ContextOrchestrator
+    from src.openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
     CONTEXT_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     CONTEXT_ORCHESTRATOR_AVAILABLE = False

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import tempfile
 import os
 
-from core.performance import (
+from src.openchronicle.infrastructure.performance import (
     PerformanceOrchestrator, MetricsCollector, MetricsStorage, BottleneckAnalyzer,
     OperationContext, PerformanceMetrics
 )
@@ -122,7 +122,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
             await self.storage.store_metrics(metrics)
             
             # Retrieve metrics
-            from core.performance.interfaces.performance_interfaces import MetricsQuery
+            from src.openchronicle.infrastructure.performance.interfaces.performance_interfaces import MetricsQuery
             query = MetricsQuery(
                 start_time=datetime.fromtimestamp(test_time - 10),
                 end_time=datetime.fromtimestamp(test_time + 10),

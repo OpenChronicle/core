@@ -12,7 +12,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any
 
-from core.registry.schema_validation import (
+from src.openchronicle.infrastructure.registry.schema_validation import (
     RegistryValidator,
     SchemaValidationError,
     ModelRegistrySchema,

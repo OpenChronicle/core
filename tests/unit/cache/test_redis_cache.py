@@ -8,14 +8,14 @@ import pytest
 import asyncio
 import time
 from unittest.mock import Mock, AsyncMock, patch
-from core.memory.redis_cache import (
+from src.openchronicle.infrastructure.memory.redis_cache import (
     CacheConfig, CacheMetrics, MultiTierCache, 
     CachedCharacterManager, CachedMemoryOrchestrator
 )
-from core.memory.cache_benchmark import CachePerformanceBenchmark
-from core.memory.memory_orchestrator import MemoryOrchestrator
-from core.memory.character.character_manager import CharacterManager
-from core.memory.memory_interfaces import MemorySnapshot, CharacterMemory
+from src.openchronicle.infrastructure.memory.cache_benchmark import CachePerformanceBenchmark
+from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+from src.openchronicle.infrastructure.memory.character.character_manager import CharacterManager
+from src.openchronicle.infrastructure.memory.memory_interfaces import MemorySnapshot, CharacterMemory
 
 
 class TestCacheConfig:

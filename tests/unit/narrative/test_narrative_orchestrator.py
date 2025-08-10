@@ -10,7 +10,7 @@ from unittest.mock import Mock, MagicMock, patch
 from typing import Dict, Any, List, Optional
 
 # Import the orchestrator under test
-from core.narrative.narrative_orchestrator import NarrativeOrchestrator, NarrativeState
+from src.openchronicle.domain.services.narrative.narrative_orchestrator import NarrativeOrchestrator, NarrativeState
 
 # Import enhanced mock adapters for isolated testing
 from tests.mocks.mock_adapters import MockLLMAdapter, MockModelOrchestrator

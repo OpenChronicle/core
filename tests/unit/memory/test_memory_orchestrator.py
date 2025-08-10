@@ -22,7 +22,7 @@ from typing import Dict, Any, List, Optional
 
 # Test the MemoryOrchestrator import availability
 try:
-    from core.memory.memory_orchestrator import MemoryOrchestrator
+    from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
     MEMORY_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     MEMORY_ORCHESTRATOR_AVAILABLE = False

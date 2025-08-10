@@ -13,7 +13,7 @@ from typing import Dict, List, Any
 from datetime import datetime, UTC
 
 from ..interfaces import IStorypackBuilder, ImportContext, ContentFile
-from core.shared.logging_system import get_logger, log_system_event
+from src.openchronicle.shared.logging_system import get_logger, log_system_event
 
 
 class StorypackBuilder(IStorypackBuilder):

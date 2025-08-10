@@ -10,7 +10,7 @@ from unittest.mock import Mock, MagicMock, patch
 from typing import Dict, Any, List, Optional
 
 # Import the orchestrator under test
-from core.models.model_orchestrator import ModelOrchestrator
+from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 
 # Import enhanced mock adapters for isolated testing
 from tests.mocks.mock_adapters import MockLLMAdapter, MockModelOrchestrator, MockDatabaseManager

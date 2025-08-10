@@ -29,12 +29,12 @@ from tests.stress.stress_testing_framework import (
     create_stress_test_config
 )
 
-from core.models.model_orchestrator import ModelOrchestrator
-from core.memory.memory_orchestrator import MemoryOrchestrator
-from core.scenes.scene_orchestrator import SceneOrchestrator
-from core.characters.character_orchestrator import CharacterOrchestrator
-from core.narrative.narrative_orchestrator import NarrativeOrchestrator
-from core.shared.logging_system import log_info, log_warning
+from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
+from src.openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
+from src.openchronicle.domain.services.characters.character_orchestrator import CharacterOrchestrator
+from src.openchronicle.domain.services.narrative.narrative_orchestrator import NarrativeOrchestrator
+from src.openchronicle.shared.logging_system import log_info, log_warning
 
 
 class TestOrchestatorStressTesting:

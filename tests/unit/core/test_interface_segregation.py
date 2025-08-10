@@ -12,18 +12,18 @@ import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime, UTC
 
-from core.models.model_interfaces import (
+from src.openchronicle.domain.models.model_interfaces import (
     IModelResponseGenerator, IModelLifecycleManager,
     IModelConfigurationManager, IModelPerformanceMonitor,
     ModelResponse, AdapterStatus, ModelConfiguration
 )
 
-from core.models.model_orchestrator import (
+from src.openchronicle.domain.models.model_orchestrator import (
     ModelResponseGenerator, ModelLifecycleManager,
     ModelOrchestrator
 )
 
-from core.memory.memory_interfaces import (
+from src.openchronicle.infrastructure.memory.memory_interfaces import (
     IMemoryPersistence, ICharacterMemoryManager, IWorldStateManager,
     IMemoryContextBuilder, IMemoryFlagManager,
     MemorySnapshot, CharacterMemory, WorldState, MemoryContext
@@ -337,7 +337,7 @@ class TestInterfaceSegregationBenefits:
     
     def test_dependency_injection_compatibility(self):
         """Test that segregated interfaces work well with dependency injection."""
-        from core.shared.dependency_injection import DIContainer, ServiceLifetime
+        from src.openchronicle.shared.dependency_injection import DIContainer, ServiceLifetime
         
         container = DIContainer()
         

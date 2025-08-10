@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from ..interfaces import IOutputFormatter, ImportResult, ImportContext, ContentFile
-from core.shared.logging_system import get_logger, log_system_event
+from src.openchronicle.shared.logging_system import get_logger, log_system_event
 
 
 class OutputFormatter(IOutputFormatter):

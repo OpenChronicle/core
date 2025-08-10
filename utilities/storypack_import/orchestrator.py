@@ -21,7 +21,7 @@ from .parsers import ContentParser, MetadataExtractor, StructureAnalyzer
 from .processors import AIProcessor, ContentClassifier, ValidationEngine
 from .generators import StorypackBuilder, TemplateEngine, OutputFormatter
 
-from core.shared.logging_system import get_logger, log_system_event, log_info, log_warning, log_error
+from src.openchronicle.shared.logging_system import get_logger, log_system_event, log_info, log_warning, log_error
 
 
 class StorypackOrchestrator:

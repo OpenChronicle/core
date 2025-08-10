@@ -22,10 +22,10 @@ from typing import Dict, Any, List
 import statistics
 
 # Import core systems
-from core.models import ModelOrchestrator
-from core.performance import PerformanceOrchestrator
-from core.memory import MemoryOrchestrator
-from core.database import DatabaseOrchestrator
+from src.openchronicle.domain.models import ModelOrchestrator
+from src.openchronicle.infrastructure.performance import PerformanceOrchestrator
+from src.openchronicle.infrastructure.memory import MemoryOrchestrator
+from src.openchronicle.infrastructure.persistence import DatabaseOrchestrator
 
 # Import test utilities
 from tests.mocks.mock_adapters import MockModelOrchestrator

@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from typing import Dict, Any
 
 # Import the orchestrator under test
-from core.management.management_orchestrator import ManagementOrchestrator
+from src.openchronicle.application.services.management.management_orchestrator import ManagementOrchestrator
 
 
 class TestTokenManagement:

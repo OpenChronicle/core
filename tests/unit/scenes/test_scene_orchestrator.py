@@ -11,7 +11,7 @@ from typing import Dict, Any
 
 # Test the actual orchestrator import
 try:
-    from core.scenes.scene_orchestrator import SceneOrchestrator
+    from src.openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
     SCENE_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     SCENE_ORCHESTRATOR_AVAILABLE = False

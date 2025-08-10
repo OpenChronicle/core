@@ -11,11 +11,11 @@ python -m venv openchronicle-env
 openchronicle-env\Scripts\activate
 
 # 2. Install and test
-pip install -r requirements.txt
-python -c "from core.model_management import ModelOrchestrator; print('✅ Ready!')"
+pip install -e ".[dev]"
+python -c "from openchronicle.infrastructure.container import InfrastructureContainer; print('✅ Ready!')"
 
 # 3. Run quick test
-python main.py --test --max-iterations 1
+python -m openchronicle.main --test --max-iterations 1
 ```
 
 **📖 Complete Setup Guide**: See `DEVELOPER_SETUP.md`
@@ -350,6 +350,23 @@ services:
 - **Local Development**: Fast iteration, use any LLM
 - **Cloud Integration**: Access to latest models, pay-per-use
 - **Hybrid**: Mix local and cloud models as needed
+
+---
+
+## 📚 Documentation Index
+
+### Essential Documents
+- **[Development Plan](docs/DEVELOPMENT_PLAN.md)** - Current roadmap and migration plan
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and patterns
+- **[Setup Guide](DEVELOPER_SETUP.md)** - Detailed installation and configuration
+
+### Development Resources
+- **[Phase 0 Tasks](.copilot/PHASE_0_DETAILED_TASKS.md)** - Immediate action items
+- **[Migration Plan](.copilot/ARCHITECTURAL_MIGRATION_PHASES.md)** - Complete migration strategy
+- **[Project Status](.copilot/project_status.json)** - Single source of truth for status
+
+### Architecture Decisions
+- **[ADR Index](docs/adr/)** - Architecture Decision Records
 
 ---
 This project is dual-licensed under AGPL-3.0 for engine code and CC BY-NC-SA 4.0 for story content.

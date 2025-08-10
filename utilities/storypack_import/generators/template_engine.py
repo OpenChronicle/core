@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from ..interfaces import ITemplateEngine, ImportContext
-from core.shared.logging_system import get_logger, log_system_event
+from src.openchronicle.shared.logging_system import get_logger, log_system_event
 
 
 class TemplateEngine(ITemplateEngine):
