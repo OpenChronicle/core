@@ -33,6 +33,9 @@ from .persistence.scene_serializer import SceneSerializer
 from .shared.id_generator import SceneIdGenerator
 from .shared.scene_models import SceneData
 from .shared.scene_models import StructuredTags
+from src.openchronicle.domain.ports.persistence_inmemory import (
+    InMemorySqlitePersistence,
+)
 
 
 class SceneOrchestrator:
@@ -45,7 +48,7 @@ class SceneOrchestrator:
     - Management layer (labeling, rollback, organization)
     """
 
-    def __init__(self, story_id: str, config: dict[str, Any] = None):
+    def __init__(self, story_id: str, config: dict[str, Any] = None, *, persistence_port=None):
         """
         Initialize scene orchestrator for a specific story.
 
@@ -69,6 +72,11 @@ class SceneOrchestrator:
         self.operation_count = 0
         self.last_operation_time = None
 
+        # Dependency injection: allow caller to pass a persistence port; otherwise use in-memory default
+        self._persistence_port = (
+            persistence_port if persistence_port is not None else InMemorySqlitePersistence()
+        )
+
         log_info(f"SceneOrchestrator initialized for story {story_id}")
 
     # ===== COMPONENT PROPERTIES (LAZY LOADING) =====
@@ -77,7 +85,7 @@ class SceneOrchestrator:
     def repository(self) -> SceneRepository:
         """Get scene repository (lazy loaded)."""
         if self._repository is None:
-            self._repository = SceneRepository(self.story_id)
+            self._repository = SceneRepository(self.story_id, self._persistence_port)
         return self._repository
 
     @property
@@ -91,21 +99,23 @@ class SceneOrchestrator:
     def statistics_engine(self) -> StatisticsEngine:
         """Get statistics engine (lazy loaded)."""
         if self._statistics_engine is None:
-            self._statistics_engine = StatisticsEngine(self.story_id)
+            self._statistics_engine = StatisticsEngine(self.story_id, self._persistence_port)
         return self._statistics_engine
 
     @property
     def mood_analyzer(self) -> MoodAnalyzer:
         """Get mood analyzer (lazy loaded)."""
         if self._mood_analyzer is None:
-            self._mood_analyzer = MoodAnalyzer(self.story_id)
+            self._mood_analyzer = MoodAnalyzer(self.story_id, self._persistence_port)
         return self._mood_analyzer
 
     @property
     def scene_manager(self) -> SceneManager:
         """Get scene manager (lazy loaded)."""
         if self._scene_manager is None:
-            self._scene_manager = SceneManager(self.story_id, self.repository)
+            self._scene_manager = SceneManager(
+                self.story_id, self.repository, self._persistence_port
+            )
         return self._scene_manager
 
     @property

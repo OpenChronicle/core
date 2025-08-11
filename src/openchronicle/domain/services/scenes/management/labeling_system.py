@@ -77,7 +77,8 @@ class LabelingSystem:
             List of scenes with the specified label
         """
         try:
-            rows = execute_query(
+            # Use repository's persistence port for queries
+            rows = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, timestamp, input, output, scene_label,
@@ -126,7 +127,7 @@ class LabelingSystem:
             List of all labeled scenes
         """
         try:
-            rows = execute_query(
+            rows = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, timestamp, scene_label,
@@ -176,7 +177,7 @@ class LabelingSystem:
         """
         try:
             # Get label distribution
-            label_counts = execute_query(
+            label_counts = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT scene_label, COUNT(*) as count
@@ -188,7 +189,7 @@ class LabelingSystem:
             )
 
             # Get total scenes and labeled scenes count
-            total_stats = execute_query(
+            total_stats = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT
@@ -278,7 +279,7 @@ class LabelingSystem:
                 suggestions.append("emotional")
 
             # Check existing labels for pattern matching
-            existing_labels = execute_query(
+            existing_labels = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT DISTINCT scene_label
@@ -314,7 +315,7 @@ class LabelingSystem:
         """
         try:
             # Check if new label already exists
-            existing = execute_query(
+            existing = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT COUNT(*) as count
@@ -331,7 +332,7 @@ class LabelingSystem:
                 }
 
             # Get scenes with old label
-            old_scenes = execute_query(
+            old_scenes = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT COUNT(*) as count
@@ -345,7 +346,7 @@ class LabelingSystem:
                 return {"success": False, "error": f"Label '{old_label}' not found"}
 
             # Perform the rename
-            execute_update(
+            self.repository.persistence.execute_update(
                 self.story_id,
                 """
                 UPDATE scenes
@@ -377,7 +378,7 @@ class LabelingSystem:
         """
         try:
             # Get count of scenes with this label
-            scene_count = execute_query(
+            scene_count = self.repository.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT COUNT(*) as count
@@ -391,7 +392,7 @@ class LabelingSystem:
                 return {"success": False, "error": f"Label '{label}' not found"}
 
             # Remove the label
-            execute_update(
+            self.repository.persistence.execute_update(
                 self.story_id,
                 """
                 UPDATE scenes

@@ -1,21 +1,21 @@
 # 🧙 OpenChronicle
 **Narrative AI Engine with Multi-LLM Orchestration**
 
-## � **Quick Start**
+## Quick Start
 
 ```powershell
-# 1. Clone and setup
-git clone https://github.com/OpenChronicle/openchronicle-core.git
-cd openchronicle-core
-python -m venv openchronicle-env
-openchronicle-env\Scripts\activate
+# 1) Clone and setup (Windows PowerShell)
+git clone https://github.com/OpenChronicle/openchronicle-core.git; cd openchronicle-core
+python -m venv .venv; .venv\Scripts\Activate.ps1
 
-# 2. Install and test
-pip install -e ".[dev]"
-python -c "from openchronicle.infrastructure import InfrastructureContainer; print('✅ Ready!')"
+# 2) Install
+pip install -r requirements.txt
 
-# 3. Run quick test
-python -m openchronicle.main --test --max-iterations 1
+# 3) Smoke test
+python -m pytest -q --maxfail=1
+
+# 4) Run
+python .\main.py --test --max-iterations 1
 ```
 
 **📖 Complete Setup Guide**: See `DEVELOPER_SETUP.md`
@@ -261,10 +261,7 @@ Craft immersive story worlds, intelligent chatbots, or coding assistants using 1
 
 ## 🎯 Project Status
 
-**Current Phase**: 8B Complete - Production Ready
-**Architecture**: 13+ orchestrator systems with SOLID principles
-**Test Coverage**: 393 tests with professional pytest infrastructure
-**Next Priority**: Test infrastructure fixes, then CLI framework (Phase 5)
+See `.copilot/project_status.json`.
 
 ---
 
@@ -353,20 +350,12 @@ services:
 
 ---
 
-## 📚 Documentation Index
+## 📚 Docs Index
 
-### Essential Documents
-- **[Development Plan](docs/DEVELOPMENT_PLAN.md)** - Current roadmap and migration plan
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and patterns
-- **[Setup Guide](DEVELOPER_SETUP.md)** - Detailed installation and configuration
-
-### Development Resources
-- **[Phase 0 Tasks](.copilot/PHASE_0_DETAILED_TASKS.md)** - Immediate action items
-- **[Migration Plan](.copilot/ARCHITECTURAL_MIGRATION_PHASES.md)** - Complete migration strategy
-- **[Project Status](.copilot/project_status.json)** - Single source of truth for status
-
-### Architecture Decisions
-- **[ADR Index](docs/adr/)** - Architecture Decision Records
+- Development Plan: `docs/DEVELOPMENT_PLAN.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- Project Status (authoritative): `.copilot/project_status.json`
+- ADRs: `docs/adr/`
 
 ---
 This project is dual-licensed under AGPL-3.0 for engine code and CC BY-NC-SA 4.0 for story content.

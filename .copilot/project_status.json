@@ -1,110 +1,31 @@
 {
-  "project": "OpenChronicle Core",
-  "version": "0.2.0",
-  "updated_at": "2025-08-10T22:30:00Z",
-  "schema_version": "3.1.0",
-
-  "current_phase": {
-    "name": "Post-Migration Excellence",
-    "project_status": "transformation_complete_pristine",
-  "last_updated": "2025-01-08",
-  "version": "0.2.0",
-  "completion_percentage": 100,
-    "next_action": "Implement CI/CD automation and quality gates to secure architectural achievements"
-  },
-
+  "version": "0.1.0",
+  "updated_at": "2025-08-11",
   "milestones": [
-    {
-      "id": "M1",
-      "title": "Phase 0: Foundation Hardening",
-      "status": "complete",
-      "completed_at": "2025-08-09",
-      "tasks": "✅ Security tools, docs framework, centralized logging, baseline measurements"
-    },
-    {
-      "id": "M2",
-      "title": "Phase 1: Import Cleanup & Structure",
-      "status": "complete",
-      "completed_at": "2025-08-10",
-      "achievement": "✅ PERFECT SUCCESS: 40 → 0 problematic imports (-100%)",
-      "tasks": "✅ Eliminated all legacy core.* imports, converted deep relative imports, established clean hexagonal architecture"
-    },
-    {
-      "id": "M3",
-      "title": "Phase 2: Testing & Type Infrastructure",
-      "status": "complete",
-      "completed_at": "2025-08-10",
-      "achievement": "✅ ENHANCED: 342 tests, improved mocks, strategic type safety",
-      "tasks": "✅ Enhanced mock interfaces, fixed AttributeError issues, added type annotations, optimized pytest configuration"
-    },
-    {
-      "id": "M4",
-      "title": "Phase 3: Documentation & Performance",
-      "status": "complete",
-      "completed_at": "2025-08-10",
-      "achievement": "✅ COMPREHENSIVE: Updated architecture docs, performance benchmarks, ADR records",
-      "tasks": "✅ Architecture documentation updated, performance characteristics documented, ADR-0003 created, benchmarks validated"
-    },
-    {
-      "id": "M5",
-      "title": "CI/CD Automation & Quality Gates",
-      "status": "complete",
-      "completed_at": "2025-08-10",
-      "achievement": "✅ COMPREHENSIVE: Enterprise-grade automation with architecture protection",
-      "tasks": "✅ Enhanced CI/CD pipeline, pre-commit hooks with architecture enforcement, quality gate configuration, comprehensive automation documentation"
-    }
+    { "id": "D1", "title": "Docs cleanup & defragmentation", "status": "in_progress", "eta": "2025-08-13" },
+    { "id": "D2", "title": "Single-source status adoption", "status": "done", "eta": null },
+    { "id": "D3", "title": "Authoritative DEVELOPMENT_PLAN.md", "status": "in_progress", "eta": "2025-08-12" },
+    { "id": "D4", "title": "Hook policy + CI sanity", "status": "planned", "eta": "2025-08-18" },
+    { "id": "D5", "title": "Storage/logs git hygiene", "status": "in_progress", "eta": "2025-08-11" }
   ],
-
   "quality": {
-    "test_coverage": 98.5,
-    "passing_tests": 342,
-    "total_tests": 342,
-    "success_rate": "100%",
-    "lint_errors": 0,
-    "type_errors": 0,
-    "import_health": "perfect",
-    "architecture_compliance": "100%"
+    "coverage": null,
+    "lint_errors": null,
+    "type_errors": null,
+    "todo_count": 20
   },
-
-  "transformation_metrics": {
-    "problematic_imports_eliminated": 40,
-    "import_cleanup_success_rate": "100%",
-    "testing_infrastructure": "enhanced",
-    "mock_interface_improvements": "complete",
-    "performance_benchmarks": "documented",
-    "type_safety_coverage": "strategic"
-  },
-
   "risks": [
-    {
-      "id": "R1",
-      "desc": "Architecture regression without automation",
-      "mitigation": "Implement CI/CD quality gates and monitoring",
-      "impact": "medium",
-      "status": "next_priority"
-    }
+    { "id": "R1", "desc": "Docs contradict actual code and processes", "mitigation": "Centralize status, trim stubs, align README and plan" },
+    { "id": "R2", "desc": "Pre-commit/CI drift from repo reality", "mitigation": "Re-introduce minimal passing gates after docs cleanup" }
   ],
-
-  "architecture": {
-    "pattern": "Hexagonal Architecture",
-    "current_state": "fully_migrated",
-    "target_state": "achieved",
-    "modules": 13,
-    "adapters": 15,
-    "legacy_imports": 0,
-    "architecture_purity": "100%"
+  "links": {
+    "plan": "docs/DEVELOPMENT_PLAN.md",
+    "architecture": "docs/ARCHITECTURE.md",
+    "status": ".copilot/project_status.json"
   },
-
-  "documentation": {
-    "authoritative_plan": "docs/DEVELOPMENT_PLAN.md",
-    "migration_details": ".copilot/ARCHITECTURAL_MIGRATION_PHASES.md",
-    "immediate_tasks": ".copilot/PHASE_0_DETAILED_TASKS.md",
-    "architecture": "docs/ARCHITECTURE.md"
-  },
-
-  "legacy_tracking": {
-    "note": "Previous detailed status tracking moved to archive for reference",
-    "archive_location": ".copilot/backup_original_docs/project_status_legacy.json",
-    "migration_date": "2025-08-09"
+  "notes": "Authoritative status lives here. All other status pages must reference this file only.",
+  "checks": {
+    "last_audit": "2025-08-11",
+    "auditor": "maintainer"
   }
 }

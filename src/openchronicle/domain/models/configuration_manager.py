@@ -11,6 +11,8 @@ Simplified to coordinate existing specialized components instead of being monoli
 Following EMBRACE BREAKING CHANGES philosophy for better architecture.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
@@ -24,6 +26,14 @@ from src.openchronicle.shared.logging_system import log_error
 # Import existing specialized components
 from src.openchronicle.shared.logging_system import log_system_event
 from src.openchronicle.shared.logging_system import log_warning
+
+# Local import to avoid hard dependency at module import time
+try:
+    from src.openchronicle.infrastructure.registry.registry_manager import (
+        RegistryManager,
+    )
+except Exception:  # pragma: no cover - optional in some environments
+    RegistryManager = None  # type: ignore
 
 
 class ConfigurationManager:
@@ -64,6 +74,10 @@ class ConfigurationManager:
         self.config_path = Path(config_path)
 
         # Use existing RegistryManager for dynamic discovery
+        if RegistryManager is None:
+            raise ImportError(
+                "RegistryManager not available. Ensure infrastructure.registry is importable."
+            )
         self.registry_manager = RegistryManager(
             models_dir=str(self.config_path / "models"),
             settings_file=str(self.config_path / "registry_settings.json"),
@@ -85,7 +99,7 @@ class ConfigurationManager:
     def _discover_models(self) -> dict[str, Any]:
         """Discover models using existing RegistryManager."""
         try:
-            discovered_providers = self.registry.discover_providers()
+            discovered_providers = self.registry_manager.discover_providers()
 
             if not discovered_providers:
                 log_warning("No providers discovered")
@@ -233,7 +247,7 @@ class ConfigurationManager:
         """Validate model configuration using existing schema validation."""
         try:
             # Use existing schema validation
-            self.registry.validate_config("unknown", config)
+            self.registry_manager.validate_config("unknown", config)
             return {"valid": True, "errors": [], "warnings": []}
         except Exception as e:
             return {"valid": False, "errors": [str(e)], "warnings": []}
@@ -366,13 +380,3 @@ class ConfigurationManager:
         """Get adapters configuration."""
         return self.config
 
-    def validate_model_config(
-        self, config: dict[str, Any], name: str = ""
-    ) -> dict[str, Any]:
-        """Validate model configuration using existing schema validation."""
-        try:
-            # Use existing schema validation
-            self.registry.validate_config("unknown", config)
-            return {"valid": True, "errors": [], "warnings": []}
-        except Exception as e:
-            return {"valid": False, "errors": [str(e)], "warnings": []}

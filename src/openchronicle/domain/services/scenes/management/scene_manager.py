@@ -69,7 +69,7 @@ class SceneManager:
             target_timestamp = target_scene.timestamp
 
             # Get all scenes after the target scene for backup
-            scenes_to_remove = self.persistence.self.persistence.execute_query(
+            scenes_to_remove = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, timestamp
@@ -92,7 +92,7 @@ class SceneManager:
             }
 
             # Delete scenes after the target scene
-            success = self.persistence.self.persistence.execute_update(
+            success = self.persistence.execute_update(
                 self.story_id,
                 """
                 DELETE FROM scenes

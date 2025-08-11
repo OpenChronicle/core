@@ -1,116 +1,51 @@
-# OpenChronicle Development Plan
+# Development Plan (Authoritative)
 
-**Version**: 1.0
-**Updated**: August 9, 2025
-**Status**: Active - Phase 0 Ready
+This is the single development/implementation plan. For status, see `.copilot/project_status.json`.
 
-## 1. Scope & Non-Goals
+Updated: 2025-08-11
 
-### In Scope
-- **Architecture Migration**: Complete dual → single hexagonal architecture
-- **Documentation Standardization**: Unified, current, minimal documentation
-- **Security Hardening**: Comprehensive scanning and validation
-- **Type Safety**: Full mypy strict compliance
-- **Test Excellence**: Maintain 85%+ coverage during migration
+1) Scope & Non-Goals
+- In scope: docs defragmentation, README accuracy, storage/logs git hygiene, minimal CI sanity, keep hexagonal boundaries.
+- Non-goals: feature work, performance tuning beyond hygiene, backward-compat layers.
 
-### Non-Goals
-- **Feature Development**: Focus on architecture, not new features
-- **Performance Optimization**: Current performance is acceptable
-- **UI/UX Changes**: Existing interfaces work well
-- **Backward Compatibility**: Internal project allows breaking changes
+2) Architecture at a Glance
+- src/openchronicle/
+	- domain/ (pure business logic)
+	- application/ (use cases, orchestration)
+	- infrastructure/ (adapters: persistence, LLM, memory, performance)
+	- interfaces/ (CLI, API, web)
+	- shared/ (logging, config, errors)
 
-## 2. Architecture at a Glance
+3) Milestones & Workstreams
+- D1 Docs cleanup & defragmentation — Owner: Maintainers — DoD: README+ARCHITECTURE+PLAN aligned; stubs replace duplicates — ETA: 2025-08-13
+- D2 Single-source status adoption — Owner: Maintainers — DoD: status only in .copilot/project_status.json — Done
+- D3 Authoritative DEVELOPMENT_PLAN.md — Owner: Maintainers — DoD: this file in place; links consistent — ETA: 2025-08-12
+- D5 Storage/logs git hygiene — Owner: Maintainers — DoD: .gitignore updated; tracked junk untracked — ETA: 2025-08-11
 
-```
-Current State (DUAL):
-├── core/                    # Legacy monolithic modules
-└── src/openchronicle/       # Modern hexagonal architecture
+4) Coding Standards
+- Style: Ruff + Black; Import ordering via Ruff isort.
+- Typing: incrementally strict; avoid Any in public APIs.
+- Docstrings: Google style for public modules/classes/functions.
+- Tests: pytest; keep fast running core tests; coverage target 85% when enabled.
 
-Target State (UNIFIED):
-src/openchronicle/
-├── domain/                  # Core business logic
-├── application/             # Use cases and orchestration
-├── infrastructure/          # External service adapters
-├── interfaces/              # User-facing adapters
-└── shared/                  # Cross-cutting concerns
-```
+5) Testing Strategy
+- Unit, integration, performance, stress organized under tests/.
+- Minimal green path locally; full suite in CI once reinstated.
 
-**Key Systems**: 13 orchestrator modules, 15+ LLM adapters, 404/418 tests passing (96.7%)
+6) Release & Versioning
+- Semver 0.y while evolving; breaking changes allowed (internal project rule).
+- Main branch protected; feature branches for work.
 
-## 3. Milestones & Workstreams
+7) Operational Notes
+- Logging via `src/openchronicle/shared/logging_system.py`.
+- Config under `config/` JSON files; env via .env.example.
+- Health: run `pytest -q` fast subset; run `python scripts/phase1_health_check.py` for smoke.
 
-| Milestone | Owner | DoD | ETA | Status |
-|-----------|-------|-----|-----|--------|
-| **Phase 0: Foundation** | Team | Security tools, docs framework, logging | Aug 11 | Ready |
-| **Phase 1: Legacy Migration** | Team | Zero `core/` imports, unified structure | Aug 25 | Planned |
-| **Phase 2: Structure Cleanup** | Team | Clean boundaries, consistent naming | Sep 1 | Planned |
-| **Phase 3: Testing & Typing** | Team | 85%+ coverage, strict mypy | Sep 8 | Planned |
-| **Phase 4: CI/CD Enhancement** | Team | Security pipeline, automation | Sep 15 | Planned |
+8) Open Risks & Decisions
+- Risks: doc drift, CI drift. Mitigate by single-source status and minimal gates.
+- Decisions: No legacy paths; remove outdated docs; status centralized in project_status.json.
 
-## 4. Coding Standards
-
-- **Style**: [ruff](pyproject.toml) + [black](pyproject.toml) + [isort](pyproject.toml)
-- **Typing**: mypy strict mode, no `Any` without justification
-- **Imports**: Absolute only (`from openchronicle.domain import...`)
-- **Docstrings**: Google style, Args/Returns/Raises for public APIs
-- **Testing**: pytest, 85% coverage minimum
-
-## 5. Testing Strategy & Coverage Target
-
-- **Target**: 85% minimum coverage (currently 96.7%)
-- **Structure**: `tests/` mirrors `src/` exactly
-- **Types**: unit, integration, e2e in separate directories
-- **Fixtures**: Centralized in `tests/conftest.py`
-- **Mocking**: Professional mock system for external dependencies
-
-## 6. Release & Versioning Policy
-
-- **Scheme**: Semantic versioning (0.1.x → 0.2.0 → 1.0.0)
-- **Branches**: `main` for releases, feature branches for development
-- **CI/CD**: Automated testing, manual release approval
-- **Breaking Changes**: Allowed and encouraged for better architecture
-
-## 7. Operational Notes
-
-- **Logging**: Centralized via `shared/logging.py`, structured format
-- **Config**: pydantic-settings with `.env` support
-- **Errors**: Custom exception hierarchy in `shared/exceptions.py`
-- **Health**: Test suite execution as primary health indicator
-
-## 8. Open Risks & Decisions
-
-### Current Risks
-1. **R1**: Dual architecture maintenance burden → *Phase 1 migration*
-2. **R2**: Import confusion during transition → *Automated tooling*
-
-### Architecture Decisions
-- **ADR-001**: Hexagonal architecture adoption → See `docs/adr/0001-hexagonal-architecture.md`
-- **ADR-002**: Legacy migration strategy → See `docs/adr/0002-legacy-migration.md`
-
-## How to Contribute Today
-
-### Quick Start
-1. **Setup**: `pip install -e ".[dev]"` + `pre-commit install`
-2. **Test**: `pytest --cov=src --cov-fail-under=85`
-3. **Lint**: `ruff check . && black --check . && mypy .`
-
-### Phase 0 Tasks (Ready Now)
-- [ ] Add security dependencies to pyproject.toml
-- [ ] Enhance pre-commit hooks
-- [ ] Create CONTRIBUTING.md
-- [ ] Implement centralized logging
-- [ ] Run baseline analysis
-
-### Development Workflow
-1. Create feature branch from `main`
-2. Make changes following coding standards
-3. Run full test suite (`make test`)
-4. Submit PR with clear description
-5. Address review feedback
-6. Merge after approval
-
----
-
-**Next Steps**: Execute Phase 0 foundation hardening immediately. See `.copilot/PHASE_0_DETAILED_TASKS.md` for specific tasks.
-
-**Questions?** Check `.copilot/project_status.json` for current status or `.copilot/ARCHITECTURAL_MIGRATION_PHASES.md` for detailed migration plan.
+How to Contribute Today
+- Fix a stale doc reference; align README run instructions with main.py and CLI.
+- Replace duplicated status pages with two-line stubs referencing `.copilot/project_status.json`.
+- Keep hexagonal boundaries (no domain->infrastructure imports).

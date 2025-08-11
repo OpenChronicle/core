@@ -12,7 +12,7 @@ import json
 import logging
 import time
 from typing import TYPE_CHECKING
-from typing import Any
+from typing import Any, Callable
 
 
 if TYPE_CHECKING:
@@ -200,7 +200,7 @@ class MultiTierCache:
     async def get(
         self,
         key: str,
-        fallback_func: callable | None = None,
+        fallback_func: Callable[..., Any] | None = None,
         ttl: int | None = None,
     ) -> Any | None:
         """

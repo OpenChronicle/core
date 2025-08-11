@@ -513,6 +513,9 @@ class MockDatabaseManager:
     async def execute_query(self, query: str, params=None):
         """Mock query execution."""
         self.query_history.append((query, params))
+        q = (query or "").strip().lower()
+        if q.startswith("insert"):
+            return [{"affected_rows": 1, "inserted_id": 1}]
         return self.mock_results.get(query, [])
 
     async def begin_transaction(self):
@@ -590,6 +593,21 @@ class MockDataGenerator:
         if data_type == "character":
             return [f"Test character {i}" for i in range(count)]
         return [f"Test {data_type} {i}" for i in range(count)]
+
+    @staticmethod
+    def generate_scene_data(count: int = 1) -> list[dict[str, Any]]:
+        """Generate structured mock scene data used by some tests."""
+        data = []
+        for i in range(count):
+            data.append(
+                {
+                    "scene_id": f"scene_{i}",
+                    "user_input": "Test user input",
+                    "model_output": "Test scene content",
+                    "memory_snapshot": {"location": "test_location"},
+                }
+            )
+        return data
 
 
 def create_mock_database():

@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 
 try:
@@ -562,7 +562,7 @@ class DistributedMultiTierCache(MultiTierCache):
     async def get(
         self,
         key: str,
-        fallback_func: callable | None = None,
+        fallback_func: Callable[..., Any] | None = None,
         ttl: int | None = None,
     ) -> Any | None:
         """Enhanced get with distributed support."""

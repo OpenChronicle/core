@@ -87,7 +87,7 @@ class SceneRepository:
                 ],
             )
 
-            return True
+            return bool(success)
 
         except Exception as e:
             # Add logging system when available
@@ -165,7 +165,7 @@ class SceneRepository:
             base_query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
             params.extend([limit, offset])
 
-            rows = self.persistence.execute_query(base_query, params)
+            rows = self.persistence.execute_query(self.story_id, base_query, params)
 
             return [self._row_to_scene_data(row) for row in rows]
 
@@ -194,7 +194,7 @@ class SceneRepository:
                     base_query += f" AND {where_clause}"
                     params.extend(filter_params)
 
-            rows = self.persistence.execute_query(base_query, params)
+            rows = self.persistence.execute_query(self.story_id, base_query, params)
             return rows[0]["count"] if rows else 0
 
         except Exception as e:
@@ -213,6 +213,7 @@ class SceneRepository:
         """
         try:
             self.persistence.execute_update(
+                self.story_id,
                 """
                 DELETE FROM scenes WHERE scene_id = ? AND story_id = ?
             """,
@@ -238,6 +239,7 @@ class SceneRepository:
         """
         try:
             self.persistence.execute_update(
+                self.story_id,
                 """
                 UPDATE scenes SET scene_label = ? WHERE scene_id = ? AND story_id = ?
             """,

@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 # Database imports from parent core directory
@@ -21,10 +21,13 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 # VIOLATION FIXED: Use dependency injection instead
 
 
+from src.openchronicle.domain.ports.persistence_port import IPersistencePort
+
+
 class StatisticsEngine:
     """Handles scene statistics and analytics."""
 
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, persistence_port: Optional[IPersistencePort] = None):
         """
         Initialize statistics engine for a specific story.
 
@@ -32,6 +35,7 @@ class StatisticsEngine:
             story_id: Story identifier
         """
         self.story_id = story_id
+        self.persistence = persistence_port
 
     def get_scenes_with_long_turns(self) -> list[dict[str, Any]]:
         """
@@ -42,7 +46,9 @@ class StatisticsEngine:
         """
         try:
             # Query for scenes with long content (>2000 characters for either input or output)
-            rows = execute_query(
+            if not self.persistence:
+                return []
+            rows = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, timestamp, input, output, scene_label, structured_tags,
@@ -101,7 +107,16 @@ class StatisticsEngine:
         """
         try:
             # Get all scenes with structured tags
-            rows = execute_query(
+            if not self.persistence:
+                return {
+                    "total_tokens": 0,
+                    "total_cost": 0.0,
+                    "total_scenes_with_tokens": 0,
+                    "average_tokens_per_scene": 0.0,
+                    "model_breakdown": {},
+                    "daily_usage": {},
+                }
+            rows = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT structured_tags, timestamp
@@ -187,7 +202,9 @@ class StatisticsEngine:
         """
         try:
             # Basic scene counts
-            basic_stats = execute_query(
+            if not self.persistence:
+                return {"error": "No persistence configured"}
+            basic_stats = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT
@@ -210,7 +227,7 @@ class StatisticsEngine:
             stats = basic_stats[0]
 
             # Scene labels distribution
-            label_stats = execute_query(
+            label_stats = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT scene_label, COUNT(*) as count
@@ -223,7 +240,7 @@ class StatisticsEngine:
 
             # Recent activity (last 7 days)
             recent_cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
-            recent_stats = execute_query(
+            recent_stats = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT COUNT(*) as recent_scenes
@@ -284,7 +301,9 @@ class StatisticsEngine:
             Dictionary with length distribution analytics
         """
         try:
-            rows = execute_query(
+            if not self.persistence:
+                return {"error": "No persistence configured"}
+            rows = self.persistence.execute_query(
                 self.story_id,
                 """
                 SELECT

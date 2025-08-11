@@ -435,6 +435,17 @@ def create_test_memory_snapshot(**kwargs) -> dict[str, Any]:
     return data
 
 
+@pytest.fixture
+def sample_scene_data() -> dict[str, Any]:
+    """Basic scene data payload for scene orchestrator tests."""
+    return {
+        "scene_content": "Test scene content",
+        "location": "test_location",
+        "tags": ["test"],
+        "scene_number": 1,
+    }
+
+
 class TestUtils:
     """Utility functions for testing."""
 
