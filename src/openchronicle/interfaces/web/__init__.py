@@ -5,20 +5,21 @@ This module provides HTML templates and web UI components for browser-based
 story management. It serves as the web interface layer in the hexagonal architecture.
 """
 
-from typing import Dict, Any, List, Optional
 from datetime import datetime
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI
+from fastapi import Form
+from fastapi import HTTPException
+from fastapi import Request
+from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from src.openchronicle.application import ApplicationFacade
+from src.openchronicle.infrastructure import InfrastructureConfig
+from src.openchronicle.infrastructure import InfrastructureContainer
 from starlette.status import HTTP_303_SEE_OTHER
-
-from ...application import ApplicationFacade
-from ...infrastructure import InfrastructureContainer, InfrastructureConfig
-
 
 # ================================
 # Template Configuration
@@ -183,7 +184,7 @@ def create_home_template():
                 Welcome to OpenChronicle
             </h1>
             <p class="lead">
-                Advanced narrative AI engine with character consistency, 
+                Advanced narrative AI engine with character consistency,
                 memory management, and interactive storytelling.
             </p>
             <hr class="my-4">
@@ -265,7 +266,7 @@ def create_home_template():
                 <i class="fas fa-users fa-3x text-success mb-3"></i>
                 <h5>Character Consistency</h5>
                 <p class="text-muted">
-                    Sophisticated character tracking ensures personalities, 
+                    Sophisticated character tracking ensures personalities,
                     relationships, and growth remain consistent throughout your story.
                 </p>
             </div>
@@ -277,7 +278,7 @@ def create_home_template():
                 <i class="fas fa-memory fa-3x text-info mb-3"></i>
                 <h5>Persistent Memory</h5>
                 <p class="text-muted">
-                    Advanced memory management tracks events, relationships, 
+                    Advanced memory management tracks events, relationships,
                     and story state across long narrative sessions.
                 </p>
             </div>
@@ -372,16 +373,16 @@ def create_story_create_template():
                 <form method="post">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title *</label>
-                        <input type="text" class="form-control" id="title" name="title" required 
+                        <input type="text" class="form-control" id="title" name="title" required
                                placeholder="Enter your story title">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3"
                                   placeholder="Describe your story (optional)"></textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="genre" class="form-label">Genre</label>
                         <select class="form-control" id="genre" name="genre">
@@ -397,7 +398,7 @@ def create_story_create_template():
                             <option value="other">Other</option>
                         </select>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -423,7 +424,7 @@ def create_story_create_template():
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="magic_level" class="form-label">Magic Level</label>
                         <select class="form-control" id="magic_level" name="magic_level">
@@ -435,7 +436,7 @@ def create_story_create_template():
                             <option value="very_high">Very High Magic</option>
                         </select>
                     </div>
-                    
+
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="/stories" class="btn btn-secondary">
                             <i class="fas fa-times me-2"></i>Cancel
@@ -470,7 +471,7 @@ def create_story_detail_template():
                 {% if story.description %}
                 <p class="card-text">{{ story.description }}</p>
                 {% endif %}
-                
+
                 <div class="row">
                     <div class="col-md-6">
                         <h5>World Information</h5>
@@ -554,7 +555,7 @@ def create_story_detail_template():
                     </div>
                 </div>
                 {% endfor %}
-                
+
                 {% if scenes|length >= 5 %}
                 <div class="text-center">
                     <a href="/stories/{{ story.id }}/scenes" class="btn btn-outline-primary">
@@ -566,7 +567,7 @@ def create_story_detail_template():
         </div>
         {% endif %}
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header">
@@ -586,7 +587,7 @@ def create_story_detail_template():
                 </div>
             </div>
         </div>
-        
+
         <div class="card mt-3">
             <div class="card-header">
                 <h5><i class="fas fa-chart-bar me-2"></i>Statistics</h5>
@@ -627,7 +628,7 @@ def create_status_template():
             </div>
             <div class="card-body">
                 <p><strong>Last Check:</strong> {{ health.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</p>
-                
+
                 <h5 class="mt-4">Component Health</h5>
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -665,7 +666,7 @@ def create_status_template():
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header">
@@ -681,7 +682,7 @@ def create_status_template():
                 </ul>
             </div>
         </div>
-        
+
         <div class="card mt-3">
             <div class="card-header">
                 <h5><i class="fas fa-external-link-alt me-2"></i>External Links</h5>

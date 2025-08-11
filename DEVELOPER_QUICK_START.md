@@ -43,7 +43,7 @@ python scripts/validate_environment.py
 ```
 🏛️ Layers:
 ├── 🧠 Domain/          # Business logic, entities, use cases
-├── 📋 Application/     # Orchestration, services, interfaces  
+├── 📋 Application/     # Orchestration, services, interfaces
 ├── 🔌 Infrastructure/ # External dependencies, data, APIs
 └── 🌐 Interface/      # CLI, API, web interfaces
 ```
@@ -84,7 +84,7 @@ from src.openchronicle.domain import entities
 from src.openchronicle.application import services
 
 # ❌ DON'T: Use legacy imports (will break soon!)
-from core.model_management import ModelOrchestrator  # Phase 1 will remove this
+from openchronicle.domain.models.model_orchestrator import ModelOrchestrator  # Modern architecture
 from utilities.logging_system import log_event       # Moving to infrastructure
 ```
 
@@ -108,7 +108,7 @@ from utilities.logging_system import log_event       # Moving to infrastructure
 ```powershell
 # 1. Choose correct layer
 #    Domain: Business rules, entities
-#    Application: Orchestration, workflows  
+#    Application: Orchestration, workflows
 #    Infrastructure: External integrations
 #    Interface: User interactions
 
@@ -126,7 +126,7 @@ touch tests/unit/domain/test_new_feature.py
 ### **Working with Models**
 ```powershell
 # ✅ CURRENT: Use ModelOrchestrator through core/
-from core.model_management.model_orchestrator import ModelOrchestrator
+from openchronicle.application.orchestrators.model_orchestrator import ModelOrchestrator
 
 # 🎯 FUTURE: Will become hexagonal structure
 from src.openchronicle.application.services.model_service import ModelService
@@ -137,7 +137,7 @@ from src.openchronicle.application.services.model_service import ModelService
 # Unit tests (fast)
 python -m pytest tests/unit/ -v
 
-# Integration tests (slower)  
+# Integration tests (slower)
 python -m pytest tests/integration/ -v
 
 # Specific feature
@@ -169,7 +169,7 @@ python -m pytest tests/ --cov=src --cov-report=html
 # Environment issues
 python scripts/validate_environment.py
 
-# Import problems  
+# Import problems
 python scripts/import_analysis.py
 
 # Test failures
@@ -198,7 +198,7 @@ python scripts/performance_baseline.py
 ## 🎉 **You're Ready!**
 
 **Next Steps:**
-1. ✅ Run `python scripts/validate_environment.py` 
+1. ✅ Run `python scripts/validate_environment.py`
 2. ✅ Check `MIGRATION_PROGRESS_BOARD.md` for current status
 3. ✅ Run `python -m pytest tests/unit/ -v` for quick validation
 4. ✅ Start coding with NEW `src.openchronicle.*` imports

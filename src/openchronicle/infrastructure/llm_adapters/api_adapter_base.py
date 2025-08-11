@@ -14,32 +14,33 @@ Key Features:
 Following OpenChronicle naming convention: api_adapter_base.py
 """
 
-import os
 import logging
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from datetime import datetime, UTC
+import os
+from abc import ABC
+from abc import abstractmethod
+from datetime import UTC
+from datetime import datetime
+from typing import Any
+from typing import Optional
+
+from src.openchronicle.shared.logging_system import log_error
+from src.openchronicle.shared.logging_system import log_info
 
 # Import logging system
-from src.openchronicle.shared.logging_system import (
-    log_model_interaction,
-    log_system_event,
-    log_info,
-    log_error,
-)
+from src.openchronicle.shared.logging_system import log_model_interaction
+from src.openchronicle.shared.logging_system import log_system_event
+
+from .adapter_exceptions import AdapterConfigurationError
+from .adapter_exceptions import AdapterConnectionError
 
 # Import exceptions
-from .adapter_exceptions import (
-    AdapterInitializationError,
-    AdapterConfigurationError,
-    AdapterConnectionError,
-)
+from .adapter_exceptions import AdapterInitializationError
 
 logger = logging.getLogger(__name__)
 
 
 def get_api_key_with_fallback(
-    config: Dict[str, Any], provider: str, env_var: str
+    config: dict[str, Any], provider: str, env_var: str
 ) -> Optional[str]:
     """
     Get API key with fallback priority: config > keystore > environment variable
@@ -53,10 +54,8 @@ def get_api_key_with_fallback(
         API key string or None if not found
     """
     # Import keystore dynamically to avoid import errors
-    try:
-        from utilities.api_key_manager import get_api_key
-    except ImportError:
-        get_api_key = None
+    # utilities.api_key_manager module doesn't exist - using fallback behavior
+    get_api_key = None
 
     # Priority 1: Check configuration for direct API key
     if config.get("api_key"):
@@ -104,7 +103,7 @@ class BaseAPIAdapter(ABC):
     - generate_response()
     """
 
-    def __init__(self, model_name: str, config: Dict[str, Any] = None):
+    def __init__(self, model_name: str, config: dict[str, Any] = None):
         """
         Initialize the adapter with common configuration.
 
@@ -256,7 +255,7 @@ class BaseAPIAdapter(ABC):
 
             raise
 
-    def get_adapter_info(self) -> Dict[str, Any]:
+    def get_adapter_info(self) -> dict[str, Any]:
         """Return adapter information for debugging and monitoring."""
         return {
             "provider": self.get_provider_name(),

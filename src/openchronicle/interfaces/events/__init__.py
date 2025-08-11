@@ -8,21 +8,20 @@ in the hexagonal architecture.
 
 import asyncio
 import json
-from typing import Dict, Any, List, Optional, Set, Callable
-from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
-from enum import Enum
 import uuid
-import weakref
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any
+from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
-from fastapi.websockets import WebSocketState
-import asyncio
-from asyncio import Queue
-
-from ...application import ApplicationFacade
-from ...infrastructure import InfrastructureContainer, InfrastructureConfig
-
+from fastapi import FastAPI
+from fastapi import WebSocket
+from fastapi import WebSocketDisconnect
+from src.openchronicle.application import ApplicationFacade
+from src.openchronicle.infrastructure import InfrastructureConfig
+from src.openchronicle.infrastructure import InfrastructureContainer
 
 # ================================
 # Event System Types
@@ -51,10 +50,10 @@ class Event:
     id: str
     type: EventType
     timestamp: datetime
-    data: Dict[str, Any]
+    data: dict[str, Any]
     source: str = "openchronicle"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary for JSON serialization."""
         return {
             "id": self.id,
@@ -74,15 +73,15 @@ class ConnectionManager:
     """Manages WebSocket connections and event broadcasting."""
 
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.subscriptions: Dict[str, Set[EventType]] = {}
-        self.connection_metadata: Dict[str, Dict[str, Any]] = {}
+        self.active_connections: dict[str, WebSocket] = {}
+        self.subscriptions: dict[str, set[EventType]] = {}
+        self.connection_metadata: dict[str, dict[str, Any]] = {}
 
     async def connect(
         self,
         websocket: WebSocket,
         client_id: str,
-        subscriptions: Optional[List[EventType]] = None,
+        subscriptions: Optional[list[EventType]] = None,
     ) -> str:
         """Accept a new WebSocket connection."""
         await websocket.accept()
@@ -164,7 +163,7 @@ class ConnectionManager:
         for client_id in disconnected_clients:
             self.disconnect(client_id)
 
-    def get_connection_stats(self) -> Dict[str, Any]:
+    def get_connection_stats(self) -> dict[str, Any]:
         """Get connection statistics."""
         return {
             "active_connections": len(self.active_connections),
@@ -191,8 +190,8 @@ class EventBus:
 
     def __init__(self, connection_manager: ConnectionManager):
         self.connection_manager = connection_manager
-        self.subscribers: Dict[EventType, List[Callable]] = {}
-        self.event_history: List[Event] = []
+        self.subscribers: dict[EventType, list[Callable]] = {}
+        self.event_history: list[Event] = []
         self.max_history = 1000
 
     def subscribe(self, event_type: EventType, callback: Callable):
@@ -223,8 +222,8 @@ class EventBus:
         await self.connection_manager.broadcast(event)
 
     def get_recent_events(
-        self, event_types: Optional[List[EventType]] = None, limit: int = 50
-    ) -> List[Event]:
+        self, event_types: Optional[list[EventType]] = None, limit: int = 50
+    ) -> list[Event]:
         """Get recent events, optionally filtered by type."""
         events = self.event_history
 
@@ -245,8 +244,8 @@ class BackgroundTaskManager:
     def __init__(self, event_bus: EventBus, app_facade: ApplicationFacade):
         self.event_bus = event_bus
         self.app_facade = app_facade
-        self.tasks: Dict[str, asyncio.Task] = {}
-        self.periodic_tasks: Dict[str, Dict[str, Any]] = {}
+        self.tasks: dict[str, asyncio.Task] = {}
+        self.periodic_tasks: dict[str, dict[str, Any]] = {}
         self.running = False
 
     async def start(self):
@@ -318,7 +317,7 @@ class BackgroundTaskManager:
                         type=EventType.ERROR,
                         timestamp=datetime.now(),
                         data={
-                            "error": f"Periodic task {task_id} failed: {str(e)}",
+                            "error": f"Periodic task {task_id} failed: {e!s}",
                             "task_id": task_id,
                         },
                     )
@@ -341,7 +340,7 @@ class BackgroundTaskManager:
                     type=EventType.ERROR,
                     timestamp=datetime.now(),
                     data={
-                        "error": f"Task execution failed: {str(e)}",
+                        "error": f"Task execution failed: {e!s}",
                         "task_id": task_id,
                     },
                 )
@@ -398,7 +397,7 @@ class BackgroundTaskManager:
                     type=EventType.ERROR,
                     timestamp=datetime.now(),
                     data={
-                        "error": f"Health check failed: {str(e)}",
+                        "error": f"Health check failed: {e!s}",
                         "action": "health_check",
                     },
                 )

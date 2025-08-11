@@ -70,7 +70,8 @@ docs/consolidation/
 test_cleanup_*
 temp_test*
 temp_storypack_*
-storage/temp/test_data/
+storage/temp/test_data/test_story_*/
+storage/temp/test_data/perf_test_*/
 storage/temp/test_stories/
 storage/storypacks/test_*
 storage/storypacks/*test*

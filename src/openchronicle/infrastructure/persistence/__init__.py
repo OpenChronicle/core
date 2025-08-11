@@ -10,24 +10,10 @@ This module provides organized database operations through:
 - Statistics and optimization tools
 """
 
-from .database_orchestrator import (
-    DatabaseOrchestrator,
-    get_connection,
-    startup_health_check,
-    get_all_databases,
-    init_database,
-    execute_query,
-    execute_update,
-    execute_insert,
-)
+from .database_orchestrator import DatabaseOrchestrator
+from .database_orchestrator import database_orchestrator
 
 __all__ = [
     "DatabaseOrchestrator",
-    "get_connection",
-    "startup_health_check",
-    "get_all_databases",
-    "init_database",
-    "execute_query",
-    "execute_update",
-    "execute_insert",
+    "database_orchestrator",
 ]

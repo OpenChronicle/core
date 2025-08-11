@@ -27,7 +27,7 @@ OpenChronicle is a narrative AI engine with **13 core modules** using plugin-sty
 if adapter_name not in model_manager.adapters:
     await model_manager.initialize_adapter(adapter_name)
 
-# Use fallback chains for resilience  
+# Use fallback chains for resilience
 chain = model_manager.get_fallback_chain(adapter_name)
 for attempt_adapter in chain:
     try:
@@ -41,7 +41,7 @@ for attempt_adapter in chain:
 - **Primary**: `config/model_registry.json` (registry-only, single source of truth)
 - **Dynamic**: Use `model_manager.add_model_config()` for runtime additions
 
-### Memory-Scene Synchronization 
+### Memory-Scene Synchronization
 ```python
 # ALWAYS update memory before logging scenes
 memory_manager.update_character_memory(story_id, character_updates)
@@ -51,7 +51,7 @@ scene_logger.save_scene(story_id, scene_data, memory_snapshot)
 ## Testing & Development Commands
 ```powershell
 # Quick validation
-python -c "from core.model_management import ModelOrchestrator; print('OK')"
+python -c "from openchronicle.domain.models.model_orchestrator import ModelOrchestrator; print('OK')"
 
 # Test with mocks only (FAST - minimal test subset)
 python main.py --test --max-iterations 1

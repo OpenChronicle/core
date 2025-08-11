@@ -5,15 +5,16 @@ Handles memory validation, conflict detection, consistency checking,
 and memory lifecycle management for the consistency subsystem.
 """
 
-import logging
 import hashlib
+import logging
 import re
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
-from collections import defaultdict, Counter
+from collections import defaultdict
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Optional
 
-from ...shared.database_operations import get_connection
-from ...shared.json_utilities import JSONUtilities
+from src.openchronicle.shared.json_utilities import JSONUtilities
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,10 @@ class MemoryEvent:
         event_type: str,
         content: str,
         timestamp: datetime,
-        characters_involved: List[str],
+        characters_involved: list[str],
         emotional_impact: float = 0.0,
         importance: float = 0.5,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
     ):
         self.event_type = event_type
         self.content = content
@@ -51,7 +52,7 @@ class CharacterMemory:
         emotional_score: float,
         importance: float,
         timestamp: datetime,
-        tags: List[str],
+        tags: list[str],
     ):
         self.character_id = character_id
         self.content = content
@@ -69,7 +70,7 @@ class CharacterMemory:
         ).hexdigest()
         return f"mem_{content_hash[:16]}"
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
             "memory_id": self.memory_id,
@@ -83,7 +84,7 @@ class CharacterMemory:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "CharacterMemory":
+    def from_dict(cls, data: dict) -> "CharacterMemory":
         """Create from dictionary."""
         return cls(
             character_id=data["character_id"],
@@ -104,7 +105,7 @@ class MemoryConflict:
         conflict_type: str,
         severity: float,
         description: str,
-        conflicting_memories: List[str],
+        conflicting_memories: list[str],
     ):
         self.conflict_type = conflict_type
         self.severity = severity
@@ -120,7 +121,7 @@ class MemoryValidator:
     and consistency checking for character memories.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[dict] = None):
         """Initialize memory validator."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
@@ -134,7 +135,7 @@ class MemoryValidator:
 
     def generate_memories_from_event(
         self, character_id: str, event: MemoryEvent
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Generate character memories from a memory event.
 
@@ -207,8 +208,8 @@ class MemoryValidator:
             return []
 
     def validate_memory_consistency(
-        self, character_id: str, new_memory: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, character_id: str, new_memory: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Validate consistency of new memory against existing memories.
 
@@ -268,7 +269,7 @@ class MemoryValidator:
 
     def retrieve_relevant_memories(
         self, character_id: str, context: str, max_memories: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieve memories relevant to current context.
 
@@ -384,7 +385,7 @@ class MemoryValidator:
             logger.error(f"Error generating memory context: {e}")
             return ""
 
-    def export_character_memories(self, character_id: str) -> Dict[str, Any]:
+    def export_character_memories(self, character_id: str) -> dict[str, Any]:
         """Export character memories."""
         try:
             memories = self._get_character_memories(character_id)
@@ -398,7 +399,7 @@ class MemoryValidator:
             logger.error(f"Error exporting memories: {e}")
             return {}
 
-    def import_character_memories(self, data: Dict[str, Any]) -> None:
+    def import_character_memories(self, data: dict[str, Any]) -> None:
         """Import character memories."""
         try:
             character_id = data["character_id"]
@@ -416,7 +417,7 @@ class MemoryValidator:
             logger.error(f"Error importing memories: {e}")
             raise
 
-    def _get_character_memories(self, character_id: str) -> List[CharacterMemory]:
+    def _get_character_memories(self, character_id: str) -> list[CharacterMemory]:
         """Get all memories for a character."""
         # This would interact with the database
         # For now, return empty list as placeholder
@@ -424,7 +425,7 @@ class MemoryValidator:
 
     def _get_memories_before_date(
         self, character_id: str, date: datetime
-    ) -> List[CharacterMemory]:
+    ) -> list[CharacterMemory]:
         """Get memories before specified date."""
         # Database interaction placeholder
         return []
@@ -441,12 +442,12 @@ class MemoryValidator:
         # Database interaction placeholder
         pass
 
-    def _delete_old_memories(self, memory_ids: List[str]) -> None:
+    def _delete_old_memories(self, memory_ids: list[str]) -> None:
         """Delete old memories from database."""
         # Database interaction placeholder
         pass
 
-    def _create_memory_summary(self, memories: List[CharacterMemory]) -> str:
+    def _create_memory_summary(self, memories: list[CharacterMemory]) -> str:
         """Create summary of multiple memories."""
         # Extract key themes and events
         content_parts = [memory.content for memory in memories]
@@ -455,7 +456,7 @@ class MemoryValidator:
         # Simple summarization (could be enhanced with AI)
         return f"Weekly summary: {combined_content[:200]}..."
 
-    def _extract_keywords(self, text: str) -> List[str]:
+    def _extract_keywords(self, text: str) -> list[str]:
         """Extract keywords from text."""
         # Simple keyword extraction
         words = re.findall(r"\b\w+\b", text.lower())
@@ -480,7 +481,7 @@ class MemoryValidator:
         return list(set(keywords))
 
     def _calculate_memory_relevance(
-        self, memory: CharacterMemory, context: str, context_keywords: List[str]
+        self, memory: CharacterMemory, context: str, context_keywords: list[str]
     ) -> float:
         """Calculate relevance score for memory."""
         relevance = 0.0
@@ -505,8 +506,8 @@ class MemoryValidator:
         return min(relevance, 1.0)
 
     def _check_temporal_consistency(
-        self, new_memory: CharacterMemory, existing_memories: List[CharacterMemory]
-    ) -> List[MemoryConflict]:
+        self, new_memory: CharacterMemory, existing_memories: list[CharacterMemory]
+    ) -> list[MemoryConflict]:
         """Check for temporal inconsistencies."""
         conflicts = []
 
@@ -518,7 +519,7 @@ class MemoryValidator:
                     conflict = MemoryConflict(
                         conflict_type="temporal_inconsistency",
                         severity=0.8,
-                        description=f"New memory occurs before conflicting later memory",
+                        description="New memory occurs before conflicting later memory",
                         conflicting_memories=[new_memory.memory_id, existing.memory_id],
                     )
                     conflicts.append(conflict)
@@ -526,8 +527,8 @@ class MemoryValidator:
         return conflicts
 
     def _check_knowledge_consistency(
-        self, new_memory: CharacterMemory, existing_memories: List[CharacterMemory]
-    ) -> List[MemoryConflict]:
+        self, new_memory: CharacterMemory, existing_memories: list[CharacterMemory]
+    ) -> list[MemoryConflict]:
         """Check for knowledge inconsistencies."""
         conflicts = []
 
@@ -569,7 +570,7 @@ class MemoryValidator:
                 return MemoryConflict(
                     conflict_type="knowledge_contradiction",
                     severity=0.7,
-                    description=f"Contradicting emotional/factual content detected",
+                    description="Contradicting emotional/factual content detected",
                     conflicting_memories=[
                         new_memory.memory_id,
                         existing_memory.memory_id,
@@ -587,7 +588,7 @@ class MemoryValidator:
         return False
 
     def _calculate_consistency_confidence(
-        self, new_memory: CharacterMemory, existing_memories: List[CharacterMemory]
+        self, new_memory: CharacterMemory, existing_memories: list[CharacterMemory]
     ) -> float:
         """Calculate confidence in memory consistency."""
         if not existing_memories:
@@ -632,7 +633,7 @@ class MemoryValidator:
         else:
             return "very negative"
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get validator status."""
         return {
             "memory_validator": {

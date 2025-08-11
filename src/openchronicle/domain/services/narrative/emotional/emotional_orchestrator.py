@@ -6,13 +6,15 @@ pattern management for character emotional consistency across the system.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any
+from typing import Optional
 
-from .stability_tracker import StabilityTracker
-from .mood_analyzer import MoodAnalyzer
+from src.openchronicle.shared.json_utilities import JSONUtilities
+
 from ..shared.narrative_state import NarrativeStateManager
-from ...shared.json_utilities import JSONUtilities
+from .mood_analyzer import MoodAnalyzer
+from .stability_tracker import StabilityTracker
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class EmotionalOrchestrator:
     pattern management to ensure character emotional consistency.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[dict] = None):
         """Initialize emotional orchestrator with configuration."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
@@ -49,7 +51,7 @@ class EmotionalOrchestrator:
 
     def track_emotional_state(
         self, character_id: str, emotion: str, intensity: float, context: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Track character's emotional state and detect patterns.
 
@@ -125,7 +127,7 @@ class EmotionalOrchestrator:
 
     def trigger_behavior_cooldown(
         self, character_id: str, behavior: str, duration: Optional[int] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger cooldown for a specific behavior.
 
@@ -158,7 +160,7 @@ class EmotionalOrchestrator:
 
     def detect_emotional_loops(
         self, character_id: str, text: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Detect emotional and behavioral loops in character responses.
 
@@ -171,7 +173,7 @@ class EmotionalOrchestrator:
         """
         return self.mood_analyzer.detect_emotional_loops(character_id, text)
 
-    def get_emotional_context(self, character_id: str) -> Dict[str, Any]:
+    def get_emotional_context(self, character_id: str) -> dict[str, Any]:
         """
         Get current emotional context for character.
 
@@ -212,7 +214,7 @@ class EmotionalOrchestrator:
             return {"error": str(e)}
 
     def generate_anti_loop_prompt(
-        self, character_id: str, detected_loops: List[Dict[str, Any]]
+        self, character_id: str, detected_loops: list[dict[str, Any]]
     ) -> str:
         """
         Generate prompt to break detected emotional/behavioral loops.
@@ -228,7 +230,7 @@ class EmotionalOrchestrator:
             character_id, detected_loops
         )
 
-    def analyze_emotional_stability(self, character_id: str) -> Dict[str, Any]:
+    def analyze_emotional_stability(self, character_id: str) -> dict[str, Any]:
         """
         Comprehensive analysis of character's emotional stability.
 
@@ -269,7 +271,7 @@ class EmotionalOrchestrator:
             logger.error(f"Error analyzing emotional stability: {e}")
             return {"error": str(e)}
 
-    def reset_character_emotional_state(self, character_id: str) -> Dict[str, Any]:
+    def reset_character_emotional_state(self, character_id: str) -> dict[str, Any]:
         """
         Reset character's emotional tracking (for testing/debugging).
 
@@ -297,7 +299,7 @@ class EmotionalOrchestrator:
             logger.error(f"Error resetting emotional state: {e}")
             return {"error": str(e)}
 
-    def export_emotional_data(self, character_id: str) -> Dict[str, Any]:
+    def export_emotional_data(self, character_id: str) -> dict[str, Any]:
         """
         Export emotional data for character.
 
@@ -322,7 +324,7 @@ class EmotionalOrchestrator:
             logger.error(f"Error exporting emotional data: {e}")
             return {"error": str(e)}
 
-    def import_emotional_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def import_emotional_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Import emotional data for character.
 
@@ -361,10 +363,10 @@ class EmotionalOrchestrator:
     def _generate_stability_recommendations(
         self,
         stability_score: float,
-        patterns: Dict[str, Any],
-        loops: Dict[str, Any],
-        behaviors: Dict[str, Any],
-    ) -> List[str]:
+        patterns: dict[str, Any],
+        loops: dict[str, Any],
+        behaviors: dict[str, Any],
+    ) -> list[str]:
         """Generate recommendations for improving emotional stability."""
         recommendations = []
 
@@ -397,7 +399,7 @@ class EmotionalOrchestrator:
 
         return recommendations
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get current status of emotional orchestrator.
 

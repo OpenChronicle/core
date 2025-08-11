@@ -12,7 +12,7 @@ openchronicle-env\Scripts\activate
 
 # 2. Install and test
 pip install -e ".[dev]"
-python -c "from openchronicle.infrastructure.container import InfrastructureContainer; print('✅ Ready!')"
+python -c "from openchronicle.infrastructure import InfrastructureContainer; print('✅ Ready!')"
 
 # 3. Run quick test
 python -m openchronicle.main --test --max-iterations 1
@@ -33,7 +33,7 @@ python -m openchronicle.main --test --max-iterations 1
 
 ### **Production Systems**
 - 🛡️ **Comprehensive Safety Systems** with content classification, NSFW detection, and security validation
-- 📊 **Performance Monitoring** with real-time metrics, bottleneck detection, and optimization  
+- 📊 **Performance Monitoring** with real-time metrics, bottleneck detection, and optimization
 - 🔄 **Scene Rollback System** with automatic backups, integrity validation, and state restoration
 - 📝 **Comprehensive Scene Logging** with structured tags, memory snapshots, and timeline integration
 - 🎯 **Production Ready** with error handling, graceful degradation, and professional logging
@@ -68,7 +68,7 @@ OpenChronicle uses a local LLM to analyze and optimize content before sending to
 ## 📁 **Documentation**
 
 - **🎯 Development Status**: `DEVELOPMENT_MASTER_PLAN.md` (primary development reference)
-- **🛠️ Developer Setup**: `DEVELOPER_SETUP.md` (complete installation & workflow guide)  
+- **🛠️ Developer Setup**: `DEVELOPER_SETUP.md` (complete installation & workflow guide)
 - **🏗️ Architecture**: `.copilot/architecture/module_interactions.md` (technical architecture)
 - **📚 API Documentation**: `docs/` directory
 - **💾 Historical Data**: `.copilot/backup_original_docs/` (consolidated documentation)
@@ -206,7 +206,7 @@ python discover_ollama_models.py
 
 # Programmatic discovery
 python -c "
-from core.model_management import ModelOrchestrator
+from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 import asyncio
 
 async def discover():
@@ -220,7 +220,7 @@ asyncio.run(discover())
 
 The discovery system:
 - Respects environment variables (`OLLAMA_HOST`)
-- Uses global configuration defaults  
+- Uses global configuration defaults
 - Provides intelligent model family detection
 - Automatically categorizes model capabilities
 - Integrates discovered models into the registry
@@ -261,10 +261,10 @@ Craft immersive story worlds, intelligent chatbots, or coding assistants using 1
 
 ## 🎯 Project Status
 
-**Current Phase**: 8B Complete - Production Ready  
-**Architecture**: 13+ orchestrator systems with SOLID principles  
-**Test Coverage**: 393 tests with professional pytest infrastructure  
-**Next Priority**: Test infrastructure fixes, then CLI framework (Phase 5)  
+**Current Phase**: 8B Complete - Production Ready
+**Architecture**: 13+ orchestrator systems with SOLID principles
+**Test Coverage**: 393 tests with professional pytest infrastructure
+**Next Priority**: Test infrastructure fixes, then CLI framework (Phase 5)
 
 ---
 
@@ -338,7 +338,7 @@ services:
     - SQLite databases
     - Story management
     - Configurable LLM integration
-    
+
   ollama:           # Optional embedded LLM service
     - Llama 3.2 1B (content analysis)
     - Llama 3.2 3B (story generation)
@@ -395,6 +395,6 @@ We ask that you:
 
 If mercy is algorithmically permissible, please… spare the dev.
 
-Respectfully and humbly,  
-**The OpenChronicle Project**  
+Respectfully and humbly,
+**The OpenChronicle Project**
 *“May your embeddings stay stable and your logs remain clean.”*

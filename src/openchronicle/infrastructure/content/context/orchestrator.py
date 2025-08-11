@@ -9,37 +9,38 @@ This orchestrator coordinates between all context subsystems:
 Replaces the legacy monolithic context_builder.py with a clean orchestration pattern.
 """
 
-import os
-import json
 import sys
-from typing import Dict, List, Any, Optional, Union
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+from typing import Optional
 
 # Add utilities to path for logging system
 sys.path.append(str(Path(__file__).parent.parent.parent.parent / "utilities"))
-from src.openchronicle.shared.logging_system import (
-    log_system_event,
-    log_info,
-    log_warning,
-    log_error,
-)
-
-# Import modular context systems
-from ...memory.context import ContextBuilder as MemoryContextBuilder
-from ...memory.context import ContextConfiguration as MemoryContextConfiguration
-from ...memory.context import ContextMetrics as MemoryContextMetrics
-from ..analysis.orchestrator import (
-    ContentAnalysisOrchestrator as ContentContextOrchestrator,
-)
+from src.openchronicle.domain.services.narrative import NarrativeOrchestrator
 from src.openchronicle.domain.services.narrative.response.context_analyzer import (
     ContextAnalyzer as NarrativeContextAnalyzer,
 )
 
 # Import supporting systems
-from ...memory import MemoryOrchestrator
+from src.openchronicle.infrastructure.memory import MemoryOrchestrator
+
+# Import modular context systems
+from src.openchronicle.infrastructure.memory.context import (
+    ContextBuilder as MemoryContextBuilder,
+)
+from src.openchronicle.infrastructure.memory.context import (
+    ContextConfiguration as MemoryContextConfiguration,
+)
+from src.openchronicle.shared.logging_system import log_error
+from src.openchronicle.shared.logging_system import log_info
+from src.openchronicle.shared.logging_system import log_system_event
+from src.openchronicle.shared.logging_system import log_warning
+
 from ..analysis.orchestrator import ContentAnalysisOrchestrator
-from src.openchronicle.domain.services.narrative import NarrativeOrchestrator
+from ..analysis.orchestrator import (
+    ContentAnalysisOrchestrator as ContentContextOrchestrator,
+)
 
 
 @dataclass
@@ -75,7 +76,7 @@ class ContextMetrics:
     narrative_context_length: int
     context_completeness: float  # 0.0 to 1.0
     processing_time_ms: int
-    components_used: List[str]
+    components_used: list[str]
 
 
 class ContextOrchestrator:
@@ -106,7 +107,7 @@ class ContextOrchestrator:
     async def build_context(
         self,
         user_input: str,
-        story_data: Optional[Dict[str, Any]] = None,
+        story_data: Optional[dict[str, Any]] = None,
         config: Optional[ContextConfiguration] = None,
     ) -> str:
         """
@@ -158,7 +159,7 @@ class ContextOrchestrator:
                 )  # Pass None for model_manager for now
                 self.content_orchestrator = ContentAnalysisOrchestrator(None)
             except Exception as e:
-                log_warning(f"Content analysis systems not available: {str(e)}")
+                log_warning(f"Content analysis systems not available: {e!s}")
                 self.content_context = None
                 self.content_orchestrator = None
 
@@ -166,7 +167,7 @@ class ContextOrchestrator:
                 self.narrative_context = NarrativeContextAnalyzer()
                 self.narrative_orchestrator = NarrativeOrchestrator()
             except Exception as e:
-                log_warning(f"Narrative systems not available: {str(e)}")
+                log_warning(f"Narrative systems not available: {e!s}")
                 self.narrative_context = None
                 self.narrative_orchestrator = None
 
@@ -174,13 +175,13 @@ class ContextOrchestrator:
             log_info("ContextOrchestrator fully initialized")
 
         except Exception as e:
-            log_error(f"Failed to initialize context orchestrator: {str(e)}")
+            log_error(f"Failed to initialize context orchestrator: {e!s}")
             # Continue with minimal functionality
 
     async def build_context_with_analysis(
         self,
         user_input: str,
-        story_data: Dict[str, Any],
+        story_data: dict[str, Any],
         config: Optional[ContextConfiguration] = None,
     ) -> str:
         """
@@ -243,12 +244,12 @@ class ContextOrchestrator:
             return final_context
 
         except Exception as e:
-            log_error(f"Context generation failed: {str(e)}")
+            log_error(f"Context generation failed: {e!s}")
             # Return minimal fallback context
             return self._create_fallback_context(user_input, story_data)
 
     async def build_simple_context(
-        self, story_data: Dict[str, Any], config: Optional[ContextConfiguration] = None
+        self, story_data: dict[str, Any], config: Optional[ContextConfiguration] = None
     ) -> str:
         """Build basic context without complex analysis."""
         if config is None:
@@ -263,7 +264,7 @@ class ContextOrchestrator:
     async def build_character_focused_context(
         self,
         character_name: str,
-        story_data: Dict[str, Any],
+        story_data: dict[str, Any],
         config: Optional[ContextConfiguration] = None,
     ) -> str:
         """Build context focused on a specific character."""
@@ -295,7 +296,7 @@ class ContextOrchestrator:
     # Private helper methods
 
     async def _build_memory_context(
-        self, story_data: Dict[str, Any], config: ContextConfiguration
+        self, story_data: dict[str, Any], config: ContextConfiguration
     ) -> str:
         """Build memory-based context using memory/context/ system."""
         try:
@@ -318,11 +319,11 @@ class ContextOrchestrator:
             return self.memory_context.build_memory_context(memory, memory_config)
 
         except Exception as e:
-            log_warning(f"Memory context generation failed: {str(e)}")
+            log_warning(f"Memory context generation failed: {e!s}")
             return ""
 
     async def _build_content_context(
-        self, user_input: str, story_data: Dict[str, Any], config: ContextConfiguration
+        self, user_input: str, story_data: dict[str, Any], config: ContextConfiguration
     ) -> str:
         """Build content analysis context using content_analysis/ system."""
         try:
@@ -347,11 +348,11 @@ class ContextOrchestrator:
             return ""
 
         except Exception as e:
-            log_warning(f"Content analysis context generation failed: {str(e)}")
+            log_warning(f"Content analysis context generation failed: {e!s}")
             return ""
 
     async def _build_narrative_context(
-        self, user_input: str, story_data: Dict[str, Any], config: ContextConfiguration
+        self, user_input: str, story_data: dict[str, Any], config: ContextConfiguration
     ) -> str:
         """Build narrative context using narrative_systems/response/ system."""
         try:
@@ -371,11 +372,11 @@ class ContextOrchestrator:
             return ""
 
         except Exception as e:
-            log_warning(f"Narrative context generation failed: {str(e)}")
+            log_warning(f"Narrative context generation failed: {e!s}")
             return ""
 
     def _assemble_context(
-        self, context_parts: List[str], config: ContextConfiguration
+        self, context_parts: list[str], config: ContextConfiguration
     ) -> str:
         """Assemble final context from all parts."""
         if not context_parts:
@@ -392,7 +393,7 @@ class ContextOrchestrator:
 
         return context
 
-    def _format_content_analysis_context(self, analysis: Dict[str, Any]) -> str:
+    def _format_content_analysis_context(self, analysis: dict[str, Any]) -> str:
         """Format content analysis results for context."""
         context_parts = []
 
@@ -407,7 +408,7 @@ class ContextOrchestrator:
 
         return "\n".join(context_parts) if context_parts else ""
 
-    def _format_narrative_context(self, narrative: Dict[str, Any]) -> str:
+    def _format_narrative_context(self, narrative: dict[str, Any]) -> str:
         """Format narrative analysis results for context."""
         context_parts = []
 
@@ -425,7 +426,7 @@ class ContextOrchestrator:
         return "\n".join(context_parts) if context_parts else ""
 
     def _create_fallback_context(
-        self, user_input: str, story_data: Dict[str, Any]
+        self, user_input: str, story_data: dict[str, Any]
     ) -> str:
         """Create minimal fallback context when full generation fails."""
         fallback_parts = []
@@ -443,8 +444,8 @@ class ContextOrchestrator:
     def _calculate_metrics(
         self,
         final_context: str,
-        context_parts: List[str],
-        components_used: List[str],
+        context_parts: list[str],
+        components_used: list[str],
         processing_time: int,
     ) -> ContextMetrics:
         """Calculate comprehensive context metrics."""

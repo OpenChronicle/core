@@ -9,30 +9,27 @@ with comprehensive performance analysis and optimization recommendations.
 File: core/model_management/performance_monitor.py
 """
 
-import asyncio
 import json
 import os
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
 from contextlib import asynccontextmanager
-from pathlib import Path
+from datetime import UTC
+from datetime import datetime
+from typing import Any
+from typing import Optional
+
+from src.openchronicle.shared.logging_system import log_error
 
 # Import system components
-from src.openchronicle.shared.logging_system import (
-    log_info,
-    log_error,
-    log_warning,
-    log_system_event,
-)
+from src.openchronicle.shared.logging_system import log_info
+from src.openchronicle.shared.logging_system import log_system_event
+from src.openchronicle.shared.logging_system import log_warning
 
-UTC = timezone.utc
+UTC = UTC
 
 try:
-    from utilities.performance_monitor import (
-        PerformanceMonitor as UtilityPerformanceMonitor,
-    )
-
-    PERFORMANCE_MONITOR_AVAILABLE = True
+    # utilities.performance_monitor module doesn't exist - using fallback behavior
+    UtilityPerformanceMonitor = None
+    PERFORMANCE_MONITOR_AVAILABLE = False
 except ImportError:
     PERFORMANCE_MONITOR_AVAILABLE = False
 
@@ -45,7 +42,7 @@ class PerformanceMonitor:
     monitoring with clean interfaces and comprehensive analytics capabilities.
     """
 
-    def __init__(self, adapters: Dict[str, Any], config: Dict[str, Any]):
+    def __init__(self, adapters: dict[str, Any], config: dict[str, Any]):
         """
         Initialize the PerformanceMonitor.
 
@@ -95,7 +92,7 @@ class PerformanceMonitor:
 
     async def generate_performance_report(
         self, time_window_hours: int = 24
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate comprehensive performance diagnostic report.
 
@@ -178,7 +175,7 @@ class PerformanceMonitor:
 
     async def get_model_performance_analytics(
         self, adapter_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get detailed performance analytics for specific adapter or all adapters.
 
@@ -271,13 +268,13 @@ class PerformanceMonitor:
 
             return dummy_tracker()
 
-    def get_performance_config(self) -> Dict[str, Any]:
+    def get_performance_config(self) -> dict[str, Any]:
         """Get performance tuning configuration from the registry."""
         try:
             # Look for performance config in registry
             registry_file = os.path.join("config", "model_registry.json")
             if os.path.exists(registry_file):
-                with open(registry_file, "r", encoding="utf-8") as f:
+                with open(registry_file, encoding="utf-8") as f:
                     registry = json.load(f)
                 return registry.get("performance_tuning", {})
             else:
@@ -290,7 +287,7 @@ class PerformanceMonitor:
         """Check if performance monitoring is enabled and available."""
         return self.monitoring_enabled and self.performance_monitor is not None
 
-    def get_system_health_summary(self) -> Dict[str, Any]:
+    def get_system_health_summary(self) -> dict[str, Any]:
         """Get current system health summary."""
         if not self.monitoring_enabled or not self.performance_monitor:
             return {
@@ -306,7 +303,7 @@ class PerformanceMonitor:
 
     async def optimize_model_performance(
         self, adapter_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Apply performance optimizations for specific adapter or all adapters.
 
@@ -347,7 +344,7 @@ class PerformanceMonitor:
             log_error(f"Failed to optimize model performance: {e}")
             return {"success": False, "error": str(e)}
 
-    def _generate_registry_performance_updates(self, report) -> Dict[str, Any]:
+    def _generate_registry_performance_updates(self, report) -> dict[str, Any]:
         """Generate performance-based updates for model registry."""
         try:
             updates = {}
@@ -392,7 +389,7 @@ class PerformanceMonitor:
             log_error(f"Failed to generate registry performance updates: {e}")
             return {"success": False, "error": str(e)}
 
-    async def _apply_automatic_optimizations(self, report) -> List[Dict[str, Any]]:
+    async def _apply_automatic_optimizations(self, report) -> list[dict[str, Any]]:
         """Apply automatic optimizations based on performance report."""
         optimizations = []
 
@@ -409,7 +406,7 @@ class PerformanceMonitor:
             log_error(f"Failed to apply automatic optimizations: {e}")
             return []
 
-    async def _apply_optimization(self, recommendation) -> Dict[str, Any]:
+    async def _apply_optimization(self, recommendation) -> dict[str, Any]:
         """Apply a specific optimization recommendation."""
         try:
             # This would implement specific optimization logic
@@ -472,7 +469,7 @@ class PerformanceMonitor:
             f"Recorded failure for {adapter_name}: {error_type} - {error_message}"
         )
 
-    def get_performance_summary(self, adapter_name: str = None) -> Dict[str, Any]:
+    def get_performance_summary(self, adapter_name: str = None) -> dict[str, Any]:
         """Get performance summary for adapter or all adapters."""
         if adapter_name:
             return self.adapter_performance.get(adapter_name, {})

@@ -6,34 +6,28 @@ repositories, and external systems. They implement the application's use cases
 and ensure proper transaction boundaries.
 """
 
-from typing import Dict, List, Optional, Any, Protocol
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC
 from datetime import datetime
+from typing import Any
+from typing import Optional
+from typing import Protocol
 
-from ..commands import (
-    Command,
-    CommandResult,
-    CreateStoryCommand,
-    UpdateStoryCommand,
-    CreateCharacterCommand,
-    UpdateCharacterCommand,
-    GenerateSceneCommand,
-    SaveSceneCommand,
-    UpdateMemoryCommand,
-    RollbackStoryCommand,
-)
-from ..queries import Query, QueryResult
-from ...domain import (
-    Story,
-    Character,
-    Scene,
-    StoryGenerator,
-    CharacterAnalyzer,
-    MemoryState,
-    NarrativeContext,
-    ModelResponse,
-)
+from src.openchronicle.domain import Character
+from src.openchronicle.domain import CharacterAnalyzer
+from src.openchronicle.domain import MemoryState
+from src.openchronicle.domain import ModelResponse
+from src.openchronicle.domain import NarrativeContext
+from src.openchronicle.domain import Scene
+from src.openchronicle.domain import Story
+from src.openchronicle.domain import StoryGenerator
+
+from ..commands import CommandResult
+from ..commands import CreateCharacterCommand
+from ..commands import CreateStoryCommand
+from ..commands import GenerateSceneCommand
+from ..commands import SaveSceneCommand
+from ..commands import UpdateStoryCommand
 
 
 # Repository interfaces (to be implemented in infrastructure layer)
@@ -64,7 +58,7 @@ class CharacterRepository(Protocol):
         """Get character by ID."""
         ...
 
-    async def get_by_story(self, story_id: str) -> List[Character]:
+    async def get_by_story(self, story_id: str) -> list[Character]:
         """Get all characters in a story."""
         ...
 
@@ -82,7 +76,7 @@ class SceneRepository(Protocol):
 
     async def get_by_story(
         self, story_id: str, limit: int = 50, offset: int = 0
-    ) -> List[Scene]:
+    ) -> list[Scene]:
         """Get scenes for a story."""
         ...
 
@@ -94,7 +88,7 @@ class MemoryManager(Protocol):
         """Get current memory state."""
         ...
 
-    async def update_memory(self, story_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_memory(self, story_id: str, updates: dict[str, Any]) -> bool:
         """Update memory state."""
         ...
 
@@ -177,7 +171,7 @@ class StoryOrchestrator(BaseOrchestrator):
 
         except Exception as e:
             self.logger.error(f"Error creating story: {e}")
-            return CommandResult.failure(f"Error creating story: {str(e)}")
+            return CommandResult.failure(f"Error creating story: {e!s}")
 
     async def update_story(self, command: UpdateStoryCommand) -> CommandResult:
         """Update an existing story."""
@@ -213,7 +207,7 @@ class StoryOrchestrator(BaseOrchestrator):
 
         except Exception as e:
             self.logger.error(f"Error updating story: {e}")
-            return CommandResult.failure(f"Error updating story: {str(e)}")
+            return CommandResult.failure(f"Error updating story: {e!s}")
 
 
 class CharacterOrchestrator(BaseOrchestrator):
@@ -288,7 +282,7 @@ class CharacterOrchestrator(BaseOrchestrator):
 
         except Exception as e:
             self.logger.error(f"Error creating character: {e}")
-            return CommandResult.failure(f"Error creating character: {str(e)}")
+            return CommandResult.failure(f"Error creating character: {e!s}")
 
 
 class NarrativeOrchestrator(BaseOrchestrator):
@@ -374,9 +368,9 @@ class NarrativeOrchestrator(BaseOrchestrator):
                     )
 
                     if consistency_result.has_updates:
-                        character_updates[char_id] = (
-                            consistency_result.suggested_updates
-                        )
+                        character_updates[
+                            char_id
+                        ] = consistency_result.suggested_updates
 
             return CommandResult.success(
                 "Scene generated successfully",
@@ -392,7 +386,7 @@ class NarrativeOrchestrator(BaseOrchestrator):
 
         except Exception as e:
             self.logger.error(f"Error generating scene: {e}")
-            return CommandResult.failure(f"Error generating scene: {str(e)}")
+            return CommandResult.failure(f"Error generating scene: {e!s}")
 
     async def save_scene(self, command: SaveSceneCommand) -> CommandResult:
         """Save a generated scene."""
@@ -446,7 +440,7 @@ class NarrativeOrchestrator(BaseOrchestrator):
 
         except Exception as e:
             self.logger.error(f"Error saving scene: {e}")
-            return CommandResult.failure(f"Error saving scene: {str(e)}")
+            return CommandResult.failure(f"Error saving scene: {e!s}")
 
 
 # Export all orchestrators

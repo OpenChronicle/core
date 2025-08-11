@@ -6,12 +6,13 @@ without changing state. They encapsulate data access patterns and provide
 a clean interface for retrieving domain objects.
 """
 
+from abc import ABC
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Set
 from datetime import datetime
-from abc import ABC, abstractmethod
+from typing import Any
+from typing import Optional
 
-from ...domain import Story, Character, Scene, StoryStatus, MemoryState
+from src.openchronicle.domain import StoryStatus
 
 
 class Query(ABC):
@@ -28,7 +29,7 @@ class QueryResult:
         success: bool,
         data: Any = None,
         message: str = "",
-        errors: List[str] = None,
+        errors: list[str] = None,
     ):
         self.success = success
         self.data = data
@@ -44,7 +45,7 @@ class QueryResult:
         return cls(True, data, message)
 
     @classmethod
-    def failure(cls, message: str, errors: List[str] = None) -> "QueryResult":
+    def failure(cls, message: str, errors: list[str] = None) -> "QueryResult":
         """Create a failed result."""
         return cls(False, None, message, errors)
 
@@ -63,7 +64,7 @@ class GetStoryQuery(Query):
 class ListStoriesQuery(Query):
     """Query to list stories with filtering options."""
 
-    status_filter: Optional[List[StoryStatus]] = None
+    status_filter: Optional[list[StoryStatus]] = None
     search_term: Optional[str] = None
     limit: int = 50
     offset: int = 0
@@ -111,7 +112,7 @@ class ListScenesQuery(Query):
     limit: int = 50
     offset: int = 0
     scene_type_filter: Optional[str] = None
-    participant_filter: Optional[List[str]] = None
+    participant_filter: Optional[list[str]] = None
     sort_by: str = "created_at"
     sort_order: str = "asc"
 
@@ -137,7 +138,7 @@ class SearchMemoryQuery(Query):
 
     story_id: str
     search_term: str
-    search_scope: List[str] = None  # ["characters", "events", "world_state", "flags"]
+    search_scope: list[str] = None  # ["characters", "events", "world_state", "flags"]
     limit: int = 20
 
     def __post_init__(self):
@@ -151,7 +152,7 @@ class GetCharacterRelationshipsQuery(Query):
 
     story_id: str
     character_id: Optional[str] = None  # If None, gets all relationships
-    relationship_types: Optional[List[str]] = None
+    relationship_types: Optional[list[str]] = None
     include_inactive: bool = False
 
 
@@ -162,8 +163,8 @@ class GetStoryTimelineQuery(Query):
     story_id: str
     limit: int = 100
     offset: int = 0
-    event_types: Optional[List[str]] = None
-    participant_filter: Optional[List[str]] = None
+    event_types: Optional[list[str]] = None
+    participant_filter: Optional[list[str]] = None
 
     def __post_init__(self):
         if self.event_types is None:
@@ -187,8 +188,8 @@ class SearchContentQuery(Query):
     """Query to search across story content."""
 
     search_term: str
-    story_ids: Optional[List[str]] = None
-    content_types: List[str] = None  # ["scenes", "characters", "descriptions"]
+    story_ids: Optional[list[str]] = None
+    content_types: list[str] = None  # ["scenes", "characters", "descriptions"]
     limit: int = 50
     include_highlights: bool = True
 
@@ -205,7 +206,7 @@ class GetModelUsageQuery(Query):
 
     story_id: Optional[str] = None
     time_range: Optional[tuple] = None  # (start_date, end_date)
-    model_names: Optional[List[str]] = None
+    model_names: Optional[list[str]] = None
 
     def __post_init__(self):
         if self.model_names is None:

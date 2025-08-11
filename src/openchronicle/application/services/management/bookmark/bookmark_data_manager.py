@@ -6,27 +6,21 @@ Handles bookmark CRUD operations and data management.
 """
 
 import json
-import os
 import sys
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any, Union
+from datetime import datetime
 from pathlib import Path
+from typing import Any
+from typing import Optional
+from typing import Union
 
 # Add utilities to path for logging system
 sys.path.append(str(Path(__file__).parent.parent.parent.parent / "utilities"))
-from src.openchronicle.shared.logging_system import (
-    log_system_event,
-    log_info,
-    log_warning,
-)
+from src.openchronicle.shared.logging_system import log_system_event
+from src.openchronicle.shared.logging_system import log_warning
 
-from ..shared import (
-    BookmarkRecord,
-    BookmarkType,
-    BookmarkManagerException,
-    ConfigValidator,
-    StatisticsCalculator,
-)
+from ..shared import BookmarkManagerException
+from ..shared import BookmarkRecord
+from ..shared import BookmarkType
 
 
 class BookmarkDataManager:
@@ -52,17 +46,14 @@ class BookmarkDataManager:
             self.init_database = self._mock_init_database
         else:
             try:
-                from src.openchronicle.infrastructure.persistence import (
-                    execute_query,
-                    execute_insert,
-                    execute_update,
-                    init_database,
+                from src.openchronicle.infrastructure.persistence.database_orchestrator import (
+                    database_orchestrator,
                 )
 
-                self.execute_query = execute_query
-                self.execute_insert = execute_insert
-                self.execute_update = execute_update
-                self.init_database = init_database
+                self.execute_query = database_orchestrator.execute_query
+                self.execute_insert = database_orchestrator.execute_insert
+                self.execute_update = database_orchestrator.execute_update
+                self.init_database = database_orchestrator.init_database
             except ImportError:
                 # Fallback for testing - create mock functions
                 self.execute_query = self._mock_execute_query
@@ -98,7 +89,7 @@ class BookmarkDataManager:
         label: str,
         description: Optional[str] = None,
         bookmark_type: BookmarkType = BookmarkType.USER,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> Union[int, str]:
         """Create a new bookmark."""
         try:
@@ -179,14 +170,14 @@ class BookmarkDataManager:
         bookmark_type: Optional[BookmarkType] = None,
         scene_id: Optional[str] = None,
         limit: Optional[int] = None,
-    ) -> List[BookmarkRecord]:
+    ) -> list[BookmarkRecord]:
         """List bookmarks with optional filtering."""
         try:
             query = """
                 SELECT id, story_id, scene_id, label, description, bookmark_type, created_at, metadata
                 FROM bookmarks WHERE story_id = ?
             """
-            params: List[Union[str, int]] = [self.story_id]
+            params: list[Union[str, int]] = [self.story_id]
 
             if bookmark_type:
                 query += " AND bookmark_type = ?"
@@ -215,7 +206,7 @@ class BookmarkDataManager:
         label: Optional[str] = None,
         description: Optional[str] = None,
         bookmark_type: Optional[BookmarkType] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Update an existing bookmark."""
         try:
@@ -315,11 +306,11 @@ class BookmarkDataManager:
 
     def get_bookmarks_with_scenes(
         self, bookmark_type: Optional[BookmarkType] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get bookmarks with their associated scene information."""
         try:
             query = """
-                SELECT b.id, b.story_id, b.scene_id, b.label, b.description, b.bookmark_type, 
+                SELECT b.id, b.story_id, b.scene_id, b.label, b.description, b.bookmark_type,
                        b.created_at, b.metadata, s.timestamp, s.input, s.output
                 FROM bookmarks b
                 JOIN scenes s ON b.scene_id = s.scene_id
@@ -356,7 +347,7 @@ class BookmarkDataManager:
             log_warning(f"Failed to get bookmarks with scenes: {e}")
             return []
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get bookmark statistics."""
         try:
             # Total bookmarks
@@ -373,8 +364,8 @@ class BookmarkDataManager:
             type_rows = self.execute_query(
                 self.story_id,
                 """
-                SELECT bookmark_type, COUNT(*) as count 
-                FROM bookmarks WHERE story_id = ? 
+                SELECT bookmark_type, COUNT(*) as count
+                FROM bookmarks WHERE story_id = ?
                 GROUP BY bookmark_type
             """,
                 (self.story_id,),
@@ -439,8 +430,8 @@ class BookmarkValidator:
         scene_id: str,
         label: str,
         bookmark_type: BookmarkType,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         """Validate bookmark creation data."""
         errors = []
 

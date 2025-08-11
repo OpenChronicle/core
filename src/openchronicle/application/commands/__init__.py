@@ -6,12 +6,14 @@ They encapsulate the business use cases and coordinate between
 domain services and infrastructure.
 """
 
+from abc import ABC
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
 from datetime import datetime
-from abc import ABC, abstractmethod
+from typing import Any
+from typing import Optional
 
-from ...domain import Story, Character, Scene, StoryStatus, MemoryState
+from src.openchronicle.domain import MemoryState
+from src.openchronicle.domain import StoryStatus
 
 
 class Command(ABC):
@@ -28,7 +30,7 @@ class CommandResult:
         success: bool,
         message: str = "",
         data: Any = None,
-        errors: List[str] = None,
+        errors: list[str] = None,
     ):
         self.success = success
         self.message = message
@@ -44,7 +46,7 @@ class CommandResult:
         return cls(True, message, data)
 
     @classmethod
-    def failure(cls, message: str, errors: List[str] = None) -> "CommandResult":
+    def failure(cls, message: str, errors: list[str] = None) -> "CommandResult":
         """Create a failed result."""
         return cls(False, message, errors=errors)
 
@@ -55,7 +57,7 @@ class CreateStoryCommand(Command):
 
     title: str
     description: str = ""
-    initial_world_state: Dict[str, Any] = None
+    initial_world_state: dict[str, Any] = None
 
     def __post_init__(self):
         if self.initial_world_state is None:
@@ -70,7 +72,7 @@ class UpdateStoryCommand(Command):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[StoryStatus] = None
-    world_state_updates: Dict[str, Any] = None
+    world_state_updates: dict[str, Any] = None
 
     def __post_init__(self):
         if self.world_state_updates is None:
@@ -84,9 +86,9 @@ class CreateCharacterCommand(Command):
     story_id: str
     name: str
     description: str = ""
-    personality_traits: Dict[str, Any] = None
+    personality_traits: dict[str, Any] = None
     background: str = ""
-    goals: List[str] = None
+    goals: list[str] = None
 
     def __post_init__(self):
         if self.personality_traits is None:
@@ -102,9 +104,9 @@ class UpdateCharacterCommand(Command):
     character_id: str
     name: Optional[str] = None
     description: Optional[str] = None
-    personality_updates: Dict[str, Any] = None
-    emotional_updates: Dict[str, float] = None
-    relationship_updates: Dict[str, Dict[str, Any]] = None
+    personality_updates: dict[str, Any] = None
+    emotional_updates: dict[str, float] = None
+    relationship_updates: dict[str, dict[str, Any]] = None
 
     def __post_init__(self):
         if self.personality_updates is None:
@@ -123,9 +125,9 @@ class GenerateSceneCommand(Command):
     user_input: str
     model_preference: Optional[str] = None
     scene_type: str = "narrative"
-    participant_ids: List[str] = None
+    participant_ids: list[str] = None
     location: str = ""
-    context_override: Optional[Dict[str, Any]] = None
+    context_override: Optional[dict[str, Any]] = None
 
     def __post_init__(self):
         if self.participant_ids is None:
@@ -143,10 +145,10 @@ class SaveSceneCommand(Command):
     tokens_used: int = 0
     generation_time: float = 0.0
     scene_type: str = "narrative"
-    participant_ids: List[str] = None
+    participant_ids: list[str] = None
     location: str = ""
     memory_snapshot: Optional[MemoryState] = None
-    character_updates: Dict[str, Dict[str, Any]] = None
+    character_updates: dict[str, dict[str, Any]] = None
 
     def __post_init__(self):
         if self.participant_ids is None:
@@ -160,11 +162,11 @@ class UpdateMemoryCommand(Command):
     """Command to update story memory."""
 
     story_id: str
-    character_updates: Dict[str, Dict[str, Any]] = None
-    world_state_updates: Dict[str, Any] = None
-    add_events: List[Dict[str, Any]] = None
-    add_flags: Dict[str, Dict[str, Any]] = None
-    remove_flags: List[str] = None
+    character_updates: dict[str, dict[str, Any]] = None
+    world_state_updates: dict[str, Any] = None
+    add_events: list[dict[str, Any]] = None
+    add_flags: dict[str, dict[str, Any]] = None
+    remove_flags: list[str] = None
 
     def __post_init__(self):
         if self.character_updates is None:

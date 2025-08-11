@@ -7,22 +7,21 @@ and story management. It serves as the CLI interface layer in the hexagonal arch
 
 import asyncio
 import json
-import sys
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Optional
 
 import click
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
-from rich.prompt import Prompt, Confirm
-from rich.progress import Progress, SpinnerColumn, TextColumn
-
-from ...application import ApplicationFacade
-from ...infrastructure import InfrastructureContainer, InfrastructureConfig
-
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
+from rich.prompt import Confirm
+from rich.prompt import Prompt
+from rich.table import Table
+from src.openchronicle.application import ApplicationFacade
+from src.openchronicle.infrastructure import InfrastructureConfig
+from src.openchronicle.infrastructure import InfrastructureContainer
 
 # ================================
 # CLI Application Setup
@@ -174,7 +173,7 @@ async def create(title: str, description: str, genre: str, interactive: bool):
 
                 # Display success information
                 console.print(
-                    f"\n[bold green]✅ Story Created Successfully![/bold green]"
+                    "\n[bold green]✅ Story Created Successfully![/bold green]"
                 )
 
                 table = Table(show_header=False, box=None)
@@ -195,12 +194,12 @@ async def create(title: str, description: str, genre: str, interactive: bool):
                     await create_character_interactive(story.id)
 
             else:
-                console.print(f"[bold red]❌ Failed to create story:[/bold red]")
+                console.print("[bold red]❌ Failed to create story:[/bold red]")
                 for error in result.errors:
                     console.print(f"  • {error}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -247,12 +246,12 @@ async def list(limit: int):
 
                     console.print(table)
             else:
-                console.print(f"[bold red]❌ Failed to list stories:[/bold red]")
+                console.print("[bold red]❌ Failed to list stories:[/bold red]")
                 for error in result.errors:
                     console.print(f"  • {error}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -293,7 +292,7 @@ async def show(story_id: str):
             console.print(f"[bold red]❌ Story not found:[/bold red] {story_id}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -363,7 +362,7 @@ async def create_character_interactive(story_id: str) -> Optional[str]:
         console.print(f"[dim]Character ID: {character.id}[/dim]")
         return character.id
     else:
-        console.print(f"[bold red]❌ Failed to create character:[/bold red]")
+        console.print("[bold red]❌ Failed to create character:[/bold red]")
         for error in result.errors:
             console.print(f"  • {error}")
         return None
@@ -396,12 +395,12 @@ async def create(story_id: str, name: str, interactive: bool):
                 )
                 console.print(f"[dim]Character ID: {character.id}[/dim]")
             else:
-                console.print(f"[bold red]❌ Failed to create character:[/bold red]")
+                console.print("[bold red]❌ Failed to create character:[/bold red]")
                 for error in result.errors:
                     console.print(f"  • {error}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -422,7 +421,7 @@ async def list(story_id: str):
             if not characters:
                 console.print("[yellow]No characters found in this story.[/yellow]")
             else:
-                table = Table(title=f"👥 Characters in Story")
+                table = Table(title="👥 Characters in Story")
                 table.add_column("Name", style="bold blue")
                 table.add_column("Traits", style="green")
                 table.add_column("Goals", style="yellow")
@@ -446,12 +445,12 @@ async def list(story_id: str):
 
                 console.print(table)
         else:
-            console.print(f"[bold red]❌ Failed to list characters:[/bold red]")
+            console.print("[bold red]❌ Failed to list characters:[/bold red]")
             for error in result.errors:
                 console.print(f"  • {error}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -567,12 +566,12 @@ async def generate(story_id: str, interactive: bool):
                         )
 
             else:
-                console.print(f"[bold red]❌ Failed to generate scene:[/bold red]")
+                console.print("[bold red]❌ Failed to generate scene:[/bold red]")
                 for error in result.errors:
                     console.print(f"  • {error}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -611,12 +610,12 @@ async def list(story_id: str, limit: int):
                     )
                     console.print(panel)
         else:
-            console.print(f"[bold red]❌ Failed to list scenes:[/bold red]")
+            console.print("[bold red]❌ Failed to list scenes:[/bold red]")
             for error in result.errors:
                 console.print(f"  • {error}")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -635,7 +634,7 @@ async def status():
     try:
         health_status = await cli_app.infrastructure.health_check()
 
-        console.print(f"\n[bold blue]🔧 OpenChronicle System Status[/bold blue]")
+        console.print("\n[bold blue]🔧 OpenChronicle System Status[/bold blue]")
         console.print(f"[bold]Overall Status:[/bold] {health_status['status']}")
         console.print(
             f"[bold]Timestamp:[/bold] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -647,7 +646,7 @@ async def status():
             console.print(f"  • {component}: [{status_color}]{status}[/{status_color}]")
 
     except Exception as e:
-        console.print(f"[bold red]❌ Error checking status:[/bold red] {str(e)}")
+        console.print(f"[bold red]❌ Error checking status:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 

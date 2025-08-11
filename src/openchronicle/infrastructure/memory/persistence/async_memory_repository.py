@@ -5,17 +5,18 @@ Async version of memory repository using the new async database operations.
 Provides non-blocking memory persistence with caching and performance optimization.
 """
 
-import json
-import logging
-from datetime import datetime, UTC
-from typing import Dict, List, Any, Optional, Tuple
-from pathlib import Path
-from functools import lru_cache
-from cachetools import TTLCache
 import asyncio
+import logging
+from datetime import UTC
+from datetime import datetime
+from functools import lru_cache
+from typing import Any
+from typing import Optional
 
-from ..shared.memory_models import MemoryType, MemoryUpdateResult
-from ...persistence.async_database_orchestrator import AsyncDatabaseOrchestrator
+from cachetools import TTLCache
+from src.openchronicle.infrastructure.persistence.async_database_orchestrator import (
+    AsyncDatabaseOrchestrator,
+)
 from src.openchronicle.shared.json_utilities import JSONUtilities
 
 # Setup logging
@@ -49,7 +50,7 @@ class AsyncMemoryRepository:
                 self._story_locks[story_id] = asyncio.Lock()
             return self._story_locks[story_id]
 
-    async def load_memory(self, story_id: str) -> Dict[str, Any]:
+    async def load_memory(self, story_id: str) -> dict[str, Any]:
         """Load complete memory state for story with caching."""
         cache_key = f"memory_{story_id}"
 
@@ -68,7 +69,7 @@ class AsyncMemoryRepository:
             rows = await self.db_orchestrator.execute_query(
                 story_id,
                 """
-                SELECT type, key, value FROM memory 
+                SELECT type, key, value FROM memory
                 WHERE story_id = ? AND key = "current"
                 ORDER BY updated_at DESC
             """,
@@ -110,7 +111,7 @@ class AsyncMemoryRepository:
             # Return default memory structure if loading fails
             return self._get_default_memory()
 
-    async def save_memory(self, story_id: str, memory: Dict[str, Any]) -> bool:
+    async def save_memory(self, story_id: str, memory: dict[str, Any]) -> bool:
         """Save memory state with automatic timestamping and cache invalidation."""
         try:
             # Initialize database first if needed
@@ -165,7 +166,7 @@ class AsyncMemoryRepository:
     @lru_cache(maxsize=512)
     def get_character_memory_cached(
         self, story_id: str, character_name: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """LRU cached character memory lookup (for frequently accessed characters)."""
         # This is a synchronous cache for the most frequently accessed character data
         # The actual database fetch will be async
@@ -173,7 +174,7 @@ class AsyncMemoryRepository:
 
     async def load_character_memory(
         self, story_id: str, character_name: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Load character memory with lazy loading and caching."""
         cache_key = f"char_{story_id}_{character_name}"
 
@@ -189,7 +190,7 @@ class AsyncMemoryRepository:
             rows = await self.db_orchestrator.execute_query(
                 story_id,
                 """
-                SELECT value FROM memory 
+                SELECT value FROM memory
                 WHERE story_id = ? AND type = "characters" AND key = "current"
             """,
                 (story_id,),
@@ -214,7 +215,7 @@ class AsyncMemoryRepository:
             return None
 
     async def update_character_memory(
-        self, story_id: str, character_name: str, updates: Dict[str, Any]
+        self, story_id: str, character_name: str, updates: dict[str, Any]
     ) -> bool:
         """Update character memory with cache invalidation and concurrency protection."""
         # Use per-story locking to prevent race conditions in concurrent updates
@@ -267,7 +268,7 @@ class AsyncMemoryRepository:
                 logger.error(f"Error updating character memory: {e}")
                 return False
 
-    async def load_world_state(self, story_id: str) -> Dict[str, Any]:
+    async def load_world_state(self, story_id: str) -> dict[str, Any]:
         """Load world state with caching."""
         cache_key = f"world_{story_id}"
 
@@ -282,7 +283,7 @@ class AsyncMemoryRepository:
             rows = await self.db_orchestrator.execute_query(
                 story_id,
                 """
-                SELECT value FROM memory 
+                SELECT value FROM memory
                 WHERE story_id = ? AND type = "world_state" AND key = "current"
             """,
                 (story_id,),
@@ -303,7 +304,7 @@ class AsyncMemoryRepository:
             return {}
 
     async def save_world_state(
-        self, story_id: str, world_state: Dict[str, Any]
+        self, story_id: str, world_state: dict[str, Any]
     ) -> bool:
         """Save world state with cache invalidation."""
         try:
@@ -368,7 +369,7 @@ class AsyncMemoryRepository:
             rows = await self.db_orchestrator.execute_query(
                 story_id,
                 """
-                SELECT snapshot_data FROM memory_snapshots 
+                SELECT snapshot_data FROM memory_snapshots
                 WHERE story_id = ? AND scene_id = ?
                 ORDER BY created_at DESC LIMIT 1
             """,
@@ -392,7 +393,7 @@ class AsyncMemoryRepository:
         except Exception:
             return False
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get cache performance statistics."""
         total_requests = self.cache_stats["hits"] + self.cache_stats["misses"]
         hit_rate = (
@@ -449,7 +450,7 @@ class AsyncMemoryRepository:
         """Invalidate all caches for a story."""
         self.clear_cache(story_id)
 
-    def _get_default_memory(self) -> Dict[str, Any]:
+    def _get_default_memory(self) -> dict[str, Any]:
         """Get default memory structure."""
         return {
             "characters": {},
@@ -462,7 +463,7 @@ class AsyncMemoryRepository:
             },
         }
 
-    def _serialize_memory(self, memory: Dict[str, Any]) -> Dict[str, Any]:
+    def _serialize_memory(self, memory: dict[str, Any]) -> dict[str, Any]:
         """Serialize memory state to dictionary."""
         return {
             "characters": memory.get("characters", {}),
@@ -475,7 +476,7 @@ class AsyncMemoryRepository:
             ),
         }
 
-    def _deserialize_memory(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _deserialize_memory(self, data: dict[str, Any]) -> dict[str, Any]:
         """Deserialize dictionary to memory state."""
         if not data:
             return self._get_default_memory()

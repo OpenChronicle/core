@@ -1,12 +1,13 @@
-import os
 import json
+import os
+from typing import Any
 
 STORYPACKS_DIR = os.path.join(os.getcwd(), "storage", "storypacks")
 
 
-def list_storypacks():
+def list_storypacks() -> list[str]:
     """List all valid storypacks with meta.json."""
-    storypacks = []
+    storypacks: list[str] = []
     for name in os.listdir(STORYPACKS_DIR):
         path = os.path.join(STORYPACKS_DIR, name)
         if os.path.isdir(path):
@@ -16,13 +17,15 @@ def list_storypacks():
     return storypacks
 
 
-def load_meta(path):
+def load_meta(path: str) -> dict[str, Any]:
     """Load meta.json contents."""
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+        # Ensure we return the expected type
+        return data if isinstance(data, dict) else {}
 
 
-def load_storypack(name):
+def load_storypack(name: str) -> dict[str, Any]:
     """Load a storypack by folder name."""
     path = os.path.join(STORYPACKS_DIR, name)
     if not os.path.exists(path):

@@ -7,12 +7,16 @@ and emotional pattern analysis for the emotional subsystem.
 
 import logging
 import re
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
-from collections import defaultdict, deque, Counter
+from collections import Counter
+from collections import defaultdict
+from collections import deque
+from datetime import datetime
+from datetime import timedelta
 from difflib import SequenceMatcher
+from typing import Any
+from typing import Optional
 
-from ...shared.json_utilities import JSONUtilities
+from src.openchronicle.shared.json_utilities import JSONUtilities
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ class LoopDetection:
         self.first_occurrence = first_occurrence
         self.last_occurrence = last_occurrence
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary representation."""
         return {
             "loop_type": self.loop_type,
@@ -56,7 +60,7 @@ class MoodAnalyzer:
     and anti-loop prompt generation for maintaining character variety.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[dict] = None):
         """Initialize mood analyzer."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
@@ -127,7 +131,7 @@ class MoodAnalyzer:
 
     def detect_emotional_loops(
         self, character_id: str, text: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Detect emotional and behavioral loops in character responses.
 
@@ -194,7 +198,7 @@ class MoodAnalyzer:
             logger.error(f"Error detecting emotional loops: {e}")
             return []
 
-    def analyze_current_mood(self, character_id: str) -> Dict[str, Any]:
+    def analyze_current_mood(self, character_id: str) -> dict[str, Any]:
         """
         Analyze character's current mood based on recent patterns.
 
@@ -261,7 +265,7 @@ class MoodAnalyzer:
             return {"error": str(e)}
 
     def generate_anti_loop_prompt(
-        self, character_id: str, detected_loops: List[Dict[str, Any]]
+        self, character_id: str, detected_loops: list[dict[str, Any]]
     ) -> str:
         """
         Generate prompt to break detected emotional/behavioral loops.
@@ -313,7 +317,7 @@ class MoodAnalyzer:
             logger.error(f"Error generating anti-loop prompt: {e}")
             return "[Error generating anti-loop guidance]"
 
-    def analyze_emotional_patterns(self, character_id: str) -> Dict[str, Any]:
+    def analyze_emotional_patterns(self, character_id: str) -> dict[str, Any]:
         """
         Comprehensive analysis of character's emotional patterns.
 
@@ -373,7 +377,7 @@ class MoodAnalyzer:
             logger.error(f"Error analyzing emotional patterns: {e}")
             return {"error": str(e)}
 
-    def get_loop_detection_summary(self, character_id: str) -> Dict[str, Any]:
+    def get_loop_detection_summary(self, character_id: str) -> dict[str, Any]:
         """
         Get summary of detected loops for character.
 
@@ -409,7 +413,7 @@ class MoodAnalyzer:
             "summary_timestamp": datetime.now().isoformat(),
         }
 
-    def reset_character_state(self, character_id: str) -> Dict[str, Any]:
+    def reset_character_state(self, character_id: str) -> dict[str, Any]:
         """
         Reset character's mood analysis state.
 
@@ -447,7 +451,7 @@ class MoodAnalyzer:
             logger.error(f"Error resetting character state: {e}")
             return {"error": str(e)}
 
-    def export_character_data(self, character_id: str) -> Dict[str, Any]:
+    def export_character_data(self, character_id: str) -> dict[str, Any]:
         """Export character's mood analysis data."""
         try:
             dialogue_history = [
@@ -483,7 +487,7 @@ class MoodAnalyzer:
             logger.error(f"Error exporting character data: {e}")
             return {"error": str(e)}
 
-    def import_character_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def import_character_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Import character's mood analysis data."""
         try:
             character_id = data["character_id"]
@@ -556,7 +560,7 @@ class MoodAnalyzer:
 
         return normalized.strip()
 
-    def _extract_emotional_indicators(self, text: str) -> List[Dict[str, Any]]:
+    def _extract_emotional_indicators(self, text: str) -> list[dict[str, Any]]:
         """Extract emotional indicators from text."""
         indicators = []
 
@@ -638,7 +642,7 @@ class MoodAnalyzer:
 
     def _detect_phrase_loops(
         self, character_id: str, text: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Detect repeated phrase patterns."""
         patterns = self.character_emotional_patterns[character_id]
         loops = []
@@ -674,8 +678,8 @@ class MoodAnalyzer:
         return loops
 
     def _detect_emotional_state_loops(
-        self, character_id: str, current_indicators: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, character_id: str, current_indicators: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Detect repeated emotional state patterns."""
         patterns = self.character_emotional_patterns[character_id]
         loops = []
@@ -714,7 +718,7 @@ class MoodAnalyzer:
 
     def _detect_behavioral_loops(
         self, character_id: str, text: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Detect repeated behavioral patterns."""
         patterns = self.character_emotional_patterns[character_id]
         loops = []
@@ -759,7 +763,7 @@ class MoodAnalyzer:
 
     def _detect_dialogue_structure_loops(
         self, character_id: str, text: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Detect repeated dialogue structure patterns."""
         patterns = self.character_emotional_patterns[character_id]
         loops = []
@@ -792,7 +796,7 @@ class MoodAnalyzer:
 
         return loops
 
-    def _extract_phrases(self, text: str) -> List[str]:
+    def _extract_phrases(self, text: str) -> list[str]:
         """Extract meaningful phrases from text."""
         # Split by punctuation and get phrases of reasonable length
         sentences = re.split(r"[.!?]", text)
@@ -822,7 +826,7 @@ class MoodAnalyzer:
         """Calculate similarity between sentence structures."""
         return SequenceMatcher(None, structure1, structure2).ratio()
 
-    def _calculate_mood_stability(self, patterns: List[Dict[str, Any]]) -> float:
+    def _calculate_mood_stability(self, patterns: list[dict[str, Any]]) -> float:
         """Calculate mood stability from patterns."""
         if len(patterns) < 2:
             return 1.0
@@ -850,7 +854,7 @@ class MoodAnalyzer:
         stability = max(0, 1 - variance)
         return stability
 
-    def _summarize_loops(self, loops: List[LoopDetection]) -> Dict[str, Any]:
+    def _summarize_loops(self, loops: list[LoopDetection]) -> dict[str, Any]:
         """Summarize detected loops."""
         if not loops:
             return {"no_loops": True}
@@ -868,8 +872,8 @@ class MoodAnalyzer:
         }
 
     def _analyze_temporal_patterns(
-        self, patterns: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, patterns: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Analyze temporal patterns in emotional expressions."""
         if len(patterns) < 5:
             return {"insufficient_data": True}
@@ -917,7 +921,7 @@ class MoodAnalyzer:
 
         return suggestions.get(loop_type, "Introduce variety in your responses")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get mood analyzer status."""
         return {
             "mood_analyzer": {

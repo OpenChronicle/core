@@ -6,13 +6,14 @@ for narrative consistency management across the OpenChronicle system.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any
+from typing import Optional
 
+from src.openchronicle.shared.json_utilities import JSONUtilities
+
+from ..shared.narrative_state import NarrativeStateManager
 from .memory_validator import MemoryValidator
 from .state_tracker import StateTracker
-from ..shared.narrative_state import NarrativeStateManager
-from ...shared.json_utilities import JSONUtilities
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class ConsistencyOrchestrator:
     to ensure narrative consistency across character memories and states.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[dict] = None):
         """Initialize consistency orchestrator with configuration."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
@@ -47,8 +48,8 @@ class ConsistencyOrchestrator:
         logger.info("ConsistencyOrchestrator initialized")
 
     def add_memory(
-        self, character_id: str, memory_event: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, character_id: str, memory_event: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Add a new memory event with consistency validation.
 
@@ -94,7 +95,7 @@ class ConsistencyOrchestrator:
 
     def retrieve_relevant_memories(
         self, character_id: str, context: str, max_memories: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieve memories relevant to current context.
 
@@ -111,8 +112,8 @@ class ConsistencyOrchestrator:
         )
 
     def validate_memory_consistency(
-        self, character_id: str, new_memory: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, character_id: str, new_memory: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Validate consistency of new memory against existing memories.
 
@@ -127,7 +128,7 @@ class ConsistencyOrchestrator:
             character_id, new_memory
         )
 
-    def get_character_memory_summary(self, character_id: str) -> Dict[str, Any]:
+    def get_character_memory_summary(self, character_id: str) -> dict[str, Any]:
         """
         Get summary of character's memory state.
 
@@ -173,7 +174,7 @@ class ConsistencyOrchestrator:
             character_id, current_context, max_tokens
         )
 
-    def export_character_memories(self, character_id: str) -> Dict[str, Any]:
+    def export_character_memories(self, character_id: str) -> dict[str, Any]:
         """
         Export all memories for a character.
 
@@ -185,7 +186,7 @@ class ConsistencyOrchestrator:
         """
         return self.memory_validator.export_character_memories(character_id)
 
-    def import_character_memories(self, data: Dict[str, Any]) -> None:
+    def import_character_memories(self, data: dict[str, Any]) -> None:
         """
         Import character memories from exported data.
 
@@ -196,7 +197,7 @@ class ConsistencyOrchestrator:
 
     def get_consistency_metrics(
         self, character_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get consistency metrics for character(s).
 
@@ -208,7 +209,7 @@ class ConsistencyOrchestrator:
         """
         return self.state_tracker.get_consistency_metrics(character_id)
 
-    def _validate_memory_event(self, memory_event: Dict[str, Any]) -> bool:
+    def _validate_memory_event(self, memory_event: dict[str, Any]) -> bool:
         """
         Validate memory event structure.
 
@@ -221,7 +222,7 @@ class ConsistencyOrchestrator:
         required_fields = ["event_type", "content", "timestamp"]
         return all(field in memory_event for field in required_fields)
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get current status of consistency orchestrator.
 

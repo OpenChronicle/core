@@ -7,16 +7,17 @@ interface defined in the application layer.
 """
 
 import asyncio
+import logging
 import time
-from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Union
+from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-import json
-import logging
+from typing import Optional
 
-from ...domain import NarrativeContext, ModelResponse
-from ...application.orchestrators import ModelManager
+from src.openchronicle.application.orchestrators import ModelManager
+from src.openchronicle.domain import ModelResponse
+from src.openchronicle.domain import NarrativeContext
 
 
 @dataclass
@@ -32,7 +33,7 @@ class ModelConfig:
     temperature: float = 0.7
     timeout: int = 30
     rate_limit: int = 60  # requests per minute
-    fallback_models: List[str] = None
+    fallback_models: list[str] = None
 
     def __post_init__(self):
         if self.fallback_models is None:
@@ -283,8 +284,8 @@ class ModelManagerImpl(ModelManager):
     """Implementation of the ModelManager interface."""
 
     def __init__(self):
-        self.adapters: Dict[str, BaseModelAdapter] = {}
-        self.fallback_chains: Dict[str, List[str]] = {}
+        self.adapters: dict[str, BaseModelAdapter] = {}
+        self.fallback_chains: dict[str, list[str]] = {}
         self.logger = logging.getLogger("ModelManager")
 
     def register_adapter(self, name: str, adapter: BaseModelAdapter):
@@ -292,7 +293,7 @@ class ModelManagerImpl(ModelManager):
         self.adapters[name] = adapter
         self.logger.info(f"Registered model adapter: {name}")
 
-    def set_fallback_chain(self, primary: str, fallbacks: List[str]):
+    def set_fallback_chain(self, primary: str, fallbacks: list[str]):
         """Set fallback chain for a model."""
         self.fallback_chains[primary] = fallbacks
 

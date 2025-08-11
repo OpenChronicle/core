@@ -6,11 +6,14 @@ stability pattern analysis for the emotional subsystem.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from collections import defaultdict, deque
+from collections import defaultdict
+from collections import deque
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Optional
 
-from ...shared.json_utilities import JSONUtilities
+from src.openchronicle.shared.json_utilities import JSONUtilities
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,7 @@ class EmotionalState:
         self.context = context
         self.timestamp = timestamp or datetime.now()
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary representation."""
         return {
             "emotion": self.emotion,
@@ -40,7 +43,7 @@ class EmotionalState:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "EmotionalState":
+    def from_dict(cls, data: dict) -> "EmotionalState":
         """Create from dictionary representation."""
         return cls(
             emotion=data["emotion"],
@@ -81,7 +84,7 @@ class BehaviorCooldown:
         extension = min(self.triggered_count * 30, 300)  # Max 5 minute extension
         self.end_time += timedelta(seconds=extension)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary representation."""
         return {
             "behavior": self.behavior,
@@ -92,7 +95,7 @@ class BehaviorCooldown:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "BehaviorCooldown":
+    def from_dict(cls, data: dict) -> "BehaviorCooldown":
         """Create from dictionary representation."""
         cooldown = cls(
             behavior=data["behavior"],
@@ -112,7 +115,7 @@ class StabilityTracker:
     provides stability analysis for character emotional consistency.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[dict] = None):
         """Initialize stability tracker."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
@@ -132,8 +135,8 @@ class StabilityTracker:
         logger.info("StabilityTracker initialized")
 
     def track_emotional_state(
-        self, character_id: str, emotional_state: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, character_id: str, emotional_state: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Track character's emotional state.
 
@@ -200,7 +203,7 @@ class StabilityTracker:
 
     def trigger_behavior_cooldown(
         self, character_id: str, behavior: str, duration: Optional[int] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger cooldown for a specific behavior.
 
@@ -247,7 +250,7 @@ class StabilityTracker:
 
     def get_current_emotional_state(
         self, character_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """
         Get character's current emotional state.
 
@@ -267,7 +270,7 @@ class StabilityTracker:
 
     def get_emotional_history(
         self, character_id: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get character's emotional history.
 
@@ -331,7 +334,7 @@ class StabilityTracker:
 
         return min(max(overall_stability, 0.0), 1.0)
 
-    def analyze_stability_patterns(self, character_id: str) -> Dict[str, Any]:
+    def analyze_stability_patterns(self, character_id: str) -> dict[str, Any]:
         """
         Analyze stability patterns for character.
 
@@ -373,7 +376,7 @@ class StabilityTracker:
             logger.error(f"Error analyzing stability patterns: {e}")
             return {"error": str(e)}
 
-    def get_cooldown_status(self, character_id: str) -> Dict[str, Dict]:
+    def get_cooldown_status(self, character_id: str) -> dict[str, dict]:
         """
         Get current cooldown status for all behaviors.
 
@@ -410,7 +413,7 @@ class StabilityTracker:
 
         return status
 
-    def analyze_behavioral_patterns(self, character_id: str) -> Dict[str, Any]:
+    def analyze_behavioral_patterns(self, character_id: str) -> dict[str, Any]:
         """
         Analyze behavioral patterns for character.
 
@@ -452,7 +455,7 @@ class StabilityTracker:
             "behavior_statistics": behavior_stats,
         }
 
-    def reset_character_state(self, character_id: str) -> Dict[str, Any]:
+    def reset_character_state(self, character_id: str) -> dict[str, Any]:
         """
         Reset character's emotional tracking state.
 
@@ -485,7 +488,7 @@ class StabilityTracker:
             logger.error(f"Error resetting character state: {e}")
             return {"error": str(e)}
 
-    def export_character_data(self, character_id: str) -> Dict[str, Any]:
+    def export_character_data(self, character_id: str) -> dict[str, Any]:
         """Export character's stability tracking data."""
         try:
             emotions = [
@@ -508,7 +511,7 @@ class StabilityTracker:
             logger.error(f"Error exporting character data: {e}")
             return {"error": str(e)}
 
-    def import_character_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def import_character_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Import character's stability tracking data."""
         try:
             character_id = data["character_id"]
@@ -554,7 +557,7 @@ class StabilityTracker:
             character_id
         )
 
-    def _analyze_emotional_patterns(self, character_id: str) -> Dict[str, Any]:
+    def _analyze_emotional_patterns(self, character_id: str) -> dict[str, Any]:
         """Analyze emotional patterns for character."""
         emotions = list(self.character_emotions[character_id])
 
@@ -579,7 +582,7 @@ class StabilityTracker:
             "pattern_analysis_timestamp": datetime.now().isoformat(),
         }
 
-    def _calculate_emotion_variance(self, emotions: List[EmotionalState]) -> float:
+    def _calculate_emotion_variance(self, emotions: list[EmotionalState]) -> float:
         """Calculate variance in emotional intensity."""
         if not emotions:
             return 0.0
@@ -589,7 +592,7 @@ class StabilityTracker:
         variance = sum((i - mean) ** 2 for i in intensities) / len(intensities)
         return variance
 
-    def _analyze_emotional_trend(self, emotions: List[EmotionalState]) -> str:
+    def _analyze_emotional_trend(self, emotions: list[EmotionalState]) -> str:
         """Analyze trend in recent emotions."""
         if len(emotions) < 3:
             return "insufficient_data"
@@ -610,7 +613,7 @@ class StabilityTracker:
         else:
             return "stable"
 
-    def _calculate_emotional_volatility(self, emotions: List[EmotionalState]) -> float:
+    def _calculate_emotional_volatility(self, emotions: list[EmotionalState]) -> float:
         """Calculate emotional volatility."""
         if len(emotions) < 2:
             return 0.0
@@ -623,7 +626,7 @@ class StabilityTracker:
 
         return sum(changes) / len(changes) if changes else 0.0
 
-    def _detect_stability_patterns(self, emotions: List[EmotionalState]) -> List[str]:
+    def _detect_stability_patterns(self, emotions: list[EmotionalState]) -> list[str]:
         """Detect specific stability patterns."""
         patterns = []
 
@@ -652,7 +655,7 @@ class StabilityTracker:
 
         return patterns
 
-    def _is_oscillating(self, values: List[float]) -> bool:
+    def _is_oscillating(self, values: list[float]) -> bool:
         """Check if values show oscillating pattern."""
         if len(values) < 4:
             return False
@@ -681,7 +684,7 @@ class StabilityTracker:
         else:
             return "low_risk"
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get stability tracker status."""
         return {
             "stability_tracker": {

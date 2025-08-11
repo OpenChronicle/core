@@ -6,21 +6,18 @@ defined in the application layer. These repositories handle data persistence
 and retrieval from various storage systems.
 """
 
+import asyncio
 import json
 import sqlite3
-from typing import Dict, List, Optional, Any, AsyncIterator
 from datetime import datetime
 from pathlib import Path
-import aiofiles
-import asyncio
-from contextlib import asynccontextmanager
+from typing import Optional
 
-from ...domain import Story, Character, Scene, StoryStatus
-from ...application.orchestrators import (
-    StoryRepository,
-    CharacterRepository,
-    SceneRepository,
-)
+import aiofiles
+from src.openchronicle.domain import Character
+from src.openchronicle.domain import Scene
+from src.openchronicle.domain import Story
+from src.openchronicle.domain import StoryStatus
 
 
 class FileSystemStoryRepository:
@@ -99,7 +96,7 @@ class FileSystemStoryRepository:
             print(f"Error deleting story {story_id}: {e}")
             return False
 
-    async def list_all(self, limit: int = 50, offset: int = 0) -> List[Story]:
+    async def list_all(self, limit: int = 50, offset: int = 0) -> list[Story]:
         """List all stories with pagination."""
         stories = []
         try:
@@ -195,7 +192,7 @@ class FileSystemCharacterRepository:
             print(f"Error loading character {character_id}: {e}")
             return None
 
-    async def get_by_story(self, story_id: str) -> List[Character]:
+    async def get_by_story(self, story_id: str) -> list[Character]:
         """Get all characters in a story."""
         characters = []
         try:
@@ -281,7 +278,7 @@ class FileSystemSceneRepository:
 
     async def get_by_story(
         self, story_id: str, limit: int = 50, offset: int = 0
-    ) -> List[Scene]:
+    ) -> list[Scene]:
         """Get scenes for a story with pagination."""
         scenes = []
         try:
@@ -323,7 +320,7 @@ class SQLiteStoryRepository:
                     created_at TEXT,
                     updated_at TEXT
                 );
-                
+
                 CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);
                 CREATE INDEX IF NOT EXISTS idx_stories_updated ON stories(updated_at);
             """
@@ -332,7 +329,7 @@ class SQLiteStoryRepository:
         # Execute in sync context for initialization
         conn = sqlite3.connect(self.db_path)
         try:
-            with open("temp_init.sql", "r") as f:
+            with open("temp_init.sql") as f:
                 conn.executescript(f.read())
             conn.commit()
         finally:

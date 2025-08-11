@@ -5,24 +5,17 @@ Handles all database operations and persistence for memory data.
 Consolidates all database access patterns from the original memory_manager.py.
 """
 
-import json
-from datetime import datetime, UTC
-from typing import Dict, List, Any, Optional, Tuple
-from pathlib import Path
+from datetime import UTC
+from datetime import datetime
+from typing import Any
+from typing import Optional
 
-from ..shared.memory_models import (
-    MemoryState,
-    MemorySnapshot,
-    MemoryType,
-    MemoryUpdateResult,
-)
-from ...persistence.database import (
-    get_connection,
-    execute_query,
-    execute_update,
-    init_database,
+from src.openchronicle.infrastructure.persistence.database_orchestrator import (
+    database_orchestrator,
 )
 from src.openchronicle.shared.json_utilities import JSONUtilities
+
+from ..shared.memory_models import MemoryState
 
 
 class MemoryRepository:
@@ -36,10 +29,10 @@ class MemoryRepository:
         """Load complete memory state for story."""
         try:
             # Query all memory types from database
-            rows = execute_query(
+            rows = database_orchestrator.database_orchestrator.execute_query(
                 story_id,
                 """
-                SELECT type, key, value FROM memory 
+                SELECT type, key, value FROM memory
                 WHERE story_id = ? AND key = "current"
                 ORDER BY updated_at DESC
             """,
@@ -55,7 +48,7 @@ class MemoryRepository:
 
             return self._deserialize_memory(memory_data)
 
-        except Exception as e:
+        except Exception:
             # Return default memory structure if loading fails
             return MemoryState()
 
@@ -76,7 +69,7 @@ class MemoryRepository:
                 "metadata",
             ]:
                 if memory_type in serialized_data:
-                    execute_update(
+                    database_orchestrator.execute_update(
                         story_id,
                         """
                         INSERT OR REPLACE INTO memory
@@ -94,16 +87,16 @@ class MemoryRepository:
 
             return True
 
-        except Exception as e:
+        except Exception:
             return False
 
-    def load_memory_section(self, story_id: str, section: str) -> Dict[str, Any]:
+    def load_memory_section(self, story_id: str, section: str) -> dict[str, Any]:
         """Load specific memory section efficiently."""
         try:
-            rows = execute_query(
+            rows = database_orchestrator.execute_query(
                 story_id,
                 """
-                SELECT value FROM memory 
+                SELECT value FROM memory
                 WHERE story_id = ? AND type = ? AND key = "current"
             """,
                 (story_id, section),
@@ -117,11 +110,11 @@ class MemoryRepository:
             return {}
 
     def update_memory_section(
-        self, story_id: str, section: str, data: Dict[str, Any]
+        self, story_id: str, section: str, data: dict[str, Any]
     ) -> bool:
         """Update specific memory section efficiently."""
         try:
-            execute_update(
+            database_orchestrator.execute_update(
                 story_id,
                 """
                 INSERT OR REPLACE INTO memory
@@ -147,7 +140,7 @@ class MemoryRepository:
             serialized_memory = self._serialize_memory(memory)
             snapshot_id = f"{story_id}_{scene_id}_{datetime.now(UTC).isoformat()}"
 
-            execute_update(
+            database_orchestrator.execute_update(
                 story_id,
                 """
                 INSERT INTO memory_history (story_id, scene_id, timestamp, value)
@@ -174,7 +167,7 @@ class MemoryRepository:
     ) -> Optional[MemoryState]:
         """Restore memory from specific snapshot."""
         try:
-            rows = execute_query(
+            rows = database_orchestrator.execute_query(
                 story_id,
                 """
                 SELECT value FROM memory_history
@@ -195,10 +188,10 @@ class MemoryRepository:
         except Exception:
             return None
 
-    def get_snapshot_metadata(self, story_id: str) -> List[Dict[str, Any]]:
+    def get_snapshot_metadata(self, story_id: str) -> list[dict[str, Any]]:
         """Get metadata for all snapshots."""
         try:
-            rows = execute_query(
+            rows = database_orchestrator.execute_query(
                 story_id,
                 """
                 SELECT scene_id, timestamp FROM memory_history
@@ -216,7 +209,7 @@ class MemoryRepository:
         except Exception:
             return []
 
-    def _serialize_memory(self, memory: MemoryState) -> Dict[str, Any]:
+    def _serialize_memory(self, memory: MemoryState) -> dict[str, Any]:
         """Convert MemoryState to dictionary for storage."""
         return {
             "characters": {
@@ -248,17 +241,12 @@ class MemoryRepository:
             },
         }
 
-    def _deserialize_memory(self, data: Dict[str, Any]) -> MemoryState:
+    def _deserialize_memory(self, data: dict[str, Any]) -> MemoryState:
         """Convert dictionary to MemoryState."""
-        from ..shared.memory_models import (
-            MemoryState,
-            CharacterMemory,
-            MemoryFlag,
-            RecentEvent,
-            MemoryMetadata,
-            MoodEntry,
-            VoiceProfile,
-        )
+        from ..shared.memory_models import MemoryFlag
+        from ..shared.memory_models import MemoryMetadata
+        from ..shared.memory_models import MemoryState
+        from ..shared.memory_models import RecentEvent
 
         memory = MemoryState()
 
@@ -305,7 +293,7 @@ class MemoryRepository:
 
         return memory
 
-    def _serialize_character(self, character) -> Dict[str, Any]:
+    def _serialize_character(self, character) -> dict[str, Any]:
         """Serialize character to dictionary."""
         return {
             "name": character.name,
@@ -334,9 +322,11 @@ class MemoryRepository:
             "dialogue_history": character.dialogue_history,
         }
 
-    def _deserialize_character(self, name: str, data: Dict[str, Any]):
+    def _deserialize_character(self, name: str, data: dict[str, Any]):
         """Deserialize character from dictionary."""
-        from ..shared.memory_models import CharacterMemory, MoodEntry, VoiceProfile
+        from ..shared.memory_models import CharacterMemory
+        from ..shared.memory_models import MoodEntry
+        from ..shared.memory_models import VoiceProfile
 
         # Mood history
         mood_history = []
@@ -376,7 +366,7 @@ class MemoryRepository:
     def _cleanup_old_snapshots(self, story_id: str, max_snapshots: int = 50) -> None:
         """Clean up old snapshots based on retention policy."""
         try:
-            execute_update(
+            database_orchestrator.execute_update(
                 story_id,
                 """
                 DELETE FROM memory_history
@@ -392,7 +382,7 @@ class MemoryRepository:
         except Exception:
             pass  # Non-critical operation
 
-    def create_default_memory_structure(self) -> Dict[str, Any]:
+    def create_default_memory_structure(self) -> dict[str, Any]:
         """Create default memory structure for backward compatibility."""
         return {
             "characters": {},

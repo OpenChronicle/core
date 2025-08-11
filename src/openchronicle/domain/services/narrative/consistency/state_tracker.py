@@ -6,11 +6,13 @@ and consistency metrics for the consistency subsystem.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from collections import defaultdict, Counter
+from collections import defaultdict
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Optional
 
-from ...shared.json_utilities import JSONUtilities
+from src.openchronicle.shared.json_utilities import JSONUtilities
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ class StateTracker:
     and provides consistency metrics for narrative management.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[dict] = None):
         """Initialize state tracker."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
@@ -39,7 +41,7 @@ class StateTracker:
 
         logger.info("StateTracker initialized")
 
-    def update_character_state(self, character_id: str, memory: Dict[str, Any]) -> None:
+    def update_character_state(self, character_id: str, memory: dict[str, Any]) -> None:
         """
         Update character state based on new memory.
 
@@ -74,7 +76,7 @@ class StateTracker:
         except Exception as e:
             logger.error(f"Error updating character state: {e}")
 
-    def get_character_memory_summary(self, character_id: str) -> Dict[str, Any]:
+    def get_character_memory_summary(self, character_id: str) -> dict[str, Any]:
         """
         Get comprehensive memory summary for character.
 
@@ -138,7 +140,7 @@ class StateTracker:
 
     def get_consistency_metrics(
         self, character_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get consistency metrics for character(s).
 
@@ -161,9 +163,9 @@ class StateTracker:
                     )
 
                 # Calculate system-wide metrics
-                all_metrics["system_summary"] = (
-                    self._calculate_system_consistency_metrics()
-                )
+                all_metrics[
+                    "system_summary"
+                ] = self._calculate_system_consistency_metrics()
                 return all_metrics
 
         except Exception as e:
@@ -171,7 +173,7 @@ class StateTracker:
             return {}
 
     def track_narrative_event(
-        self, event_type: str, event_data: Dict[str, Any]
+        self, event_type: str, event_data: dict[str, Any]
     ) -> None:
         """
         Track system-wide narrative events.
@@ -247,7 +249,7 @@ class StateTracker:
         state["experience_diversity"] = len(state["memory_types"])
 
     def _update_relationship_state(
-        self, character_id: str, memory: Dict[str, Any]
+        self, character_id: str, memory: dict[str, Any]
     ) -> None:
         """Update character's relationship state tracking."""
         state = self.character_states[character_id]
@@ -269,7 +271,7 @@ class StateTracker:
             state["relationship_memories"] = state["relationship_memories"][-20:]
 
     def _track_character_development(
-        self, character_id: str, memory: Dict[str, Any]
+        self, character_id: str, memory: dict[str, Any]
     ) -> None:
         """Track character development over time."""
         development = self.character_development[character_id]
@@ -293,7 +295,7 @@ class StateTracker:
             if datetime.fromisoformat(event["timestamp"]) > cutoff_date
         ]
 
-    def _analyze_development_indicators(self, memory: Dict[str, Any]) -> List[str]:
+    def _analyze_development_indicators(self, memory: dict[str, Any]) -> list[str]:
         """Analyze memory for character development indicators."""
         indicators = []
 
@@ -390,7 +392,7 @@ class StateTracker:
 
         return max(consistency_score, 0.0)
 
-    def _get_character_consistency_metrics(self, character_id: str) -> Dict[str, Any]:
+    def _get_character_consistency_metrics(self, character_id: str) -> dict[str, Any]:
         """Get consistency metrics for specific character."""
         metrics = self.consistency_metrics.get(character_id, {})
         development = self.character_development.get(character_id, [])
@@ -427,7 +429,7 @@ class StateTracker:
             },
         }
 
-    def _calculate_system_consistency_metrics(self) -> Dict[str, Any]:
+    def _calculate_system_consistency_metrics(self) -> dict[str, Any]:
         """Calculate system-wide consistency metrics."""
         total_characters = len(self.character_states)
 
@@ -481,7 +483,7 @@ class StateTracker:
 
         return (total - failures) / total
 
-    def _get_dominant_memory_type(self, memory_types: Dict[str, int]) -> str:
+    def _get_dominant_memory_type(self, memory_types: dict[str, int]) -> str:
         """Get the most common memory type."""
         if not memory_types:
             return "none"
@@ -501,7 +503,7 @@ class StateTracker:
         else:
             return "very negative"
 
-    def _record_conflict_event(self, event_data: Dict[str, Any]) -> None:
+    def _record_conflict_event(self, event_data: dict[str, Any]) -> None:
         """Record a memory conflict event."""
         character_id = event_data.get("character_id")
         if not character_id:
@@ -517,7 +519,7 @@ class StateTracker:
             metrics["conflict_types"] = defaultdict(int)
         metrics["conflict_types"][conflict_type] += 1
 
-    def _record_development_event(self, event_data: Dict[str, Any]) -> None:
+    def _record_development_event(self, event_data: dict[str, Any]) -> None:
         """Record a character development event."""
         character_id = event_data.get("character_id")
         if not character_id:
@@ -527,7 +529,7 @@ class StateTracker:
         # This method can be extended for additional development tracking
         pass
 
-    def _record_consistency_event(self, event_data: Dict[str, Any]) -> None:
+    def _record_consistency_event(self, event_data: dict[str, Any]) -> None:
         """Record a consistency check event."""
         character_id = event_data.get("character_id")
         if not character_id:
@@ -539,7 +541,7 @@ class StateTracker:
         if not event_data.get("is_consistent", True):
             metrics["validation_failures"] = metrics.get("validation_failures", 0) + 1
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get state tracker status."""
         return {
             "state_tracker": {

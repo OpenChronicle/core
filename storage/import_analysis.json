@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-10T21:30:58.312137",
+  "timestamp": "2025-08-10T22:07:18.788022",
   "total_files": 305,
   "analyzed_files": 304,
   "import_analysis": {
@@ -78,21 +78,8 @@
         "openchronicle.main"
       ],
       "core_legacy": [],
-      "utilities": [
-        "utilities.api_key_manager",
-        "utilities.performance_monitor"
-      ],
+      "utilities": [],
       "relative": [
-        "...application",
-        "...application.orchestrators",
-        "...domain",
-        "...infrastructure",
-        "...memory",
-        "...memory.context",
-        "...persistence.async_database_orchestrator",
-        "...persistence.database",
-        "...shared.database_operations",
-        "...shared.json_utilities",
         "..adapter_exceptions",
         "..analysis.orchestrator",
         "..api_adapter_base",
@@ -382,9 +369,12 @@
         "pytest_asyncio",
         "random",
         "secrets",
+        "src.openchronicle.application",
+        "src.openchronicle.application.orchestrators",
         "src.openchronicle.application.services.management.bookmark.bookmark_manager",
         "src.openchronicle.application.services.management.management_orchestrator",
         "src.openchronicle.core.story_loader",
+        "src.openchronicle.domain",
         "src.openchronicle.domain.models",
         "src.openchronicle.domain.models.configuration_manager",
         "src.openchronicle.domain.models.model_interfaces",
@@ -398,6 +388,7 @@
         "src.openchronicle.domain.services.scenes.scene_orchestrator",
         "src.openchronicle.domain.services.story_loader",
         "src.openchronicle.domain.services.timeline.timeline_orchestrator",
+        "src.openchronicle.infrastructure",
         "src.openchronicle.infrastructure.content",
         "src.openchronicle.infrastructure.content.analysis",
         "src.openchronicle.infrastructure.content.analysis.orchestrator",
@@ -408,6 +399,7 @@
         "src.openchronicle.infrastructure.memory.async_memory_orchestrator",
         "src.openchronicle.infrastructure.memory.cache_benchmark",
         "src.openchronicle.infrastructure.memory.character.character_manager",
+        "src.openchronicle.infrastructure.memory.context",
         "src.openchronicle.infrastructure.memory.distributed_cache",
         "src.openchronicle.infrastructure.memory.memory_interfaces",
         "src.openchronicle.infrastructure.memory.memory_orchestrator",
@@ -420,12 +412,14 @@
         "src.openchronicle.infrastructure.performance.model_monitor",
         "src.openchronicle.infrastructure.persistence",
         "src.openchronicle.infrastructure.persistence.async_database_orchestrator",
+        "src.openchronicle.infrastructure.persistence.database",
         "src.openchronicle.infrastructure.persistence.database_orchestrator",
         "src.openchronicle.infrastructure.persistence.shared",
         "src.openchronicle.infrastructure.registry.registry_manager",
         "src.openchronicle.infrastructure.registry.schema_validation",
         "src.openchronicle.shared.async_database_operations",
         "src.openchronicle.shared.centralized_config",
+        "src.openchronicle.shared.database_operations",
         "src.openchronicle.shared.dependency_injection",
         "src.openchronicle.shared.error_handling",
         "src.openchronicle.shared.json_utilities",
@@ -447,14 +441,14 @@
       ]
     },
     "import_counts": {
-      "typing": 203,
+      "typing": 204,
+      "pathlib": 113,
       "datetime": 113,
-      "pathlib": 112,
       "json": 84,
       "asyncio": 69,
       "src.openchronicle.shared.logging_system": 63,
       "sys": 62,
-      "os": 59,
+      "os": 60,
       "dataclasses": 56,
       "logging": 52,
       "time": 40,
@@ -470,10 +464,11 @@
       "src.openchronicle.domain.services.scenes.scene_orchestrator": 12,
       "uuid": 12,
       "src.openchronicle.domain.models.model_orchestrator": 11,
+      "src.openchronicle.infrastructure.memory": 11,
       "random": 10,
-      "src.openchronicle.infrastructure.memory": 10,
       "tests.mocks.mock_adapters": 10,
       "typer": 9,
+      "src.openchronicle.shared.json_utilities": 9,
       "tempfile": 9,
       "rich.progress": 8,
       "shutil": 8,
@@ -487,6 +482,7 @@
       "contextlib": 6,
       "hashlib": 6,
       "src.openchronicle.shared.security": 5,
+      "src.openchronicle.domain": 5,
       "aiosqlite": 5,
       "cli.support": 4,
       "rich.panel": 4,
@@ -494,9 +490,7 @@
       "src.openchronicle.infrastructure.persistence.database_orchestrator": 4,
       "psutil": 4,
       "subprocess": 4,
-      "argparse": 4,
-      "__future__": 4,
-      "src.openchronicle.infrastructure.content.context": 4
+      "argparse": 4
     },
     "file_import_counts": {
       "cli\\commands\\system\\__init__.py": 35,
@@ -506,190 +500,21 @@
       "tests\\workflows\\test_story_creation_workflow.py": 17,
       "tests\\conftest.py": 16,
       "tests\\stress\\test_stress_comprehensive.py": 16,
+      "src\\openchronicle\\interfaces\\cli\\__init__.py": 15,
+      "src\\openchronicle\\interfaces\\events\\__init__.py": 15,
       "tests\\integration\\test_complete_workflows.py": 15,
+      "src\\openchronicle\\infrastructure\\content\\context\\orchestrator.py": 14,
       "tests\\performance\\test_regression.py": 14,
+      "src\\openchronicle\\infrastructure\\adapters\\__init__.py": 13,
       "src\\openchronicle\\infrastructure\\images\\processing\\image_adapter.py": 13,
-      "src\\openchronicle\\interfaces\\cli\\__init__.py": 13,
-      "src\\openchronicle\\interfaces\\events\\__init__.py": 13,
       "tests\\unit\\database\\test_async_operations.py": 13,
       "cli\\main.py": 12,
       "src\\openchronicle\\domain\\services\\narrative\\narrative_orchestrator.py": 12,
-      "src\\openchronicle\\shared\\security.py": 12,
-      "tests\\performance\\test_core_regression.py": 12,
-      "tests\\workflows\\test_interactive_storytelling_workflow.py": 12,
-      "cli\\commands\\story\\__init__.py": 11,
-      "src\\openchronicle\\domain\\models\\lifecycle_manager.py": 11
+      "src\\openchronicle\\infrastructure\\memory\\persistence\\async_memory_repository.py": 12,
+      "src\\openchronicle\\interfaces\\web\\__init__.py": 12,
+      "src\\openchronicle\\shared\\security.py": 12
     },
-    "problematic_imports": [
-      {
-        "file": "src\\openchronicle\\application\\commands\\__init__.py",
-        "module": "...domain",
-        "line": 14,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\application\\orchestrators\\__init__.py",
-        "module": "...domain",
-        "line": 27,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\application\\queries\\__init__.py",
-        "module": "...domain",
-        "line": 14,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\consistency\\consistency_orchestrator.py",
-        "module": "...shared.json_utilities",
-        "line": 15,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\consistency\\memory_validator.py",
-        "module": "...shared.database_operations",
-        "line": 15,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\consistency\\memory_validator.py",
-        "module": "...shared.json_utilities",
-        "line": 16,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\consistency\\state_tracker.py",
-        "module": "...shared.json_utilities",
-        "line": 13,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\emotional\\emotional_orchestrator.py",
-        "module": "...shared.json_utilities",
-        "line": 15,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\emotional\\mood_analyzer.py",
-        "module": "...shared.json_utilities",
-        "line": 15,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\domain\\services\\narrative\\emotional\\stability_tracker.py",
-        "module": "...shared.json_utilities",
-        "line": 13,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\adapters\\__init__.py",
-        "module": "...domain",
-        "line": 18,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\adapters\\__init__.py",
-        "module": "...application.orchestrators",
-        "line": 19,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\content\\context\\orchestrator.py",
-        "module": "...memory.context",
-        "line": 29,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\content\\context\\orchestrator.py",
-        "module": "...memory.context",
-        "line": 30,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\content\\context\\orchestrator.py",
-        "module": "...memory.context",
-        "line": 31,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\content\\context\\orchestrator.py",
-        "module": "...memory",
-        "line": 40,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\memory\\persistence\\async_memory_repository.py",
-        "module": "...persistence.async_database_orchestrator",
-        "line": 18,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\memory\\persistence\\memory_repository.py",
-        "module": "...persistence.database",
-        "line": 19,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\repositories\\__init__.py",
-        "module": "...domain",
-        "line": 18,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\infrastructure\\repositories\\__init__.py",
-        "module": "...application.orchestrators",
-        "line": 19,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\api\\__init__.py",
-        "module": "...application",
-        "line": 17,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\api\\__init__.py",
-        "module": "...infrastructure",
-        "line": 18,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\cli\\__init__.py",
-        "module": "...application",
-        "line": 23,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\cli\\__init__.py",
-        "module": "...infrastructure",
-        "line": 24,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\events\\__init__.py",
-        "module": "...application",
-        "line": 23,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\events\\__init__.py",
-        "module": "...infrastructure",
-        "line": 24,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\web\\__init__.py",
-        "module": "...application",
-        "line": 19,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      },
-      {
-        "file": "src\\openchronicle\\interfaces\\web\\__init__.py",
-        "module": "...infrastructure",
-        "line": 20,
-        "reason": "Deep relative import (level 3) - may break during migration"
-      }
-    ]
+    "problematic_imports": []
   },
   "raw_data": [
     {
@@ -2202,11 +2027,9 @@
           "aliases": {},
           "line": 12,
           "level": 0
-        }
-      ],
-      "relative_imports": [
+        },
         {
-          "module": "domain",
+          "module": "src.openchronicle.domain",
           "names": [
             "Story",
             "Character",
@@ -2216,9 +2039,10 @@
           ],
           "aliases": {},
           "line": 14,
-          "level": 3
+          "level": 0
         }
       ],
+      "relative_imports": [],
       "line_count": 225,
       "success": true
     },
@@ -2263,6 +2087,22 @@
           "aliases": {},
           "line": 12,
           "level": 0
+        },
+        {
+          "module": "src.openchronicle.domain",
+          "names": [
+            "Story",
+            "Character",
+            "Scene",
+            "StoryGenerator",
+            "CharacterAnalyzer",
+            "MemoryState",
+            "NarrativeContext",
+            "ModelResponse"
+          ],
+          "aliases": {},
+          "line": 27,
+          "level": 0
         }
       ],
       "relative_imports": [
@@ -2293,22 +2133,6 @@
           "aliases": {},
           "line": 26,
           "level": 2
-        },
-        {
-          "module": "domain",
-          "names": [
-            "Story",
-            "Character",
-            "Scene",
-            "StoryGenerator",
-            "CharacterAnalyzer",
-            "MemoryState",
-            "NarrativeContext",
-            "ModelResponse"
-          ],
-          "aliases": {},
-          "line": 27,
-          "level": 3
         }
       ],
       "line_count": 463,
@@ -2358,11 +2182,9 @@
           "aliases": {},
           "line": 12,
           "level": 0
-        }
-      ],
-      "relative_imports": [
+        },
         {
-          "module": "domain",
+          "module": "src.openchronicle.domain",
           "names": [
             "Story",
             "Character",
@@ -2372,9 +2194,10 @@
           ],
           "aliases": {},
           "line": 14,
-          "level": 3
+          "level": 0
         }
       ],
+      "relative_imports": [],
       "line_count": 258,
       "success": true
     },
@@ -5350,6 +5173,15 @@
           "aliases": {},
           "line": 10,
           "level": 0
+        },
+        {
+          "module": "src.openchronicle.shared.json_utilities",
+          "names": [
+            "JSONUtilities"
+          ],
+          "aliases": {},
+          "line": 15,
+          "level": 0
         }
       ],
       "relative_imports": [
@@ -5379,15 +5211,6 @@
           "aliases": {},
           "line": 14,
           "level": 2
-        },
-        {
-          "module": "shared.json_utilities",
-          "names": [
-            "JSONUtilities"
-          ],
-          "aliases": {},
-          "line": 15,
-          "level": 3
         }
       ],
       "line_count": 243,
@@ -5445,28 +5268,27 @@
           "aliases": {},
           "line": 13,
           "level": 0
-        }
-      ],
-      "relative_imports": [
+        },
         {
-          "module": "shared.database_operations",
+          "module": "src.openchronicle.shared.database_operations",
           "names": [
             "get_connection"
           ],
           "aliases": {},
           "line": 15,
-          "level": 3
+          "level": 0
         },
         {
-          "module": "shared.json_utilities",
+          "module": "src.openchronicle.shared.json_utilities",
           "names": [
             "JSONUtilities"
           ],
           "aliases": {},
           "line": 16,
-          "level": 3
+          "level": 0
         }
       ],
+      "relative_imports": [],
       "line_count": 644,
       "success": true
     },
@@ -5511,19 +5333,18 @@
           "aliases": {},
           "line": 11,
           "level": 0
-        }
-      ],
-      "relative_imports": [
+        },
         {
-          "module": "shared.json_utilities",
+          "module": "src.openchronicle.shared.json_utilities",
           "names": [
             "JSONUtilities"
           ],
           "aliases": {},
           "line": 13,
-          "level": 3
+          "level": 0
         }
       ],
+      "relative_imports": [],
       "line_count": 554,
       "success": true
     },
@@ -5593,6 +5414,15 @@
           "aliases": {},
           "line": 10,
           "level": 0
+        },
+        {
+          "module": "src.openchronicle.shared.json_utilities",
+          "names": [
+            "JSONUtilities"
+          ],
+          "aliases": {},
+          "line": 15,
+          "level": 0
         }
       ],
       "relative_imports": [
@@ -5622,15 +5452,6 @@
           "aliases": {},
           "line": 14,
           "level": 2
-        },
-        {
-          "module": "shared.json_utilities",
-          "names": [
-            "JSONUtilities"
-          ],
-          "aliases": {},
-          "line": 15,
-          "level": 3
         }
       ],
       "line_count": 421,
@@ -5693,19 +5514,18 @@
           "aliases": {},
           "line": 13,
           "level": 0
-        }
-      ],
-      "relative_imports": [
+        },
         {
-          "module": "shared.json_utilities",
+          "module": "src.openchronicle.shared.json_utilities",
           "names": [
             "JSONUtilities"
           ],
           "aliases": {},
           "line": 15,
-          "level": 3
+          "level": 0
         }
       ],
+      "relative_imports": [],
       "line_count": 942,
       "success": true
     },
@@ -5750,19 +5570,18 @@
           "aliases": {},
           "line": 11,
           "level": 0
-        }
-      ],
-      "relative_imports": [
+        },
         {
-          "module": "shared.json_utilities",
+          "module": "src.openchronicle.shared.json_utilities",
           "names": [
             "JSONUtilities"
           ],
           "aliases": {},
           "line": 13,
-          "level": 3
+          "level": 0
         }
       ],
+      "relative_imports": [],
       "line_count": 700,
       "success": true
     },
@@ -7422,30 +7241,9 @@
   ],
   "migration_recommendations": [
     {
-      "priority": "MEDIUM",
-      "category": "Deep Relative Imports",
-      "issue": "Found 28 deep relative imports",
-      "action": "Convert to absolute imports from src.openchronicle",
-      "examples": [
-        "src\\openchronicle\\application\\commands\\__init__.py:14",
-        "src\\openchronicle\\application\\orchestrators\\__init__.py:27",
-        "src\\openchronicle\\application\\queries\\__init__.py:14"
-      ]
-    },
-    {
-      "priority": "MEDIUM",
-      "category": "Utilities Imports",
-      "issue": "Found 2 utilities imports",
-      "action": "Move to src.openchronicle.infrastructure.utilities",
-      "examples": [
-        "utilities.api_key_manager",
-        "utilities.performance_monitor"
-      ]
-    },
-    {
       "priority": "LOW",
       "category": "Unknown Imports",
-      "issue": "Found 100 unrecognized imports",
+      "issue": "Found 107 unrecognized imports",
       "action": "Review and categorize these imports",
       "examples": [
         "PIL",

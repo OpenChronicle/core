@@ -5,18 +5,22 @@ This module provides REST API endpoints for all OpenChronicle functionality.
 It serves as the HTTP interface layer in the hexagonal architecture.
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-import uvicorn
 from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Any
+from typing import Optional
 
-from ...application import ApplicationFacade
-from ...infrastructure import InfrastructureContainer, InfrastructureConfig
-
+import uvicorn
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi import status
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from pydantic import Field
+from src.openchronicle.application import ApplicationFacade
+from src.openchronicle.infrastructure import InfrastructureConfig
+from src.openchronicle.infrastructure import InfrastructureContainer
 
 # ================================
 # Request/Response Models
@@ -30,7 +34,7 @@ class StoryCreateRequest(BaseModel):
     description: Optional[str] = Field(
         None, max_length=2000, description="Story description"
     )
-    world_state: Dict[str, Any] = Field(
+    world_state: dict[str, Any] = Field(
         default_factory=dict, description="Initial world state"
     )
     genre: Optional[str] = Field(None, description="Story genre")
@@ -42,7 +46,7 @@ class StoryUpdateRequest(BaseModel):
 
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
-    world_state: Optional[Dict[str, Any]] = None
+    world_state: Optional[dict[str, Any]] = None
     status: Optional[str] = None
 
 
@@ -50,7 +54,7 @@ class CharacterCreateRequest(BaseModel):
     """Request model for creating a new character."""
 
     name: str = Field(..., min_length=1, max_length=100, description="Character name")
-    personality_traits: Dict[str, float] = Field(
+    personality_traits: dict[str, float] = Field(
         default_factory=dict, description="Personality traits with 0-10 values"
     )
     background: Optional[str] = Field(
@@ -59,8 +63,8 @@ class CharacterCreateRequest(BaseModel):
     appearance: Optional[str] = Field(
         None, max_length=500, description="Physical appearance"
     )
-    goals: List[str] = Field(default_factory=list, description="Character goals")
-    relationships: Dict[str, Dict[str, Any]] = Field(
+    goals: list[str] = Field(default_factory=list, description="Character goals")
+    relationships: dict[str, dict[str, Any]] = Field(
         default_factory=dict, description="Character relationships"
     )
 
@@ -70,7 +74,7 @@ class SceneGenerateRequest(BaseModel):
 
     story_id: str = Field(..., description="Story ID")
     setting: str = Field(..., description="Scene setting")
-    participant_ids: List[str] = Field(
+    participant_ids: list[str] = Field(
         ..., description="Character IDs participating in scene"
     )
     user_input: str = Field(..., description="User direction for scene")
@@ -83,11 +87,11 @@ class StoryResponse(BaseModel):
     id: str
     title: str
     description: Optional[str]
-    world_state: Dict[str, Any]
+    world_state: dict[str, Any]
     status: str
     created_at: datetime
     updated_at: datetime
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
 
 class CharacterResponse(BaseModel):
@@ -95,14 +99,14 @@ class CharacterResponse(BaseModel):
 
     id: str
     name: str
-    personality_traits: Dict[str, float]
+    personality_traits: dict[str, float]
     background: Optional[str]
     appearance: Optional[str]
-    goals: List[str]
-    relationships: Dict[str, Dict[str, Any]]
-    emotional_state: Dict[str, float]
-    character_arc: List[Dict[str, Any]]
-    memory_profile: Dict[str, Any]
+    goals: list[str]
+    relationships: dict[str, dict[str, Any]]
+    emotional_state: dict[str, float]
+    character_arc: list[dict[str, Any]]
+    memory_profile: dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
@@ -113,11 +117,11 @@ class SceneResponse(BaseModel):
     id: str
     story_id: str
     setting: str
-    participants: List[str]
+    participants: list[str]
     ai_response: str
     user_input: str
-    character_updates: Dict[str, Dict[str, Any]]
-    metadata: Dict[str, Any]
+    character_updates: dict[str, dict[str, Any]]
+    metadata: dict[str, Any]
     created_at: datetime
 
 
@@ -126,7 +130,7 @@ class HealthResponse(BaseModel):
 
     status: str
     timestamp: datetime
-    components: Dict[str, str]
+    components: dict[str, str]
 
 
 # ================================
@@ -251,7 +255,7 @@ async def create_story(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create story: {str(e)}",
+            detail=f"Failed to create story: {e!s}",
         )
 
 
@@ -286,7 +290,7 @@ async def get_story(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get story: {str(e)}",
+            detail=f"Failed to get story: {e!s}",
         )
 
 
@@ -334,16 +338,16 @@ async def update_story(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update story: {str(e)}",
+            detail=f"Failed to update story: {e!s}",
         )
 
 
-@app.get("/api/v1/stories", response_model=List[StoryResponse])
+@app.get("/api/v1/stories", response_model=list[StoryResponse])
 async def list_stories(
     skip: int = 0,
     limit: int = 50,
     app_facade: ApplicationFacade = Depends(get_app_facade),
-) -> List[StoryResponse]:
+) -> list[StoryResponse]:
     """List all stories with pagination."""
     try:
         result = await app_facade.list_stories(skip=skip, limit=limit)
@@ -374,7 +378,7 @@ async def list_stories(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list stories: {str(e)}",
+            detail=f"Failed to list stories: {e!s}",
         )
 
 
@@ -432,7 +436,7 @@ async def create_character(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create character: {str(e)}",
+            detail=f"Failed to create character: {e!s}",
         )
 
 
@@ -471,16 +475,16 @@ async def get_character(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get character: {str(e)}",
+            detail=f"Failed to get character: {e!s}",
         )
 
 
 @app.get(
-    "/api/v1/stories/{story_id}/characters", response_model=List[CharacterResponse]
+    "/api/v1/stories/{story_id}/characters", response_model=list[CharacterResponse]
 )
 async def list_story_characters(
     story_id: str, app_facade: ApplicationFacade = Depends(get_app_facade)
-) -> List[CharacterResponse]:
+) -> list[CharacterResponse]:
     """List all characters in a story."""
     try:
         result = await app_facade.get_story_characters(story_id)
@@ -515,7 +519,7 @@ async def list_story_characters(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list characters: {str(e)}",
+            detail=f"Failed to list characters: {e!s}",
         )
 
 
@@ -565,17 +569,17 @@ async def generate_scene(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate scene: {str(e)}",
+            detail=f"Failed to generate scene: {e!s}",
         )
 
 
-@app.get("/api/v1/stories/{story_id}/scenes", response_model=List[SceneResponse])
+@app.get("/api/v1/stories/{story_id}/scenes", response_model=list[SceneResponse])
 async def list_story_scenes(
     story_id: str,
     skip: int = 0,
     limit: int = 50,
     app_facade: ApplicationFacade = Depends(get_app_facade),
-) -> List[SceneResponse]:
+) -> list[SceneResponse]:
     """List scenes for a story with pagination."""
     try:
         result = await app_facade.get_story_scenes(story_id, skip=skip, limit=limit)
@@ -607,7 +611,7 @@ async def list_story_scenes(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list scenes: {str(e)}",
+            detail=f"Failed to list scenes: {e!s}",
         )
 
 
