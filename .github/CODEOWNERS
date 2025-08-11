@@ -1,0 +1,6 @@
+# Default owners
+*       @OpenChronicle/maintainers
+
+# Critical architecture and orchestration
+/src/openchronicle/**  @OpenChronicle/maintainers
+/core/**               @OpenChronicle/maintainers

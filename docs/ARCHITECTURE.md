@@ -1,5 +1,7 @@
 # OpenChronicle Architecture
 
+Note: For project status, see `.copilot/project_status.json` (single source of truth).
+
 ## Overview
 OpenChronicle is an AI-powered narrative engine built using hexagonal architecture principles and modern Python best practices.
 
