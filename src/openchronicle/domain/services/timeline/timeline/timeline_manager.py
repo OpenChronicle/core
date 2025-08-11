@@ -11,21 +11,27 @@ This manager now uses dependency injection following hexagonal architecture prin
 import json
 from datetime import UTC
 from datetime import datetime
-from typing import Any, Optional
-
-# Import domain interfaces (following dependency inversion principle)
-from src.openchronicle.domain.ports.persistence_port import IPersistencePort
-from src.openchronicle.domain.ports.memory_port import IMemoryPort
+from typing import Any
+from typing import Optional
 
 from src.openchronicle.application.services.management.bookmark.bookmark_manager import (
     BookmarkManager,
 )
+from src.openchronicle.domain.ports.memory_port import IMemoryPort
+
+# Import domain interfaces (following dependency inversion principle)
+from src.openchronicle.domain.ports.persistence_port import IPersistencePort
 
 
 class TimelineManager:
     """Manages core timeline building and scene organization using dependency injection."""
 
-    def __init__(self, story_id: str, persistence_port: Optional[IPersistencePort] = None, memory_port: Optional[IMemoryPort] = None):
+    def __init__(
+        self,
+        story_id: str,
+        persistence_port: Optional[IPersistencePort] = None,
+        memory_port: Optional[IMemoryPort] = None,
+    ):
         """
         Initialize timeline manager.
 
@@ -35,21 +41,27 @@ class TimelineManager:
             memory_port: Memory interface implementation (injected)
         """
         self.story_id = story_id
-        
+
         # If no persistence port provided, create default adapter
         if persistence_port is None:
-            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import PersistenceAdapter
+            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import (
+                PersistenceAdapter,
+            )
+
             self.persistence = PersistenceAdapter()
         else:
             self.persistence = persistence_port
-            
+
         # If no memory port provided, create default adapter
         if memory_port is None:
-            from src.openchronicle.infrastructure.persistence_adapters.memory_adapter import MemoryAdapter
+            from src.openchronicle.infrastructure.persistence_adapters.memory_adapter import (
+                MemoryAdapter,
+            )
+
             self.memory = MemoryAdapter()
         else:
             self.memory = memory_port
-            
+
         self.bookmark_manager = BookmarkManager(story_id)
         self._init_database()
 
@@ -147,7 +159,7 @@ class TimelineManager:
             self.story_id,
             """
             SELECT scene_id, timestamp, input, output, scene_label
-            FROM scenes 
+            FROM scenes
             WHERE ABS(strftime('%s', timestamp) - strftime('%s', ?)) <= ?
             ORDER BY timestamp ASC
         """,

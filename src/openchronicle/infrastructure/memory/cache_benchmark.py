@@ -284,24 +284,24 @@ class CachePerformanceBenchmark:
 
         try:
             # Character operations benchmark
-            results["benchmarks"]["character_operations"] = (
-                await self.benchmark_character_operations(100)
-            )
+            results["benchmarks"][
+                "character_operations"
+            ] = await self.benchmark_character_operations(100)
 
             # Memory snapshots benchmark
-            results["benchmarks"]["memory_snapshots"] = (
-                await self.benchmark_memory_snapshots(50)
-            )
+            results["benchmarks"][
+                "memory_snapshots"
+            ] = await self.benchmark_memory_snapshots(50)
 
             # Concurrent operations benchmark
-            results["benchmarks"]["concurrent_operations"] = (
-                await self.benchmark_concurrent_operations(20)
-            )
+            results["benchmarks"][
+                "concurrent_operations"
+            ] = await self.benchmark_concurrent_operations(20)
 
             # Cache metrics
-            results["cache_metrics"] = (
-                await self.cached_orchestrator.get_cache_metrics()
-            )
+            results[
+                "cache_metrics"
+            ] = await self.cached_orchestrator.get_cache_metrics()
 
             # Calculate overall performance summary
             char_speedup = results["benchmarks"]["character_operations"][

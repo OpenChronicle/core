@@ -79,20 +79,19 @@ class TestDistributedCacheConfig:
     def test_cluster_config(self):
         """Test cluster configuration."""
         nodes = [
-            ClusterNode(host='redis1', port=6379),
-            ClusterNode(host='redis2', port=6380),
-            ClusterNode(host='redis3', port=6381)
+            ClusterNode(host="redis1", port=6379),
+            ClusterNode(host="redis2", port=6380),
+            ClusterNode(host="redis3", port=6381),
         ]
 
         partition_config = PartitionConfig(
-            partition_key_patterns=['char:*', 'scene:*'],
-            replication_factor=2
+            partition_key_patterns=["char:*", "scene:*"], replication_factor=2
         )
 
         config = DistributedCacheConfig(
             cluster_nodes=nodes,
             enable_clustering=True,
-            partition_config=partition_config
+            partition_config=partition_config,
         )
 
         assert config.enable_clustering is True
@@ -108,38 +107,38 @@ class TestDistributedCacheMetrics:
         metrics = DistributedCacheMetrics()
 
         # Record some cluster operations
-        metrics.record_cluster_operation('node_0', 'get', True, 0.05)
-        metrics.record_cluster_operation('node_0', 'set', True, 0.03)
-        metrics.record_cluster_operation('node_1', 'get', False, 0.15)
+        metrics.record_cluster_operation("node_0", "get", True, 0.05)
+        metrics.record_cluster_operation("node_0", "set", True, 0.03)
+        metrics.record_cluster_operation("node_1", "get", False, 0.15)
 
         summary = metrics.get_distributed_summary()
 
-        assert 'cluster_nodes' in summary
-        assert 'node_0' in summary['cluster_nodes']
-        assert 'node_1' in summary['cluster_nodes']
+        assert "cluster_nodes" in summary
+        assert "node_0" in summary["cluster_nodes"]
+        assert "node_1" in summary["cluster_nodes"]
 
-        node_0_metrics = summary['cluster_nodes']['node_0']
-        assert node_0_metrics['operations'] == 2
-        assert node_0_metrics['success_rate'] == 1.0
+        node_0_metrics = summary["cluster_nodes"]["node_0"]
+        assert node_0_metrics["operations"] == 2
+        assert node_0_metrics["success_rate"] == 1.0
 
-        node_1_metrics = summary['cluster_nodes']['node_1']
-        assert node_1_metrics['success_rate'] == 0.0
+        node_1_metrics = summary["cluster_nodes"]["node_1"]
+        assert node_1_metrics["success_rate"] == 0.0
 
     def test_partition_metrics_recording(self):
         """Test partition metrics recording."""
         metrics = DistributedCacheMetrics()
 
         # Record partition operations
-        metrics.record_partition_operation('partition_0', 'get', 'hash123')
-        metrics.record_partition_operation('partition_0', 'set', 'hash456')
-        metrics.record_partition_operation('partition_1', 'get', 'hash789')
+        metrics.record_partition_operation("partition_0", "get", "hash123")
+        metrics.record_partition_operation("partition_0", "set", "hash456")
+        metrics.record_partition_operation("partition_1", "get", "hash789")
 
         summary = metrics.get_distributed_summary()
 
-        assert 'partitions' in summary
-        assert 'partition_0' in summary['partitions']
-        assert summary['partitions']['partition_0']['operations'] == 2
-        assert summary['partitions']['partition_0']['unique_keys'] == 2
+        assert "partitions" in summary
+        assert "partition_0" in summary["partitions"]
+        assert summary["partitions"]["partition_0"]["operations"] == 2
+        assert summary["partitions"]["partition_0"]["unique_keys"] == 2
 
 
 class TestCachePartitioner:
@@ -148,12 +147,12 @@ class TestCachePartitioner:
     def test_key_partitioning(self):
         """Test consistent key partitioning."""
         nodes = [
-            ClusterNode(host='redis1', port=6379),
-            ClusterNode(host='redis2', port=6380),
-            ClusterNode(host='redis3', port=6381)
+            ClusterNode(host="redis1", port=6379),
+            ClusterNode(host="redis2", port=6380),
+            ClusterNode(host="redis3", port=6381),
         ]
 
-        config = PartitionConfig(partition_key_patterns=['*'])
+        config = PartitionConfig(partition_key_patterns=["*"])
         partitioner = CachePartitioner(config, nodes)
 
         # Test same key always goes to same partition
@@ -167,8 +166,8 @@ class TestCachePartitioner:
 
     def test_replication_nodes(self):
         """Test replica node calculation."""
-        nodes = [ClusterNode(host=f'redis{i}', port=6379+i) for i in range(5)]
-        config = PartitionConfig(partition_key_patterns=['*'], replication_factor=3)
+        nodes = [ClusterNode(host=f"redis{i}", port=6379 + i) for i in range(5)]
+        config = PartitionConfig(partition_key_patterns=["*"], replication_factor=3)
         partitioner = CachePartitioner(config, nodes)
 
         replicas = partitioner.get_replica_nodes(0)
@@ -185,16 +184,19 @@ class TestRedisClusterManager:
     """Test Redis cluster management."""
 
     @pytest.mark.asyncio
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.REDIS_AVAILABLE', True)
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.redis')
+    @patch(
+        "src.openchronicle.infrastructure.memory.distributed_cache.REDIS_AVAILABLE",
+        True,
+    )
+    @patch("src.openchronicle.infrastructure.memory.distributed_cache.redis")
     async def test_single_node_initialization(self, mock_redis):
         """Test single node Redis initialization."""
         mock_client = AsyncMock()
         mock_client.ping.return_value = True
-        mock_client.info.return_value = {'redis_version': '6.0.0'}
+        mock_client.info.return_value = {"redis_version": "6.0.0"}
         mock_redis.Redis.return_value = mock_client
 
-        config = DistributedCacheConfig(redis_host='localhost', redis_port=6379)
+        config = DistributedCacheConfig(redis_host="localhost", redis_port=6379)
         manager = RedisClusterManager(config)
 
         await manager.initialize_cluster()
@@ -204,9 +206,12 @@ class TestRedisClusterManager:
         assert len(manager.clients) == 1
 
     @pytest.mark.asyncio
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.REDIS_AVAILABLE', True)
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.RedisCluster')
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.redis')
+    @patch(
+        "src.openchronicle.infrastructure.memory.distributed_cache.REDIS_AVAILABLE",
+        True,
+    )
+    @patch("src.openchronicle.infrastructure.memory.distributed_cache.RedisCluster")
+    @patch("src.openchronicle.infrastructure.memory.distributed_cache.redis")
     async def test_cluster_initialization(self, mock_redis, mock_redis_cluster):
         """Test Redis cluster initialization."""
         mock_client = AsyncMock()
@@ -214,14 +219,11 @@ class TestRedisClusterManager:
         mock_redis.Redis.return_value = mock_client
         mock_cluster = AsyncMock()
         mock_cluster.ping.return_value = True
-        mock_cluster.cluster_info.return_value = {'cluster_state': 'ok'}
+        mock_cluster.cluster_info.return_value = {"cluster_state": "ok"}
         mock_redis_cluster.return_value = mock_cluster
 
-        nodes = [ClusterNode(host=f'redis{i}', port=6379+i) for i in range(3)]
-        config = DistributedCacheConfig(
-            cluster_nodes=nodes,
-            enable_clustering=True
-        )
+        nodes = [ClusterNode(host=f"redis{i}", port=6379 + i) for i in range(3)]
+        config = DistributedCacheConfig(cluster_nodes=nodes, enable_clustering=True)
 
         manager = RedisClusterManager(config)
         await manager.initialize_cluster()
@@ -233,8 +235,11 @@ class TestRedisClusterManager:
         assert len(manager.clients) == 3
 
     @pytest.mark.asyncio
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.REDIS_AVAILABLE', True)
-    @patch('src.openchronicle.infrastructure.memory.distributed_cache.redis')
+    @patch(
+        "src.openchronicle.infrastructure.memory.distributed_cache.REDIS_AVAILABLE",
+        True,
+    )
+    @patch("src.openchronicle.infrastructure.memory.distributed_cache.redis")
     async def test_distributed_get_set_operations(self, mock_redis):
         """Test distributed get/set operations through cluster manager."""
         mock_client = AsyncMock()
@@ -244,7 +249,7 @@ class TestRedisClusterManager:
         mock_client.ping.return_value = True
         mock_redis.Redis.return_value = mock_client
 
-        config = DistributedCacheConfig(redis_host='localhost', redis_port=6379)
+        config = DistributedCacheConfig(redis_host="localhost", redis_port=6379)
         manager = RedisClusterManager(config)
         await manager.initialize_cluster()
 
@@ -297,8 +302,8 @@ class TestCacheWarmingManager:
 
         warming_manager = CacheWarmingManager(mock_cache)
 
-        character_names = ['alice', 'bob', 'charlie']
-        results = await warming_manager.warm_character_cache('story1', character_names)
+        character_names = ["alice", "bob", "charlie"]
+        results = await warming_manager.warm_character_cache("story1", character_names)
 
         assert len(results) == 3
         assert all(success for success in results.values())
@@ -312,7 +317,7 @@ class TestCacheWarmingManager:
 
         warming_manager = CacheWarmingManager(mock_cache)
 
-        story_ids = ['story1', 'story2']
+        story_ids = ["story1", "story2"]
         results = await warming_manager.warm_memory_snapshots(story_ids)
 
         assert len(results) == 2
@@ -330,11 +335,13 @@ class TestDistributedMultiTierCache:
         cache = DistributedMultiTierCache(config)
 
         # Mock the cluster manager initialization
-        with patch.object(cache.cluster_manager, 'initialize_cluster') as mock_init:
+        with patch.object(cache.cluster_manager, "initialize_cluster") as mock_init:
             await cache.initialize()
             mock_init.assert_called_once()
 
-    @pytest.mark.skipif(True, reason="Distributed cache integration test - requires Redis cluster setup")
+    @pytest.mark.skipif(
+        True, reason="Distributed cache integration test - requires Redis cluster setup"
+    )
     async def test_distributed_get_set_operations(self):
         """Test distributed get/set operations."""
         config = DistributedCacheConfig(enable_monitoring=False)
@@ -345,7 +352,9 @@ class TestDistributedMultiTierCache:
         mock_client.get.return_value = json.dumps({"test": "value"})
         mock_client.setex.return_value = True
 
-        cache.cluster_manager.get_client_for_key = AsyncMock(return_value=(mock_client, 0))
+        cache.cluster_manager.get_client_for_key = AsyncMock(
+            return_value=(mock_client, 0)
+        )
 
         # Test set operation
         result = await cache.set("test:key", {"test": "value"})
@@ -359,22 +368,26 @@ class TestDistributedMultiTierCache:
 
     async def test_cache_warming_integration(self):
         """Test cache warming integration."""
-        config = DistributedCacheConfig(enable_monitoring=False, enable_cache_warming=True)
+        config = DistributedCacheConfig(
+            enable_monitoring=False, enable_cache_warming=True
+        )
         cache = DistributedMultiTierCache(config)
 
         # Mock the warming manager
-        with patch.object(cache.warming_manager, 'warm_memory_snapshots') as mock_memory, \
-             patch.object(cache.warming_manager, 'warm_character_cache') as mock_char:
+        with patch.object(
+            cache.warming_manager, "warm_memory_snapshots"
+        ) as mock_memory, patch.object(
+            cache.warming_manager, "warm_character_cache"
+        ) as mock_char:
+            mock_memory.return_value = {"story1": True}
+            mock_char.return_value = {"alice": True, "bob": True}
 
-            mock_memory.return_value = {'story1': True}
-            mock_char.return_value = {'alice': True, 'bob': True}
+            results = await cache.warm_cache(["story1"], {"story1": ["alice", "bob"]})
 
-            results = await cache.warm_cache(['story1'], {'story1': ['alice', 'bob']})
-
-            assert 'memory_snapshots' in results
-            assert 'characters' in results
-            mock_memory.assert_called_once_with(['story1'])
-            mock_char.assert_called_once_with('story1', ['alice', 'bob'])
+            assert "memory_snapshots" in results
+            assert "characters" in results
+            mock_memory.assert_called_once_with(["story1"])
+            mock_char.assert_called_once_with("story1", ["alice", "bob"])
 
 
 class TestPerformanceAnalytics:
@@ -386,9 +399,9 @@ class TestPerformanceAnalytics:
 
         # Add test metrics
         test_metrics = {
-            'overall_hit_rate': 0.8,
-            'avg_redis_response_ms': 25.5,
-            'total_operations': 1000
+            "overall_hit_rate": 0.8,
+            "avg_redis_response_ms": 25.5,
+            "total_operations": 1000,
         }
 
         collector.add_metrics_snapshot(test_metrics)
@@ -396,7 +409,7 @@ class TestPerformanceAnalytics:
         assert len(collector.metrics_history) == 1
 
         # Test time series extraction
-        series = collector.get_time_series('overall_hit_rate', hours=1)
+        series = collector.get_time_series("overall_hit_rate", hours=1)
         assert len(series) >= 0  # May be empty due to time constraints in test
 
     def test_alert_manager(self):
@@ -404,12 +417,12 @@ class TestPerformanceAnalytics:
         alert_manager = AlertManager()
 
         # Test metrics that should trigger alerts
-        low_hit_rate_metrics = {'overall_hit_rate': 0.4}
+        low_hit_rate_metrics = {"overall_hit_rate": 0.4}
         alerts = alert_manager.check_alerts(low_hit_rate_metrics)
 
         # Should trigger both warning and critical alerts
         assert len(alerts) >= 1
-        critical_alerts = [a for a in alerts if a.severity == 'critical']
+        critical_alerts = [a for a in alerts if a.severity == "critical"]
         assert len(critical_alerts) >= 1
 
     def test_recommendation_engine(self):
@@ -419,20 +432,22 @@ class TestPerformanceAnalytics:
 
         # Test metrics with performance issues
         poor_metrics = {
-            'overall_hit_rate': 0.3,
-            'avg_redis_response_ms': 150,
-            'cluster_nodes': {
-                'node_0': {'operations': 1000},
-                'node_1': {'operations': 100}
-            }
+            "overall_hit_rate": 0.3,
+            "avg_redis_response_ms": 150,
+            "cluster_nodes": {
+                "node_0": {"operations": 1000},
+                "node_1": {"operations": 100},
+            },
         }
 
         recommendations = engine.analyze_performance(poor_metrics, collector)
 
-        assert len(recommendations) >= 2  # Should recommend hit rate and response time improvements
-        rec_types = [r['type'] for r in recommendations]
-        assert 'hit_rate' in rec_types
-        assert 'response_time' in rec_types
+        assert (
+            len(recommendations) >= 2
+        )  # Should recommend hit rate and response time improvements
+        rec_types = [r["type"] for r in recommendations]
+        assert "hit_rate" in rec_types
+        assert "response_time" in rec_types
 
 
 @pytest.mark.asyncio
@@ -443,8 +458,8 @@ class TestCacheAnalyticsDashboard:
         """Test dashboard creation and initialization."""
         mock_cache = AsyncMock()
         mock_cache.get_distributed_metrics.return_value = {
-            'overall_hit_rate': 0.85,
-            'total_operations': 5000
+            "overall_hit_rate": 0.85,
+            "total_operations": 5000,
         }
 
         dashboard = CacheAnalyticsDashboard(mock_cache)
@@ -463,10 +478,8 @@ class TestCacheAnalyticsDashboard:
         """Test dashboard data collection."""
         mock_cache = AsyncMock()
         mock_cache.get_distributed_metrics.return_value = {
-            'overall_hit_rate': 0.85,
-            'cluster_nodes': {
-                'node_0': {'operations': 100, 'success_rate': 0.95}
-            }
+            "overall_hit_rate": 0.85,
+            "cluster_nodes": {"node_0": {"operations": 100, "success_rate": 0.95}},
         }
 
         dashboard = CacheAnalyticsDashboard(mock_cache)
@@ -477,8 +490,8 @@ class TestCacheAnalyticsDashboard:
 
         # Get cluster overview
         overview = dashboard.get_cluster_overview()
-        assert overview['total_nodes'] >= 0
-        assert 'nodes' in overview
+        assert overview["total_nodes"] >= 0
+        assert "nodes" in overview
 
 
 class TestProductionMonitoring:
@@ -502,9 +515,9 @@ class TestProductionMonitoring:
         mock_cache.get.return_value = {"test": "value"}
         mock_cache.delete.return_value = True
         mock_cache.get_distributed_metrics.return_value = {
-            'overall_hit_rate': 0.8,
-            'avg_redis_response_ms': 50,
-            'operations_per_second': 100
+            "overall_hit_rate": 0.8,
+            "avg_redis_response_ms": 50,
+            "operations_per_second": 100,
         }
 
         health_checker = HealthChecker(mock_cache)
@@ -529,10 +542,9 @@ class TestProductionMonitoring:
         logger.log_cache_event("test_event", {"key": "value"})
 
         # Test specific log methods
-        logger.log_performance_metrics({
-            'overall_hit_rate': 0.8,
-            'total_operations': 1000
-        })
+        logger.log_performance_metrics(
+            {"overall_hit_rate": 0.8, "total_operations": 1000}
+        )
 
         logger.log_alert("performance", "warning", "Test alert")
 
@@ -547,15 +559,15 @@ class TestIntegrationScenarios:
     async def test_production_cache_setup(self):
         """Test production cache setup."""
         cluster_nodes = [
-            {'host': 'redis1', 'port': 6379},
-            {'host': 'redis2', 'port': 6380},
-            {'host': 'redis3', 'port': 6381}
+            {"host": "redis1", "port": 6379},
+            {"host": "redis2", "port": 6380},
+            {"host": "redis3", "port": 6381},
         ]
 
         cache = create_production_distributed_cache(
             cluster_nodes=cluster_nodes,
             enable_monitoring=False,  # Disable for testing
-            enable_cache_warming=True
+            enable_cache_warming=True,
         )
 
         assert isinstance(cache, DistributedMultiTierCache)
@@ -563,8 +575,12 @@ class TestIntegrationScenarios:
         assert len(cache.config.cluster_nodes) == 3
         assert cache.config.enable_cache_warming is True
 
-    @pytest.mark.skipif(True, reason="Production monitoring integration test - requires complex setup")
-    @patch('src.openchronicle.infrastructure.memory.production_monitoring.setup_production_monitoring')
+    @pytest.mark.skipif(
+        True, reason="Production monitoring integration test - requires complex setup"
+    )
+    @patch(
+        "src.openchronicle.infrastructure.memory.production_monitoring.setup_production_monitoring"
+    )
     async def test_full_monitoring_setup(self, mock_setup):
         """Test full monitoring setup integration."""
         mock_cache = AsyncMock()
@@ -581,20 +597,20 @@ class TestIntegrationScenarios:
         """Test cache warming with performance monitoring."""
         config = DistributedCacheConfig(
             enable_monitoring=False,  # Disable background monitoring for test
-            enable_cache_warming=True
+            enable_cache_warming=True,
         )
 
         cache = DistributedMultiTierCache(config)
 
         # Mock the underlying operations
-        with patch.object(cache.warming_manager, 'warm_character_cache') as mock_warm:
-            mock_warm.return_value = {'alice': True, 'bob': True}
+        with patch.object(cache.warming_manager, "warm_character_cache") as mock_warm:
+            mock_warm.return_value = {"alice": True, "bob": True}
 
             # Test warming operation
-            results = await cache.warm_cache(['story1'], {'story1': ['alice', 'bob']})
+            results = await cache.warm_cache(["story1"], {"story1": ["alice", "bob"]})
 
-            assert 'characters' in results
-            assert results['characters']['story1']['alice'] is True
+            assert "characters" in results
+            assert results["characters"]["story1"]["alice"] is True
             mock_warm.assert_called_once()
 
 
@@ -604,16 +620,14 @@ class TestRealRedisIntegration:
 
     @pytest.mark.skipif(
         True,  # Always skip for now - Redis is optional dependency
-        reason="Redis integration tests require redis server setup"
+        reason="Redis integration tests require redis server setup",
     )
     @pytest.mark.asyncio
     async def test_real_redis_operations(self):
         """Test with real Redis server (if available)."""
         try:
             config = DistributedCacheConfig(
-                redis_host='localhost',
-                redis_port=6379,
-                enable_monitoring=False
+                redis_host="localhost", redis_port=6379, enable_monitoring=False
             )
 
             cache = DistributedMultiTierCache(config)

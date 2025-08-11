@@ -323,9 +323,7 @@ class MoodTracker:
         # neutral
         return 0.0
 
-    def _detect_mood_cycles(
-        self, mood_history: list[MoodEntry]
-    ) -> MoodPattern | None:
+    def _detect_mood_cycles(self, mood_history: list[MoodEntry]) -> MoodPattern | None:
         """Detect cyclic patterns in mood history."""
         # Simplified cycle detection - could be enhanced
         if len(mood_history) < 10:

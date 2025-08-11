@@ -24,9 +24,12 @@ class TestAsyncDatabaseOperations:
     def test_story_id(self):
         """Generate unique test story ID for each test."""
         import uuid
+
         return f"test_async_story_{uuid.uuid4().hex[:8]}"
 
-    async def test_async_database_initialization(self, async_orchestrator, test_story_id):
+    async def test_async_database_initialization(
+        self, async_orchestrator, test_story_id
+    ):
         """Test async database initialization."""
         result = await async_orchestrator.init_database(test_story_id, is_test=True)
         assert result is True
@@ -40,6 +43,7 @@ class TestAsyncDatabaseOperations:
     async def test_async_basic_operations(self, async_orchestrator, test_story_id):
         """Test basic async CRUD operations."""
         import uuid
+
         scene_id_str = f"scene_{uuid.uuid4().hex[:8]}"
 
         # Initialize database first
@@ -47,13 +51,14 @@ class TestAsyncDatabaseOperations:
 
         # Test INSERT
         insert_query = """
-            INSERT INTO scenes (id, title, content, timestamp) 
+            INSERT INTO scenes (id, title, content, timestamp)
             VALUES (?, ?, ?, ?)
         """
         scene_id = await async_orchestrator.execute_insert(
-            test_story_id, insert_query,
+            test_story_id,
+            insert_query,
             (scene_id_str, "Test Scene", "This is a test scene.", 1234567890.0),
-            is_test=True
+            is_test=True,
         )
         assert scene_id is not None
 
@@ -75,8 +80,10 @@ class TestAsyncDatabaseOperations:
 
         # Verify update
         results = await async_orchestrator.execute_query(
-            test_story_id, "SELECT title FROM scenes WHERE id = ?",
-            (scene_id_str,), is_test=True
+            test_story_id,
+            "SELECT title FROM scenes WHERE id = ?",
+            (scene_id_str,),
+            is_test=True,
         )
         assert results[0]["title"] == "Updated Scene"
 
@@ -89,7 +96,7 @@ class TestAsyncDatabaseOperations:
         params_list = [
             ("char_001", "Alice", "Main protagonist"),
             ("char_002", "Bob", "Supporting character"),
-            ("char_003", "Charlie", "Antagonist")
+            ("char_003", "Charlie", "Antagonist"),
         ]
 
         result = await async_orchestrator.execute_many(
@@ -107,12 +114,16 @@ class TestAsyncDatabaseOperations:
         """Test async database integrity check."""
         await async_orchestrator.init_database(test_story_id, is_test=True)
 
-        integrity_result = await async_orchestrator.check_integrity(test_story_id, is_test=True)
+        integrity_result = await async_orchestrator.check_integrity(
+            test_story_id, is_test=True
+        )
         assert integrity_result is True
 
     async def test_async_connection_check(self, async_orchestrator, test_story_id):
         """Test async connection verification."""
-        connection_result = await async_orchestrator.check_connection(test_story_id, is_test=True)
+        connection_result = await async_orchestrator.check_connection(
+            test_story_id, is_test=True
+        )
         assert connection_result is True
 
     async def test_async_startup_health_check(self, async_orchestrator):
@@ -133,6 +144,7 @@ class TestAsyncDatabaseOperations:
     async def test_async_concurrent_operations(self, async_orchestrator, test_story_id):
         """Test concurrent async operations."""
         import uuid
+
         base_id = uuid.uuid4().hex[:8]
 
         await async_orchestrator.init_database(test_story_id, is_test=True)
@@ -141,9 +153,14 @@ class TestAsyncDatabaseOperations:
         async def insert_scene(scene_num):
             query = "INSERT INTO scenes (id, title, content) VALUES (?, ?, ?)"
             return await async_orchestrator.execute_insert(
-                test_story_id, query,
-                (f"scene_{base_id}_{scene_num:03d}", f"Scene {scene_num}", f"Content {scene_num}"),
-                is_test=True
+                test_story_id,
+                query,
+                (
+                    f"scene_{base_id}_{scene_num:03d}",
+                    f"Scene {scene_num}",
+                    f"Content {scene_num}",
+                ),
+                is_test=True,
             )
 
         # Run 10 concurrent inserts
@@ -151,7 +168,9 @@ class TestAsyncDatabaseOperations:
         results = await asyncio.gather(*tasks)
 
         # Verify all inserts succeeded
-        assert all(result is not None for result in results), f"Some inserts failed: {results}"
+        assert all(
+            result is not None for result in results
+        ), f"Some inserts failed: {results}"
 
         # Verify all scenes were inserted
         count_result = await async_orchestrator.execute_query(
@@ -173,12 +192,16 @@ class TestAsyncDatabasePerformance:
     def performance_story_id(self):
         """Generate unique performance test story ID."""
         import uuid
+
         return f"perf_test_async_{uuid.uuid4().hex[:8]}"
 
-    async def test_async_performance_baseline(self, async_orchestrator, performance_story_id):
+    async def test_async_performance_baseline(
+        self, async_orchestrator, performance_story_id
+    ):
         """Establish performance baseline for async operations."""
         import time
         import uuid
+
         base_id = uuid.uuid4().hex[:8]
 
         await async_orchestrator.init_database(performance_story_id, is_test=True)
@@ -188,7 +211,12 @@ class TestAsyncDatabasePerformance:
 
         query = "INSERT INTO scenes (id, title, content, timestamp) VALUES (?, ?, ?, ?)"
         params_list = [
-            (f"scene_{base_id}_{i:04d}", f"Scene {i}", f"Content for scene {i}", time.time())
+            (
+                f"scene_{base_id}_{i:04d}",
+                f"Scene {i}",
+                f"Content for scene {i}",
+                time.time(),
+            )
             for i in range(100)
         ]
 

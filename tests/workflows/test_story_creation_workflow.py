@@ -306,7 +306,7 @@ class TestStoryCreationWorkflow:
         self, test_story_data, workflow_orchestrators
     ):
         """Test creating multiple stories concurrently."""
-        story_ids = [
+        [
             f"{test_story_data['story_id']}_concurrent_1",
             f"{test_story_data['story_id']}_concurrent_2",
         ]

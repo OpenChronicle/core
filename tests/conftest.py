@@ -135,7 +135,9 @@ def pytest_configure(config: pytest.Config) -> None:
         os.environ["OPENCHRONICLE_TEST_TIER"] = "stress"
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
     """Modify test collection to add default markers based on file path / name."""
     for item in items:
         p = str(item.fspath)
@@ -161,7 +163,9 @@ def artifact_root(pytestconfig: pytest.Config) -> Path:
     if override:
         root = Path(override).expanduser().resolve()
     else:
-        root = Path(tempfile.gettempdir()) / f"openchronicle_tests_{uuid.uuid4().hex[:8]}"
+        root = (
+            Path(tempfile.gettempdir()) / f"openchronicle_tests_{uuid.uuid4().hex[:8]}"
+        )
     root.mkdir(parents=True, exist_ok=True)
     os.environ["OPENCHRONICLE_ARTIFACT_ROOT"] = str(root)
     return root
@@ -290,6 +294,7 @@ def scene_orchestrator(clean_test_environment):
     from src.openchronicle.domain.services.scenes.scene_orchestrator import (
         SceneOrchestrator,
     )
+
     story_id = clean_test_environment["story_id"]
     return SceneOrchestrator(story_id=story_id, config={"enable_logging": False})
 
@@ -300,6 +305,7 @@ def timeline_orchestrator(clean_test_environment):
     from src.openchronicle.domain.services.timeline.timeline_orchestrator import (
         TimelineOrchestrator,
     )
+
     story_id = clean_test_environment["story_id"]
     return TimelineOrchestrator(story_id=story_id)
 
@@ -310,6 +316,7 @@ def memory_orchestrator():
     from src.openchronicle.infrastructure.memory.memory_orchestrator import (
         MemoryOrchestrator,
     )
+
     return MemoryOrchestrator()
 
 
@@ -319,6 +326,7 @@ def context_orchestrator():
     from src.openchronicle.infrastructure.content.context.orchestrator import (
         ContextOrchestrator,
     )
+
     return ContextOrchestrator()
 
 
@@ -326,6 +334,7 @@ def context_orchestrator():
 def model_orchestrator():
     """Create a model orchestrator for testing."""
     from src.openchronicle.domain.models.model_orchestrator import ModelOrchestrator
+
     return ModelOrchestrator()
 
 
@@ -339,7 +348,9 @@ def test_story_id() -> str:
 
 
 @pytest.fixture
-def clean_test_environment(temp_test_dir: str, test_story_id: str) -> Iterator[dict[str, Any]]:
+def clean_test_environment(
+    temp_test_dir: str, test_story_id: str
+) -> Iterator[dict[str, Any]]:
     """Create a clean test environment with temporary storage."""
     test_storage = Path(temp_test_dir) / "storage"
     (test_storage / "characters").mkdir(parents=True, exist_ok=True)
@@ -372,7 +383,9 @@ def create_test_scene_data(scene_id: str | None = None, **kwargs) -> dict[str, A
         "scene_id": scene_id,
         "user_input": kwargs.get("user_input", "Test user input"),
         "model_output": kwargs.get("model_output", "Test model output"),
-        "memory_snapshot": kwargs.get("memory_snapshot", {"characters": {}, "location": "test"}),
+        "memory_snapshot": kwargs.get(
+            "memory_snapshot", {"characters": {}, "location": "test"}
+        ),
         "flags": kwargs.get("flags", ["test"]),
         "context_refs": kwargs.get("context_refs", []),
         "analysis_data": kwargs.get("analysis_data", {"mood": "neutral", "tokens": 50}),
@@ -384,7 +397,9 @@ def create_test_scene_data(scene_id: str | None = None, **kwargs) -> dict[str, A
     return data
 
 
-def create_test_character_data(character_name: str | None = None, **kwargs) -> dict[str, Any]:
+def create_test_character_data(
+    character_name: str | None = None, **kwargs
+) -> dict[str, Any]:
     """Create test character data with default values."""
     if character_name is None:
         character_name = f"test_character_{uuid.uuid4().hex[:8]}"
@@ -394,7 +409,11 @@ def create_test_character_data(character_name: str | None = None, **kwargs) -> d
         "background": kwargs.get("background", "Test background"),
         "current_state": kwargs.get(
             "current_state",
-            {"emotional_state": "neutral", "physical_state": "healthy", "location": "test_location"},
+            {
+                "emotional_state": "neutral",
+                "physical_state": "healthy",
+                "location": "test_location",
+            },
         ),
         "relationships": kwargs.get("relationships", {}),
         "goals": kwargs.get("goals", ["test_goal"]),
@@ -502,12 +521,14 @@ def make_mock_model_orchestrator() -> Callable[..., Any]:
         m = make_mock_model_orchestrator(simulate_failures=True, max_retries=2)
     Only sets attributes that actually exist on the mock.
     """
+
     def _make(**opts: Any) -> Any:
         m = MockModelOrchestrator()
         for k, v in opts.items():
             if hasattr(m, k):
                 setattr(m, k, v)
         return m
+
     return _make
 
 
@@ -518,10 +539,12 @@ def make_mock_database_manager() -> Callable[..., Any]:
         db = make_mock_database_manager(simulate_delay=0.05, failure_rate=0.1)
     Only sets attributes that actually exist on the mock.
     """
+
     def _make(**opts: Any) -> Any:
         db = MockDatabaseManager()
         for k, v in opts.items():
             if hasattr(db, k):
                 setattr(db, k, v)
         return db
+
     return _make

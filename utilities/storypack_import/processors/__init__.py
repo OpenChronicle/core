@@ -11,8 +11,4 @@ from .content_classifier import ContentClassifier
 from .validation_engine import ValidationEngine
 
 
-__all__ = [
-    'AIProcessor',
-    'ContentClassifier',
-    'ValidationEngine'
-]
+__all__ = ["AIProcessor", "ContentClassifier", "ValidationEngine"]

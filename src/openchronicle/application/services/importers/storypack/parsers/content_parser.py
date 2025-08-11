@@ -11,6 +11,7 @@ from pathlib import Path
 
 try:
     import chardet
+
     CHARDET_AVAILABLE = True
 except ImportError:
     CHARDET_AVAILABLE = False
@@ -30,28 +31,42 @@ class ContentParser(IContentParser):
         self.logger = get_logger()
 
         # Supported file extensions
-        self.supported_extensions = {'.txt', '.md', '.json'}
+        self.supported_extensions = {".txt", ".md", ".json"}
 
         # Content categorization rules
         self.content_categories = {
-            'characters': ['characters', 'people', 'npcs', 'char', 'character'],
-            'locations': ['locations', 'places', 'settings', 'loc', 'location', 'world'],
-            'lore': ['lore', 'history', 'background', 'world', 'canon', 'backstory'],
-            'narrative': ['story', 'plot', 'scenes', 'narrative', 'chapters', 'chapter']
+            "characters": ["characters", "people", "npcs", "char", "character"],
+            "locations": [
+                "locations",
+                "places",
+                "settings",
+                "loc",
+                "location",
+                "world",
+            ],
+            "lore": ["lore", "history", "background", "world", "canon", "backstory"],
+            "narrative": [
+                "story",
+                "plot",
+                "scenes",
+                "narrative",
+                "chapters",
+                "chapter",
+            ],
         }
 
     def discover_files(self, source_path: Path) -> dict[str, list[ContentFile]]:
         """
         Discover and categorize all supported files in the source directory.
-        
+
         Args:
             source_path: Path to the source directory to scan
-            
+
         Returns:
             Dictionary mapping categories to lists of ContentFile objects
         """
         discovered_files = {category: [] for category in self.content_categories.keys()}
-        discovered_files['uncategorized'] = []
+        discovered_files["uncategorized"] = []
 
         if not source_path.exists():
             self.logger.warning(f"Source path does not exist: {source_path}")
@@ -69,7 +84,7 @@ class ContentParser(IContentParser):
                             path=file_path,
                             category=self.categorize_file(file_path),
                             size=file_path.stat().st_size,
-                            encoding=self._detect_encoding(file_path)
+                            encoding=self._detect_encoding(file_path),
                         )
 
                         discovered_files[content_file.category].append(content_file)
@@ -82,22 +97,28 @@ class ContentParser(IContentParser):
             self.logger.error(f"Error scanning directory {source_path}: {e}")
 
         # Log discovery results
-        category_counts = {cat: len(files) for cat, files in discovered_files.items() if files}
-        log_system_event("content_parser", "File discovery completed", {
-            "source_path": str(source_path),
-            "total_files": total_files,
-            "categories": category_counts
-        })
+        category_counts = {
+            cat: len(files) for cat, files in discovered_files.items() if files
+        }
+        log_system_event(
+            "content_parser",
+            "File discovery completed",
+            {
+                "source_path": str(source_path),
+                "total_files": total_files,
+                "categories": category_counts,
+            },
+        )
 
         return discovered_files
 
     def categorize_file(self, file_path: Path) -> str:
         """
         Categorize a file based on its path and filename patterns.
-        
+
         Args:
             file_path: Path to the file to categorize
-            
+
         Returns:
             Category name or 'uncategorized'
         """
@@ -114,18 +135,18 @@ class ContentParser(IContentParser):
             if any(keyword in filename for keyword in keywords):
                 return category
 
-        return 'uncategorized'
+        return "uncategorized"
 
     def read_file_content(self, file_path: Path) -> tuple[str, str]:
         """
         Read file content and return content with detected encoding.
-        
+
         Args:
             file_path: Path to the file to read
-            
+
         Returns:
             Tuple of (content, encoding)
-            
+
         Raises:
             IOError: If file cannot be read
         """
@@ -146,10 +167,10 @@ class ContentParser(IContentParser):
     def validate_file_format(self, file_path: Path) -> bool:
         """
         Check if a file format is supported for import.
-        
+
         Args:
             file_path: Path to the file to validate
-            
+
         Returns:
             True if file format is supported, False otherwise
         """
@@ -162,11 +183,11 @@ class ContentParser(IContentParser):
             return False
 
         # Additional validation for specific formats
-        if extension == '.json':
+        if extension == ".json":
             return self._validate_json_file(file_path)
 
         # Basic validation for text files
-        if extension in {'.txt', '.md'}:
+        if extension in {".txt", ".md"}:
             return self._validate_text_file(file_path)
 
         return True
@@ -174,33 +195,35 @@ class ContentParser(IContentParser):
     def _detect_encoding(self, file_path: Path) -> str:
         """
         Detect file encoding using chardet.
-        
+
         Args:
             file_path: Path to the file
-            
+
         Returns:
             Detected encoding string, defaults to 'utf-8'
         """
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 # Read a sample to detect encoding
-                raw_data = f.read(min(32768, file_path.stat().st_size))  # Read up to 32KB
+                raw_data = f.read(
+                    min(32768, file_path.stat().st_size)
+                )  # Read up to 32KB
 
             if raw_data:
                 if CHARDET_AVAILABLE:
                     detection = chardet.detect(raw_data)
-                    if detection and detection['encoding']:
-                        confidence = detection.get('confidence', 0)
+                    if detection and detection["encoding"]:
+                        confidence = detection.get("confidence", 0)
                         if confidence > 0.7:  # Only trust high-confidence detections
-                            return detection['encoding']
+                            return detection["encoding"]
                 else:
                     # Simple fallback encoding detection without chardet
                     try:
-                        raw_data.decode('utf-8')
-                        return 'utf-8'
+                        raw_data.decode("utf-8")
+                        return "utf-8"
                     except UnicodeDecodeError:
                         # Try common encodings
-                        for encoding in ['latin-1', 'cp1252', 'ascii']:
+                        for encoding in ["latin-1", "cp1252", "ascii"]:
                             try:
                                 raw_data.decode(encoding)
                                 return encoding
@@ -208,17 +231,18 @@ class ContentParser(IContentParser):
                                 continue
 
             # Default to UTF-8 if detection fails or confidence is low
-            return 'utf-8'
+            return "utf-8"
 
         except Exception as e:
             self.logger.warning(f"Encoding detection failed for {file_path}: {e}")
-            return 'utf-8'
+            return "utf-8"
 
     def _validate_json_file(self, file_path: Path) -> bool:
         """Validate that a JSON file is well-formed."""
         try:
             import json
-            with open(file_path, encoding='utf-8') as f:
+
+            with open(file_path, encoding="utf-8") as f:
                 json.load(f)
             return True
         except Exception:
@@ -233,11 +257,11 @@ class ContentParser(IContentParser):
                 return False
 
             # Try to read the first few bytes to ensure it's readable
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 first_bytes = f.read(1024)
 
             # Check for binary content (very basic heuristic)
-            if b'\x00' in first_bytes:
+            if b"\x00" in first_bytes:
                 return False
 
             return True

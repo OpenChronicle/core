@@ -39,7 +39,10 @@ def measure_test_execution_time() -> dict[str, float]:
     # Measure different test categories
     test_commands = [
         ("unit_tests", ["python", "-m", "pytest", "tests/unit/", "-q", "--tb=no"]),
-        ("integration_tests", ["python", "-m", "pytest", "tests/integration/", "-q", "--tb=no"]),
+        (
+            "integration_tests",
+            ["python", "-m", "pytest", "tests/integration/", "-q", "--tb=no"],
+        ),
         ("all_tests", ["python", "-m", "pytest", "tests/", "-q", "--tb=no"]),
     ]
 
@@ -48,30 +51,31 @@ def measure_test_execution_time() -> dict[str, float]:
             start_time = time.perf_counter()
             result = subprocess.run(
                 command,
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=300,  # 5 minute timeout
             )
             end_time = time.perf_counter()
 
             metrics[test_name] = {
                 "execution_time": end_time - start_time,
                 "success": result.returncode == 0,
-                "test_count": _extract_test_count(result.stdout)
+                "test_count": _extract_test_count(result.stdout),
             }
         except subprocess.TimeoutExpired:
             metrics[test_name] = {
                 "execution_time": 300.0,
                 "success": False,
                 "test_count": 0,
-                "error": "timeout"
+                "error": "timeout",
             }
         except Exception as e:
             metrics[test_name] = {
                 "execution_time": 0.0,
                 "success": False,
                 "test_count": 0,
-                "error": str(e)
+                "error": str(e),
             }
 
     return metrics
@@ -82,7 +86,8 @@ def _extract_test_count(pytest_output: str) -> int:
     try:
         # Look for pattern like "347 passed"
         import re
-        match = re.search(r'(\d+) passed', pytest_output)
+
+        match = re.search(r"(\d+) passed", pytest_output)
         if match:
             return int(match.group(1))
     except Exception:
@@ -110,13 +115,13 @@ def measure_memory_usage() -> dict[str, Any]:
             "import_memory_peak": peak,
             "system_memory_total": memory_info.total,
             "system_memory_available": memory_info.available,
-            "system_memory_percent": memory_info.percent
+            "system_memory_percent": memory_info.percent,
         }
     except Exception as e:
         tracemalloc.stop()
         return {
             "error": str(e),
-            "system_memory_info": dict(psutil.virtual_memory()._asdict())
+            "system_memory_info": dict(psutil.virtual_memory()._asdict()),
         }
 
 
@@ -124,18 +129,14 @@ def measure_file_system_metrics() -> dict[str, Any]:
     """Measure file system related metrics."""
     project_root = Path()
 
-    metrics = {
-        "file_counts": {},
-        "directory_sizes": {},
-        "line_counts": {}
-    }
+    metrics = {"file_counts": {}, "directory_sizes": {}, "line_counts": {}}
 
     # Count files by type
     file_types = {
         "python_files": "**/*.py",
         "test_files": "tests/**/*.py",
         "config_files": "*.{toml,yaml,yml,json,ini}",
-        "doc_files": "**/*.{md,rst,txt}"
+        "doc_files": "**/*.{md,rst,txt}",
     }
 
     for file_type, pattern in file_types.items():
@@ -148,7 +149,7 @@ def measure_file_system_metrics() -> dict[str, Any]:
                 total_lines = 0
                 for file_path in files:
                     try:
-                        with open(file_path, encoding='utf-8') as f:
+                        with open(file_path, encoding="utf-8") as f:
                             total_lines += len(f.readlines())
                     except Exception:
                         pass
@@ -162,7 +163,7 @@ def measure_file_system_metrics() -> dict[str, Any]:
         dir_path = project_root / dir_name
         if dir_path.exists():
             try:
-                size = sum(f.stat().st_size for f in dir_path.rglob('*') if f.is_file())
+                size = sum(f.stat().st_size for f in dir_path.rglob("*") if f.is_file())
                 metrics["directory_sizes"][dir_name] = size
             except Exception as e:
                 metrics["directory_sizes"][dir_name] = f"error: {e}"
@@ -183,22 +184,19 @@ def measure_quality_tool_performance() -> dict[str, Any]:
         try:
             start_time = time.perf_counter()
             result = subprocess.run(
-                command,
-                check=False, capture_output=True,
-                text=True,
-                timeout=30
+                command, check=False, capture_output=True, text=True, timeout=30
             )
             end_time = time.perf_counter()
 
             metrics[tool_name] = {
                 "execution_time": end_time - start_time,
-                "success": result.returncode == 0
+                "success": result.returncode == 0,
             }
         except Exception as e:
             metrics[tool_name] = {
                 "execution_time": 0.0,
                 "success": False,
-                "error": str(e)
+                "error": str(e),
             }
 
     return metrics
@@ -213,7 +211,7 @@ def capture_baseline() -> dict[str, Any]:
         "timestamp": datetime.now().isoformat(),
         "python_version": sys.version,
         "platform": sys.platform,
-        "metrics": {}
+        "metrics": {},
     }
 
     # Import timing
@@ -222,7 +220,7 @@ def capture_baseline() -> dict[str, Any]:
         "openchronicle",
         "src.openchronicle.main",
         "src.openchronicle.domain",
-        "src.openchronicle.infrastructure"
+        "src.openchronicle.infrastructure",
     ]
 
     import_times = {}
@@ -290,7 +288,7 @@ def save_baseline(baseline: dict[str, Any]) -> None:
     output_file = Path("storage/performance_baseline.json")
     output_file.parent.mkdir(exist_ok=True)
 
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(baseline, f, indent=2)
 
     print(f"\n💾 Baseline saved to: {output_file}")

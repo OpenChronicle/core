@@ -375,9 +375,7 @@ class WorldStateManager:
         """Log significant world state changes."""
         # In a full implementation, this would integrate with the logging system
         # For now, we just track critical changes
-        critical_changes = [
-            key for key in updates if key in self.critical_world_states
-        ]
+        critical_changes = [key for key in updates if key in self.critical_world_states]
 
         if critical_changes:
             # This would be logged to the system

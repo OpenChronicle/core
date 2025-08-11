@@ -20,12 +20,14 @@ class TestCharacterManagement:
 
         assert orchestrator is not None
         # Test that orchestrator has expected attributes
-        expected_attrs = ['consistency_manager', 'interaction_manager', 'stats_manager']
+        expected_attrs = ["consistency_manager", "interaction_manager", "stats_manager"]
         for attr in expected_attrs:
             # Check for attribute or related methods
-            has_related = (hasattr(orchestrator, attr) or
-                          hasattr(orchestrator, f'get_{attr}') or
-                          hasattr(orchestrator, f'{attr.split("_")[0]}_management'))
+            has_related = (
+                hasattr(orchestrator, attr)
+                or hasattr(orchestrator, f"get_{attr}")
+                or hasattr(orchestrator, f'{attr.split("_")[0]}_management')
+            )
             assert has_related, f"CharacterOrchestrator should have {attr} capability"
 
     def test_manage_relationships(self):
@@ -34,10 +36,10 @@ class TestCharacterManagement:
 
         # Test relationship management
         relationship_data = {
-            'character_a': 'hero',
-            'character_b': 'mentor',
-            'relationship_type': 'student_teacher',
-            'intensity': 8
+            "character_a": "hero",
+            "character_b": "mentor",
+            "relationship_type": "student_teacher",
+            "intensity": 8,
         }
 
         result = orchestrator.manage_character_relationship(relationship_data)
@@ -50,9 +52,9 @@ class TestCharacterManagement:
 
         # Test emotional stability
         character_data = {
-            'character_id': 'test_character',
-            'emotional_state': 'conflicted',
-            'stability_factors': ['loss', 'hope', 'determination']
+            "character_id": "test_character",
+            "emotional_state": "conflicted",
+            "stability_factors": ["loss", "hope", "determination"],
         }
 
         stability_result = orchestrator.track_emotional_stability(character_data)
@@ -64,10 +66,10 @@ class TestCharacterManagement:
 
         # Test style adaptation
         adaptation_request = {
-            'character_id': 'protagonist',
-            'target_model': 'gpt-4',
-            'writing_style': 'formal',
-            'personality_traits': ['wise', 'cautious', 'eloquent']
+            "character_id": "protagonist",
+            "target_model": "gpt-4",
+            "writing_style": "formal",
+            "personality_traits": ["wise", "cautious", "eloquent"],
         }
 
         adaptation_result = orchestrator.adapt_character_style(adaptation_request)
@@ -84,13 +86,18 @@ class TestCharacterConsistency:
 
         # Test consistency validation
         character_history = {
-            'character_id': 'test_char',
-            'previous_actions': ['brave_choice', 'compassionate_act'],
-            'current_action': 'cowardly_retreat',  # Inconsistent
-            'personality_traits': ['brave', 'compassionate']
+            "character_id": "test_char",
+            "previous_actions": ["brave_choice", "compassionate_act"],
+            "current_action": "cowardly_retreat",  # Inconsistent
+            "personality_traits": ["brave", "compassionate"],
         }
 
-        consistency_result = orchestrator.validate_character_consistency(character_history)
+        consistency_result = orchestrator.validate_character_consistency(
+            character_history
+        )
         assert consistency_result is not None
         assert isinstance(consistency_result, dict)
-        assert 'is_consistent' in consistency_result or 'consistency_score' in consistency_result
+        assert (
+            "is_consistent" in consistency_result
+            or "consistency_score" in consistency_result
+        )

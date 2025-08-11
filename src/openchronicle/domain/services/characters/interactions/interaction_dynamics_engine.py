@@ -46,9 +46,9 @@ class InteractionDynamicsEngine(CharacterEngineBase, CharacterStateProvider):
         )
 
         # Data storage
-        self.relationships: dict[str, CharacterRelationship] = (
-            {}
-        )  # Key: "char_a:char_b"
+        self.relationships: dict[
+            str, CharacterRelationship
+        ] = {}  # Key: "char_a:char_b"
         self.interaction_history: list[CharacterInteraction] = []
         self.scene_states: dict[str, SceneState] = {}
         self.character_contexts: dict[str, dict[str, Any]] = {}

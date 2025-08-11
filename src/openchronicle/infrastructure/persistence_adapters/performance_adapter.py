@@ -6,8 +6,9 @@ to implement the domain interface, maintaining the dependency inversion principl
 """
 
 import time
-from typing import Any, Dict, List, Optional
 import uuid
+from typing import Any
+from typing import Optional
 
 from src.openchronicle.domain.ports.performance_port import IPerformancePort
 
@@ -18,10 +19,13 @@ class PerformanceAdapter(IPerformancePort):
     def __init__(self):
         """Initialize performance adapter."""
         self.active_sessions = {}
-        
+
         # Import here to avoid circular dependencies
         try:
-            from src.openchronicle.infrastructure.performance.model_monitor import PerformanceMonitor
+            from src.openchronicle.infrastructure.performance.model_monitor import (
+                PerformanceMonitor,
+            )
+
             self.monitor = PerformanceMonitor({})
         except ImportError as e:
             print(f"Performance infrastructure not available: {e}")
@@ -30,11 +34,11 @@ class PerformanceAdapter(IPerformancePort):
     def start_monitoring(self, model_name: str, operation: str) -> str:
         """
         Start monitoring a model operation.
-        
+
         Args:
             model_name: Name of the model
             operation: Type of operation being monitored
-            
+
         Returns:
             Monitoring session ID
         """
@@ -43,63 +47,65 @@ class PerformanceAdapter(IPerformancePort):
             "model_name": model_name,
             "operation": operation,
             "start_time": time.time(),
-            "status": "active"
+            "status": "active",
         }
-        
+
         if self.monitor:
             try:
                 self.monitor.start_monitoring(model_name, operation, session_id)
             except Exception as e:
                 print(f"Error starting monitoring: {e}")
-                
+
         return session_id
 
-    def end_monitoring(self, session_id: str, success: bool = True, error: Optional[str] = None) -> Dict[str, Any]:
+    def end_monitoring(
+        self, session_id: str, success: bool = True, error: Optional[str] = None
+    ) -> dict[str, Any]:
         """
         End monitoring session and get metrics.
-        
+
         Args:
             session_id: Monitoring session ID
             success: Whether operation was successful
             error: Error message if failed
-            
+
         Returns:
             Performance metrics
         """
         if session_id not in self.active_sessions:
             return {"error": "Session not found"}
-            
+
         session = self.active_sessions[session_id]
         end_time = time.time()
         duration = end_time - session["start_time"]
-        
+
         metrics = {
             "session_id": session_id,
             "model_name": session["model_name"],
             "operation": session["operation"],
             "duration": duration,
             "success": success,
-            "error": error
+            "error": error,
         }
-        
+
         if self.monitor:
             try:
                 metrics.update(self.monitor.end_monitoring(session_id, success, error))
             except Exception as e:
                 print(f"Error ending monitoring: {e}")
-                
+
         # Clean up session
         del self.active_sessions[session_id]
-        
+
         return metrics
 
-    def get_model_metrics(self, model_name: str) -> Dict[str, Any]:
+    def get_model_metrics(self, model_name: str) -> dict[str, Any]:
         """
         Get performance metrics for a model.
-        
+
         Args:
             model_name: Name of the model
-            
+
         Returns:
             Performance metrics
         """
@@ -108,13 +114,13 @@ class PerformanceAdapter(IPerformancePort):
                 return self.monitor.get_model_metrics(model_name)
             except Exception as e:
                 print(f"Error getting model metrics: {e}")
-                
+
         return {"model_name": model_name, "metrics": "unavailable"}
 
-    def get_system_metrics(self) -> Dict[str, Any]:
+    def get_system_metrics(self) -> dict[str, Any]:
         """
         Get overall system performance metrics.
-        
+
         Returns:
             System performance metrics
         """
@@ -123,18 +129,20 @@ class PerformanceAdapter(IPerformancePort):
                 return self.monitor.get_system_metrics()
             except Exception as e:
                 print(f"Error getting system metrics: {e}")
-                
+
         return {"system_metrics": "unavailable"}
 
-    def record_usage(self, model_name: str, tokens_used: int, cost: float = 0.0) -> bool:
+    def record_usage(
+        self, model_name: str, tokens_used: int, cost: float = 0.0
+    ) -> bool:
         """
         Record model usage statistics.
-        
+
         Args:
             model_name: Name of the model
             tokens_used: Number of tokens used
             cost: Cost of the operation
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -144,17 +152,19 @@ class PerformanceAdapter(IPerformancePort):
             except Exception as e:
                 print(f"Error recording usage: {e}")
                 return False
-                
+
         return True  # Assume success if monitoring not available
 
-    def get_usage_stats(self, model_name: str, timeframe: str = "day") -> Dict[str, Any]:
+    def get_usage_stats(
+        self, model_name: str, timeframe: str = "day"
+    ) -> dict[str, Any]:
         """
         Get usage statistics for a model.
-        
+
         Args:
             model_name: Name of the model
             timeframe: Timeframe for statistics ("hour", "day", "week", "month")
-            
+
         Returns:
             Usage statistics
         """
@@ -163,5 +173,9 @@ class PerformanceAdapter(IPerformancePort):
                 return self.monitor.get_usage_stats(model_name, timeframe)
             except Exception as e:
                 print(f"Error getting usage stats: {e}")
-                
-        return {"model_name": model_name, "timeframe": timeframe, "stats": "unavailable"}
+
+        return {
+            "model_name": model_name,
+            "timeframe": timeframe,
+            "stats": "unavailable",
+        }

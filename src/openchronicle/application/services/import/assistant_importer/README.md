@@ -91,8 +91,8 @@ python utilities/main.py assistant-importer gemini_export.html output_story/ \
 
 ## Implementation Status
 
-**Status**: Planning/Design Phase  
-**Priority**: Medium  
+**Status**: Planning/Design Phase
+**Priority**: Medium
 **Dependencies**: Core story creation system, character management
 
 ### Development Plan

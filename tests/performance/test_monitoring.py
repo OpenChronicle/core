@@ -37,7 +37,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
         self.orchestrator = PerformanceOrchestrator(
             metrics_collector=self.collector,
             metrics_storage=self.storage,
-            bottleneck_analyzer=self.analyzer
+            bottleneck_analyzer=self.analyzer,
         )
 
     def tearDown(self):
@@ -51,20 +51,22 @@ class TestPerformanceMonitoring(unittest.TestCase):
 
     def test_orchestrator_initialization(self):
         """Test orchestrator initialization."""
+
         async def run_test():
             await self.orchestrator.initialize()
             status = self.orchestrator.get_monitoring_status()
 
-            self.assertTrue(status['initialized'])
-            self.assertTrue(status['monitoring_enabled'])
-            self.assertIn('metrics_collector', status['components'])
-            self.assertIn('metrics_storage', status['components'])
-            self.assertIn('bottleneck_analyzer', status['components'])
+            self.assertTrue(status["initialized"])
+            self.assertTrue(status["monitoring_enabled"])
+            self.assertIn("metrics_collector", status["components"])
+            self.assertIn("metrics_storage", status["components"])
+            self.assertIn("bottleneck_analyzer", status["components"])
 
         asyncio.run(run_test())
 
     def test_operation_monitoring_cycle(self):
         """Test complete operation monitoring cycle."""
+
         async def run_test():
             await self.orchestrator.initialize()
 
@@ -73,7 +75,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
                 operation_id="test_op_001",
                 adapter_name="test_adapter",
                 operation_type="test_operation",
-                metadata={"test": True, "tokens": 100}
+                metadata={"test": True, "tokens": 100},
             )
 
             # Start monitoring
@@ -101,6 +103,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
 
     def test_metrics_storage_and_retrieval(self):
         """Test metrics storage and retrieval."""
+
         async def run_test():
             await self.storage.initialize()
 
@@ -118,7 +121,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
                 memory_usage_before=100.0,
                 memory_usage_after=120.0,
                 success=True,
-                context={"test": True}
+                context={"test": True},
             )
 
             # Store metrics
@@ -128,10 +131,11 @@ class TestPerformanceMonitoring(unittest.TestCase):
             from src.openchronicle.infrastructure.performance.interfaces.performance_interfaces import (
                 MetricsQuery,
             )
+
             query = MetricsQuery(
                 start_time=datetime.fromtimestamp(test_time - 10),
                 end_time=datetime.fromtimestamp(test_time + 10),
-                adapter_names=["test_adapter"]
+                adapter_names=["test_adapter"],
             )
 
             retrieved_metrics = await self.storage.retrieve_metrics(query)
@@ -148,6 +152,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
 
     def test_bottleneck_analysis(self):
         """Test bottleneck analysis."""
+
         async def run_test():
             # Create test metrics with different performance characteristics
             base_time = datetime.now().timestamp()
@@ -166,7 +171,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
                     cpu_usage_after=15.0,
                     memory_usage_before=100.0,
                     memory_usage_after=110.0,
-                    success=True
+                    success=True,
                 )
                 test_metrics.append(metrics)
 
@@ -183,7 +188,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
                     cpu_usage_after=80.0,  # High CPU usage
                     memory_usage_before=100.0,
                     memory_usage_after=600.0,  # High memory usage
-                    success=True
+                    success=True,
                 )
                 test_metrics.append(metrics)
 
@@ -194,7 +199,9 @@ class TestPerformanceMonitoring(unittest.TestCase):
             self.assertIsNotNone(report)
             self.assertEqual(report.total_operations, 8)
             self.assertEqual(report.failed_operations, 0)
-            self.assertGreater(len(report.bottleneck_patterns), 0)  # Should detect bottlenecks
+            self.assertGreater(
+                len(report.bottleneck_patterns), 0
+            )  # Should detect bottlenecks
             self.assertIn("slow_adapter", report.top_bottleneck_adapters)
             self.assertGreater(len(report.recommendations), 0)
 
@@ -203,15 +210,18 @@ class TestPerformanceMonitoring(unittest.TestCase):
             self.assertGreater(len(slow_ops), 0)  # Should identify slow operations
 
             # Test resource usage analysis
-            resource_patterns = await self.analyzer.analyze_resource_usage_patterns(test_metrics)
-            self.assertIn('overall', resource_patterns)
-            self.assertIn('by_adapter', resource_patterns)
-            self.assertGreater(resource_patterns['overall']['avg_cpu_delta'], 0)
+            resource_patterns = await self.analyzer.analyze_resource_usage_patterns(
+                test_metrics
+            )
+            self.assertIn("overall", resource_patterns)
+            self.assertIn("by_adapter", resource_patterns)
+            self.assertGreater(resource_patterns["overall"]["avg_cpu_delta"], 0)
 
         asyncio.run(run_test())
 
     def test_real_time_metrics(self):
         """Test real-time metrics collection."""
+
         async def run_test():
             await self.orchestrator.initialize()
 
@@ -219,40 +229,42 @@ class TestPerformanceMonitoring(unittest.TestCase):
             real_time = await self.orchestrator.get_real_time_metrics()
 
             # Validate real-time metrics
-            self.assertIn('timestamp', real_time)
-            self.assertIn('system_metrics', real_time)
-            self.assertIn('collector_status', real_time)
-            self.assertIn('storage_stats', real_time)
-            self.assertTrue(real_time['monitoring_enabled'])
-            self.assertTrue(real_time['initialized'])
+            self.assertIn("timestamp", real_time)
+            self.assertIn("system_metrics", real_time)
+            self.assertIn("collector_status", real_time)
+            self.assertIn("storage_stats", real_time)
+            self.assertTrue(real_time["monitoring_enabled"])
+            self.assertTrue(real_time["initialized"])
 
             # Validate system metrics
-            system_metrics = real_time['system_metrics']
-            self.assertIn('cpu_percent', system_metrics)
-            self.assertIn('memory_mb', system_metrics)
-            self.assertIn('timestamp', system_metrics)
+            system_metrics = real_time["system_metrics"]
+            self.assertIn("cpu_percent", system_metrics)
+            self.assertIn("memory_mb", system_metrics)
+            self.assertIn("timestamp", system_metrics)
 
         asyncio.run(run_test())
 
     def test_monitoring_enable_disable(self):
         """Test enabling and disabling monitoring."""
+
         async def run_test():
             await self.orchestrator.initialize()
 
             # Test disabling
             self.orchestrator.disable_monitoring()
             status = self.orchestrator.get_monitoring_status()
-            self.assertFalse(status['monitoring_enabled'])
+            self.assertFalse(status["monitoring_enabled"])
 
             # Test enabling
             self.orchestrator.enable_monitoring()
             status = self.orchestrator.get_monitoring_status()
-            self.assertTrue(status['monitoring_enabled'])
+            self.assertTrue(status["monitoring_enabled"])
 
         asyncio.run(run_test())
 
     def test_performance_analysis(self):
         """Test comprehensive performance analysis."""
+
         async def run_test():
             await self.orchestrator.initialize()
 
@@ -261,7 +273,7 @@ class TestPerformanceMonitoring(unittest.TestCase):
                 operation_id="analysis_test_001",
                 adapter_name="analysis_adapter",
                 operation_type="analysis_operation",
-                metadata={"test": True}
+                metadata={"test": True},
             )
 
             operation_id = await self.orchestrator.start_operation_monitoring(context)
@@ -272,17 +284,19 @@ class TestPerformanceMonitoring(unittest.TestCase):
             end_time = datetime.now()
             start_time = end_time - timedelta(minutes=5)
 
-            analysis = await self.orchestrator.analyze_performance((start_time, end_time))
+            analysis = await self.orchestrator.analyze_performance(
+                (start_time, end_time)
+            )
 
             # Validate analysis
-            self.assertIn('analysis_time', analysis)
-            self.assertIn('time_period', analysis)
-            self.assertIn('metrics_summary', analysis)
-            self.assertIn('bottleneck_analysis', analysis)
-            self.assertIn('recommendations', analysis)
+            self.assertIn("analysis_time", analysis)
+            self.assertIn("time_period", analysis)
+            self.assertIn("metrics_summary", analysis)
+            self.assertIn("bottleneck_analysis", analysis)
+            self.assertIn("recommendations", analysis)
 
         asyncio.run(run_test())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

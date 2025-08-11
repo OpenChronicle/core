@@ -101,7 +101,7 @@ class NavigationManager:
         """Get all bookmarks with scene information for timeline building."""
         try:
             query = """
-                SELECT b.id, b.story_id, b.scene_id, b.label, b.description, b.bookmark_type, 
+                SELECT b.id, b.story_id, b.scene_id, b.label, b.description, b.bookmark_type,
                        b.created_at, b.metadata, s.timestamp, s.input, s.output
                 FROM bookmarks b
                 JOIN scenes s ON b.scene_id = s.scene_id

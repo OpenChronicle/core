@@ -295,9 +295,7 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
 
     # Private methods
 
-    def _load_character_from_storage(
-        self, character_id: str
-    ) -> CharacterData | None:
+    def _load_character_from_storage(self, character_id: str) -> CharacterData | None:
         """Load character data from storage file."""
         storage_file = Path(self.storage_path) / f"{character_id}.json"
 

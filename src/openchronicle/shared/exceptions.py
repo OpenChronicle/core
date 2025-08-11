@@ -61,20 +61,16 @@ class DomainError(OpenChronicleError):
     """Base class for domain logic errors."""
 
 
-
 class ValidationError(DomainError):
     """Raised when domain validation rules are violated."""
-
 
 
 class BusinessRuleError(DomainError):
     """Raised when business rules are violated."""
 
 
-
 class InvalidStateError(DomainError):
     """Raised when an object is in an invalid state for the requested operation."""
-
 
 
 # Story and Narrative Exceptions
@@ -82,20 +78,16 @@ class StoryError(DomainError):
     """Base class for story-related errors."""
 
 
-
 class StoryNotFoundError(StoryError):
     """Raised when a requested story cannot be found."""
-
 
 
 class InvalidStoryFormatError(StoryError):
     """Raised when story data is in an invalid format."""
 
 
-
 class StoryGenerationError(StoryError):
     """Raised when story generation fails."""
-
 
 
 # Character Management Exceptions
@@ -103,20 +95,16 @@ class CharacterError(DomainError):
     """Base class for character-related errors."""
 
 
-
 class CharacterNotFoundError(CharacterError):
     """Raised when a requested character cannot be found."""
-
 
 
 class CharacterConsistencyError(CharacterError):
     """Raised when character consistency validation fails."""
 
 
-
 class InvalidCharacterStateError(CharacterError):
     """Raised when a character is in an invalid state."""
-
 
 
 # Memory System Exceptions
@@ -124,20 +112,16 @@ class MemoryError(DomainError):
     """Base class for memory system errors."""
 
 
-
 class MemoryRetrievalError(MemoryError):
     """Raised when memory retrieval fails."""
-
 
 
 class MemoryConsistencyError(MemoryError):
     """Raised when memory consistency checks fail."""
 
 
-
 class MemoryStorageError(MemoryError):
     """Raised when memory storage operations fail."""
-
 
 
 # Application Layer Exceptions
@@ -145,25 +129,20 @@ class ApplicationError(OpenChronicleError):
     """Base class for application layer errors."""
 
 
-
 class CommandError(ApplicationError):
     """Raised when command execution fails."""
-
 
 
 class QueryError(ApplicationError):
     """Raised when query execution fails."""
 
 
-
 class OrchestrationError(ApplicationError):
     """Raised when service orchestration fails."""
 
 
-
 class WorkflowError(ApplicationError):
     """Raised when workflow execution fails."""
-
 
 
 # Infrastructure Layer Exceptions
@@ -171,25 +150,20 @@ class InfrastructureError(OpenChronicleError):
     """Base class for infrastructure-related errors."""
 
 
-
 class DatabaseError(InfrastructureError):
     """Base class for database-related errors."""
-
 
 
 class DatabaseConnectionError(DatabaseError):
     """Raised when database connection fails."""
 
 
-
 class DatabaseQueryError(DatabaseError):
     """Raised when database query execution fails."""
 
 
-
 class DatabaseMigrationError(DatabaseError):
     """Raised when database migration fails."""
-
 
 
 # Model and AI Provider Exceptions
@@ -197,30 +171,24 @@ class ModelError(InfrastructureError):
     """Base class for AI model-related errors."""
 
 
-
 class ModelNotFoundError(ModelError):
     """Raised when a requested model is not available."""
-
 
 
 class ModelInitializationError(ModelError):
     """Raised when model initialization fails."""
 
 
-
 class ModelResponseError(ModelError):
     """Raised when model response is invalid or empty."""
-
 
 
 class RateLimitError(ModelError):
     """Raised when rate limits are exceeded."""
 
 
-
 class APIKeyError(ModelError):
     """Raised when API key is invalid or missing."""
-
 
 
 # Cache and Storage Exceptions
@@ -228,25 +196,20 @@ class CacheError(InfrastructureError):
     """Base class for cache-related errors."""
 
 
-
 class CacheConnectionError(CacheError):
     """Raised when cache connection fails."""
-
 
 
 class StorageError(InfrastructureError):
     """Base class for storage-related errors."""
 
 
-
 class FileNotFoundError(StorageError):
     """Raised when a required file cannot be found."""
 
 
-
 class FilePermissionError(StorageError):
     """Raised when file permissions prevent operation."""
-
 
 
 # Interface Layer Exceptions
@@ -254,40 +217,32 @@ class InterfaceError(OpenChronicleError):
     """Base class for user interface errors."""
 
 
-
 class CLIError(InterfaceError):
     """Raised when CLI operations fail."""
-
 
 
 class APIError(InterfaceError):
     """Base class for API-related errors."""
 
 
-
 class BadRequestError(APIError):
     """Raised when API request is malformed."""
-
 
 
 class AuthenticationError(APIError):
     """Raised when authentication fails."""
 
 
-
 class AuthorizationError(APIError):
     """Raised when authorization fails."""
-
 
 
 class NotFoundError(APIError):
     """Raised when requested resource is not found."""
 
 
-
 class ConflictError(APIError):
     """Raised when request conflicts with current state."""
-
 
 
 # Configuration and System Exceptions
@@ -295,35 +250,28 @@ class ConfigurationError(OpenChronicleError):
     """Raised when configuration is invalid or missing."""
 
 
-
 class MissingConfigurationError(ConfigurationError):
     """Raised when required configuration is missing."""
-
 
 
 class InvalidConfigurationError(ConfigurationError):
     """Raised when configuration values are invalid."""
 
 
-
 class SystemError(OpenChronicleError):
     """Base class for system-level errors."""
-
 
 
 class DependencyError(SystemError):
     """Raised when a required dependency is missing or incompatible."""
 
 
-
 class EnvironmentError(SystemError):
     """Raised when the runtime environment is incompatible."""
 
 
-
 class ResourceExhaustedError(SystemError):
     """Raised when system resources are exhausted."""
-
 
 
 # Utility functions for error handling

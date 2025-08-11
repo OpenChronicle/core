@@ -129,7 +129,7 @@ class MigrationManager:
                     # Insert into database
                     cursor.execute(
                         """
-                        INSERT OR REPLACE INTO scenes 
+                        INSERT OR REPLACE INTO scenes
                         (id, title, content, characters, timestamp, token_usage, mood, scene_data)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -199,7 +199,7 @@ class MigrationManager:
                     # Insert into database
                     cursor.execute(
                         """
-                        INSERT OR REPLACE INTO characters 
+                        INSERT OR REPLACE INTO characters
                         (id, name, description, personality, relationships, character_data, created_at, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -269,7 +269,7 @@ class MigrationManager:
                     # Insert into database
                     cursor.execute(
                         """
-                        INSERT OR REPLACE INTO memory 
+                        INSERT OR REPLACE INTO memory
                         (id, type, content, characters, importance, timestamp, memory_data)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -338,7 +338,7 @@ class MigrationManager:
                     # Insert into database
                     cursor.execute(
                         """
-                        INSERT OR REPLACE INTO bookmarks 
+                        INSERT OR REPLACE INTO bookmarks
                         (id, scene_id, title, description, tags, created_at, bookmark_data)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,

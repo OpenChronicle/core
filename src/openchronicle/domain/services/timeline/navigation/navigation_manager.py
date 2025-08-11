@@ -30,8 +30,8 @@ class NavigationManager:
                 """
                 SELECT scene_id, scene_title, timestamp, scene_summary,
                        navigation_type, user_choice
-                FROM scenes 
-                ORDER BY timestamp DESC 
+                FROM scenes
+                ORDER BY timestamp DESC
                 LIMIT 20
             """,
             )
@@ -135,7 +135,7 @@ class NavigationManager:
             target_row = execute_query(
                 self.story_id,
                 """
-                SELECT timestamp, scene_title, scene_summary 
+                SELECT timestamp, scene_title, scene_summary
                 FROM scenes WHERE scene_id = ?
             """,
                 (scene_id,),
@@ -151,19 +151,19 @@ class NavigationManager:
                 self.story_id,
                 """
                 (SELECT scene_id, scene_title, timestamp, scene_summary, 'before' as position
-                 FROM scenes 
-                 WHERE timestamp < ? 
-                 ORDER BY timestamp DESC 
+                 FROM scenes
+                 WHERE timestamp < ?
+                 ORDER BY timestamp DESC
                  LIMIT ?)
                 UNION ALL
                 (SELECT scene_id, scene_title, timestamp, scene_summary, 'current' as position
-                 FROM scenes 
+                 FROM scenes
                  WHERE scene_id = ?)
                 UNION ALL
                 (SELECT scene_id, scene_title, timestamp, scene_summary, 'after' as position
-                 FROM scenes 
-                 WHERE timestamp > ? 
-                 ORDER BY timestamp ASC 
+                 FROM scenes
+                 WHERE timestamp > ?
+                 ORDER BY timestamp ASC
                  LIMIT ?)
                 ORDER BY timestamp ASC
             """,
@@ -216,7 +216,7 @@ class NavigationManager:
             execute_update(
                 self.story_id,
                 """
-                INSERT INTO navigation_history 
+                INSERT INTO navigation_history
                 (from_scene, to_scene, navigation_type, timestamp)
                 VALUES (?, ?, ?, ?)
             """,
@@ -256,7 +256,7 @@ class NavigationManager:
                 self.story_id,
                 """
                 SELECT navigation_type, COUNT(*) as count
-                FROM navigation_history 
+                FROM navigation_history
                 GROUP BY navigation_type
                 ORDER BY count DESC
             """,
@@ -266,7 +266,7 @@ class NavigationManager:
             recent_activity = execute_query(
                 self.story_id,
                 """
-                SELECT COUNT(*) FROM scenes 
+                SELECT COUNT(*) FROM scenes
                 WHERE timestamp > datetime('now', '-7 days')
             """,
             )[0][0]
@@ -368,7 +368,7 @@ class NavigationManager:
                 first_scene = execute_query(
                     self.story_id,
                     """
-                    SELECT scene_id, scene_title, timestamp FROM scenes 
+                    SELECT scene_id, scene_title, timestamp FROM scenes
                     ORDER BY timestamp ASC LIMIT 1
                 """,
                 )
@@ -384,7 +384,7 @@ class NavigationManager:
             next_scene = execute_query(
                 self.story_id,
                 """
-                SELECT scene_id, scene_title, timestamp FROM scenes 
+                SELECT scene_id, scene_title, timestamp FROM scenes
                 WHERE timestamp > (SELECT timestamp FROM scenes WHERE scene_id = ?)
                 ORDER BY timestamp ASC LIMIT 1
             """,
@@ -402,9 +402,7 @@ class NavigationManager:
         except Exception as e:
             return {"error": f"Next navigation failed: {e!s}"}
 
-    async def _navigate_previous(
-        self, current_scene_id: str | None
-    ) -> dict[str, Any]:
+    async def _navigate_previous(self, current_scene_id: str | None) -> dict[str, Any]:
         """Navigate to previous scene in timeline."""
         try:
             # from src.openchronicle.infrastructure.persistence import execute_query - REPLACED WITH DEPENDENCY INJECTION
@@ -417,7 +415,7 @@ class NavigationManager:
                 last_scene = execute_query(
                     self.story_id,
                     """
-                    SELECT scene_id, scene_title, timestamp FROM scenes 
+                    SELECT scene_id, scene_title, timestamp FROM scenes
                     ORDER BY timestamp DESC LIMIT 1
                 """,
                 )
@@ -433,7 +431,7 @@ class NavigationManager:
             prev_scene = execute_query(
                 self.story_id,
                 """
-                SELECT scene_id, scene_title, timestamp FROM scenes 
+                SELECT scene_id, scene_title, timestamp FROM scenes
                 WHERE timestamp < (SELECT timestamp FROM scenes WHERE scene_id = ?)
                 ORDER BY timestamp DESC LIMIT 1
             """,

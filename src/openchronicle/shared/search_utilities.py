@@ -395,7 +395,7 @@ class SearchUtilities:
         snippet_select = ", " + ", ".join(snippet_columns) if snippet_columns else ""
 
         sql = f"""
-            SELECT 
+            SELECT
                 {table[0]}.rowid,
                 {table[0]}.*,
                 bm25({fts_table}) as score{snippet_select}

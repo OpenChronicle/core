@@ -39,7 +39,7 @@ Extract lore details in this exact JSON format:
 {{
     "title": "Name or title of this lore element",
     "category": "history|religion|magic|culture|politics|etc",
-    "description": "Detailed explanation of this lore element", 
+    "description": "Detailed explanation of this lore element",
     "time_period": "When this occurred or applies",
     "key_figures": ["Important people involved"],
     "locations": ["Places where this is relevant"],

@@ -9,8 +9,4 @@ from .storypack_builder import StorypackBuilder
 from .template_engine import TemplateEngine
 
 
-__all__ = [
-    'OutputFormatter',
-    'StorypackBuilder',
-    'TemplateEngine'
-]
+__all__ = ["OutputFormatter", "StorypackBuilder", "TemplateEngine"]

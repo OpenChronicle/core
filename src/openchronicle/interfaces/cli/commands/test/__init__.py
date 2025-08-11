@@ -3,7 +3,7 @@ Testing commands for OpenChronicle CLI.
 
 Provides comprehensive test execution capabilities with the four-tier testing strategy:
 1. Production tests with real adapters
-2. Production tests with mock adapters  
+2. Production tests with mock adapters
 3. Smoke tests for major functionality
 4. Stress tests (isolated execution)
 """
@@ -12,7 +12,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -27,20 +26,20 @@ console = Console()
 
 # Test application
 test_app = typer.Typer(
-    name="test",
-    help="Test execution and validation commands",
-    no_args_is_help=True
+    name="test", help="Test execution and validation commands", no_args_is_help=True
 )
 
 
-def run_pytest_command(command: list, description: str, show_progress: bool = True) -> bool:
+def run_pytest_command(
+    command: list, description: str, show_progress: bool = True
+) -> bool:
     """Execute a pytest command and return success status."""
     console.print()
-    console.print(Panel(
-        f"🧪 {description}",
-        title="OpenChronicle Test Execution",
-        style="bold blue"
-    ))
+    console.print(
+        Panel(
+            f"🧪 {description}", title="OpenChronicle Test Execution", style="bold blue"
+        )
+    )
     console.print(f"Command: {' '.join(command)}")
     console.print()
 
@@ -51,7 +50,7 @@ def run_pytest_command(command: list, description: str, show_progress: bool = Tr
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
-            transient=True
+            transient=True,
         ) as progress:
             task = progress.add_task(description="Running tests...", total=None)
             result = subprocess.run(command, check=False, capture_output=False)
@@ -73,12 +72,15 @@ def run_pytest_command(command: list, description: str, show_progress: bool = Tr
 def test_production_real():
     """Run production tests with real adapters and content (Tier 1)."""
     command = [
-        sys.executable, "-m", "pytest",
-        "-m", "production_real",
+        sys.executable,
+        "-m",
+        "pytest",
+        "-m",
+        "production_real",
         "-v",
         "--tb=short",
         "--maxfail=10",
-        "tests/"
+        "tests/",
     ]
     success = run_pytest_command(command, "TIER 1: Production Tests (Real Adapters)")
     if not success:
@@ -89,12 +91,15 @@ def test_production_real():
 def test_production_mock():
     """Run production tests with mock adapters and content (Tier 2)."""
     command = [
-        sys.executable, "-m", "pytest",
-        "-m", "(production_mock or mock_only)",
+        sys.executable,
+        "-m",
+        "pytest",
+        "-m",
+        "(production_mock or mock_only)",
         "-v",
         "--tb=short",
         "--maxfail=10",
-        "tests/"
+        "tests/",
     ]
     success = run_pytest_command(command, "TIER 2: Production Tests (Mock Adapters)")
     if not success:
@@ -105,12 +110,15 @@ def test_production_mock():
 def test_smoke():
     """Run abbreviated smoke tests for major functionality (Tier 3)."""
     command = [
-        sys.executable, "-m", "pytest",
-        "-m", "(smoke or core)",
+        sys.executable,
+        "-m",
+        "pytest",
+        "-m",
+        "(smoke or core)",
         "-v",
         "--tb=short",
         "--maxfail=5",
-        "tests/"
+        "tests/",
     ]
     success = run_pytest_command(command, "TIER 3: Smoke Tests (Major Functionality)")
     if not success:
@@ -120,12 +128,14 @@ def test_smoke():
 @test_app.command("stress")
 def test_stress():
     """Run standalone stress testing (Tier 4) - NEVER mixed with other tiers."""
-    console.print(Panel(
-        "⚠️  [yellow]Warning:[/yellow] Stress tests are resource intensive and may take significant time.\n"
-        "These tests are isolated and should not be run with other test tiers.",
-        title="Stress Testing Notice",
-        style="yellow"
-    ))
+    console.print(
+        Panel(
+            "⚠️  [yellow]Warning:[/yellow] Stress tests are resource intensive and may take significant time.\n"
+            "These tests are isolated and should not be run with other test tiers.",
+            title="Stress Testing Notice",
+            style="yellow",
+        )
+    )
 
     confirm = typer.confirm("Are you sure you want to run stress tests?")
     if not confirm:
@@ -133,15 +143,20 @@ def test_stress():
         raise typer.Exit(0)
 
     command = [
-        sys.executable, "-m", "pytest",
-        "-m", "(stress or chaos)",
+        sys.executable,
+        "-m",
+        "pytest",
+        "-m",
+        "(stress or chaos)",
         "-v",
         "--tb=short",
         "--maxfail=3",
         "--timeout=600",  # 10 minute timeout for stress tests
-        "tests/"
+        "tests/",
     ]
-    success = run_pytest_command(command, "TIER 4: Stress Testing (Standalone)", show_progress=False)
+    success = run_pytest_command(
+        command, "TIER 4: Stress Testing (Standalone)", show_progress=False
+    )
     if not success:
         raise typer.Exit(1)
 
@@ -150,12 +165,15 @@ def test_stress():
 def test_standard():
     """Run all tests except stress tests (most common usage)."""
     command = [
-        sys.executable, "-m", "pytest",
-        "-m", "(not stress and not chaos)",
+        sys.executable,
+        "-m",
+        "pytest",
+        "-m",
+        "(not stress and not chaos)",
         "-v",
         "--tb=short",
         "--maxfail=10",
-        "tests/"
+        "tests/",
     ]
     success = run_pytest_command(command, "STANDARD: All Tests (Excluding Stress)")
     if not success:
@@ -165,17 +183,19 @@ def test_standard():
 @test_app.command("all-tiers")
 def test_all_production_tiers():
     """Run all production tiers (1-3, excludes stress testing)."""
-    console.print(Panel(
-        "🚀 Running All Production Tiers (1-3, excluding stress)",
-        title="Comprehensive Test Execution",
-        style="bold green"
-    ))
+    console.print(
+        Panel(
+            "🚀 Running All Production Tiers (1-3, excluding stress)",
+            title="Comprehensive Test Execution",
+            style="bold green",
+        )
+    )
 
     # Define test functions and their names
     test_functions = [
         (test_production_real, "Production Real"),
         (test_production_mock, "Production Mock"),
-        (test_smoke, "Smoke Tests")
+        (test_smoke, "Smoke Tests"),
     ]
 
     results = []
@@ -189,11 +209,8 @@ def test_all_production_tiers():
             results.append((test_name, e.exit_code == 0))
 
     # Summary table
-    console.print("\n" + "="*60)
-    console.print(Panel(
-        "📊 SUMMARY OF ALL PRODUCTION TIERS",
-        style="bold blue"
-    ))
+    console.print("\n" + "=" * 60)
+    console.print(Panel("📊 SUMMARY OF ALL PRODUCTION TIERS", style="bold blue"))
 
     table = Table(title="Test Results Summary")
     table.add_column("Tier", style="cyan", no_wrap=True)
@@ -211,7 +228,9 @@ def test_all_production_tiers():
     overall_status = "✅ ALL TIERS PASSED" if overall_success else "❌ SOME TIERS FAILED"
     overall_style = "green" if overall_success else "red"
 
-    console.print(f"\n🎯 Overall Result: [{overall_style}]{overall_status}[/{overall_style}]")
+    console.print(
+        f"\n🎯 Overall Result: [{overall_style}]{overall_status}[/{overall_style}]"
+    )
 
     if not overall_success:
         raise typer.Exit(1)
@@ -220,10 +239,9 @@ def test_all_production_tiers():
 @test_app.command("status")
 def test_status():
     """Show testing configuration and available test markers."""
-    console.print(Panel(
-        "🧪 OpenChronicle Four-Tier Testing Strategy Status",
-        style="bold blue"
-    ))
+    console.print(
+        Panel("🧪 OpenChronicle Four-Tier Testing Strategy Status", style="bold blue")
+    )
 
     # Check pytest configuration
     pytest_config = Path("tests/pytest.ini")
@@ -239,24 +257,18 @@ def test_status():
     table.add_column("Purpose", style="white")
 
     table.add_row(
-        "Tier 1",
-        "production_real",
-        "Production tests with real adapters and content"
+        "Tier 1", "production_real", "Production tests with real adapters and content"
     )
     table.add_row(
         "Tier 2",
         "production_mock, mock_only",
-        "Production tests with mock adapters and test content"
+        "Production tests with mock adapters and test content",
     )
     table.add_row(
-        "Tier 3",
-        "smoke, core",
-        "Abbreviated tests for major functionality validation"
+        "Tier 3", "smoke, core", "Abbreviated tests for major functionality validation"
     )
     table.add_row(
-        "Tier 4",
-        "stress, chaos",
-        "High-load stress testing (isolated execution only)"
+        "Tier 4", "stress, chaos", "High-load stress testing (isolated execution only)"
     )
 
     console.print(table)
@@ -266,8 +278,11 @@ def test_status():
     examples = [
         ("openchronicle test production-mock", "Most common - Development testing"),
         ("openchronicle test smoke", "Quick validation - Essential functionality"),
-        ("openchronicle test all-tiers", "Comprehensive validation - All production tiers"),
-        ("openchronicle test stress", "Performance testing - Isolated stress testing")
+        (
+            "openchronicle test all-tiers",
+            "Comprehensive validation - All production tiers",
+        ),
+        ("openchronicle test stress", "Performance testing - Isolated stress testing"),
     ]
 
     for command, description in examples:
@@ -276,4 +291,3 @@ def test_status():
 
 if __name__ == "__main__":
     test_app()
-

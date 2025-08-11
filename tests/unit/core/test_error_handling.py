@@ -3,7 +3,7 @@ Unit tests for the standardized error handling framework.
 
 Tests all components of the error handling system including:
 - Exception hierarchy
-- Error recovery strategies  
+- Error recovery strategies
 - Error handling decorators
 - Error monitoring and reporting
 
@@ -15,10 +15,7 @@ import time
 
 import pytest
 from src.openchronicle.shared.error_handling import DatabaseError
-from src.openchronicle.shared.error_handling import (
-    # Enums and data classes
-    ErrorCategory,
-)
+from src.openchronicle.shared.error_handling import ErrorCategory
 from src.openchronicle.shared.error_handling import ErrorContext
 from src.openchronicle.shared.error_handling import ErrorMonitor  # Monitoring
 from src.openchronicle.shared.error_handling import ErrorRecoveryManager
@@ -26,20 +23,14 @@ from src.openchronicle.shared.error_handling import ErrorSeverity
 from src.openchronicle.shared.error_handling import FallbackValueStrategy
 from src.openchronicle.shared.error_handling import MemoryError
 from src.openchronicle.shared.error_handling import ModelError
-from src.openchronicle.shared.error_handling import (
-    # Exception classes
-    OpenChronicleError,
-)
+from src.openchronicle.shared.error_handling import OpenChronicleError
 from src.openchronicle.shared.error_handling import RetryStrategy
 from src.openchronicle.shared.error_handling import SecurityError
 from src.openchronicle.shared.error_handling import add_recovery_strategy
 from src.openchronicle.shared.error_handling import critical_operation
 from src.openchronicle.shared.error_handling import error_monitor
 from src.openchronicle.shared.error_handling import get_error_monitor
-from src.openchronicle.shared.error_handling import (
-    # Utility functions
-    get_error_recovery_manager,
-)
+from src.openchronicle.shared.error_handling import get_error_recovery_manager
 from src.openchronicle.shared.error_handling import with_error_handling  # Decorators
 
 
@@ -53,7 +44,7 @@ class TestErrorHierarchy:
             "Test error",
             category=ErrorCategory.DATABASE,
             severity=ErrorSeverity.HIGH,
-            context=context
+            context=context,
         )
 
         assert error.message == "Test error"
@@ -71,7 +62,9 @@ class TestErrorHierarchy:
     def test_specialized_errors(self):
         """Test specialized error classes."""
         # DatabaseError
-        db_error = DatabaseError("DB connection failed", database_path="/test/db.sqlite")
+        db_error = DatabaseError(
+            "DB connection failed", database_path="/test/db.sqlite"
+        )
         assert db_error.category == ErrorCategory.DATABASE
         assert db_error.database_path == "/test/db.sqlite"
 
@@ -81,7 +74,9 @@ class TestErrorHierarchy:
         assert model_error.model_name == "gpt-4"
 
         # SecurityError
-        sec_error = SecurityError("Unauthorized access", security_violation="invalid_token")
+        sec_error = SecurityError(
+            "Unauthorized access", security_violation="invalid_token"
+        )
         assert sec_error.category == ErrorCategory.SECURITY
         assert sec_error.severity == ErrorSeverity.HIGH
         assert sec_error.recoverable == False
@@ -95,7 +90,7 @@ class TestErrorHierarchy:
             story_id="test_story",
             scene_id="scene_001",
             model_name="gpt-4",
-            metadata={"character_id": "hero_001"}
+            metadata={"character_id": "hero_001"},
         )
 
         tags = context.to_log_tags()
@@ -104,9 +99,10 @@ class TestErrorHierarchy:
             "operation": "get_character_memory",
             "story": "test_story",
             "scene": "scene_001",
-            "model": "gpt-4"
+            "model": "gpt-4",
         }
         assert tags == expected_tags
+
 
 class TestRecoveryStrategies:
     """Test error recovery strategy implementations."""
@@ -115,7 +111,7 @@ class TestRecoveryStrategies:
         """Test FallbackValueStrategy recovery."""
         strategy = FallbackValueStrategy(
             fallback_value="default_response",
-            applicable_categories=[ErrorCategory.MODEL]
+            applicable_categories=[ErrorCategory.MODEL],
         )
 
         # Should recover from model errors
@@ -148,6 +144,7 @@ class TestRecoveryStrategies:
 
         # Mock function that fails twice then succeeds
         call_count = 0
+
         async def mock_func():
             nonlocal call_count
             call_count += 1
@@ -171,7 +168,10 @@ class TestRecoveryStrategies:
 
         # Should have custom strategy plus default strategies
         assert len(manager.strategies) >= 2
-        assert manager.strategies[0] == custom_strategy  # Should be first (highest priority)
+        assert (
+            manager.strategies[0] == custom_strategy
+        )  # Should be first (highest priority)
+
 
 class TestErrorDecorators:
     """Test error handling decorators."""
@@ -184,7 +184,7 @@ class TestErrorDecorators:
             context=ErrorContext(component="test", operation="test_func"),
             fallback_result="fallback",
             error_category=ErrorCategory.DATABASE,
-            enable_recovery=False  # Disable recovery for predictable testing
+            enable_recovery=False,  # Disable recovery for predictable testing
         )
         async def test_async_func(should_fail=False):
             if should_fail:
@@ -204,7 +204,7 @@ class TestErrorDecorators:
 
         @with_error_handling(
             context=ErrorContext(component="test", operation="sync_test"),
-            fallback_result="sync_fallback"
+            fallback_result="sync_fallback",
         )
         def test_sync_func(should_fail=False):
             if should_fail:
@@ -226,7 +226,7 @@ class TestErrorDecorators:
         @with_error_handling(
             fallback_result="db_fallback",
             error_category=ErrorCategory.DATABASE,
-            enable_recovery=False  # Disable recovery for predictable testing
+            enable_recovery=False,  # Disable recovery for predictable testing
         )
         async def db_operation(should_fail=False):
             if should_fail:
@@ -236,7 +236,7 @@ class TestErrorDecorators:
         @with_error_handling(
             fallback_result="model_fallback",
             error_category=ErrorCategory.MODEL,
-            enable_recovery=False  # Disable recovery for predictable testing
+            enable_recovery=False,  # Disable recovery for predictable testing
         )
         async def model_operation(should_fail=False):
             if should_fail:
@@ -268,6 +268,7 @@ class TestErrorDecorators:
         # Test that errors are not caught (re-raised as OpenChronicleError)
         with pytest.raises(OpenChronicleError):
             await critical_func(True)
+
 
 class TestErrorMonitoring:
     """Test error monitoring and reporting functionality."""
@@ -323,6 +324,7 @@ class TestErrorMonitoring:
         summary = monitor.get_error_summary()
         assert summary["health_status"] == "critical"
 
+
 class TestIntegration:
     """Integration tests for the complete error handling system."""
 
@@ -335,10 +337,10 @@ class TestIntegration:
             context=ErrorContext(
                 component="integration_test",
                 operation="end_to_end_test",
-                story_id="test_story"
+                story_id="test_story",
             ),
             fallback_result="integration_fallback",
-            error_category=ErrorCategory.INTEGRATION
+            error_category=ErrorCategory.INTEGRATION,
         )
         async def integration_test_func(scenario: str):
             if scenario == "success":
@@ -347,13 +349,13 @@ class TestIntegration:
                 raise DatabaseError(
                     "Recoverable database error",
                     severity=ErrorSeverity.MEDIUM,
-                    recoverable=True
+                    recoverable=True,
                 )
             if scenario == "unrecoverable_error":
                 raise SecurityError(
                     "Security violation",
                     severity=ErrorSeverity.CRITICAL,
-                    recoverable=False
+                    recoverable=False,
                 )
             raise ValueError("Unknown scenario")
 
@@ -390,6 +392,7 @@ class TestIntegration:
         monitor = get_error_monitor()
         assert isinstance(monitor, ErrorMonitor)
         assert monitor == error_monitor  # Should be same global instance
+
 
 # === Test Runner ===
 

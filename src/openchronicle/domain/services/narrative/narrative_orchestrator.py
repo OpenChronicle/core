@@ -488,7 +488,9 @@ class NarrativeOrchestrator:
             if self.mechanics_orchestrator:
                 try:
                     if hasattr(self.mechanics_orchestrator, "evaluate_branch"):
-                        mechanics_result = self.mechanics_orchestrator.evaluate_branch(scenario)
+                        mechanics_result = self.mechanics_orchestrator.evaluate_branch(
+                            scenario
+                        )
                         evaluation.update(mechanics_result)
                 except Exception as e:
                     log_warning(f"Mechanics orchestrator evaluation failed: {e}")
@@ -847,7 +849,9 @@ class NarrativeOrchestrator:
             if self.response_orchestrator:
                 try:
                     if hasattr(self.response_orchestrator, "assess_quality"):
-                        advanced_result = self.response_orchestrator.assess_quality(response_data)
+                        advanced_result = self.response_orchestrator.assess_quality(
+                            response_data
+                        )
                         result.update(advanced_result)
                         result["assessment_method"] = "advanced"
                 except Exception as e:
@@ -917,7 +921,9 @@ class NarrativeOrchestrator:
             if self.response_orchestrator:
                 try:
                     if hasattr(self.response_orchestrator, "orchestrate"):
-                        advanced_result = self.response_orchestrator.orchestrate(request_data)
+                        advanced_result = self.response_orchestrator.orchestrate(
+                            request_data
+                        )
                         result.update(advanced_result)
                         result["orchestration_method"] = "advanced"
                     else:
@@ -983,7 +989,11 @@ class NarrativeOrchestrator:
             if self.consistency_orchestrator:
                 try:
                     if hasattr(self.consistency_orchestrator, "validate_consistency"):
-                        advanced_result = self.consistency_orchestrator.validate_consistency(consistency_data)
+                        advanced_result = (
+                            self.consistency_orchestrator.validate_consistency(
+                                consistency_data
+                            )
+                        )
                         result.update(advanced_result)
                         result["validation_method"] = "advanced"
                 except Exception as e:

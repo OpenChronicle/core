@@ -141,7 +141,9 @@ class DatabaseManager:
 
             # Convert rows to dictionaries
             columns = [description[0] for description in cursor.description]
-            results = [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
+            results = [
+                dict(zip(columns, row, strict=False)) for row in cursor.fetchall()
+            ]
 
             return results
 
@@ -254,7 +256,7 @@ class DatabaseManager:
             ID of inserted entry
         """
         query = """
-            INSERT INTO memory_entries 
+            INSERT INTO memory_entries
             (story_id, character_id, memory_type, content, importance_score, metadata)
             VALUES (?, ?, ?, ?, ?, ?)
         """
@@ -304,7 +306,7 @@ class DatabaseManager:
             state_data: JSON-serialized character state
         """
         query = """
-            INSERT OR REPLACE INTO character_states 
+            INSERT OR REPLACE INTO character_states
             (story_id, character_id, state_data)
             VALUES (?, ?, ?)
         """
@@ -334,7 +336,7 @@ class DatabaseManager:
             world_data: JSON-serialized world state
         """
         query = """
-            INSERT OR REPLACE INTO world_states 
+            INSERT OR REPLACE INTO world_states
             (story_id, world_data)
             VALUES (?, ?)
         """
@@ -352,8 +354,8 @@ class DatabaseManager:
             Number of entries deleted
         """
         query = f"""
-            DELETE FROM memory_entries 
-            WHERE story_id = ? 
+            DELETE FROM memory_entries
+            WHERE story_id = ?
             AND datetime(timestamp) < datetime('now', '-{days_to_keep} days')
         """
 

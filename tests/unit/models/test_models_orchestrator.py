@@ -25,9 +25,9 @@ class TestModelOrchestratorInitialization:
         orchestrator = ModelOrchestrator()
 
         assert orchestrator is not None
-        assert hasattr(orchestrator, 'config_manager')
-        assert hasattr(orchestrator, 'lifecycle_manager')
-        assert hasattr(orchestrator, 'performance_monitor')
+        assert hasattr(orchestrator, "config_manager")
+        assert hasattr(orchestrator, "lifecycle_manager")
+        assert hasattr(orchestrator, "performance_monitor")
 
     def test_orchestrator_with_config(self):
         """Test orchestrator initialization uses ConfigurationManager properly."""
@@ -36,8 +36,8 @@ class TestModelOrchestratorInitialization:
         assert orchestrator is not None
         # Verify config manager was initialized and discovered models
         assert orchestrator.config_manager is not None
-        assert hasattr(orchestrator.config_manager, 'registry')
-        assert hasattr(orchestrator.config_manager, 'config')
+        assert hasattr(orchestrator.config_manager, "registry")
+        assert hasattr(orchestrator.config_manager, "config")
 
         # Verify dynamic discovery worked
         assert isinstance(orchestrator.config_manager.registry, dict)
@@ -49,10 +49,10 @@ class TestModelOrchestratorInitialization:
 
         # Check that all required components exist
         components = [
-            'config_manager',
-            'lifecycle_manager',
-            'performance_monitor',
-            'response_generator'
+            "config_manager",
+            "lifecycle_manager",
+            "performance_monitor",
+            "response_generator",
         ]
 
         for component in components:
@@ -91,10 +91,10 @@ class TestModelOrchestratorConfiguration:
 
         # Test with valid configuration
         valid_config = {
-            'name': 'test-model',
-            'type': 'text',
-            'enabled': True,
-            'api_key': 'test-key'
+            "name": "test-model",
+            "type": "text",
+            "enabled": True,
+            "api_key": "test-key",
         }
 
         result = orchestrator.config_manager.validate_model_config(valid_config)
@@ -103,7 +103,7 @@ class TestModelOrchestratorConfiguration:
 
         # Test with invalid configuration
         invalid_config = {
-            'name': 'test-model',
+            "name": "test-model",
             # Missing required fields
         }
 
@@ -126,10 +126,14 @@ class TestModelOrchestratorLifecycle:
         assert health_status is not None
         assert isinstance(health_status, dict)
         # NEW architecture returns different keys - check for actual keys returned
-        assert 'health_status' in health_status or 'available' in health_status
+        assert "health_status" in health_status or "available" in health_status
         # Verify we get some kind of meaningful health data
-        if 'health_status' in health_status:
-            assert health_status['health_status'] in ['healthy', 'unhealthy', 'degraded']
+        if "health_status" in health_status:
+            assert health_status["health_status"] in [
+                "healthy",
+                "unhealthy",
+                "degraded",
+            ]
 
     def test_model_fallback_chain(self):
         """Test fallback chain configuration."""
@@ -151,38 +155,44 @@ class TestModelOrchestratorPerformance:
         orchestrator = ModelOrchestrator()
 
         # NEW architecture uses generate_performance_report method
-        metrics = asyncio.run(orchestrator.performance_monitor.generate_performance_report())
+        metrics = asyncio.run(
+            orchestrator.performance_monitor.generate_performance_report()
+        )
 
         assert metrics is not None
         assert isinstance(metrics, dict)
-        assert 'success' in metrics
+        assert "success" in metrics
 
     def test_model_selection_optimization(self):
         """Test intelligent model selection based on performance."""
         orchestrator = ModelOrchestrator()
 
         # Mock the performance analytics method
-        with patch.object(orchestrator.performance_monitor, 'get_model_performance_analytics') as mock_analytics:
+        with patch.object(
+            orchestrator.performance_monitor, "get_model_performance_analytics"
+        ) as mock_analytics:
             mock_analytics.return_value = {
-                'success': True,
-                'analytics': {
-                    'adapter_name': None,
-                    'metrics': {},
-                    'timestamp': '2024-01-01T00:00:00Z'
+                "success": True,
+                "analytics": {
+                    "adapter_name": None,
+                    "metrics": {},
+                    "timestamp": "2024-01-01T00:00:00Z",
                 },
-                'adapter_status': {
-                    'mock_adapter': {
-                        'available': True,
-                        'type': 'test',
-                        'model_name': 'test_model',
-                        'initialized': True
+                "adapter_status": {
+                    "mock_adapter": {
+                        "available": True,
+                        "type": "test",
+                        "model_name": "test_model",
+                        "initialized": True,
                     }
-                }
+                },
             }
 
             # Test model selection
             # NEW architecture uses get_model_performance_analytics for optimization
-            analytics = asyncio.run(orchestrator.performance_monitor.get_model_performance_analytics())
+            analytics = asyncio.run(
+                orchestrator.performance_monitor.get_model_performance_analytics()
+            )
             # Mock a selection based on analytics
             selected_model = "mock" if analytics.get("success") else None
 
@@ -194,19 +204,23 @@ class TestModelOrchestratorPerformance:
         orchestrator = ModelOrchestrator()
 
         # Mock the performance report method
-        with patch.object(orchestrator.performance_monitor, 'generate_performance_report') as mock_report:
+        with patch.object(
+            orchestrator.performance_monitor, "generate_performance_report"
+        ) as mock_report:
             mock_report.return_value = {
-                'success': True,
-                'report': {
-                    'degradation_detected': False,
-                    'performance_trends': {},
-                    'recommendations': []
+                "success": True,
+                "report": {
+                    "degradation_detected": False,
+                    "performance_trends": {},
+                    "recommendations": [],
                 },
-                'timestamp': '2024-01-01T00:00:00Z'
+                "timestamp": "2024-01-01T00:00:00Z",
             }
 
             # NEW architecture uses performance report for degradation detection
-            report = asyncio.run(orchestrator.performance_monitor.generate_performance_report())
+            report = asyncio.run(
+                orchestrator.performance_monitor.generate_performance_report()
+            )
             degradation_status = report.get("success", False)
 
             assert degradation_status is not None
@@ -224,15 +238,17 @@ class TestModelOrchestratorResponseGeneration:
         orchestrator = ModelOrchestrator()
 
         # Mock the response generator
-        with patch.object(orchestrator.response_generator, 'generate_response') as mock_generate:
+        with patch.object(
+            orchestrator.response_generator, "generate_response"
+        ) as mock_generate:
             # NEW architecture returns async string response
             async def mock_async_generate(*args, **kwargs):
                 return "Test response content"
+
             mock_generate.side_effect = mock_async_generate
 
             response = await orchestrator.response_generator.generate_response(
-                prompt="Test prompt",
-                adapter_name="test-model"
+                prompt="Test prompt", adapter_name="test-model"
             )
 
             assert response is not None
@@ -246,16 +262,18 @@ class TestModelOrchestratorResponseGeneration:
         orchestrator = ModelOrchestrator()
 
         # Mock multiple model attempts - in NEW architecture, generate_response handles fallbacks internally
-        with patch.object(orchestrator.response_generator, 'generate_response') as mock_generate:
+        with patch.object(
+            orchestrator.response_generator, "generate_response"
+        ) as mock_generate:
             # NEW architecture: internal fallback handling returns successful async string response
             async def mock_async_fallback(*args, **kwargs):
                 return "Fallback response content"
+
             mock_generate.side_effect = mock_async_fallback
 
             # NEW architecture: generate_response already handles fallbacks internally
             response = await orchestrator.response_generator.generate_response(
-                prompt="Test prompt",
-                adapter_name="test-model"
+                prompt="Test prompt", adapter_name="test-model"
             )
 
             assert response is not None
@@ -269,7 +287,9 @@ class TestModelOrchestratorResponseGeneration:
         orchestrator = ModelOrchestrator()
 
         # Mock all models failing
-        with patch.object(orchestrator.response_generator, 'generate_response') as mock_generate:
+        with patch.object(
+            orchestrator.response_generator, "generate_response"
+        ) as mock_generate:
             mock_generate.side_effect = Exception("All models failed")
 
             with pytest.raises(Exception) as exc_info:
@@ -293,10 +313,10 @@ class TestModelOrchestratorIntegration:
         response = await mock_adapter.generate_response("Test prompt")
 
         assert response is not None
-        assert hasattr(response, 'content')
-        assert hasattr(response, 'model')
-        assert hasattr(response, 'provider')
-        assert hasattr(response, 'tokens_used')
+        assert hasattr(response, "content")
+        assert hasattr(response, "model")
+        assert hasattr(response, "provider")
+        assert hasattr(response, "tokens_used")
         assert len(response.content) > 0
 
     @pytest.mark.asyncio
@@ -309,7 +329,7 @@ class TestModelOrchestratorIntegration:
         response = await mock_orchestrator.generate_with_fallback("Test prompt")
 
         assert response is not None
-        assert hasattr(response, 'content')
+        assert hasattr(response, "content")
         assert len(response.content) > 0
 
     @pytest.mark.asyncio
@@ -340,7 +360,9 @@ class TestModelOrchestratorErrorHandling:
         orchestrator = ModelOrchestrator()
 
         # Test with invalid configuration
-        with patch.object(orchestrator.config_manager, 'list_model_configs') as mock_load:
+        with patch.object(
+            orchestrator.config_manager, "list_model_configs"
+        ) as mock_load:
             mock_load.side_effect = Exception("Configuration error")
 
             # Should handle error gracefully
@@ -358,12 +380,16 @@ class TestModelOrchestratorErrorHandling:
         orchestrator = ModelOrchestrator()
 
         # Test initialization with errors
-        with patch.object(orchestrator.lifecycle_manager, 'initialize_adapter') as mock_init:
+        with patch.object(
+            orchestrator.lifecycle_manager, "initialize_adapter"
+        ) as mock_init:
             mock_init.side_effect = Exception("Initialization error")
 
             # Should handle error gracefully
             try:
-                result = await orchestrator.lifecycle_manager.initialize_adapter("test-adapter")
+                result = await orchestrator.lifecycle_manager.initialize_adapter(
+                    "test-adapter"
+                )
                 # If it doesn't throw, it should return False for failure
                 assert result is False
             except Exception:
@@ -376,7 +402,9 @@ class TestModelOrchestratorErrorHandling:
         orchestrator = ModelOrchestrator()
 
         # Test with failing response generation
-        with patch.object(orchestrator.response_generator, 'generate_response') as mock_generate:
+        with patch.object(
+            orchestrator.response_generator, "generate_response"
+        ) as mock_generate:
             mock_generate.side_effect = Exception("Generation error")
 
             with pytest.raises(Exception) as exc_info:
@@ -394,22 +422,26 @@ class TestModelOrchestratorPerformanceMonitoring:
         orchestrator = ModelOrchestrator()
 
         # Mock performance data
-        with patch.object(orchestrator.performance_monitor, 'generate_performance_report') as mock_metrics:
+        with patch.object(
+            orchestrator.performance_monitor, "generate_performance_report"
+        ) as mock_metrics:
             mock_metrics.return_value = {
-                'success': True,
-                'report': {
-                    'response_times': {'model1': 1.5, 'model2': 2.1},
-                    'success_rates': {'model1': 0.95, 'model2': 0.88},
-                    'error_rates': {'model1': 0.05, 'model2': 0.12}
-                }
+                "success": True,
+                "report": {
+                    "response_times": {"model1": 1.5, "model2": 2.1},
+                    "success_rates": {"model1": 0.95, "model2": 0.88},
+                    "error_rates": {"model1": 0.05, "model2": 0.12},
+                },
             }
 
             # NEW architecture uses generate_performance_report
-            metrics = await orchestrator.performance_monitor.generate_performance_report()
+            metrics = (
+                await orchestrator.performance_monitor.generate_performance_report()
+            )
 
             assert metrics is not None
-            assert 'success' in metrics
-            assert metrics['success'] is True
+            assert "success" in metrics
+            assert metrics["success"] is True
 
     @pytest.mark.asyncio
     async def test_performance_optimization(self):
@@ -417,21 +449,25 @@ class TestModelOrchestratorPerformanceMonitoring:
         orchestrator = ModelOrchestrator()
 
         # Test optimization recommendations
-        with patch.object(orchestrator.performance_monitor, 'optimize_model_performance') as mock_opt:
+        with patch.object(
+            orchestrator.performance_monitor, "optimize_model_performance"
+        ) as mock_opt:
             mock_opt.return_value = {
-                'success': True,
-                'optimizations_applied': [
-                    {'model': 'model1', 'action': 'increase_timeout'},
-                    {'model': 'model2', 'action': 'reduce_batch_size'}
-                ]
+                "success": True,
+                "optimizations_applied": [
+                    {"model": "model1", "action": "increase_timeout"},
+                    {"model": "model2", "action": "reduce_batch_size"},
+                ],
             }
 
             # NEW architecture uses optimize_model_performance which includes recommendations
-            recommendations = await orchestrator.performance_monitor.optimize_model_performance()
+            recommendations = (
+                await orchestrator.performance_monitor.optimize_model_performance()
+            )
 
             assert recommendations is not None
-            assert 'success' in recommendations
-            assert recommendations['success'] is True
+            assert "success" in recommendations
+            assert recommendations["success"] is True
 
 
 # Test data generators for comprehensive testing
@@ -442,38 +478,38 @@ class TestModelOrchestratorDataGeneration:
         """Test generation of model configurations."""
         configs = [
             {
-                'name': 'test-model-1',
-                'type': 'text',
-                'enabled': True,
-                'api_key': 'test-key-1'
+                "name": "test-model-1",
+                "type": "text",
+                "enabled": True,
+                "api_key": "test-key-1",
             },
             {
-                'name': 'test-model-2',
-                'type': 'text',
-                'enabled': True,
-                'api_key': 'test-key-2'
-            }
+                "name": "test-model-2",
+                "type": "text",
+                "enabled": True,
+                "api_key": "test-key-2",
+            },
         ]
 
         assert len(configs) == 2
         for config in configs:
-            assert 'name' in config
-            assert 'type' in config
-            assert 'enabled' in config
+            assert "name" in config
+            assert "type" in config
+            assert "enabled" in config
 
     def test_generate_performance_data(self):
         """Test generation of performance test data."""
         performance_data = {
-            'response_times': {'model1': 1.2, 'model2': 1.8},
-            'success_rates': {'model1': 0.98, 'model2': 0.92},
-            'error_rates': {'model1': 0.02, 'model2': 0.08}
+            "response_times": {"model1": 1.2, "model2": 1.8},
+            "success_rates": {"model1": 0.98, "model2": 0.92},
+            "error_rates": {"model1": 0.02, "model2": 0.08},
         }
 
-        assert 'response_times' in performance_data
-        assert 'success_rates' in performance_data
-        assert 'error_rates' in performance_data
+        assert "response_times" in performance_data
+        assert "success_rates" in performance_data
+        assert "error_rates" in performance_data
 
-        for model in performance_data['response_times']:
-            assert performance_data['response_times'][model] > 0
-            assert 0 <= performance_data['success_rates'][model] <= 1
-            assert 0 <= performance_data['error_rates'][model] <= 1
+        for model in performance_data["response_times"]:
+            assert performance_data["response_times"][model] > 0
+            assert 0 <= performance_data["success_rates"][model] <= 1
+            assert 0 <= performance_data["error_rates"][model] <= 1

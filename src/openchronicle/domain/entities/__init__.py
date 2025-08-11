@@ -11,9 +11,6 @@ from dataclasses import field
 from datetime import datetime
 from enum import Enum
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 
 class StoryStatus(Enum):

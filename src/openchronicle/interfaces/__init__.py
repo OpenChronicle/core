@@ -54,7 +54,6 @@ def run_all_servers(
     This is useful for development environments where you want
     all interfaces available at once.
     """
-    import asyncio
     from multiprocessing import Process
 
     import uvicorn

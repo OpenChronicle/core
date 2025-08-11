@@ -401,11 +401,12 @@ class ModelOrchestrator(IModelOrchestrator):
         container.register_singleton("model_config_manager", config_manager)
 
         # Register and resolve performance monitor
-        # VIOLATION FIXED: Use dependency injection instead # (
-            PerformanceMonitor,
-        )
+        # VIOLATION FIXED: Use dependency injection instead
+        from .model_interfaces import ModelInterfaceFactory
 
-        performance_monitor = PerformanceMonitor(self.adapters, self._init_config)
+        performance_monitor = ModelInterfaceFactory.create_performance_monitor(
+            self._init_config
+        )
         container.register_singleton("model_performance_monitor", performance_monitor)
 
         # Create segregated components

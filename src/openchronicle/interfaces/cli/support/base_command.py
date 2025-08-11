@@ -19,13 +19,13 @@ from .output_manager import OutputManager
 
 
 # Type variable for command return types
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class OpenChronicleCommand(ABC):
     """
     Abstract base class for all OpenChronicle CLI commands.
-    
+
     Provides:
     - Consistent error handling
     - Configuration management
@@ -36,11 +36,11 @@ class OpenChronicleCommand(ABC):
     def __init__(
         self,
         output_manager: OutputManager | None = None,
-        config_manager: ConfigManager | None = None
+        config_manager: ConfigManager | None = None,
     ):
         """
         Initialize the command with shared dependencies.
-        
+
         Args:
             output_manager: Output formatting manager
             config_manager: Configuration management
@@ -57,8 +57,8 @@ class OpenChronicleCommand(ABC):
         # Check for core OpenChronicle files - adjusted for new structure
         required_files = [
             "main.py",
-            "src/openchronicle/__init__.py", 
-            "config"  # Just check config directory exists
+            "src/openchronicle/__init__.py",
+            "config",  # Just check config directory exists
         ]
 
         current_dir = Path.cwd()
@@ -71,7 +71,9 @@ class OpenChronicleCommand(ABC):
 
         if missing_files:
             # Be less strict during development - just warn instead of exit
-            print(f"Warning: Some OpenChronicle files not found: {', '.join(missing_files)}")
+            print(
+                f"Warning: Some OpenChronicle files not found: {', '.join(missing_files)}"
+            )
             print(f"Current directory: {current_dir}")
             # Don't exit, just continue - this allows CLI to work during development
 
@@ -79,15 +81,15 @@ class OpenChronicleCommand(ABC):
     def execute(self, **kwargs) -> Any:
         """
         Execute the command with the provided arguments.
-        
+
         This method must be implemented by all command subclasses.
-        
+
         Args:
             **kwargs: Command-specific arguments
-            
+
         Returns:
             Command-specific return value
-            
+
         Raises:
             NotImplementedError: If not implemented by subclass
         """
@@ -96,10 +98,10 @@ class OpenChronicleCommand(ABC):
     def safe_execute(self, **kwargs) -> Any:
         """
         Execute the command with comprehensive error handling.
-        
+
         Args:
             **kwargs: Command-specific arguments
-            
+
         Returns:
             Command result or None if error occurred
         """
@@ -124,10 +126,10 @@ class OpenChronicleCommand(ABC):
     def get_core_path(self, module_path: str = "") -> Path:
         """
         Get path to core OpenChronicle modules.
-        
+
         Args:
             module_path: Optional subpath within core/
-            
+
         Returns:
             Path to core module or subdirectory
         """
@@ -140,10 +142,10 @@ class OpenChronicleCommand(ABC):
     def get_config_path(self, config_file: str = "") -> Path:
         """
         Get path to configuration files.
-        
+
         Args:
             config_file: Optional specific config file
-            
+
         Returns:
             Path to config directory or specific file
         """
@@ -155,13 +157,13 @@ class OpenChronicleCommand(ABC):
     def import_core_module(self, module_name: str) -> Any:
         """
         Safely import a core OpenChronicle module.
-        
+
         Args:
             module_name: Name of the module to import (e.g., "models")
-            
+
         Returns:
             Imported module
-            
+
         Raises:
             ImportError: If module cannot be imported
         """
@@ -181,10 +183,10 @@ class OpenChronicleCommand(ABC):
     def ensure_directory(self, path: str | Path) -> Path:
         """
         Ensure a directory exists, creating it if necessary.
-        
+
         Args:
             path: Directory path to ensure
-            
+
         Returns:
             Path object for the directory
         """
@@ -202,13 +204,13 @@ class OpenChronicleCommand(ABC):
     def read_json_file(self, file_path: str | Path) -> dict[str, Any]:
         """
         Safely read and parse a JSON file.
-        
+
         Args:
             file_path: Path to JSON file
-            
+
         Returns:
             Parsed JSON data as dictionary
-            
+
         Raises:
             FileNotFoundError: If file doesn't exist
             ValueError: If JSON is invalid
@@ -220,7 +222,7 @@ class OpenChronicleCommand(ABC):
             raise FileNotFoundError(f"JSON file not found: {path}")
 
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 return json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in {path}: {e}")
@@ -228,10 +230,12 @@ class OpenChronicleCommand(ABC):
             self.output.error(f"Error reading {path}: {e}")
             raise
 
-    def write_json_file(self, file_path: str | Path, data: dict[str, Any], indent: int = 2):
+    def write_json_file(
+        self, file_path: str | Path, data: dict[str, Any], indent: int = 2
+    ):
         """
         Safely write data to a JSON file.
-        
+
         Args:
             file_path: Path to write JSON file
             data: Data to write
@@ -244,7 +248,7 @@ class OpenChronicleCommand(ABC):
         self.ensure_directory(path.parent)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent, ensure_ascii=False)
         except Exception as e:
             self.output.error(f"Error writing JSON to {path}: {e}")
@@ -253,10 +257,10 @@ class OpenChronicleCommand(ABC):
     def check_dependencies(self, required_modules: list) -> bool:
         """
         Check if required Python modules are available.
-        
+
         Args:
             required_modules: List of module names to check
-            
+
         Returns:
             True if all modules are available, False otherwise
         """
@@ -281,14 +285,14 @@ class OpenChronicleCommand(ABC):
     def format_file_size(self, size_bytes: int) -> str:
         """
         Format file size in human-readable format.
-        
+
         Args:
             size_bytes: Size in bytes
-            
+
         Returns:
             Formatted size string (e.g., "1.5 MB")
         """
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if size_bytes < 1024.0:
                 return f"{size_bytes:.1f} {unit}"
             size_bytes /= 1024.0
@@ -297,10 +301,10 @@ class OpenChronicleCommand(ABC):
     def get_file_info(self, file_path: str | Path) -> dict[str, Any]:
         """
         Get detailed information about a file.
-        
+
         Args:
             file_path: Path to file
-            
+
         Returns:
             Dictionary with file information
         """
@@ -317,7 +321,7 @@ class OpenChronicleCommand(ABC):
             "modified": stat.st_mtime,
             "is_file": path.is_file(),
             "is_directory": path.is_dir(),
-            "permissions": oct(stat.st_mode)[-3:]
+            "permissions": oct(stat.st_mode)[-3:],
         }
 
 
@@ -376,18 +380,22 @@ class SystemCommand(OpenChronicleCommand):
             "environment": {
                 "python_version": sys.version,
                 "platform": sys.platform,
-                "working_directory": str(Path.cwd())
+                "working_directory": str(Path.cwd()),
             },
             "openchronicle": {
                 "core_available": self.get_core_path().exists(),
                 "config_available": self.get_config_path().exists(),
-            }
+            },
         }
 
         # Check core modules
         core_modules = [
-            "models", "narrative", "characters",
-            "memory", "timeline", "scenes"
+            "models",
+            "narrative",
+            "characters",
+            "memory",
+            "timeline",
+            "scenes",
         ]
 
         module_status = {}

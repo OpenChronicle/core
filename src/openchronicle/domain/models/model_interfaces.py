@@ -138,9 +138,7 @@ class IModelConfigurationManager(ABC):
     """
 
     @abstractmethod
-    def get_model_configuration(
-        self, provider_name: str
-    ) -> ModelConfiguration | None:
+    def get_model_configuration(self, provider_name: str) -> ModelConfiguration | None:
         """Get configuration for specific model provider."""
 
     @abstractmethod
@@ -370,11 +368,17 @@ class ModelInterfaceFactory:
         """Create performance monitor implementation using dependency injection."""
         # Import here to avoid circular dependencies
         try:
-            from src.openchronicle.infrastructure.persistence_adapters.performance_adapter import PerformanceAdapter
+            from src.openchronicle.infrastructure.persistence_adapters.performance_adapter import (
+                PerformanceAdapter,
+            )
+
             return PerformanceAdapter()
         except ImportError:
             # Fallback mock implementation for development/testing
-            from src.openchronicle.domain.models.mock_implementations import MockPerformanceMonitor
+            from src.openchronicle.domain.models.mock_implementations import (
+                MockPerformanceMonitor,
+            )
+
             return MockPerformanceMonitor(config)
 
     @staticmethod

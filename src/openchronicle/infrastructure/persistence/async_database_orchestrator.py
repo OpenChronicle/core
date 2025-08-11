@@ -72,9 +72,7 @@ class AsyncDatabaseOrchestrator:
         return self._migration_manager
 
     # Async database operations
-    async def init_database(
-        self, story_id: str, is_test: bool | None = None
-    ) -> bool:
+    async def init_database(self, story_id: str, is_test: bool | None = None) -> bool:
         """Initialize database with all required tables."""
         return await self.operations.init_database(story_id, is_test)
 
@@ -125,9 +123,7 @@ class AsyncDatabaseOrchestrator:
         """Get database information and statistics."""
         return await self.operations.get_database_info(story_id, is_test)
 
-    async def check_integrity(
-        self, story_id: str, is_test: bool | None = None
-    ) -> bool:
+    async def check_integrity(self, story_id: str, is_test: bool | None = None) -> bool:
         """Run integrity check on database."""
         return await self.operations.check_integrity(story_id, is_test)
 

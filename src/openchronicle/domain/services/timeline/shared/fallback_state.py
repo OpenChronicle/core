@@ -37,7 +37,7 @@ class FallbackStateManager:
             execute_update(
                 self.story_id,
                 """
-                INSERT OR REPLACE INTO rollback_points 
+                INSERT OR REPLACE INTO rollback_points
                 (rollback_id, scene_id, timestamp, description, scene_data)
                 VALUES (?, ?, ?, ?, ?)
             """,

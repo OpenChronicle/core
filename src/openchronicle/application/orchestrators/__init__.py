@@ -10,7 +10,6 @@ import logging
 from abc import ABC
 from datetime import datetime
 from typing import Any
-from typing import Optional
 from typing import Protocol
 
 from src.openchronicle.domain import Character

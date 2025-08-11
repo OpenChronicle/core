@@ -165,12 +165,9 @@ class ManagementException(Exception):
     """Base exception for management system operations."""
 
 
-
 class TokenManagerException(ManagementException):
     """Exception specific to token management operations."""
 
 
-
 class BookmarkManagerException(ManagementException):
     """Exception specific to bookmark management operations."""
-

@@ -75,7 +75,7 @@ class TestBookmarkManagement:
         bookmark_id = orchestrator.create_bookmark(
             story_id="test_story_123",
             scene_id="scene_456",
-            label="Important Decision Point"
+            label="Important Decision Point",
         )
 
         assert bookmark_id is not None
@@ -94,8 +94,8 @@ class TestBookmarkManagement:
             metadata={
                 "character": "protagonist",
                 "importance": "high",
-                "notes": "Key character growth moment"
-            }
+                "notes": "Key character growth moment",
+            },
         )
 
         assert bookmark_id is not None
@@ -152,7 +152,7 @@ class TestTokenOptimization:
         requirements = {
             "max_tokens": 4000,
             "capability": "reasoning",
-            "cost_preference": "balanced"
+            "cost_preference": "balanced",
         }
 
         optimal_model = orchestrator.select_optimal_model(test_text, requirements)
@@ -170,7 +170,9 @@ class TestTokenOptimization:
 
         assert optimization_result is not None
         assert isinstance(optimization_result, dict)
-        assert 'optimized_text' in optimization_result or 'strategy' in optimization_result
+        assert (
+            "optimized_text" in optimization_result or "strategy" in optimization_result
+        )
 
 
 class TestManagementIntegration:
@@ -188,7 +190,7 @@ class TestManagementIntegration:
             story_id="integration_test",
             scene_id="token_scene",
             label="Token-Tracked Scene",
-            metadata={"token_count": token_count}
+            metadata={"token_count": token_count},
         )
 
         assert bookmark_id is not None
@@ -241,7 +243,7 @@ class TestManagementErrorHandling:
         # Test with very specific requirements that might not be met
         impossible_requirements = {
             "max_tokens": 1,  # Impossibly small
-            "capability": "nonexistent_capability"
+            "capability": "nonexistent_capability",
         }
 
         result = orchestrator.select_optimal_model("test", impossible_requirements)

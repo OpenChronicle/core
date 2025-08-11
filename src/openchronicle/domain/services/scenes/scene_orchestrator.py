@@ -226,7 +226,7 @@ class SceneOrchestrator:
                 # Use dependency injection instead of direct import
                 # This should be injected through constructor, but for backward compatibility
                 # we'll use a conditional import approach
-                memory_port = getattr(self, 'memory_port', None)
+                memory_port = getattr(self, "memory_port", None)
                 if memory_port:
                     scene_data = {
                         "user_input": user_input,
@@ -234,7 +234,7 @@ class SceneOrchestrator:
                         "scene_label": scene_label,
                     }
                     # Use memory port interface instead of direct call
-                    if hasattr(memory_port, 'track_saved_scene'):
+                    if hasattr(memory_port, "track_saved_scene"):
                         memory_port.track_saved_scene(scene_id, scene_data)
             except Exception:
                 pass  # Ignore errors for backward compatibility

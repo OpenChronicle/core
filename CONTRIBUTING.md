@@ -7,11 +7,11 @@ Thank you for your interest in contributing to OpenChronicle! This document outl
 OpenChronicle follows **hexagonal architecture** with strict layer boundaries:
 
 - **Domain Layer**: Pure business logic, no external dependencies
-- **Application Layer**: Use cases and workflows  
+- **Application Layer**: Use cases and workflows
 - **Infrastructure Layer**: External integrations (databases, APIs, LLMs)
 - **Interface Layer**: User interfaces (CLI, API, web)
 
-**⚠️ CRITICAL: NO BACKWARDS COMPATIBILITY POLICY**  
+**⚠️ CRITICAL: NO BACKWARDS COMPATIBILITY POLICY**
 We embrace breaking changes for better architecture. When designing improvements, implement them completely and remove old approaches entirely.
 
 ## Development Workflow
@@ -178,14 +178,14 @@ Use Google-style docstrings for all public modules, classes, and functions:
 ```python
 def process_story(story_id: str, options: dict) -> StoryResult:
     """Process a story with given options.
-    
+
     Args:
         story_id: Unique identifier for the story
         options: Processing configuration options
-        
+
     Returns:
         StoryResult: Processed story data and metadata
-        
+
     Raises:
         StoryNotFoundError: If story_id doesn't exist
         ValidationError: If options are invalid
@@ -201,11 +201,11 @@ from openchronicle.shared.exceptions import CharacterNotFoundError, ValidationEr
 def get_character(character_id: str) -> Character:
     if not character_id:
         raise ValidationError("Character ID is required")
-    
+
     character = repository.find(character_id)
     if not character:
         raise CharacterNotFoundError(f"Character {character_id} not found")
-    
+
     return character
 
 # ✅ CORRECT: Wrap external errors
@@ -259,7 +259,7 @@ tests/
 ### Test Categories (Pytest Markers)
 ```python
 @pytest.mark.unit          # Fast, isolated tests
-@pytest.mark.integration   # Cross-component tests  
+@pytest.mark.integration   # Cross-component tests
 @pytest.mark.performance   # Performance tests
 @pytest.mark.slow          # Tests that take >1 second
 @pytest.mark.requires_api_key  # Tests requiring real API access
@@ -274,10 +274,10 @@ def test_character_creation_with_valid_data():
     """Test character creation succeeds with valid data."""
     # Arrange
     character_data = {"name": "Alice", "age": 25, "role": "protagonist"}
-    
+
     # Act
     character = Character.create(character_data)
-    
+
     # Assert
     assert character.name == "Alice"
     assert character.is_valid()
@@ -294,10 +294,10 @@ def test_create_story_command_success(mock_llm):
     mock_llm.generate_text.return_value = "Generated story content"
     command = CreateStoryCommand(llm_adapter=mock_llm)
     story_data = {"title": "Test Story", "theme": "adventure"}
-    
+
     # Act
     result = command.execute(story_data)
-    
+
     # Assert
     assert result.success
     assert result.story_id is not None
@@ -312,17 +312,17 @@ def test_complete_story_creation_workflow():
     # Arrange
     story_orchestrator = StoryOrchestrator()
     story_request = StoryCreationRequest(title="Test", theme="sci-fi")
-    
+
     # Act
     result = story_orchestrator.create_story(story_request)
-    
+
     # Assert
     assert result.success
     assert result.story.title == "Test"
     # Verify story was persisted
     retrieved_story = story_orchestrator.get_story(result.story.id)
     assert retrieved_story is not None
-    
+
     # Assert
     assert result.success is True
     assert result.story_id == story_id
@@ -360,7 +360,7 @@ docs(readme): update installation instructions
 
 ### Current Migration
 The project is migrating from dual architecture to unified hexagonal architecture:
-- **Legacy**: `core/` modules (being phased out)  
+- **Legacy**: `core/` modules (being phased out)
 - **Modern**: `src/openchronicle/` hexagonal structure
 
 ### Contribution Areas

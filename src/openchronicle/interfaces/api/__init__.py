@@ -8,7 +8,6 @@ It serves as the HTTP interface layer in the hexagonal architecture.
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
-from typing import Optional
 
 import uvicorn
 from fastapi import Depends

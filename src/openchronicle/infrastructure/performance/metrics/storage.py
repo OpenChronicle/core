@@ -204,7 +204,7 @@ class MetricsStorage(IMetricsStorage):
 
             # Build base query
             base_query = """
-                SELECT 
+                SELECT
                     COUNT(*) as total_operations,
                     SUM(CASE WHEN success THEN 1 ELSE 0 END) as successful_operations,
                     AVG(duration) as avg_duration,
@@ -212,7 +212,7 @@ class MetricsStorage(IMetricsStorage):
                     MAX(duration) as max_duration,
                     AVG(cpu_usage_after - cpu_usage_before) as avg_cpu_delta,
                     AVG(memory_usage_after - memory_usage_before) as avg_memory_delta
-                FROM performance_metrics 
+                FROM performance_metrics
                 WHERE start_time >= ? AND end_time <= ?
             """
 
@@ -245,7 +245,7 @@ class MetricsStorage(IMetricsStorage):
             # Get adapter breakdown
             adapter_query = """
                 SELECT adapter_name, COUNT(*), AVG(duration)
-                FROM performance_metrics 
+                FROM performance_metrics
                 WHERE start_time >= ? AND end_time <= ?
             """
             adapter_params: list[Any] = [
@@ -339,7 +339,7 @@ class MetricsStorage(IMetricsStorage):
             # Get date range
             cursor.execute(
                 """
-                SELECT MIN(start_time), MAX(start_time) 
+                SELECT MIN(start_time), MAX(start_time)
                 FROM performance_metrics
             """
             )
@@ -410,28 +410,28 @@ class MetricsStorage(IMetricsStorage):
         # Create indexes for efficient querying
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_adapter_name 
+            CREATE INDEX IF NOT EXISTS idx_adapter_name
             ON performance_metrics(adapter_name)
         """
         )
 
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_start_time 
+            CREATE INDEX IF NOT EXISTS idx_start_time
             ON performance_metrics(start_time)
         """
         )
 
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_operation_type 
+            CREATE INDEX IF NOT EXISTS idx_operation_type
             ON performance_metrics(operation_type)
         """
         )
 
         cursor.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_success 
+            CREATE INDEX IF NOT EXISTS idx_success
             ON performance_metrics(success)
         """
         )

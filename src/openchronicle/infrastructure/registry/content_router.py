@@ -339,9 +339,7 @@ class ContentRouter:
 
         # quality priority (default)
         # Sort by quality score (higher is better)
-        return sorted(
-            providers, key=lambda p: self._get_quality_score(p), reverse=True
-        )
+        return sorted(providers, key=lambda p: self._get_quality_score(p), reverse=True)
 
     def _get_latency_score(self, provider: str) -> float:
         """Get latency score for provider (lower is better)."""

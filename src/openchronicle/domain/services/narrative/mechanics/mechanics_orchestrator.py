@@ -121,10 +121,11 @@ class MechanicsOrchestrator:
             )
 
             # Generate consequences and benefits
-            resolution_result.consequences, resolution_result.benefits = (
-                self._generate_consequences_and_benefits(
-                    resolution_result, character_state
-                )
+            (
+                resolution_result.consequences,
+                resolution_result.benefits,
+            ) = self._generate_consequences_and_benefits(
+                resolution_result, character_state
             )
 
             # Create branches if requested

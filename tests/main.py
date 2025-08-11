@@ -6,7 +6,7 @@ with discovery, filtering, performance monitoring, and detailed reporting.
 
 Usage:
     python tests/main.py                    # Run all tests
-    python tests/main.py unit              # Run only unit tests  
+    python tests/main.py unit              # Run only unit tests
     python tests/main.py integration       # Run only integration tests
     python tests/main.py performance       # Run only performance tests
     python tests/main.py stress            # Run only stress tests
@@ -29,6 +29,7 @@ sys.path.insert(0, str(project_root))
 
 try:
     import pytest
+
     PYTEST_AVAILABLE = True
 except ImportError:
     PYTEST_AVAILABLE = False
@@ -36,9 +37,11 @@ except ImportError:
 
 try:
     import coverage
+
     COVERAGE_AVAILABLE = True
 except ImportError:
     COVERAGE_AVAILABLE = False
+
 
 class TestRunner:
     """Professional test runner for OpenChronicle test suite."""
@@ -47,7 +50,9 @@ class TestRunner:
         self.test_dir = Path(__file__).parent
         self.project_root = self.test_dir.parent
 
-    def discover_tests(self, test_type: str | None = None, module: str | None = None) -> list[str]:
+    def discover_tests(
+        self, test_type: str | None = None, module: str | None = None
+    ) -> list[str]:
         """Discover test files based on criteria."""
         test_files = []
 
@@ -57,7 +62,7 @@ class TestRunner:
                 f"tests/unit/{module}/**/*.py",
                 f"tests/integration/*{module}*.py",
                 f"tests/performance/*{module}*.py",
-                f"tests/**/*{module}*.py"
+                f"tests/**/*{module}*.py",
             ]
             for pattern in patterns:
                 for test_file in self.project_root.glob(pattern):
@@ -83,19 +88,21 @@ class TestRunner:
 
         return sorted(test_files)
 
-    def run_tests(self,
-                  test_type: str | None = None,
-                  module: str | None = None,
-                  verbose: bool = False,
-                  coverage: bool = False,
-                  parallel: bool = False) -> dict[str, Any]:
+    def run_tests(
+        self,
+        test_type: str | None = None,
+        module: str | None = None,
+        verbose: bool = False,
+        coverage: bool = False,
+        parallel: bool = False,
+    ) -> dict[str, Any]:
         """Run tests with specified options."""
 
         if not PYTEST_AVAILABLE:
             return {
                 "success": False,
                 "error": "pytest not available",
-                "suggestion": "Install with: pip install pytest pytest-xdist pytest-cov"
+                "suggestion": "Install with: pip install pytest pytest-xdist pytest-cov",
             }
 
         start_time = time.time()
@@ -133,7 +140,9 @@ class TestRunner:
             print(f"📊 Files: {len(test_files)} test files discovered")
             print("=" * 60)
 
-            result = subprocess.run(cmd, check=False, capture_output=True, text=True, cwd=self.project_root)
+            result = subprocess.run(
+                cmd, check=False, capture_output=True, text=True, cwd=self.project_root
+            )
 
             duration = time.time() - start_time
 
@@ -143,14 +152,14 @@ class TestRunner:
                 "stderr": result.stderr,
                 "duration": duration,
                 "files_tested": len(test_files),
-                "command": " ".join(cmd)
+                "command": " ".join(cmd),
             }
 
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "duration": time.time() - start_time
+                "duration": time.time() - start_time,
             }
 
     def generate_report(self, result: dict[str, Any]):
@@ -179,6 +188,7 @@ class TestRunner:
 
         return result["success"]
 
+
 def main():
     """Main test runner entry point."""
     parser = argparse.ArgumentParser(
@@ -188,12 +198,12 @@ def main():
 Examples:
   python tests/main.py                     # Run all tests
   python tests/main.py unit               # Unit tests only
-  python tests/main.py integration        # Integration tests only  
+  python tests/main.py integration        # Integration tests only
   python tests/main.py performance        # Performance tests only
   python tests/main.py --module memory    # Memory module tests
   python tests/main.py --coverage         # With coverage report
   python tests/main.py --parallel         # Parallel execution
-        """
+        """,
     )
 
     parser.add_argument(
@@ -201,36 +211,29 @@ Examples:
         nargs="?",
         choices=["unit", "integration", "performance", "stress", "all"],
         default="all",
-        help="Type of tests to run (default: all)"
+        help="Type of tests to run (default: all)",
     )
 
     parser.add_argument(
         "--module",
-        help="Run tests for specific module (e.g., memory, models, narrative)"
+        help="Run tests for specific module (e.g., memory, models, narrative)",
+    )
+
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+
+    parser.add_argument(
+        "--coverage", "-c", action="store_true", help="Include coverage report"
     )
 
     parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Verbose output"
+        "--parallel", "-p", action="store_true", help="Run tests in parallel"
     )
 
     parser.add_argument(
-        "--coverage", "-c",
+        "--list",
+        "-l",
         action="store_true",
-        help="Include coverage report"
-    )
-
-    parser.add_argument(
-        "--parallel", "-p",
-        action="store_true",
-        help="Run tests in parallel"
-    )
-
-    parser.add_argument(
-        "--list", "-l",
-        action="store_true",
-        help="List discovered tests without running"
+        help="List discovered tests without running",
     )
 
     args = parser.parse_args()
@@ -249,11 +252,12 @@ Examples:
         module=args.module,
         verbose=args.verbose,
         coverage=args.coverage,
-        parallel=args.parallel
+        parallel=args.parallel,
     )
 
     success = runner.generate_report(result)
     return 0 if success else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

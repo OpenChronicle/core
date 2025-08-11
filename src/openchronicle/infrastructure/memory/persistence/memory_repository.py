@@ -161,9 +161,7 @@ class MemoryRepository:
         except Exception:
             return ""
 
-    def restore_from_snapshot(
-        self, story_id: str, scene_id: str
-    ) -> MemoryState | None:
+    def restore_from_snapshot(self, story_id: str, scene_id: str) -> MemoryState | None:
         """Restore memory from specific snapshot."""
         try:
             rows = database_orchestrator.execute_query(

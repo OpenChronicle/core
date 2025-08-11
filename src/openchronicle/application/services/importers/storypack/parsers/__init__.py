@@ -11,8 +11,4 @@ from .metadata_extractor import MetadataExtractor
 from .structure_analyzer import StructureAnalyzer
 
 
-__all__ = [
-    'ContentParser',
-    'MetadataExtractor',
-    'StructureAnalyzer'
-]
+__all__ = ["ContentParser", "MetadataExtractor", "StructureAnalyzer"]

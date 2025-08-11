@@ -111,7 +111,7 @@ class DatabaseOperations:
                     # Scenes FTS
                     cursor.execute(
                         """
-                        CREATE VIRTUAL TABLE IF NOT EXISTS scenes_fts 
+                        CREATE VIRTUAL TABLE IF NOT EXISTS scenes_fts
                         USING fts5(id, title, content, characters, tokenize='porter')
                     """
                     )
@@ -266,7 +266,7 @@ class DatabaseOperations:
                 # Count total tables
                 cursor.execute(
                     """
-                    SELECT COUNT(*) FROM sqlite_master 
+                    SELECT COUNT(*) FROM sqlite_master
                     WHERE type='table' AND name NOT LIKE 'sqlite_%'
                 """
                 )
@@ -275,7 +275,7 @@ class DatabaseOperations:
                 # Count indexes
                 cursor.execute(
                     """
-                    SELECT COUNT(*) FROM sqlite_master 
+                    SELECT COUNT(*) FROM sqlite_master
                     WHERE type='index' AND name NOT LIKE 'sqlite_%'
                 """
                 )
@@ -287,7 +287,7 @@ class DatabaseOperations:
                     # Count FTS tables
                     cursor.execute(
                         """
-                        SELECT COUNT(*) FROM sqlite_master 
+                        SELECT COUNT(*) FROM sqlite_master
                         WHERE type='table' AND name LIKE '%_fts'
                     """
                     )

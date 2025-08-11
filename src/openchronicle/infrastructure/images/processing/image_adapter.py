@@ -371,9 +371,7 @@ class ImageAdapterRegistry:
             except Exception as e:
                 logger.error(f"Failed to initialize adapter {adapter_name}: {e}")
 
-    def get_adapter(
-        self, provider: ImageProvider | None = None
-    ) -> ImageAdapter | None:
+    def get_adapter(self, provider: ImageProvider | None = None) -> ImageAdapter | None:
         """Get an adapter for the specified provider"""
         if provider:
             # Look for specific provider

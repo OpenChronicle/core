@@ -14,10 +14,12 @@ try:
     from src.openchronicle.domain.services.timeline.timeline_orchestrator import (
         TimelineOrchestrator,
     )
+
     TIMELINE_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     TIMELINE_ORCHESTRATOR_AVAILABLE = False
     IMPORT_ERROR = str(e)
+
 
 @pytest.mark.unit
 class TestTimelineOrchestrator:
@@ -28,9 +30,13 @@ class TestTimelineOrchestrator:
         if not TIMELINE_ORCHESTRATOR_AVAILABLE:
             pytest.fail(f"TimelineOrchestrator import failed: {IMPORT_ERROR}")
 
-        assert TIMELINE_ORCHESTRATOR_AVAILABLE, "TimelineOrchestrator should be importable"
+        assert (
+            TIMELINE_ORCHESTRATOR_AVAILABLE
+        ), "TimelineOrchestrator should be importable"
 
-    @pytest.mark.skipif(not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available")
+    @pytest.mark.skipif(
+        not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available"
+    )
     def test_orchestrator_initialization(self, test_story_id):
         """Test TimelineOrchestrator initialization."""
         orchestrator = TimelineOrchestrator(test_story_id)
@@ -39,51 +45,63 @@ class TestTimelineOrchestrator:
         assert orchestrator is not None
         assert orchestrator.story_id == test_story_id
 
-    @pytest.mark.skipif(not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available")
+    @pytest.mark.skipif(
+        not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available"
+    )
     def test_orchestrator_components(self, test_story_id):
         """Test that orchestrator has expected components."""
         orchestrator = TimelineOrchestrator(test_story_id)
 
         # Test basic attributes
-        assert hasattr(orchestrator, 'story_id')
-        assert hasattr(orchestrator, 'config')
-        assert hasattr(orchestrator, 'metrics')
+        assert hasattr(orchestrator, "story_id")
+        assert hasattr(orchestrator, "config")
+        assert hasattr(orchestrator, "metrics")
 
-    @pytest.mark.skipif(not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available")
+    @pytest.mark.skipif(
+        not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available"
+    )
     def test_timeline_management_methods(self, test_story_id):
         """Test timeline management method availability."""
         orchestrator = TimelineOrchestrator(test_story_id)
 
         # Test for timeline-related methods
-        expected_methods = [
-            'build_timeline',
-            'get_timeline',
-            '_get_timeline_manager'
-        ]
+        expected_methods = ["build_timeline", "get_timeline", "_get_timeline_manager"]
 
         # Check if any timeline methods exist
-        has_timeline_methods = any(hasattr(orchestrator, method) for method in expected_methods)
-        assert has_timeline_methods, "TimelineOrchestrator should have timeline management methods"
+        has_timeline_methods = any(
+            hasattr(orchestrator, method) for method in expected_methods
+        )
+        assert (
+            has_timeline_methods
+        ), "TimelineOrchestrator should have timeline management methods"
 
-    @pytest.mark.skipif(not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available")
+    @pytest.mark.skipif(
+        not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available"
+    )
     def test_state_management_methods(self, test_story_id):
         """Test state management method availability."""
         orchestrator = TimelineOrchestrator(test_story_id)
 
         # Test for state/rollback-related methods
         expected_methods = [
-            'create_rollback_point',
-            'rollback_to_point',
-            '_get_state_manager'
+            "create_rollback_point",
+            "rollback_to_point",
+            "_get_state_manager",
         ]
 
         # Check if any state methods exist
-        has_state_methods = any(hasattr(orchestrator, method) for method in expected_methods)
-        assert has_state_methods, "TimelineOrchestrator should have state management methods"
+        has_state_methods = any(
+            hasattr(orchestrator, method) for method in expected_methods
+        )
+        assert (
+            has_state_methods
+        ), "TimelineOrchestrator should have state management methods"
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available")
+@pytest.mark.skipif(
+    not TIMELINE_ORCHESTRATOR_AVAILABLE, reason="TimelineOrchestrator not available"
+)
 class TestTimelineOrchestrationIntegration:
     """Test integration between timeline orchestrator components."""
 
@@ -92,7 +110,7 @@ class TestTimelineOrchestrationIntegration:
         orchestrator = TimelineOrchestrator(test_story_id)
 
         # Test timeline manager access
-        if hasattr(orchestrator, '_get_timeline_manager'):
+        if hasattr(orchestrator, "_get_timeline_manager"):
             try:
                 timeline_manager = orchestrator._get_timeline_manager()
                 # If it returns something, validate it's not None
@@ -107,7 +125,7 @@ class TestTimelineOrchestrationIntegration:
         orchestrator = TimelineOrchestrator(test_story_id)
 
         # Test state manager access
-        if hasattr(orchestrator, '_get_state_manager'):
+        if hasattr(orchestrator, "_get_state_manager"):
             try:
                 state_manager = orchestrator._get_state_manager()
                 # If it returns something, validate it's not None
@@ -125,15 +143,15 @@ class TestTimelineOrchestrationIntegration:
         assert orchestrator.metrics is not None
 
         # Test metrics methods if available
-        if hasattr(orchestrator.metrics, 'get_metrics'):
+        if hasattr(orchestrator.metrics, "get_metrics"):
             metrics = orchestrator.metrics.get_metrics()
             assert isinstance(metrics, dict)
-            assert 'total_operations' in metrics
+            assert "total_operations" in metrics
 
-        if hasattr(orchestrator.metrics, 'record_operation'):
+        if hasattr(orchestrator.metrics, "record_operation"):
             # Test recording an operation
             initial_count = orchestrator.metrics.operations_count
-            orchestrator.metrics.record_operation('test_operation')
+            orchestrator.metrics.record_operation("test_operation")
             assert orchestrator.metrics.operations_count == initial_count + 1
 
 
@@ -166,9 +184,9 @@ class TestTimelineOrchestrationWithMocks:
 
         # Test basic configuration attributes
         expected_config_attrs = [
-            'enable_auto_summaries',
-            'enable_tone_tracking',
-            'max_timeline_entries'
+            "enable_auto_summaries",
+            "enable_tone_tracking",
+            "max_timeline_entries",
         ]
 
         for attr in expected_config_attrs:

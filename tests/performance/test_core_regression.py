@@ -2,7 +2,7 @@
 Simple performance regression tests for OpenChronicle core operations.
 
 These tests focus on the core functionality that is working correctly
-and establish baseline performance metrics without triggering the 
+and establish baseline performance metrics without triggering the
 database schema issues.
 """
 

@@ -36,7 +36,11 @@ class ConfigurationManager:
     - Follows dependency inversion principle
     """
 
-    def __init__(self, config: Optional[SystemConfig] = None, registry_port: Optional[IRegistryPort] = None):
+    def __init__(
+        self,
+        config: Optional[SystemConfig] = None,
+        registry_port: Optional[IRegistryPort] = None,
+    ):
         """
         Initialize configuration manager.
 
@@ -45,17 +49,22 @@ class ConfigurationManager:
             registry_port: Registry interface implementation (injected)
         """
         self.config = config or SystemConfig()
-        
+
         # If no registry port provided, create default adapter
         if registry_port is None:
             # Conditional import to avoid circular dependencies
             try:
-                from src.openchronicle.infrastructure.persistence_adapters.registry_adapter import RegistryAdapter
+                from src.openchronicle.infrastructure.persistence_adapters.registry_adapter import (
+                    RegistryAdapter,
+                )
+
                 self.registry = RegistryAdapter()
             except ImportError:
                 # Fallback for development/testing
                 self.registry = None
-                log_warning("Registry adapter not available - some features may be limited")
+                log_warning(
+                    "Registry adapter not available - some features may be limited"
+                )
         else:
             self.registry = registry_port
 

@@ -25,12 +25,18 @@ def pytest_collection_modifyitems(config, items):
         # Skip chaos tests by default unless explicitly requested
         if "chaos" in [marker.name for marker in item.iter_markers()]:
             if not config.getoption("-m") or "chaos" not in config.getoption("-m"):
-                item.add_marker(pytest.mark.skip(reason="Chaos tests require explicit mark selection"))
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason="Chaos tests require explicit mark selection"
+                    )
+                )
 
         # Skip production tests in quick runs
         if "production" in [marker.name for marker in item.iter_markers()]:
             if config.getoption("--tb") == "short" and not config.getoption("-m"):
-                item.add_marker(pytest.mark.skip(reason="Production tests skipped in quick runs"))
+                item.add_marker(
+                    pytest.mark.skip(reason="Production tests skipped in quick runs")
+                )
 
 
 def pytest_runtest_setup(item):

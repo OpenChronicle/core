@@ -18,7 +18,7 @@
 - [Benefit 1]
 - [Benefit 2]
 
-### Negative  
+### Negative
 - [Drawback 1]
 - [Drawback 2]
 

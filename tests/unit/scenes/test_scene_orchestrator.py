@@ -14,6 +14,7 @@ try:
     from src.openchronicle.domain.services.scenes.scene_orchestrator import (
         SceneOrchestrator,
     )
+
     SCENE_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     SCENE_ORCHESTRATOR_AVAILABLE = False
@@ -34,7 +35,9 @@ class TestSceneOrchestrator:
 
         assert SCENE_ORCHESTRATOR_AVAILABLE, "SceneOrchestrator should be importable"
 
-    @pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+    @pytest.mark.skipif(
+        not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available"
+    )
     def test_orchestrator_initialization(self, test_story_id):
         """Test SceneOrchestrator initialization."""
         # Test basic initialization
@@ -45,12 +48,14 @@ class TestSceneOrchestrator:
         assert orchestrator.story_id == test_story_id
 
         # Test configuration initialization
-        config = {'enable_logging': False, 'enable_mood_analysis': True}
+        config = {"enable_logging": False, "enable_mood_analysis": True}
         orchestrator_with_config = SceneOrchestrator(test_story_id, config=config)
 
         assert orchestrator_with_config.story_id == test_story_id
 
-    @pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+    @pytest.mark.skipif(
+        not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available"
+    )
     def test_orchestrator_components_initialization(self, test_story_id):
         """Test that orchestrator initializes all required components."""
         orchestrator = SceneOrchestrator(test_story_id)
@@ -58,38 +63,47 @@ class TestSceneOrchestrator:
         # Test that orchestrator has expected attributes/components
         # Note: Actual attributes depend on implementation
         expected_components = [
-            'story_id',
+            "story_id",
             # Add other expected components based on actual implementation
         ]
 
         for component in expected_components:
             assert hasattr(orchestrator, component), f"Orchestrator missing {component}"
 
-    @pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+    @pytest.mark.skipif(
+        not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available"
+    )
     def test_scene_creation_workflow(self, test_story_id, sample_scene_data):
         """Test complete scene creation workflow."""
         orchestrator = SceneOrchestrator(test_story_id)
 
         # Test scene creation method exists and is callable
-        assert hasattr(orchestrator, 'create_scene') or hasattr(orchestrator, 'save_scene'), \
-            "Orchestrator should have scene creation method"
+        assert hasattr(orchestrator, "create_scene") or hasattr(
+            orchestrator, "save_scene"
+        ), "Orchestrator should have scene creation method"
 
         # Test with actual scene orchestrator API parameters
         try:
             # Use save_scene with correct parameters
-            if hasattr(orchestrator, 'save_scene'):
+            if hasattr(orchestrator, "save_scene"):
                 result = orchestrator.save_scene(
                     user_input="Test user input",
-                    model_output=sample_scene_data.get('scene_content', 'Test scene content'),
-                    memory_snapshot={'location': sample_scene_data.get('location', 'test_location')},
-                    flags=sample_scene_data.get('tags', ['test']),
-                    scene_label=f"Scene {sample_scene_data.get('scene_number', 1)}"
+                    model_output=sample_scene_data.get(
+                        "scene_content", "Test scene content"
+                    ),
+                    memory_snapshot={
+                        "location": sample_scene_data.get("location", "test_location")
+                    },
+                    flags=sample_scene_data.get("tags", ["test"]),
+                    scene_label=f"Scene {sample_scene_data.get('scene_number', 1)}",
                 )
-            elif hasattr(orchestrator, 'create_scene'):
+            elif hasattr(orchestrator, "create_scene"):
                 # If create_scene exists, try that instead
                 result = orchestrator.create_scene(
                     user_input="Test user input",
-                    model_output=sample_scene_data.get('scene_content', 'Test scene content')
+                    model_output=sample_scene_data.get(
+                        "scene_content", "Test scene content"
+                    ),
                 )
 
             # Basic validation that something was returned
@@ -97,7 +111,13 @@ class TestSceneOrchestrator:
 
         except Exception as e:
             # If method exists but fails, that's important information
-            pytest.fail(f"Scene creation method exists but failed: {e}")    @pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+            pytest.fail(
+                f"Scene creation method exists but failed: {e}"
+            ) @ pytest.mark.skipif(
+                not SCENE_ORCHESTRATOR_AVAILABLE,
+                reason="SceneOrchestrator not available",
+            )
+
     def test_orchestrator_error_handling(self, test_story_id):
         """Test orchestrator error handling."""
         # Test that orchestrator handles None story_id gracefully
@@ -114,14 +134,16 @@ class TestSceneOrchestrator:
             # Expected behavior for empty string
             pass
 
-    @pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+    @pytest.mark.skipif(
+        not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available"
+    )
     def test_orchestrator_configuration_handling(self, test_story_id):
         """Test orchestrator configuration handling."""
         # Test with valid configuration
         valid_config = {
-            'enable_logging': False,
-            'enable_mood_analysis': True,
-            'enable_structured_tags': True
+            "enable_logging": False,
+            "enable_mood_analysis": True,
+            "enable_structured_tags": True,
         }
 
         orchestrator = SceneOrchestrator(test_story_id, config=valid_config)
@@ -137,7 +159,9 @@ class TestSceneOrchestrator:
 
 
 @pytest.mark.unit
-@pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+@pytest.mark.skipif(
+    not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available"
+)
 class TestSceneOrchestrationMethods:
     """Test specific orchestration methods and workflows."""
 
@@ -147,16 +171,14 @@ class TestSceneOrchestrationMethods:
 
         # Test that ID generation methods exist
         # Note: Actual method names depend on implementation
-        possible_id_methods = [
-            'generate_scene_id',
-            'create_scene_id',
-            '_generate_id'
-        ]
+        possible_id_methods = ["generate_scene_id", "create_scene_id", "_generate_id"]
 
-        has_id_method = any(hasattr(orchestrator, method) for method in possible_id_methods)
+        has_id_method = any(
+            hasattr(orchestrator, method) for method in possible_id_methods
+        )
 
         # Check if ID generator is accessible through properties
-        if hasattr(orchestrator, 'id_generator'):
+        if hasattr(orchestrator, "id_generator"):
             # Test the ID generator component
             id_gen = orchestrator.id_generator
             assert id_gen is not None, "ID generator should be available"
@@ -175,16 +197,12 @@ class TestSceneOrchestrationMethods:
         orchestrator = SceneOrchestrator(test_story_id)
 
         # Test if orchestrator has structured tag capabilities
-        tag_methods = [
-            'generate_structured_tags',
-            'create_tags',
-            'analyze_scene'
-        ]
+        tag_methods = ["generate_structured_tags", "create_tags", "analyze_scene"]
 
         has_tag_method = any(hasattr(orchestrator, method) for method in tag_methods)
 
         # Check if labeling system is accessible through properties
-        if hasattr(orchestrator, 'labeling_system'):
+        if hasattr(orchestrator, "labeling_system"):
             # Test the labeling system component
             labeling = orchestrator.labeling_system
             assert labeling is not None, "Labeling system should be available"
@@ -199,16 +217,12 @@ class TestSceneOrchestrationMethods:
         orchestrator = SceneOrchestrator(test_story_id)
 
         # Test if orchestrator has mood analysis capabilities
-        mood_methods = [
-            'analyze_mood',
-            'extract_mood',
-            'get_scene_mood'
-        ]
+        mood_methods = ["analyze_mood", "extract_mood", "get_scene_mood"]
 
         has_mood_method = any(hasattr(orchestrator, method) for method in mood_methods)
 
         # Check if mood analyzer is accessible through properties
-        if hasattr(orchestrator, 'mood_analyzer'):
+        if hasattr(orchestrator, "mood_analyzer"):
             # Test the mood analyzer component
             mood_analyzer = orchestrator.mood_analyzer
             assert mood_analyzer is not None, "Mood analyzer should be available"
@@ -220,7 +234,9 @@ class TestSceneOrchestrationMethods:
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available")
+@pytest.mark.skipif(
+    not SCENE_ORCHESTRATOR_AVAILABLE, reason="SceneOrchestrator not available"
+)
 class TestSceneOrchestrationIntegration:
     """Test integration between orchestrator components."""
 
@@ -230,13 +246,15 @@ class TestSceneOrchestrationIntegration:
 
         # Test that persistence layer is accessible
         persistence_attributes = [
-            'persistence_layer',
-            'repository',
-            'database_manager',
-            '_repository'
+            "persistence_layer",
+            "repository",
+            "database_manager",
+            "_repository",
         ]
 
-        has_persistence = any(hasattr(orchestrator, attr) for attr in persistence_attributes)
+        has_persistence = any(
+            hasattr(orchestrator, attr) for attr in persistence_attributes
+        )
 
         if not has_persistence:
             pytest.skip("Persistence layer integration not directly accessible")
@@ -247,10 +265,10 @@ class TestSceneOrchestrationIntegration:
 
         # Test that analysis layer is accessible
         analysis_attributes = [
-            'analysis_layer',
-            'statistics_engine',
-            'mood_analyzer',
-            '_analyzer'
+            "analysis_layer",
+            "statistics_engine",
+            "mood_analyzer",
+            "_analyzer",
         ]
 
         has_analysis = any(hasattr(orchestrator, attr) for attr in analysis_attributes)
@@ -264,13 +282,15 @@ class TestSceneOrchestrationIntegration:
 
         # Test that management layer is accessible
         management_attributes = [
-            'management_layer',
-            'scene_manager',
-            'labeling_system',
-            '_manager'
+            "management_layer",
+            "scene_manager",
+            "labeling_system",
+            "_manager",
         ]
 
-        has_management = any(hasattr(orchestrator, attr) for attr in management_attributes)
+        has_management = any(
+            hasattr(orchestrator, attr) for attr in management_attributes
+        )
 
         if not has_management:
             pytest.skip("Management layer integration not directly accessible")
@@ -288,10 +308,10 @@ class TestSceneOrchestrationWithMocks:
         # Validate mock data structure
         assert len(mock_scenes) == 3
         for scene in mock_scenes:
-            assert 'scene_id' in scene
-            assert 'user_input' in scene
-            assert 'model_output' in scene
-            assert 'memory_snapshot' in scene
+            assert "scene_id" in scene
+            assert "user_input" in scene
+            assert "model_output" in scene
+            assert "memory_snapshot" in scene
 
     @pytest.mark.asyncio
     async def test_mock_database_integration(self, test_story_id):
@@ -299,11 +319,15 @@ class TestSceneOrchestrationWithMocks:
         mock_db = create_mock_database()
 
         # Test mock database operations
-        result = await mock_db.execute_query("SELECT * FROM scenes WHERE story_id = ?", (test_story_id,))
+        result = await mock_db.execute_query(
+            "SELECT * FROM scenes WHERE story_id = ?", (test_story_id,)
+        )
         assert isinstance(result, list)
 
         # Test mock insert
-        insert_result = await mock_db.execute_query("INSERT INTO scenes (story_id, content) VALUES (?, ?)",
-                                            (test_story_id, "test_content"))
-        assert insert_result[0]['affected_rows'] == 1
-        assert 'inserted_id' in insert_result[0]
+        insert_result = await mock_db.execute_query(
+            "INSERT INTO scenes (story_id, content) VALUES (?, ?)",
+            (test_story_id, "test_content"),
+        )
+        assert insert_result[0]["affected_rows"] == 1
+        assert "inserted_id" in insert_result[0]

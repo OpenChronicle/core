@@ -46,7 +46,7 @@ class StatisticsEngine:
                 self.story_id,
                 """
                 SELECT scene_id, timestamp, input, output, scene_label, structured_tags,
-                       LENGTH(input) as input_length, 
+                       LENGTH(input) as input_length,
                        LENGTH(output) as output_length
                 FROM scenes
                 WHERE LENGTH(input) > 2000 OR LENGTH(output) > 2000
@@ -190,7 +190,7 @@ class StatisticsEngine:
             basic_stats = execute_query(
                 self.story_id,
                 """
-                SELECT 
+                SELECT
                     COUNT(*) as total_scenes,
                     COUNT(scene_label) as labeled_scenes,
                     COUNT(analysis) as scenes_with_analysis,
@@ -287,7 +287,7 @@ class StatisticsEngine:
             rows = execute_query(
                 self.story_id,
                 """
-                SELECT 
+                SELECT
                     LENGTH(input) as input_length,
                     LENGTH(output) as output_length,
                     LENGTH(input) + LENGTH(output) as total_length

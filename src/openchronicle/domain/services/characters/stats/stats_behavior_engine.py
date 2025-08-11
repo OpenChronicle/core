@@ -165,9 +165,9 @@ class StatsBehaviorEngine(
 
         # Get category averages
         for category in CharacterStatCategory:
-            context["category_averages"][category.value] = (
-                stats.get_stat_category_average(category)
-            )
+            context["category_averages"][
+                category.value
+            ] = stats.get_stat_category_average(category)
 
         # Get stat influences for situation
         for stat_type in CharacterStatType:

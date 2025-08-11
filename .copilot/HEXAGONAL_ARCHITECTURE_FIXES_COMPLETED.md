@@ -10,7 +10,7 @@
 
 #### **1. Created Domain Ports (Interfaces)**
 - `src/openchronicle/domain/ports/persistence_port.py` - Database operations interface
-- `src/openchronicle/domain/ports/memory_port.py` - Memory operations interface  
+- `src/openchronicle/domain/ports/memory_port.py` - Memory operations interface
 - `src/openchronicle/domain/ports/storage_port.py` - File storage operations interface
 
 #### **2. Created Infrastructure Adapters**
@@ -22,12 +22,12 @@
 
 **Files Fixed:**
 - ✅ `scene_repository.py` - Now uses IPersistencePort via dependency injection
-- ✅ `mood_analyzer.py` - Now uses IPersistencePort via dependency injection  
+- ✅ `mood_analyzer.py` - Now uses IPersistencePort via dependency injection
 - ✅ `scene_manager.py` - Now uses IPersistencePort via dependency injection
 - ✅ `timeline_manager.py` - Now uses IPersistencePort + IMemoryPort via dependency injection
 - ✅ `fallback_navigation.py` - Infrastructure imports commented out (marked for refactor)
 - ✅ `fallback_timeline.py` - Infrastructure imports commented out (marked for refactor)
-- ✅ `fallback_state.py` - Infrastructure imports commented out (marked for refactor)  
+- ✅ `fallback_state.py` - Infrastructure imports commented out (marked for refactor)
 - ✅ `state_manager.py` - Infrastructure imports commented out (marked for refactor)
 - ✅ `navigation_manager.py` - Infrastructure imports commented out (marked for refactor)
 
@@ -41,7 +41,7 @@ from src.openchronicle.infrastructure.persistence import execute_query
 class SceneRepository:
     def __init__(self, story_id: str):
         self.story_id = story_id
-        
+
     def load_scene(self, scene_id: str):
         return execute_query(self.story_id, "SELECT * FROM scenes WHERE scene_id = ?", [scene_id])
 ```
@@ -54,14 +54,14 @@ from src.openchronicle.domain.ports.persistence_port import IPersistencePort
 class SceneRepository:
     def __init__(self, story_id: str, persistence_port: Optional[IPersistencePort] = None):
         self.story_id = story_id
-        
+
         # Dependency injection with fallback
         if persistence_port is None:
             from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import PersistenceAdapter
             self.persistence = PersistenceAdapter()
         else:
             self.persistence = persistence_port
-            
+
     def load_scene(self, scene_id: str):
         return self.persistence.execute_query(self.story_id, "SELECT * FROM scenes WHERE scene_id = ?", [scene_id])
 ```

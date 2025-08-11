@@ -38,7 +38,6 @@ class SchemaValidationError(Exception):
     """Raised when schema validation fails."""
 
 
-
 class ContentType(str, Enum):
     """Enumeration of supported content types."""
 
@@ -318,9 +317,7 @@ class ProviderConfig(BaseModel):
     name: str | None = Field(None, description="Model configuration name")
     description: str | None = Field(None, description="Model description")
     adapter_class: str | None = Field(None, description="Adapter class name")
-    capabilities: dict[str, Any] | None = Field(
-        None, description="Model capabilities"
-    )
+    capabilities: dict[str, Any] | None = Field(None, description="Model capabilities")
     limits: dict[str, Any] | None = Field(
         None, description="Model limits and constraints"
     )
@@ -333,9 +330,7 @@ class ProviderConfig(BaseModel):
     cost_tracking: dict[str, Any] | None = Field(
         None, description="Cost tracking configuration"
     )
-    fallback_chain: list[str] | None = Field(
-        None, description="Fallback model chain"
-    )
+    fallback_chain: list[str] | None = Field(None, description="Fallback model chain")
     performance: dict[str, Any] | None = Field(
         None, description="Performance characteristics"
     )
@@ -404,9 +399,7 @@ class RegistryValidator:
             self.logger.error(error_msg)
             raise SchemaValidationError(error_msg) from e
 
-    def validate_registry_file(
-        self, file_path: str | Path
-    ) -> ModelRegistrySchema:
+    def validate_registry_file(self, file_path: str | Path) -> ModelRegistrySchema:
         """
         Validate registry configuration from file.
 

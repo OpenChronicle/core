@@ -10,14 +10,12 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
-from typing import Optional
 
 from src.openchronicle.domain import StoryStatus
 
 
 class Query(ABC):
     """Base class for all queries."""
-
 
 
 class QueryResult:

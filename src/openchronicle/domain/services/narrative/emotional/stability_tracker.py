@@ -56,9 +56,7 @@ class EmotionalState:
 class BehaviorCooldown:
     """Manages cooldown timing for specific behaviors."""
 
-    def __init__(
-        self, behavior: str, duration: int, timestamp: datetime | None = None
-    ):
+    def __init__(self, behavior: str, duration: int, timestamp: datetime | None = None):
         self.behavior = behavior
         self.duration = duration  # Duration in seconds
         self.start_time = timestamp or datetime.now()
@@ -247,9 +245,7 @@ class StabilityTracker:
             logger.error(f"Error triggering behavior cooldown: {e}")
             return {"error": str(e), "cooldown_triggered": False}
 
-    def get_current_emotional_state(
-        self, character_id: str
-    ) -> dict[str, Any] | None:
+    def get_current_emotional_state(self, character_id: str) -> dict[str, Any] | None:
         """
         Get character's current emotional state.
 

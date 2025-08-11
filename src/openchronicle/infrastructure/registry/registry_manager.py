@@ -38,15 +38,12 @@ class ConfigurationError(Exception):
     """Raised when configuration validation or loading fails."""
 
 
-
 class ProviderNotFoundError(Exception):
     """Raised when a requested provider configuration is not found."""
 
 
-
 class RegistryValidationError(Exception):
     """Raised when registry schema validation fails."""
-
 
 
 class RegistryManager:
@@ -508,9 +505,7 @@ class RegistryManager:
         except Exception:
             return "error"
 
-    def validate_registry(
-        self, registry_file: str | Path | None = None
-    ) -> bool:
+    def validate_registry(self, registry_file: str | Path | None = None) -> bool:
         """
         Validate the complete registry configuration using pydantic schema.
 

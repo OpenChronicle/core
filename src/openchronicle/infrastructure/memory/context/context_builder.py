@@ -293,9 +293,7 @@ class ContextBuilder:
             return f"{character.name}: {mood} mood, {state_summary}"
 
         # "full"
-        return self.character_manager.format_character_snapshot_for_prompt(
-            character
-        )
+        return self.character_manager.format_character_snapshot_for_prompt(character)
 
     def _truncate_context(self, context: str, max_length: int) -> str:
         """Intelligently truncate context to fit length limits."""
@@ -314,7 +312,10 @@ class ContextBuilder:
             line_length = len(line) + 1  # +1 for newline
 
             # Always keep priority sections
-            if any(priority in line for priority in priority_sections) or current_length + line_length <= max_length:
+            if (
+                any(priority in line for priority in priority_sections)
+                or current_length + line_length <= max_length
+            ):
                 kept_lines.append(line)
                 current_length += line_length
             else:

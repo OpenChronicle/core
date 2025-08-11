@@ -26,7 +26,7 @@ class OutputManager:
     def __init__(self, format_type: str = "rich", quiet: bool = False):
         """
         Initialize the output manager.
-        
+
         Args:
             format_type: Output format ("rich", "json", "plain", "table")
             quiet: If True, suppress non-essential output
@@ -83,7 +83,12 @@ class OutputManager:
         else:  # rich
             self.console.print(f"ℹ️  [blue]{message}[/blue]")
 
-    def table(self, data: list[dict[str, Any]], title: str = "", headers: list[str] | None = None):
+    def table(
+        self,
+        data: list[dict[str, Any]],
+        title: str = "",
+        headers: list[str] | None = None,
+    ):
         """Display data in table format."""
         if not data:
             self.warning("No data to display")
@@ -108,7 +113,11 @@ class OutputManager:
 
             # Print rows
             for row in data:
-                values = [str(row.get(h, "")).ljust(15) for h in headers] if headers else [str(v).ljust(15) for v in row.values()]
+                values = (
+                    [str(row.get(h, "")).ljust(15) for h in headers]
+                    if headers
+                    else [str(v).ljust(15) for v in row.values()]
+                )
                 print(" | ".join(values))
         else:  # rich
             table = Table(title=title if title else None)
@@ -157,7 +166,13 @@ class OutputManager:
             print(f"\n{title}:" if title else "Data:")
             self._print_dict_plain(data)
 
-    def _build_tree(self, tree: Tree, data: dict | list | Any, max_depth: int = 3, current_depth: int = 0):
+    def _build_tree(
+        self,
+        tree: Tree,
+        data: dict | list | Any,
+        max_depth: int = 3,
+        current_depth: int = 0,
+    ):
         """Recursively build a Rich tree from data."""
         if current_depth >= max_depth:
             tree.add("[dim]...(truncated)[/dim]")
@@ -207,7 +222,7 @@ class OutputManager:
                 BarColumn(),
                 TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
                 TimeElapsedColumn(),
-                console=self.console
+                console=self.console,
             )
         # Simple progress for non-rich formats
         return _PlainProgress(description)
@@ -215,7 +230,10 @@ class OutputManager:
     def confirm(self, message: str, default: bool = False) -> bool:
         """Ask for user confirmation."""
         if self.format_type == "rich":
-            self.console.print(f"[yellow]{message}[/yellow] [dim]({'Y/n' if default else 'y/N'})[/dim]: ", end="")
+            self.console.print(
+                f"[yellow]{message}[/yellow] [dim]({'Y/n' if default else 'y/N'})[/dim]: ",
+                end="",
+            )
         else:
             print(f"{message} ({'Y/n' if default else 'y/N'}): ", end="")
 
@@ -223,7 +241,7 @@ class OutputManager:
             response = input().strip().lower()
             if not response:
                 return default
-            return response in ['y', 'yes', 'true', '1']
+            return response in ["y", "yes", "true", "1"]
         except (EOFError, KeyboardInterrupt):
             print()  # New line after interrupt
             return False

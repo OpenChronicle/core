@@ -39,7 +39,7 @@ Extract character details in this exact JSON format:
 {{
     "name": "Character's full name",
     "description": "Physical appearance and basic description",
-    "personality": "Personality traits and characteristics", 
+    "personality": "Personality traits and characteristics",
     "background": "Character's history and background",
     "relationships": ["List of mentioned relationships or connections"],
     "traits": ["Key personality traits"],

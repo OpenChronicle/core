@@ -54,7 +54,7 @@ repos:
     hooks:
       - id: bandit
         name: "🔒 Security scan (Bandit)"
-        args: [-r, .]
+        args: [-r, ., --format=json, -o, bandit-report.json]
         exclude: tests/
 
   # Note: Safety tool has moved organizations and repositories

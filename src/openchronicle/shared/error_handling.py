@@ -203,9 +203,7 @@ class ContextError(OpenChronicleError):
 class SecurityError(OpenChronicleError):
     """Errors related to security violations."""
 
-    def __init__(
-        self, message: str, security_violation: str | None = None, **kwargs
-    ):
+    def __init__(self, message: str, security_violation: str | None = None, **kwargs):
         kwargs.setdefault("category", ErrorCategory.SECURITY)
         kwargs.setdefault("severity", ErrorSeverity.HIGH)
         kwargs.setdefault("recoverable", False)
@@ -216,9 +214,7 @@ class SecurityError(OpenChronicleError):
 class PerformanceError(OpenChronicleError):
     """Errors related to performance issues."""
 
-    def __init__(
-        self, message: str, operation_duration: float | None = None, **kwargs
-    ):
+    def __init__(self, message: str, operation_duration: float | None = None, **kwargs):
         kwargs.setdefault("category", ErrorCategory.PERFORMANCE)
         super().__init__(message, **kwargs)
         self.operation_duration = operation_duration
@@ -623,7 +619,9 @@ class ErrorMonitor:
             "health_status": (
                 "healthy"
                 if len(recent_errors) < 10
-                else "degraded" if len(recent_errors) < 50 else "critical"
+                else "degraded"
+                if len(recent_errors) < 50
+                else "critical"
             ),
         }
 

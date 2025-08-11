@@ -53,7 +53,7 @@ class TestSchemaValidation:
             "content_types": ["safe"],
             "max_tokens": 4096,
             "temperature": 0.7,
-            "metadata": {"description": "Test model"}
+            "metadata": {"description": "Test model"},
         }
 
         model = ModelConfig(**config_data)
@@ -67,7 +67,7 @@ class TestSchemaValidation:
         config_data = {
             "name": "test_model",
             "priority": 0,  # Invalid: must be >= 1
-            "enabled": True
+            "enabled": True,
         }
 
         with pytest.raises(ValueError):
@@ -78,7 +78,7 @@ class TestSchemaValidation:
         config_data = {
             "name": "test model!",  # Invalid: contains special characters
             "priority": 1,
-            "enabled": True
+            "enabled": True,
         }
 
         with pytest.raises(ValueError):
@@ -90,7 +90,7 @@ class TestSchemaValidation:
             "name": "test_model",
             "priority": 1,
             "fallbacks": ["model1", "model1"],  # Duplicate
-            "enabled": True
+            "enabled": True,
         }
 
         with pytest.raises(ValueError):
@@ -106,7 +106,7 @@ class TestSchemaValidation:
             "model_list": ["gpt-4", "gpt-3.5-turbo"],
             "content_filter": True,
             "rate_limits": {"requests_per_minute": 60},
-            "metadata": {"version": "1.0"}
+            "metadata": {"version": "1.0"},
         }
 
         provider = ProviderConfig(**config_data)
@@ -120,7 +120,7 @@ class TestSchemaValidation:
         config_data = {
             "provider": "invalid_provider",
             "display_name": "Invalid Provider",
-            "enabled": True
+            "enabled": True,
         }
 
         with pytest.raises(ValueError):
@@ -133,7 +133,7 @@ class TestSchemaValidation:
             "safe_models": ["openai", "anthropic"],
             "default_nsfw_model": "ollama",
             "default_safe_model": "openai",
-            "content_filter_enabled": True
+            "content_filter_enabled": True,
         }
 
         routing = ContentRoutingConfig(**config_data)
@@ -149,7 +149,7 @@ class TestSchemaValidation:
             "retry_attempts": 3,
             "rate_limit_per_minute": 60,
             "cache_enabled": True,
-            "cache_ttl_seconds": 300
+            "cache_ttl_seconds": 300,
         }
 
         performance = PerformanceConfig(**config_data)
@@ -161,7 +161,7 @@ class TestSchemaValidation:
         """Test performance config with invalid values."""
         config_data = {
             "max_concurrent_requests": 0,  # Invalid: must be >= 1
-            "timeout_seconds": 30
+            "timeout_seconds": 30,
         }
 
         with pytest.raises(ValueError):
@@ -175,7 +175,7 @@ class TestSchemaValidation:
             "log_fallback_usage": True,
             "fail_on_all_fallbacks": True,
             "circuit_breaker_enabled": True,
-            "circuit_breaker_threshold": 5
+            "circuit_breaker_threshold": 5,
         }
 
         fallback = FallbackBehaviorConfig(**config_data)
@@ -186,48 +186,40 @@ class TestSchemaValidation:
     def test_complete_registry_schema(self):
         """Test complete registry schema validation."""
         config_data = {
-            "metadata": {
-                "schema_version": "3.1.0",
-                "description": "Test Registry"
-            },
+            "metadata": {"schema_version": "3.1.0", "description": "Test Registry"},
             "models": [
                 {
                     "name": "openai",
                     "priority": 1,
                     "fallbacks": ["anthropic"],
-                    "enabled": True
+                    "enabled": True,
                 },
                 {
                     "name": "anthropic",
                     "priority": 2,
                     "fallbacks": ["mock"],
-                    "enabled": True
+                    "enabled": True,
                 },
-                {
-                    "name": "mock",
-                    "priority": 99,
-                    "fallbacks": [],
-                    "enabled": True
-                }
+                {"name": "mock", "priority": 99, "fallbacks": [], "enabled": True},
             ],
             "content_routing": {
                 "nsfw_models": ["mock"],
                 "safe_models": ["openai", "anthropic"],
                 "default_nsfw_model": "mock",
-                "default_safe_model": "openai"
+                "default_safe_model": "openai",
             },
             "performance": {
                 "max_concurrent_requests": 3,
                 "timeout_seconds": 30,
                 "retry_attempts": 2,
-                "rate_limit_per_minute": 60
+                "rate_limit_per_minute": 60,
             },
             "fallback_behavior": {
                 "max_fallback_attempts": 3,
                 "fallback_delay_seconds": 1.0,
                 "log_fallback_usage": True,
-                "fail_on_all_fallbacks": True
-            }
+                "fail_on_all_fallbacks": True,
+            },
         }
 
         registry = ModelRegistrySchema(**config_data)
@@ -239,21 +231,13 @@ class TestSchemaValidation:
         """Test registry with duplicate model names."""
         config_data = {
             "models": [
-                {
-                    "name": "openai",
-                    "priority": 1,
-                    "enabled": True
-                },
-                {
-                    "name": "openai",  # Duplicate name
-                    "priority": 2,
-                    "enabled": True
-                }
+                {"name": "openai", "priority": 1, "enabled": True},
+                {"name": "openai", "priority": 2, "enabled": True},  # Duplicate name
             ],
             "content_routing": {
                 "default_nsfw_model": "openai",
-                "default_safe_model": "openai"
-            }
+                "default_safe_model": "openai",
+            },
         }
 
         with pytest.raises(ValueError, match="Model names must be unique"):
@@ -263,21 +247,17 @@ class TestSchemaValidation:
         """Test registry with duplicate priorities."""
         config_data = {
             "models": [
-                {
-                    "name": "openai",
-                    "priority": 1,
-                    "enabled": True
-                },
+                {"name": "openai", "priority": 1, "enabled": True},
                 {
                     "name": "anthropic",
                     "priority": 1,  # Duplicate priority
-                    "enabled": True
-                }
+                    "enabled": True,
+                },
             ],
             "content_routing": {
                 "default_nsfw_model": "openai",
-                "default_safe_model": "anthropic"
-            }
+                "default_safe_model": "anthropic",
+            },
         }
 
         with pytest.raises(ValueError, match="Model priorities must be unique"):
@@ -291,13 +271,13 @@ class TestSchemaValidation:
                     "name": "openai",
                     "priority": 1,
                     "fallbacks": ["nonexistent_model"],  # Invalid reference
-                    "enabled": True
+                    "enabled": True,
                 }
             ],
             "content_routing": {
                 "default_nsfw_model": "openai",
-                "default_safe_model": "openai"
-            }
+                "default_safe_model": "openai",
+            },
         }
 
         registry = ModelRegistrySchema(**config_data)
@@ -312,13 +292,13 @@ class TestSchemaValidation:
                     "name": "openai",
                     "priority": 1,
                     "fallbacks": ["openai"],  # Self-reference
-                    "enabled": True
+                    "enabled": True,
                 }
             ],
             "content_routing": {
                 "default_nsfw_model": "openai",
-                "default_safe_model": "openai"
-            }
+                "default_safe_model": "openai",
+            },
         }
 
         registry = ModelRegistrySchema(**config_data)
@@ -328,17 +308,11 @@ class TestSchemaValidation:
     def test_invalid_content_routing_reference(self):
         """Test registry with invalid content routing reference."""
         config_data = {
-            "models": [
-                {
-                    "name": "openai",
-                    "priority": 1,
-                    "enabled": True
-                }
-            ],
+            "models": [{"name": "openai", "priority": 1, "enabled": True}],
             "content_routing": {
                 "default_nsfw_model": "nonexistent_model",  # Invalid reference
-                "default_safe_model": "openai"
-            }
+                "default_safe_model": "openai",
+            },
         }
 
         registry = ModelRegistrySchema(**config_data)
@@ -357,17 +331,11 @@ class TestRegistryValidator:
     def test_validate_registry_success(self):
         """Test successful registry validation."""
         config_data = {
-            "models": [
-                {
-                    "name": "mock",
-                    "priority": 1,
-                    "enabled": True
-                }
-            ],
+            "models": [{"name": "mock", "priority": 1, "enabled": True}],
             "content_routing": {
                 "default_nsfw_model": "mock",
-                "default_safe_model": "mock"
-            }
+                "default_safe_model": "mock",
+            },
         }
 
         result = self.validator.validate_registry(config_data)
@@ -380,8 +348,8 @@ class TestRegistryValidator:
             "models": [],  # Invalid: must have at least one model
             "content_routing": {
                 "default_nsfw_model": "mock",
-                "default_safe_model": "mock"
-            }
+                "default_safe_model": "mock",
+            },
         }
 
         with pytest.raises(SchemaValidationError):
@@ -392,7 +360,7 @@ class TestRegistryValidator:
         config_data = {
             "provider": "mock",
             "display_name": "Mock Provider",
-            "enabled": True
+            "enabled": True,
         }
 
         result = self.validator.validate_provider(config_data)
@@ -404,7 +372,7 @@ class TestRegistryValidator:
         config_data = {
             "provider": "invalid_provider",
             "display_name": "Invalid Provider",
-            "enabled": True
+            "enabled": True,
         }
 
         with pytest.raises(SchemaValidationError):
@@ -413,22 +381,16 @@ class TestRegistryValidator:
     def test_validate_registry_file(self):
         """Test registry file validation."""
         config_data = {
-            "models": [
-                {
-                    "name": "mock",
-                    "priority": 1,
-                    "enabled": True
-                }
-            ],
+            "models": [{"name": "mock", "priority": 1, "enabled": True}],
             "content_routing": {
                 "default_nsfw_model": "mock",
-                "default_safe_model": "mock"
-            }
+                "default_safe_model": "mock",
+            },
         }
 
         # Create temporary registry file
         registry_file = self.temp_dir / "test_registry.json"
-        with open(registry_file, 'w') as f:
+        with open(registry_file, "w") as f:
             json.dump(config_data, f)
 
         result = self.validator.validate_registry_file(registry_file)
@@ -444,7 +406,7 @@ class TestRegistryValidator:
     def test_validate_invalid_json_file(self):
         """Test validation of file with invalid JSON."""
         invalid_file = self.temp_dir / "invalid.json"
-        with open(invalid_file, 'w') as f:
+        with open(invalid_file, "w") as f:
             f.write("{ invalid json")
 
         with pytest.raises(SchemaValidationError, match="Invalid JSON"):
@@ -455,14 +417,14 @@ class TestRegistryValidator:
         # Create a test file
         test_file = self.temp_dir / "test.json"
         test_content = {"test": "data"}
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             json.dump(test_content, f)
 
         # Create backup
         backup_path = self.validator.create_backup(test_file)
 
         assert backup_path.exists()
-        assert backup_path.suffix.startswith('.bak_')
+        assert backup_path.suffix.startswith(".bak_")
 
         # Verify backup content
         with open(backup_path) as f:
@@ -472,17 +434,11 @@ class TestRegistryValidator:
     def test_safe_save_registry(self):
         """Test safe registry saving with backup."""
         config_data = {
-            "models": [
-                {
-                    "name": "mock",
-                    "priority": 1,
-                    "enabled": True
-                }
-            ],
+            "models": [{"name": "mock", "priority": 1, "enabled": True}],
             "content_routing": {
                 "default_nsfw_model": "mock",
-                "default_safe_model": "mock"
-            }
+                "default_safe_model": "mock",
+            },
         }
 
         registry = ModelRegistrySchema(**config_data)
@@ -497,16 +453,16 @@ class TestRegistryValidator:
         # Verify content
         with open(save_file) as f:
             saved_content = json.load(f)
-        assert len(saved_content['models']) == 1
-        assert 'metadata' in saved_content
-        assert 'last_modified' in saved_content['metadata']
+        assert len(saved_content["models"]) == 1
+        assert "metadata" in saved_content
+        assert "last_modified" in saved_content["metadata"]
 
     def test_safe_save_provider(self):
         """Test safe provider saving with backup."""
         config_data = {
             "provider": "mock",
             "display_name": "Mock Provider",
-            "enabled": True
+            "enabled": True,
         }
 
         provider = ProviderConfig(**config_data)
@@ -521,8 +477,8 @@ class TestRegistryValidator:
         # Verify content
         with open(save_file) as f:
             saved_content = json.load(f)
-        assert saved_content['provider'] == 'mock'
-        assert saved_content['display_name'] == 'Mock Provider'
+        assert saved_content["provider"] == "mock"
+        assert saved_content["display_name"] == "Mock Provider"
 
 
 class TestConvenienceFunctions:
@@ -531,17 +487,11 @@ class TestConvenienceFunctions:
     def test_validate_registry_config_function(self):
         """Test convenience function for registry validation."""
         config_data = {
-            "models": [
-                {
-                    "name": "mock",
-                    "priority": 1,
-                    "enabled": True
-                }
-            ],
+            "models": [{"name": "mock", "priority": 1, "enabled": True}],
             "content_routing": {
                 "default_nsfw_model": "mock",
-                "default_safe_model": "mock"
-            }
+                "default_safe_model": "mock",
+            },
         }
 
         result = validate_registry_config(config_data)
@@ -552,7 +502,7 @@ class TestConvenienceFunctions:
         config_data = {
             "provider": "mock",
             "display_name": "Mock Provider",
-            "enabled": True
+            "enabled": True,
         }
 
         result = validate_provider_config(config_data)
@@ -576,7 +526,7 @@ class TestEdgeCases:
                 {
                     # Missing required 'name' field
                     "priority": 1,
-                    "enabled": True
+                    "enabled": True,
                 }
             ]
         }
@@ -590,7 +540,7 @@ class TestEdgeCases:
             "name": "test_model",
             "priority": 1,
             "enabled": True,
-            "invalid_extra_field": "not allowed"  # Extra field
+            "invalid_extra_field": "not allowed",  # Extra field
         }
 
         with pytest.raises(ValueError):
@@ -602,7 +552,7 @@ class TestEdgeCases:
         config_data = {
             "name": "test_model",
             "priority": "1",  # String that should be coerced to int
-            "enabled": True
+            "enabled": True,
         }
 
         # Priority should be coerced to int
@@ -614,7 +564,7 @@ class TestEdgeCases:
         invalid_config = {
             "name": "test_model",
             "priority": "invalid_priority",  # String that can't be coerced to int
-            "enabled": True
+            "enabled": True,
         }
 
         with pytest.raises(ValueError):
@@ -625,7 +575,7 @@ class TestEdgeCases:
         config_data = {
             "name": "  test_model  ",  # Should be stripped
             "priority": 1,
-            "enabled": True
+            "enabled": True,
         }
 
         model = ModelConfig(**config_data)

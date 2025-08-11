@@ -22,7 +22,7 @@ class TestAdvancedConcurrency:
     @pytest.mark.performance
     async def test_high_load_concurrent_scene_generation(self, clean_test_environment):
         """Test concurrent scene generation under high load."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
         scene_orchestrator = SceneOrchestrator(story_id=story_id)
 
         # Generate 20 concurrent scenes (high load)
@@ -30,13 +30,15 @@ class TestAdvancedConcurrency:
             return scene_orchestrator.save_scene(
                 user_input=f"High load scene {i}",
                 model_output=f"Generated content for scene {i}",
-                memory_snapshot={'scene_number': i, 'load_test': True},
-                scene_label=f'load_test_scene_{i}'
+                memory_snapshot={"scene_number": i, "load_test": True},
+                scene_label=f"load_test_scene_{i}",
             )
 
         start_time = time.time()
         # Use asyncio to simulate concurrency even with sync methods
-        tasks = [asyncio.create_task(asyncio.to_thread(generate_scene, i)) for i in range(20)]
+        tasks = [
+            asyncio.create_task(asyncio.to_thread(generate_scene, i)) for i in range(20)
+        ]
         results = await asyncio.gather(*tasks)
         execution_time = time.time() - start_time
 
@@ -49,7 +51,7 @@ class TestAdvancedConcurrency:
     @pytest.mark.performance
     async def test_mixed_orchestrator_concurrency(self, clean_test_environment):
         """Test concurrent operations across multiple orchestrators."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
 
         # Initialize orchestrators with correct parameters
         model_orch = ModelOrchestrator()
@@ -64,17 +66,27 @@ class TestAdvancedConcurrency:
 
             # Character operation
             char_result = await loop.run_in_executor(
-                None, char_orch.update_character_state, f"TestChar_{i}", {'concurrent_test': True}
+                None,
+                char_orch.update_character_state,
+                f"TestChar_{i}",
+                {"concurrent_test": True},
             )
 
             # Memory operation
             memory_result = await loop.run_in_executor(
-                None, memory_orch.save_current_memory, story_id, {'test_data': i, 'concurrent_memory': f"memory_{i}"}
+                None,
+                memory_orch.save_current_memory,
+                story_id,
+                {"test_data": i, "concurrent_memory": f"memory_{i}"},
             )
 
             # Scene operation
             scene_result = await loop.run_in_executor(
-                None, scene_orch.save_scene, f"Mixed test {i}", f"Mixed response {i}", {'mixed_test': i}
+                None,
+                scene_orch.save_scene,
+                f"Mixed test {i}",
+                f"Mixed response {i}",
+                {"mixed_test": i},
             )
 
             return char_result, memory_result, scene_result
@@ -91,18 +103,20 @@ class TestAdvancedConcurrency:
     @pytest.mark.stress
     async def test_orchestrator_stress_limits(self, clean_test_environment):
         """Test orchestrator behavior at stress limits."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
         memory_orch = MemoryOrchestrator()
 
         # Stress test with 50 concurrent memory operations
         async def stress_memory_operation(i):
             return memory_orch.update_character_memory(
-                story_id, f"StressChar_{i}",
-                {'stress_level': i, 'concurrent': True}
+                story_id, f"StressChar_{i}", {"stress_level": i, "concurrent": True}
             )
 
         start_time = time.time()
-        tasks = [asyncio.create_task(asyncio.to_thread(stress_memory_operation, i)) for i in range(50)]
+        tasks = [
+            asyncio.create_task(asyncio.to_thread(stress_memory_operation, i))
+            for i in range(50)
+        ]
 
         try:
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -135,7 +149,7 @@ class TestConcurrencyPerformanceMetrics:
         )
 
         monitor = PerformanceMonitor({}, {})
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
         memory_orch = MemoryOrchestrator()
 
         # Monitor concurrent operations
@@ -143,8 +157,7 @@ class TestConcurrencyPerformanceMetrics:
             # Track operation performance
             start_time = time.time()
             result = memory_orch.update_character_memory(
-                story_id, f"MonitoredChar_{i}",
-                {'monitored': True, 'operation_id': i}
+                story_id, f"MonitoredChar_{i}", {"monitored": True, "operation_id": i}
             )
             end_time = time.time()
 
@@ -152,7 +165,10 @@ class TestConcurrencyPerformanceMetrics:
             operation_time = end_time - start_time
             return result, operation_time
 
-        tasks = [asyncio.create_task(asyncio.to_thread(monitored_operation, i)) for i in range(15)]
+        tasks = [
+            asyncio.create_task(asyncio.to_thread(monitored_operation, i))
+            for i in range(15)
+        ]
         results = await asyncio.gather(*tasks)
 
         # Check results
@@ -172,7 +188,7 @@ class TestConcurrencyPerformanceMetrics:
 
         import psutil
 
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
         scene_orch = SceneOrchestrator(story_id=story_id)
 
         # Baseline resource usage
@@ -184,11 +200,14 @@ class TestConcurrencyPerformanceMetrics:
             return scene_orch.save_scene(
                 user_input=f"Resource test scene {i} with detailed content",
                 model_output=f"Detailed response for scene {i} " * 100,  # Large content
-                memory_snapshot={'large_data': list(range(100)), 'scene_id': i}
+                memory_snapshot={"large_data": list(range(100)), "scene_id": i},
             )
 
         # Run concurrent resource-intensive operations
-        tasks = [asyncio.create_task(asyncio.to_thread(resource_intensive_operation, i)) for i in range(10)]
+        tasks = [
+            asyncio.create_task(asyncio.to_thread(resource_intensive_operation, i))
+            for i in range(10)
+        ]
         await asyncio.gather(*tasks)
 
         # Check resource usage after operations

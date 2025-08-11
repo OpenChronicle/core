@@ -7,7 +7,7 @@ Thank you for your interest in contributing to OpenChronicle! This document outl
 OpenChronicle follows **hexagonal architecture** with strict layer boundaries:
 
 - **Domain Layer**: Pure business logic, no external dependencies
-- **Application Layer**: Use cases and workflows  
+- **Application Layer**: Use cases and workflows
 - **Infrastructure Layer**: External integrations (databases, APIs, LLMs)
 - **Interface Layer**: User interfaces (CLI, API, web)
 
@@ -17,7 +17,7 @@ We embrace breaking changes for better architecture. When designing improvements
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.11+ 
+- Python 3.11+
 - Git
 - PowerShell (Windows) or Bash (Linux/macOS)
 
@@ -83,7 +83,7 @@ All code must pass:
 
 ```bash
 make lint      # Ruff linting
-make format    # Black code formatting  
+make format    # Black code formatting
 make type      # MyPy type checking
 make security  # Bandit security scanning
 ```
@@ -180,7 +180,7 @@ Brief description of changes
 
 ## Testing
 - [ ] Unit tests pass
-- [ ] Integration tests pass  
+- [ ] Integration tests pass
 - [ ] Performance tests pass (if applicable)
 - [ ] Manual testing completed
 

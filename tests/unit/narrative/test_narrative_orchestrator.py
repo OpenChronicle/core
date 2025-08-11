@@ -26,9 +26,9 @@ class TestNarrativeOrchestratorInitialization:
         orchestrator = NarrativeOrchestrator()
 
         assert orchestrator is not None
-        assert hasattr(orchestrator, 'response_orchestrator')
-        assert hasattr(orchestrator, 'mechanics_orchestrator')
-        assert hasattr(orchestrator, 'consistency_orchestrator')
+        assert hasattr(orchestrator, "response_orchestrator")
+        assert hasattr(orchestrator, "mechanics_orchestrator")
+        assert hasattr(orchestrator, "consistency_orchestrator")
 
     def test_orchestrator_state_management(self):
         """Test narrative state management capabilities."""
@@ -40,7 +40,7 @@ class TestNarrativeOrchestratorInitialization:
         assert isinstance(initial_state, dict)
 
         # Test state updates
-        test_state = {'scene_id': 'test_123', 'mood': 'tense'}
+        test_state = {"scene_id": "test_123", "mood": "tense"}
         result = orchestrator.update_narrative_state(test_state)
         assert result is not None
 
@@ -53,10 +53,10 @@ class TestNarrativeMechanics:
         orchestrator = NarrativeOrchestrator()
 
         # Test mechanics availability
-        assert hasattr(orchestrator, 'mechanics_orchestrator')
+        assert hasattr(orchestrator, "mechanics_orchestrator")
 
         # Test dice engine integration
-        dice_result = orchestrator.roll_dice('1d20')
+        dice_result = orchestrator.roll_dice("1d20")
         assert dice_result is not None
         assert isinstance(dice_result, (int, dict))
 
@@ -67,14 +67,14 @@ class TestNarrativeMechanics:
 
         # Test branching logic
         scenario = {
-            'scene_id': 'test_scene',
-            'choices': ['option_a', 'option_b', 'option_c'],
-            'character_stats': {'wisdom': 15, 'charisma': 12}
+            "scene_id": "test_scene",
+            "choices": ["option_a", "option_b", "option_c"],
+            "character_stats": {"wisdom": 15, "charisma": 12},
         }
 
         branch_result = await orchestrator.evaluate_narrative_branch(scenario)
         assert branch_result is not None
-        assert 'selected_option' in branch_result or 'error' in branch_result
+        assert "selected_option" in branch_result or "error" in branch_result
 
     def test_mechanics_orchestration(self):
         """Test mechanics orchestration coordination."""
@@ -95,14 +95,14 @@ class TestEmotionalStability:
 
         # Test emotional state tracking
         character_data = {
-            'character_id': 'test_char_001',
-            'emotional_state': 'stable',
-            'recent_events': ['positive_interaction', 'minor_stress']
+            "character_id": "test_char_001",
+            "emotional_state": "stable",
+            "recent_events": ["positive_interaction", "minor_stress"],
         }
 
         stability_result = orchestrator.track_emotional_stability(character_data)
         assert stability_result is not None
-        assert 'stability_score' in stability_result or 'error' in stability_result
+        assert "stability_score" in stability_result or "error" in stability_result
 
     def test_emotional_consistency_validation(self):
         """Test emotional consistency validation."""
@@ -110,12 +110,14 @@ class TestEmotionalStability:
 
         # Test consistency checking
         emotional_history = [
-            {'timestamp': 1, 'state': 'happy', 'intensity': 7},
-            {'timestamp': 2, 'state': 'sad', 'intensity': 9},  # Sudden change
-            {'timestamp': 3, 'state': 'angry', 'intensity': 8}
+            {"timestamp": 1, "state": "happy", "intensity": 7},
+            {"timestamp": 2, "state": "sad", "intensity": 9},  # Sudden change
+            {"timestamp": 3, "state": "angry", "intensity": 8},
         ]
 
-        consistency_result = orchestrator.validate_emotional_consistency(emotional_history)
+        consistency_result = orchestrator.validate_emotional_consistency(
+            emotional_history
+        )
         assert consistency_result is not None
         assert isinstance(consistency_result, dict)
 
@@ -130,15 +132,15 @@ class TestQualityAssessment:
 
         # Test quality assessment
         response_data = {
-            'content': 'The hero stepped forward, sword gleaming in the moonlight.',
-            'context': {'genre': 'fantasy', 'mood': 'dramatic'},
-            'character_consistency': True,
-            'narrative_flow': True
+            "content": "The hero stepped forward, sword gleaming in the moonlight.",
+            "context": {"genre": "fantasy", "mood": "dramatic"},
+            "character_consistency": True,
+            "narrative_flow": True,
         }
 
         quality_result = await orchestrator.assess_response_quality(response_data)
         assert quality_result is not None
-        assert 'quality_score' in quality_result or 'error' in quality_result
+        assert "quality_score" in quality_result or "error" in quality_result
 
     def test_quality_metrics_calculation(self):
         """Test quality metrics calculation."""
@@ -146,10 +148,10 @@ class TestQualityAssessment:
 
         # Test metrics calculation
         metrics_data = {
-            'coherence': 8.5,
-            'creativity': 7.2,
-            'character_voice': 9.1,
-            'plot_advancement': 6.8
+            "coherence": 8.5,
+            "creativity": 7.2,
+            "character_voice": 9.1,
+            "plot_advancement": 6.8,
         }
 
         overall_quality = orchestrator.calculate_quality_metrics(metrics_data)
@@ -167,9 +169,9 @@ class TestNarrativeIntegration:
 
         # Test response orchestration
         request_data = {
-            'prompt': 'What happens next?',
-            'context': {'scene': 'forest_clearing', 'characters': ['hero', 'wizard']},
-            'requirements': {'style': 'descriptive', 'length': 'medium'}
+            "prompt": "What happens next?",
+            "context": {"scene": "forest_clearing", "characters": ["hero", "wizard"]},
+            "requirements": {"style": "descriptive", "length": "medium"},
         }
 
         orchestration_result = await orchestrator.orchestrate_response(request_data)
@@ -182,12 +184,14 @@ class TestNarrativeIntegration:
 
         # Test consistency orchestration
         consistency_data = {
-            'scene_history': ['scene_1', 'scene_2', 'scene_3'],
-            'character_states': {'hero': {'health': 80, 'morale': 'high'}},
-            'world_state': {'time_of_day': 'evening', 'weather': 'clear'}
+            "scene_history": ["scene_1", "scene_2", "scene_3"],
+            "character_states": {"hero": {"health": 80, "morale": "high"}},
+            "world_state": {"time_of_day": "evening", "weather": "clear"},
         }
 
-        consistency_result = orchestrator.validate_narrative_consistency(consistency_data)
+        consistency_result = orchestrator.validate_narrative_consistency(
+            consistency_data
+        )
         assert consistency_result is not None
         assert isinstance(consistency_result, dict)
 
@@ -201,16 +205,13 @@ class TestNarrativeErrorHandling:
         orchestrator = NarrativeOrchestrator()
 
         # Test with invalid data
-        invalid_data = {
-            'malformed': True,
-            'missing_required_fields': None
-        }
+        invalid_data = {"malformed": True, "missing_required_fields": None}
 
         try:
             result = await orchestrator.process_narrative_request(invalid_data)
             # Should handle gracefully
             assert result is not None
-            assert 'error' in result or 'success' in result
+            assert "error" in result or "success" in result
         except Exception as e:
             # Exception handling is also acceptable
             assert len(str(e)) > 0
@@ -220,7 +221,7 @@ class TestNarrativeErrorHandling:
         orchestrator = NarrativeOrchestrator()
 
         # Mock subsystem failure
-        with patch.object(orchestrator, 'mechanics_orchestrator') as mock_mechanics:
+        with patch.object(orchestrator, "mechanics_orchestrator") as mock_mechanics:
             mock_mechanics.side_effect = Exception("Subsystem failure")
 
             # Should handle gracefully
@@ -242,10 +243,9 @@ class TestNarrativePerformance:
 
         # Test concurrent operations
         async def process_narrative(i):
-            return await orchestrator.process_simple_narrative_request({
-                'id': f'request_{i}',
-                'content': f'Test narrative request {i}'
-            })
+            return await orchestrator.process_simple_narrative_request(
+                {"id": f"request_{i}", "content": f"Test narrative request {i}"}
+            )
 
         tasks = [process_narrative(i) for i in range(3)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -260,10 +260,11 @@ class TestNarrativePerformance:
 
         # Test rapid state updates
         import time
+
         start_time = time.time()
 
         for i in range(10):
-            state_update = {'update_id': i, 'timestamp': time.time()}
+            state_update = {"update_id": i, "timestamp": time.time()}
             orchestrator.update_narrative_state(state_update)
 
         end_time = time.time()

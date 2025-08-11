@@ -20,7 +20,6 @@ class ImageValidationError(Exception):
     """Custom exception for image validation errors"""
 
 
-
 class ImageValidator:
     """Validates image system components and requests"""
 

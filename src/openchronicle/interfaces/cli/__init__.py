@@ -8,7 +8,6 @@ and story management. It serves as the CLI interface layer in the hexagonal arch
 import asyncio
 import json
 from datetime import datetime
-from typing import Optional
 
 import click
 from rich.console import Console

@@ -7,7 +7,7 @@ production-grade reliability and performance of the OpenChronicle system.
 Features:
 - Orchestrator stress testing
 - Database integrity validation under load
-- Memory pressure testing  
+- Memory pressure testing
 - Performance regression detection
 - Chaos engineering scenarios
 - Production readiness validation
@@ -15,10 +15,10 @@ Features:
 Usage:
     # Run all stress tests
     python -m pytest tests/stress/ -v -m stress
-    
+
     # Run production tests only
     python -m pytest tests/stress/ -v -m production
-    
+
     # Run quick validation
     python -m pytest tests/stress/ -v -m "stress and not chaos and not production"
 
@@ -39,14 +39,14 @@ from .test_stress_comprehensive import run_quick_stress_validation
 
 
 __all__ = [
-    'StressTestConfig',
-    'StressTestResult',
-    'StressTestingFramework',
-    'create_stress_test_config',
-    'create_stress_testing_framework',
-    'run_production_stress_tests',
-    'run_quick_stress_validation'
+    "StressTestConfig",
+    "StressTestResult",
+    "StressTestingFramework",
+    "create_stress_test_config",
+    "create_stress_testing_framework",
+    "run_production_stress_tests",
+    "run_quick_stress_validation",
 ]
 
 # Module version
-__version__ = '1.0.0'
+__version__ = "1.0.0"

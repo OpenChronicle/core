@@ -45,48 +45,51 @@ class TestModelPerformanceWorkflow:
                     "type": "gpt-4",
                     "expected_response_time": 2.0,  # seconds
                     "expected_quality_score": 0.85,
-                    "cost_per_token": 0.00003
+                    "cost_per_token": 0.00003,
                 },
                 {
                     "name": "fallback_model",
                     "type": "gpt-3.5-turbo",
                     "expected_response_time": 1.0,
                     "expected_quality_score": 0.75,
-                    "cost_per_token": 0.000002
+                    "cost_per_token": 0.000002,
                 },
                 {
                     "name": "local_model",
                     "type": "llama-2-7b",
                     "expected_response_time": 5.0,
                     "expected_quality_score": 0.70,
-                    "cost_per_token": 0.0  # Local model, no API cost
-                }
+                    "cost_per_token": 0.0,  # Local model, no API cost
+                },
             ],
             "performance_scenarios": [
                 {
                     "scenario": "simple_response",
                     "prompt_complexity": "low",
                     "expected_tokens": 100,
-                    "performance_threshold": 3.0  # seconds
+                    "performance_threshold": 3.0,  # seconds
                 },
                 {
                     "scenario": "complex_narrative",
                     "prompt_complexity": "high",
                     "expected_tokens": 500,
-                    "performance_threshold": 8.0
+                    "performance_threshold": 8.0,
                 },
                 {
                     "scenario": "rapid_interaction",
                     "prompt_complexity": "medium",
                     "expected_tokens": 200,
-                    "performance_threshold": 2.0
-                }
+                    "performance_threshold": 2.0,
+                },
             ],
             "optimization_targets": {
                 "response_time": {"target": 2.0, "tolerance": 0.5},
                 "quality_score": {"target": 0.80, "tolerance": 0.05},
-                "cost_efficiency": {"target": 0.01, "tolerance": 0.005}  # cost per response
-            }
+                "cost_efficiency": {
+                    "target": 0.01,
+                    "tolerance": 0.005,
+                },  # cost per response
+            },
         }
 
     @pytest_asyncio.fixture
@@ -107,11 +110,13 @@ class TestModelPerformanceWorkflow:
             "model": model_orchestrator,
             "performance": performance_orchestrator,
             "memory": memory_orchestrator,
-            "database": database_orchestrator
+            "database": database_orchestrator,
         }
 
     @pytest.mark.asyncio
-    async def test_complete_performance_optimization_workflow(self, performance_test_scenario, performance_orchestrators):
+    async def test_complete_performance_optimization_workflow(
+        self, performance_test_scenario, performance_orchestrators
+    ):
         """Test complete model performance optimization workflow."""
         story_id = performance_test_scenario["story_id"]
         orchestrators = performance_orchestrators
@@ -133,8 +138,8 @@ class TestModelPerformanceWorkflow:
                 model_type=model_config["type"],
                 performance_params={
                     "expected_response_time": model_config["expected_response_time"],
-                    "quality_target": model_config["expected_quality_score"]
-                }
+                    "quality_target": model_config["expected_quality_score"],
+                },
             )
 
             # Run baseline performance tests
@@ -145,9 +150,7 @@ class TestModelPerformanceWorkflow:
                 # Generate test response
                 test_prompt = self._generate_test_prompt(scenario)
                 response = await orchestrators["model"].generate_response(
-                    prompt=test_prompt,
-                    adapter_name=model_name,
-                    story_id=story_id
+                    prompt=test_prompt, adapter_name=model_name, story_id=story_id
                 )
 
                 end_time = time.time()
@@ -157,18 +160,21 @@ class TestModelPerformanceWorkflow:
                 performance_data = {
                     "scenario": scenario["scenario"],
                     "response_time": response_time,
-                    "token_count": len(response.content.split()) * 1.3,  # Approximate tokens
+                    "token_count": len(response.content.split())
+                    * 1.3,  # Approximate tokens
                     "quality_score": self._calculate_quality_score(response.content),
-                    "cost_estimate": model_config["cost_per_token"] * len(response.content.split()) * 1.3,
-                    "within_threshold": response_time <= scenario["performance_threshold"]
+                    "cost_estimate": model_config["cost_per_token"]
+                    * len(response.content.split())
+                    * 1.3,
+                    "within_threshold": response_time
+                    <= scenario["performance_threshold"],
                 }
 
                 baseline_results.append(performance_data)
 
                 # Record performance metrics
                 await orchestrators["performance"].record_model_performance(
-                    model_name=model_name,
-                    metrics=performance_data
+                    model_name=model_name, metrics=performance_data
                 )
 
             baseline_metrics[model_name] = baseline_results
@@ -190,11 +196,11 @@ class TestModelPerformanceWorkflow:
                 # Generate story content with performance monitoring
                 start_time = time.time()
 
-                story_prompt = f"Continue the story: Session {session + 1} narrative development"
+                story_prompt = (
+                    f"Continue the story: Session {session + 1} narrative development"
+                )
                 response = await orchestrators["model"].generate_response(
-                    prompt=story_prompt,
-                    adapter_name=model_name,
-                    story_id=story_id
+                    prompt=story_prompt, adapter_name=model_name, story_id=story_id
                 )
 
                 end_time = time.time()
@@ -204,16 +210,17 @@ class TestModelPerformanceWorkflow:
                     "session": session + 1,
                     "response_time": end_time - start_time,
                     "quality_score": self._calculate_quality_score(response.content),
-                    "memory_usage": await orchestrators["performance"].get_memory_usage(),
-                    "timestamp": time.time()
+                    "memory_usage": await orchestrators[
+                        "performance"
+                    ].get_memory_usage(),
+                    "timestamp": time.time(),
                 }
 
                 performance_trends[model_name].append(session_performance)
 
                 # Record for analysis
                 await orchestrators["performance"].record_realtime_metrics(
-                    model_name=model_name,
-                    session_data=session_performance
+                    model_name=model_name, session_data=session_performance
                 )
 
         print("✅ Real-time monitoring completed")
@@ -230,26 +237,35 @@ class TestModelPerformanceWorkflow:
 
             avg_response_time = statistics.mean(response_times)
             avg_quality = statistics.mean(quality_scores)
-            response_time_variance = statistics.variance(response_times) if len(response_times) > 1 else 0
+            response_time_variance = (
+                statistics.variance(response_times) if len(response_times) > 1 else 0
+            )
 
             # Check against optimization targets
             targets = performance_test_scenario["optimization_targets"]
 
             needs_optimization = {
-                "response_time": abs(avg_response_time - targets["response_time"]["target"]) > targets["response_time"]["tolerance"],
-                "quality": abs(avg_quality - targets["quality_score"]["target"]) > targets["quality_score"]["tolerance"],
-                "consistency": response_time_variance > 1.0  # High variance indicates inconsistency
+                "response_time": abs(
+                    avg_response_time - targets["response_time"]["target"]
+                )
+                > targets["response_time"]["tolerance"],
+                "quality": abs(avg_quality - targets["quality_score"]["target"])
+                > targets["quality_score"]["tolerance"],
+                "consistency": response_time_variance
+                > 1.0,  # High variance indicates inconsistency
             }
 
             if any(needs_optimization.values()):
-                print(f"   ⚠️  {model_name} requires optimization: {needs_optimization}")
+                print(
+                    f"   ⚠️  {model_name} requires optimization: {needs_optimization}"
+                )
 
                 # Apply optimization
                 optimization_applied = await self._apply_performance_optimization(
                     orchestrators["performance"],
                     model_name,
                     needs_optimization,
-                    trend_data
+                    trend_data,
                 )
 
                 optimization_results[model_name] = optimization_applied
@@ -275,27 +291,29 @@ class TestModelPerformanceWorkflow:
 
             # Attempt generation (should fallback)
             fallback_start = time.time()
-            fallback_response = await orchestrators["model"].generate_response_with_fallback(
+            fallback_response = await orchestrators[
+                "model"
+            ].generate_response_with_fallback(
                 prompt="Test fallback generation",
                 primary_adapter=primary_model,
                 fallback_adapters=[fallback_model],
-                story_id=story_id
+                story_id=story_id,
             )
             fallback_time = time.time() - fallback_start
 
-            fallback_tests.append({
-                "test": "primary_failure_fallback",
-                "success": fallback_response is not None,
-                "fallback_time": fallback_time,
-                "used_model": fallback_model
-            })
+            fallback_tests.append(
+                {
+                    "test": "primary_failure_fallback",
+                    "success": fallback_response is not None,
+                    "fallback_time": fallback_time,
+                    "used_model": fallback_model,
+                }
+            )
 
         except Exception as e:
-            fallback_tests.append({
-                "test": "primary_failure_fallback",
-                "success": False,
-                "error": str(e)
-            })
+            fallback_tests.append(
+                {"test": "primary_failure_fallback", "success": False, "error": str(e)}
+            )
 
         print("✅ Fallback mechanism testing completed")
 
@@ -306,20 +324,25 @@ class TestModelPerformanceWorkflow:
         post_optimization_metrics = {}
 
         for model_name in baseline_metrics:
-            if model_name in optimization_results and optimization_results[model_name].get("changes"):
+            if model_name in optimization_results and optimization_results[
+                model_name
+            ].get("changes"):
                 # Re-run performance test
                 validation_start = time.time()
                 validation_response = await orchestrators["model"].generate_response(
                     prompt="Post-optimization validation test",
                     adapter_name=model_name,
-                    story_id=story_id
+                    story_id=story_id,
                 )
                 validation_time = time.time() - validation_start
 
                 post_optimization_metrics[model_name] = {
                     "response_time": validation_time,
-                    "quality_score": self._calculate_quality_score(validation_response.content),
-                    "optimization_effective": validation_time < avg_response_time  # Compare to pre-optimization
+                    "quality_score": self._calculate_quality_score(
+                        validation_response.content
+                    ),
+                    "optimization_effective": validation_time
+                    < avg_response_time,  # Compare to pre-optimization
                 }
 
         print("✅ Optimization validation completed")
@@ -327,13 +350,24 @@ class TestModelPerformanceWorkflow:
         # === WORKFLOW METRICS ===
         workflow_metrics = {
             "models_tested": len(performance_test_scenario["test_models"]),
-            "scenarios_evaluated": len(performance_test_scenario["performance_scenarios"]),
+            "scenarios_evaluated": len(
+                performance_test_scenario["performance_scenarios"]
+            ),
             "monitoring_sessions": monitoring_sessions,
-            "optimizations_applied": len([r for r in optimization_results.values() if r.get("changes")]),
+            "optimizations_applied": len(
+                [r for r in optimization_results.values() if r.get("changes")]
+            ),
             "fallback_tests": len(fallback_tests),
-            "fallback_success_rate": sum(1 for test in fallback_tests if test["success"]) / len(fallback_tests) if fallback_tests else 0,
-            "performance_improvement": self._calculate_improvement_percentage(baseline_metrics, post_optimization_metrics),
-            "workflow_status": "completed"
+            "fallback_success_rate": (
+                sum(1 for test in fallback_tests if test["success"])
+                / len(fallback_tests)
+                if fallback_tests
+                else 0
+            ),
+            "performance_improvement": self._calculate_improvement_percentage(
+                baseline_metrics, post_optimization_metrics
+            ),
+            "workflow_status": "completed",
         }
 
         print("🏁 Performance optimization workflow completed!")
@@ -345,7 +379,7 @@ class TestModelPerformanceWorkflow:
             "optimization_results": optimization_results,
             "fallback_tests": fallback_tests,
             "post_optimization": post_optimization_metrics,
-            "metrics": workflow_metrics
+            "metrics": workflow_metrics,
         }
 
     def _generate_test_prompt(self, scenario: dict[str, Any]) -> str:
@@ -365,7 +399,11 @@ class TestModelPerformanceWorkflow:
         # Simple heuristics for quality
         word_count = len(content.split())
         has_dialogue = '"' in content or "'" in content
-        has_variety = len(set(content.lower().split())) / len(content.split()) if content.split() else 0
+        has_variety = (
+            len(set(content.lower().split())) / len(content.split())
+            if content.split()
+            else 0
+        )
 
         quality = 0.5  # Base score
 
@@ -380,11 +418,13 @@ class TestModelPerformanceWorkflow:
 
         return min(quality, 1.0)
 
-    async def _apply_performance_optimization(self,
-                                           performance_orchestrator,
-                                           model_name: str,
-                                           optimization_needs: dict[str, bool],
-                                           trend_data: list[dict[str, Any]]) -> dict[str, Any]:
+    async def _apply_performance_optimization(
+        self,
+        performance_orchestrator,
+        model_name: str,
+        optimization_needs: dict[str, bool],
+        trend_data: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Apply performance optimization based on identified needs."""
 
         optimizations_applied = []
@@ -407,12 +447,14 @@ class TestModelPerformanceWorkflow:
         return {
             "status": "optimized",
             "changes": optimizations_applied,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
-    def _calculate_improvement_percentage(self,
-                                        baseline_metrics: dict[str, list[dict[str, Any]]],
-                                        post_optimization: dict[str, dict[str, Any]]) -> float:
+    def _calculate_improvement_percentage(
+        self,
+        baseline_metrics: dict[str, list[dict[str, Any]]],
+        post_optimization: dict[str, dict[str, Any]],
+    ) -> float:
         """Calculate overall performance improvement percentage."""
         if not post_optimization:
             return 0.0
@@ -420,7 +462,9 @@ class TestModelPerformanceWorkflow:
         improvements = []
         for model_name, post_data in post_optimization.items():
             if model_name in baseline_metrics:
-                baseline_avg = statistics.mean([m["response_time"] for m in baseline_metrics[model_name]])
+                baseline_avg = statistics.mean(
+                    [m["response_time"] for m in baseline_metrics[model_name]]
+                )
                 post_time = post_data["response_time"]
                 improvement = (baseline_avg - post_time) / baseline_avg * 100
                 improvements.append(improvement)
@@ -428,7 +472,9 @@ class TestModelPerformanceWorkflow:
         return statistics.mean(improvements) if improvements else 0.0
 
     @pytest.mark.asyncio
-    async def test_performance_under_load(self, performance_test_scenario, performance_orchestrators):
+    async def test_performance_under_load(
+        self, performance_test_scenario, performance_orchestrators
+    ):
         """Test model performance under high load conditions."""
         story_id = f"{performance_test_scenario['story_id']}_load_test"
         orchestrators = performance_orchestrators
@@ -439,33 +485,40 @@ class TestModelPerformanceWorkflow:
         async def generate_concurrent_response(request_id):
             start_time = time.time()
             response = await orchestrators["model"].generate_response(
-                prompt=f"Concurrent request {request_id}",
-                story_id=story_id
+                prompt=f"Concurrent request {request_id}", story_id=story_id
             )
             return {
                 "request_id": request_id,
                 "response_time": time.time() - start_time,
-                "success": response is not None
+                "success": response is not None,
             }
 
         # Run concurrent requests
         load_test_start = time.time()
         results = await asyncio.gather(
             *[generate_concurrent_response(i) for i in range(concurrent_requests)],
-            return_exceptions=True
+            return_exceptions=True,
         )
-        total_load_time = time.time() - load_test_start
+        time.time() - load_test_start
 
         # Analyze load test results
-        successful_requests = [r for r in results if isinstance(r, dict) and r["success"]]
+        successful_requests = [
+            r for r in results if isinstance(r, dict) and r["success"]
+        ]
         success_rate = len(successful_requests) / concurrent_requests
-        avg_response_time = statistics.mean([r["response_time"] for r in successful_requests]) if successful_requests else 0
+        avg_response_time = (
+            statistics.mean([r["response_time"] for r in successful_requests])
+            if successful_requests
+            else 0
+        )
 
         # Validate performance under load
         assert success_rate >= 0.8  # At least 80% success rate
         assert avg_response_time < 10.0  # Reasonable response time under load
 
-        print(f"✅ Load test completed: {success_rate:.2%} success rate, {avg_response_time:.2f}s avg response time")
+        print(
+            f"✅ Load test completed: {success_rate:.2%} success rate, {avg_response_time:.2f}s avg response time"
+        )
 
 
 if __name__ == "__main__":

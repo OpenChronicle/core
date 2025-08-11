@@ -45,9 +45,9 @@ class TestOrchestatorStressTesting:
         """Create stress testing framework for tests."""
         config = create_stress_test_config(
             max_concurrent=20,  # Start with moderate load
-            duration=30,        # 30 second tests
+            duration=30,  # 30 second tests
             success_rate=0.95,  # 95% success required
-            enable_chaos=False  # Disable chaos for basic tests
+            enable_chaos=False,  # Disable chaos for basic tests
         )
         return create_stress_testing_framework(config)
 
@@ -69,16 +69,24 @@ class TestOrchestatorStressTesting:
             test_operation=model_operation,
             concurrent_requests=15,
             duration_seconds=20,
-            test_name="model_orchestrator_stress"
+            test_name="model_orchestrator_stress",
         )
 
         # Assertions
-        assert result.passed, f"Model orchestrator stress test failed: {result.success_rate:.2%} success rate"
-        assert result.total_operations > 50, "Should have completed at least 50 operations"
-        assert result.average_response_time < 1.0, "Average response time should be under 1 second"
+        assert (
+            result.passed
+        ), f"Model orchestrator stress test failed: {result.success_rate:.2%} success rate"
+        assert (
+            result.total_operations > 50
+        ), "Should have completed at least 50 operations"
+        assert (
+            result.average_response_time < 1.0
+        ), "Average response time should be under 1 second"
         assert result.memory_peak_mb < 200, "Memory usage should be reasonable"
 
-        log_info(f"Model orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success")
+        log_info(
+            f"Model orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success"
+        )
 
     @pytest.mark.stress
     @pytest.mark.asyncio
@@ -100,15 +108,21 @@ class TestOrchestatorStressTesting:
             test_operation=memory_operation,
             concurrent_requests=10,
             duration_seconds=15,
-            test_name="memory_orchestrator_stress"
+            test_name="memory_orchestrator_stress",
         )
 
         # Assertions
-        assert result.passed, f"Memory orchestrator stress test failed: {result.success_rate:.2%} success rate"
-        assert result.total_operations > 30, "Should have completed at least 30 operations"
+        assert (
+            result.passed
+        ), f"Memory orchestrator stress test failed: {result.success_rate:.2%} success rate"
+        assert (
+            result.total_operations > 30
+        ), "Should have completed at least 30 operations"
         assert result.average_response_time < 0.5, "Memory operations should be fast"
 
-        log_info(f"Memory orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success")
+        log_info(
+            f"Memory orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success"
+        )
 
     @pytest.mark.stress
     @pytest.mark.asyncio
@@ -130,15 +144,23 @@ class TestOrchestatorStressTesting:
             test_operation=scene_operation,
             concurrent_requests=8,  # Lower concurrency for scene operations
             duration_seconds=20,
-            test_name="scene_orchestrator_stress"
+            test_name="scene_orchestrator_stress",
         )
 
         # Assertions
-        assert result.passed, f"Scene orchestrator stress test failed: {result.success_rate:.2%} success rate"
-        assert result.total_operations > 20, "Should have completed at least 20 operations"
-        assert result.average_response_time < 2.0, "Scene operations should complete within 2 seconds"
+        assert (
+            result.passed
+        ), f"Scene orchestrator stress test failed: {result.success_rate:.2%} success rate"
+        assert (
+            result.total_operations > 20
+        ), "Should have completed at least 20 operations"
+        assert (
+            result.average_response_time < 2.0
+        ), "Scene operations should complete within 2 seconds"
 
-        log_info(f"Scene orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success")
+        log_info(
+            f"Scene orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success"
+        )
 
     @pytest.mark.stress
     @pytest.mark.asyncio
@@ -172,14 +194,20 @@ class TestOrchestatorStressTesting:
             test_operation=mixed_operation,
             concurrent_requests=12,
             duration_seconds=25,
-            test_name="mixed_orchestrator_stress"
+            test_name="mixed_orchestrator_stress",
         )
 
         # Assertions
-        assert result.passed, f"Mixed orchestrator stress test failed: {result.success_rate:.2%} success rate"
-        assert result.total_operations > 40, "Should have completed at least 40 mixed operations"
+        assert (
+            result.passed
+        ), f"Mixed orchestrator stress test failed: {result.success_rate:.2%} success rate"
+        assert (
+            result.total_operations > 40
+        ), "Should have completed at least 40 mixed operations"
 
-        log_info(f"Mixed orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success")
+        log_info(
+            f"Mixed orchestrator stress test: {result.total_operations} ops, {result.success_rate:.2%} success"
+        )
 
 
 class TestDatabaseStressTesting:
@@ -189,9 +217,7 @@ class TestDatabaseStressTesting:
     def stress_framework(self):
         """Create stress testing framework for database tests."""
         config = create_stress_test_config(
-            max_concurrent=25,
-            duration=20,
-            success_rate=0.95
+            max_concurrent=25, duration=20, success_rate=0.95
         )
         return create_stress_testing_framework(config)
 
@@ -203,11 +229,17 @@ class TestDatabaseStressTesting:
         result = await stress_framework.database_stress_test(concurrent_db_ops=15)
 
         # Assertions
-        assert result.passed, f"Database stress test failed: {result.success_rate:.2%} success rate"
-        assert result.total_operations > 20, "Should have completed multiple database operations"
+        assert (
+            result.passed
+        ), f"Database stress test failed: {result.success_rate:.2%} success rate"
+        assert (
+            result.total_operations > 20
+        ), "Should have completed multiple database operations"
         assert len(result.errors) < 5, "Should have minimal database errors"
 
-        log_info(f"Database stress test: {result.total_operations} ops, {result.success_rate:.2%} success")
+        log_info(
+            f"Database stress test: {result.total_operations} ops, {result.success_rate:.2%} success"
+        )
 
     @pytest.mark.stress
     @pytest.mark.asyncio
@@ -218,10 +250,16 @@ class TestDatabaseStressTesting:
         result = await stress_framework.database_stress_test(concurrent_db_ops=30)
 
         # Even under high load, database should maintain integrity
-        assert result.success_rate > 0.90, "Database should maintain 90%+ success rate under load"
-        assert result.average_response_time < 5.0, "Database operations should complete within 5 seconds"
+        assert (
+            result.success_rate > 0.90
+        ), "Database should maintain 90%+ success rate under load"
+        assert (
+            result.average_response_time < 5.0
+        ), "Database operations should complete within 5 seconds"
 
-        log_info(f"Database integrity test: {result.success_rate:.2%} success under high load")
+        log_info(
+            f"Database integrity test: {result.success_rate:.2%} success under high load"
+        )
 
 
 class TestMemoryStressTesting:
@@ -233,7 +271,7 @@ class TestMemoryStressTesting:
         config = create_stress_test_config(
             max_concurrent=10,
             duration=15,
-            success_rate=0.85  # Lower threshold for memory pressure tests
+            success_rate=0.85,  # Lower threshold for memory pressure tests
         )
         return create_stress_testing_framework(config)
 
@@ -245,10 +283,16 @@ class TestMemoryStressTesting:
         result = await stress_framework.memory_stress_test(target_memory_mb=50)
 
         # Under memory pressure, system should degrade gracefully
-        assert result.success_rate > 0.80, "System should maintain 80%+ operation success under memory pressure"
-        assert result.performance_metrics.get('graceful_degradation', False), "Should handle memory pressure gracefully"
+        assert (
+            result.success_rate > 0.80
+        ), "System should maintain 80%+ operation success under memory pressure"
+        assert result.performance_metrics.get(
+            "graceful_degradation", False
+        ), "Should handle memory pressure gracefully"
 
-        log_info(f"Memory pressure test: {result.success_rate:.2%} success under 50MB pressure")
+        log_info(
+            f"Memory pressure test: {result.success_rate:.2%} success under 50MB pressure"
+        )
 
     @pytest.mark.stress
     @pytest.mark.asyncio
@@ -258,10 +302,14 @@ class TestMemoryStressTesting:
         result = await stress_framework.memory_stress_test(target_memory_mb=100)
 
         # Even under extreme pressure, system shouldn't crash
-        assert result.success_rate > 0.50, "System should maintain some functionality under extreme pressure"
+        assert (
+            result.success_rate > 0.50
+        ), "System should maintain some functionality under extreme pressure"
         assert len(result.errors) < 20, "Should not generate excessive errors"
 
-        log_info(f"Extreme memory pressure test: {result.success_rate:.2%} success under 100MB pressure")
+        log_info(
+            f"Extreme memory pressure test: {result.success_rate:.2%} success under 100MB pressure"
+        )
 
 
 class TestPerformanceRegression:
@@ -292,7 +340,9 @@ class TestPerformanceRegression:
         # Baseline should be reasonable
         assert baseline_time < 1.0, "Baseline operations should complete quickly"
 
-        log_info(f"Performance baseline established: {baseline_time:.3f}s for 10 operations")
+        log_info(
+            f"Performance baseline established: {baseline_time:.3f}s for 10 operations"
+        )
 
     @pytest.mark.performance
     @pytest.mark.asyncio
@@ -300,23 +350,25 @@ class TestPerformanceRegression:
         """Test performance regression detection mechanism."""
 
         baseline_time = 0.100  # 100ms baseline
-        current_time = 0.250   # 250ms current (2.5x slower)
+        current_time = 0.250  # 250ms current (2.5x slower)
 
         # Should detect regression (2.5x > 2.0x threshold)
         regression_detected = stress_framework.detect_performance_regression(
             test_name="test_operation",
             current_time=current_time,
-            baseline_time=baseline_time
+            baseline_time=baseline_time,
         )
 
-        assert regression_detected, "Should detect performance regression when 2.5x slower than baseline"
+        assert (
+            regression_detected
+        ), "Should detect performance regression when 2.5x slower than baseline"
 
         # Test non-regression case
         current_time = 0.150  # 150ms current (1.5x slower - acceptable)
         regression_detected = stress_framework.detect_performance_regression(
             test_name="test_operation",
             current_time=current_time,
-            baseline_time=baseline_time
+            baseline_time=baseline_time,
         )
 
         assert not regression_detected, "Should not detect regression for 1.5x slowdown"
@@ -339,8 +391,12 @@ class TestChaosEngineering:
         result = await stress_framework.simulate_chaos_failures()
 
         # System should recover from most chaos scenarios
-        assert result.success_rate > 0.60, "System should recover from 60%+ of chaos scenarios"
-        assert result.performance_metrics.get('recovery_rate', 0) > 0.60, "Recovery rate should be reasonable"
+        assert (
+            result.success_rate > 0.60
+        ), "System should recover from 60%+ of chaos scenarios"
+        assert (
+            result.performance_metrics.get("recovery_rate", 0) > 0.60
+        ), "Recovery rate should be reasonable"
 
         log_info(f"Chaos engineering test: {result.success_rate:.2%} recovery rate")
 
@@ -362,14 +418,20 @@ class TestChaosEngineering:
             test_operation=failing_operation,
             concurrent_requests=8,
             duration_seconds=15,
-            test_name="failure_recovery_stress"
+            test_name="failure_recovery_stress",
         )
 
         # With 25% simulated failure rate, should still achieve reasonable success
-        assert result.success_rate > 0.70, "Should achieve 70%+ success despite 25% simulated failures"
-        assert result.total_operations > 15, "Should complete multiple operations despite failures"
+        assert (
+            result.success_rate > 0.70
+        ), "Should achieve 70%+ success despite 25% simulated failures"
+        assert (
+            result.total_operations > 15
+        ), "Should complete multiple operations despite failures"
 
-        log_info(f"Failure recovery test: {result.success_rate:.2%} success with simulated failures")
+        log_info(
+            f"Failure recovery test: {result.success_rate:.2%} success with simulated failures"
+        )
 
 
 class TestProductionReadiness:
@@ -379,9 +441,7 @@ class TestProductionReadiness:
     def stress_framework(self):
         """Create stress testing framework for production tests."""
         config = create_stress_test_config(
-            max_concurrent=50,
-            duration=60,
-            success_rate=0.95
+            max_concurrent=50, duration=60, success_rate=0.95
         )
         return create_stress_testing_framework(config)
 
@@ -408,17 +468,27 @@ class TestProductionReadiness:
             test_operation=production_operation,
             concurrent_requests=25,  # Moderate production load
             duration_seconds=45,
-            test_name="production_load_simulation"
+            test_name="production_load_simulation",
         )
 
         # Production requirements
-        assert result.passed, f"Production load test failed: {result.success_rate:.2%} success rate"
-        assert result.total_operations > 200, "Should handle significant operation volume"
-        assert result.average_response_time < 1.0, "Production operations should be responsive"
+        assert (
+            result.passed
+        ), f"Production load test failed: {result.success_rate:.2%} success rate"
+        assert (
+            result.total_operations > 200
+        ), "Should handle significant operation volume"
+        assert (
+            result.average_response_time < 1.0
+        ), "Production operations should be responsive"
         assert result.memory_peak_mb < 300, "Memory usage should be sustainable"
-        assert result.performance_metrics['operations_per_second'] > 5, "Should maintain reasonable throughput"
+        assert (
+            result.performance_metrics["operations_per_second"] > 5
+        ), "Should maintain reasonable throughput"
 
-        log_info(f"Production load test: {result.total_operations} ops at {result.performance_metrics['operations_per_second']:.1f} ops/sec")
+        log_info(
+            f"Production load test: {result.total_operations} ops at {result.performance_metrics['operations_per_second']:.1f} ops/sec"
+        )
 
     @pytest.mark.production
     @pytest.mark.asyncio
@@ -435,16 +505,20 @@ class TestProductionReadiness:
             test_operation=simple_operation,
             concurrent_requests=5,
             duration_seconds=5,
-            test_name="report_generation_test"
+            test_name="report_generation_test",
         )
 
         # Generate and validate report
         report = stress_framework.generate_stress_test_report()
 
         assert len(report) > 500, "Report should be comprehensive"
-        assert "OPENCHRONICLE STRESS TEST REPORT" in report, "Report should have proper header"
+        assert (
+            "OPENCHRONICLE STRESS TEST REPORT" in report
+        ), "Report should have proper header"
         assert "SUMMARY STATISTICS" in report, "Report should include summary"
-        assert "INDIVIDUAL TEST RESULTS" in report, "Report should include individual results"
+        assert (
+            "INDIVIDUAL TEST RESULTS" in report
+        ), "Report should include individual results"
 
         # Print report for manual inspection
         print("\n" + report)
@@ -458,12 +532,21 @@ def run_production_stress_tests():
     import subprocess
     import sys
 
-    result = subprocess.run([
-        sys.executable, "-m", "pytest",
-        str(Path(__file__)),
-        "-v", "-m", "production",
-        "--tb=short"
-    ], check=False, capture_output=True, text=True)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(Path(__file__)),
+            "-v",
+            "-m",
+            "production",
+            "--tb=short",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
 
     return result.returncode == 0, result.stdout, result.stderr
 
@@ -473,12 +556,22 @@ def run_quick_stress_validation():
     import subprocess
     import sys
 
-    result = subprocess.run([
-        sys.executable, "-m", "pytest",
-        str(Path(__file__)),
-        "-v", "-m", "stress and not chaos and not production",
-        "--tb=short", "-x"  # Stop on first failure
-    ], check=False, capture_output=True, text=True)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(Path(__file__)),
+            "-v",
+            "-m",
+            "stress and not chaos and not production",
+            "--tb=short",
+            "-x",  # Stop on first failure
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
 
     return result.returncode == 0, result.stdout, result.stderr
 

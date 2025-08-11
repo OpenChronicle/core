@@ -46,6 +46,7 @@ from src.openchronicle.shared.logging_system import log_warning
 @dataclass
 class StressTestConfig:
     """Configuration for stress testing scenarios."""
+
     max_concurrent_operations: int = 50
     test_duration_seconds: int = 60
     expected_success_rate: float = 0.95
@@ -59,6 +60,7 @@ class StressTestConfig:
 @dataclass
 class StressTestResult:
     """Results from stress testing execution."""
+
     test_name: str
     total_operations: int
     successful_operations: int
@@ -80,6 +82,7 @@ class StressTestResult:
 @dataclass
 class PerformanceBaseline:
     """Performance baseline for regression detection."""
+
     operation_name: str
     baseline_time: float
     baseline_memory: float
@@ -91,7 +94,7 @@ class PerformanceBaseline:
 class StressTestingFramework:
     """
     Advanced stress-testing framework for OpenChronicle production validation.
-    
+
     Provides comprehensive load testing, performance monitoring, and chaos
     engineering capabilities to ensure production-grade reliability.
     """
@@ -117,23 +120,25 @@ class StressTestingFramework:
         test_operation: Callable,
         concurrent_requests: int,
         duration_seconds: int,
-        test_name: str
+        test_name: str,
     ) -> StressTestResult:
         """
         Execute stress test against an orchestrator with concurrent operations.
-        
+
         Args:
             orchestrator_class: The orchestrator class to test
             test_operation: The operation to execute repeatedly
             concurrent_requests: Number of concurrent operations
             duration_seconds: How long to run the test
             test_name: Name for the test results
-            
+
         Returns:
             StressTestResult: Detailed results of the stress test
         """
         log_info(f"Starting stress test: {test_name}")
-        log_info(f"Config: {concurrent_requests} concurrent ops for {duration_seconds}s")
+        log_info(
+            f"Config: {concurrent_requests} concurrent ops for {duration_seconds}s"
+        )
 
         # Initialize tracking
         start_time = time.time()
@@ -150,7 +155,9 @@ class StressTestingFramework:
             # Create orchestrator instance
             orchestrator = orchestrator_class()
 
-            async def run_operation(operation_id: int) -> tuple[bool, float, str | None]:
+            async def run_operation(
+                operation_id: int,
+            ) -> tuple[bool, float, str | None]:
                 """Run a single operation and track its performance."""
                 op_start = time.time()
                 try:
@@ -166,7 +173,9 @@ class StressTestingFramework:
             operation_id = 0
             while time.time() < end_time:
                 # Create batch of concurrent operations
-                batch_size = min(concurrent_requests, int((end_time - time.time()) * 10))
+                batch_size = min(
+                    concurrent_requests, int((end_time - time.time()) * 10)
+                )
                 if batch_size <= 0:
                     break
 
@@ -200,7 +209,9 @@ class StressTestingFramework:
             successful_ops = sum(1 for success, _, _ in results if success)
             success_rate = successful_ops / total_ops if total_ops > 0 else 0.0
 
-            avg_response_time = sum(response_times) / len(response_times) if response_times else 0.0
+            avg_response_time = (
+                sum(response_times) / len(response_times) if response_times else 0.0
+            )
             max_response_time = max(response_times) if response_times else 0.0
             min_response_time = min(response_times) if response_times else 0.0
 
@@ -220,10 +231,12 @@ class StressTestingFramework:
                 memory_peak_mb=memory_peak,
                 errors=errors[:10],  # Keep first 10 errors for analysis
                 performance_metrics={
-                    'operations_per_second': total_ops / duration_seconds,
-                    'memory_growth_mb': memory_peak - memory_start,
-                    'error_rate': (total_ops - successful_ops) / total_ops if total_ops > 0 else 0.0
-                }
+                    "operations_per_second": total_ops / duration_seconds,
+                    "memory_growth_mb": memory_peak - memory_start,
+                    "error_rate": (total_ops - successful_ops) / total_ops
+                    if total_ops > 0
+                    else 0.0,
+                },
             )
 
             self.results.append(result)
@@ -234,10 +247,14 @@ class StressTestingFramework:
             log_info(f"  Success rate: {success_rate:.2%}")
             log_info(f"  Avg response time: {avg_response_time:.3f}s")
             log_info(f"  Memory peak: {memory_peak:.1f}MB")
-            log_info(f"  Operations/sec: {result.performance_metrics['operations_per_second']:.1f}")
+            log_info(
+                f"  Operations/sec: {result.performance_metrics['operations_per_second']:.1f}"
+            )
 
             if not result.passed:
-                log_warning(f"Stress test {test_name} FAILED - success rate {success_rate:.2%} below 95%")
+                log_warning(
+                    f"Stress test {test_name} FAILED - success rate {success_rate:.2%} below 95%"
+                )
 
             return result
 
@@ -255,16 +272,16 @@ class StressTestingFramework:
                 max_response_time=0.0,
                 min_response_time=0.0,
                 memory_peak_mb=0.0,
-                errors=[str(e)]
+                errors=[str(e)],
             )
 
     async def memory_stress_test(self, target_memory_mb: int) -> StressTestResult:
         """
         Test system behavior under memory pressure.
-        
+
         Args:
             target_memory_mb: Target memory pressure in MB
-            
+
         Returns:
             StressTestResult: Results of memory stress testing
         """
@@ -310,7 +327,11 @@ class StressTestingFramework:
             # Measure final memory
             memory_peak = tracemalloc.get_traced_memory()[1] / 1024 / 1024
 
-            success_rate = successful_operations / operations_count if operations_count > 0 else 0.0
+            success_rate = (
+                successful_operations / operations_count
+                if operations_count > 0
+                else 0.0
+            )
             total_time = time.time() - start_time
 
             result = StressTestResult(
@@ -319,16 +340,19 @@ class StressTestingFramework:
                 successful_operations=successful_operations,
                 failed_operations=operations_count - successful_operations,
                 success_rate=success_rate,
-                average_response_time=total_time / operations_count if operations_count > 0 else 0.0,
+                average_response_time=total_time / operations_count
+                if operations_count > 0
+                else 0.0,
                 max_response_time=total_time,
                 min_response_time=0.0,
                 memory_peak_mb=memory_peak,
                 errors=errors[:10],
                 performance_metrics={
-                    'target_memory_mb': target_memory_mb,
-                    'actual_memory_mb': memory_peak,
-                    'graceful_degradation': success_rate > 0.8  # 80% under pressure is acceptable
-                }
+                    "target_memory_mb": target_memory_mb,
+                    "actual_memory_mb": memory_peak,
+                    "graceful_degradation": success_rate
+                    > 0.8,  # 80% under pressure is acceptable
+                },
             )
 
             log_info(f"Memory stress test completed - success rate: {success_rate:.2%}")
@@ -346,7 +370,7 @@ class StressTestingFramework:
                 max_response_time=0.0,
                 min_response_time=0.0,
                 memory_peak_mb=0.0,
-                errors=[str(e)]
+                errors=[str(e)],
             )
         finally:
             # Clean up memory
@@ -356,14 +380,16 @@ class StressTestingFramework:
     async def database_stress_test(self, concurrent_db_ops: int) -> StressTestResult:
         """
         Test database integrity under concurrent load.
-        
+
         Args:
             concurrent_db_ops: Number of concurrent database operations
-            
+
         Returns:
             StressTestResult: Results of database stress testing
         """
-        log_info(f"Starting database stress test: {concurrent_db_ops} concurrent operations")
+        log_info(
+            f"Starting database stress test: {concurrent_db_ops} concurrent operations"
+        )
 
         # Initialize tracking
         start_time = time.time()
@@ -422,23 +448,20 @@ class StressTestingFramework:
             max_response_time=max_response_time,
             min_response_time=min_response_time,
             memory_peak_mb=0.0,  # Not tracking memory for this simple test
-            errors=errors
+            errors=errors,
         )
 
     def detect_performance_regression(
-        self,
-        test_name: str,
-        current_time: float,
-        baseline_time: float
+        self, test_name: str, current_time: float, baseline_time: float
     ) -> bool:
         """
         Detect performance regression by comparing against baseline.
-        
+
         Args:
             test_name: Name of the test
             current_time: Current execution time
             baseline_time: Baseline execution time
-            
+
         Returns:
             bool: True if regression detected
         """
@@ -452,7 +475,9 @@ class StressTestingFramework:
             log_warning(f"Performance regression detected in {test_name}:")
             log_warning(f"  Current: {current_time:.3f}s")
             log_warning(f"  Baseline: {baseline_time:.3f}s")
-            log_warning(f"  Regression: {regression_ratio:.2f}x (threshold: {threshold}x)")
+            log_warning(
+                f"  Regression: {regression_ratio:.2f}x (threshold: {threshold}x)"
+            )
             return True
 
         return False
@@ -460,7 +485,7 @@ class StressTestingFramework:
     async def simulate_chaos_failures(self) -> StressTestResult:
         """
         Simulate various failure scenarios (chaos engineering).
-        
+
         Returns:
             StressTestResult: Results of chaos testing
         """
@@ -471,7 +496,7 @@ class StressTestingFramework:
             "memory_allocation_failure",
             "model_provider_timeout",
             "disk_space_exhaustion",
-            "network_partition"
+            "network_partition",
         ]
 
         total_scenarios = len(chaos_scenarios)
@@ -514,9 +539,9 @@ class StressTestingFramework:
             memory_peak_mb=0.0,
             errors=errors,
             performance_metrics={
-                'scenarios_tested': total_scenarios,
-                'recovery_rate': success_rate
-            }
+                "scenarios_tested": total_scenarios,
+                "recovery_rate": success_rate,
+            },
         )
 
         log_info(f"Chaos engineering completed - recovery rate: {success_rate:.2%}")
@@ -544,7 +569,7 @@ class StressTestingFramework:
     def generate_stress_test_report(self) -> str:
         """
         Generate comprehensive stress test report.
-        
+
         Returns:
             str: Formatted report of all stress test results
         """
@@ -557,36 +582,42 @@ class StressTestingFramework:
             "=" * 80,
             f"Total Tests Executed: {len(self.results)}",
             f"Report Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}",
-            ""
+            "",
         ]
 
         # Summary statistics
         total_operations = sum(r.total_operations for r in self.results)
         total_successful = sum(r.successful_operations for r in self.results)
-        overall_success_rate = total_successful / total_operations if total_operations > 0 else 0.0
+        overall_success_rate = (
+            total_successful / total_operations if total_operations > 0 else 0.0
+        )
 
-        report_lines.extend([
-            "SUMMARY STATISTICS:",
-            f"  Total Operations: {total_operations:,}",
-            f"  Successful Operations: {total_successful:,}",
-            f"  Overall Success Rate: {overall_success_rate:.2%}",
-            f"  Tests Passed: {sum(1 for r in self.results if r.passed)}",
-            f"  Tests Failed: {sum(1 for r in self.results if not r.passed)}",
-            ""
-        ])
+        report_lines.extend(
+            [
+                "SUMMARY STATISTICS:",
+                f"  Total Operations: {total_operations:,}",
+                f"  Successful Operations: {total_successful:,}",
+                f"  Overall Success Rate: {overall_success_rate:.2%}",
+                f"  Tests Passed: {sum(1 for r in self.results if r.passed)}",
+                f"  Tests Failed: {sum(1 for r in self.results if not r.passed)}",
+                "",
+            ]
+        )
 
         # Individual test results
         report_lines.append("INDIVIDUAL TEST RESULTS:")
         for result in self.results:
             status = "PASS" if result.passed else "FAIL"
-            report_lines.extend([
-                f"  {result.test_name}: {status}",
-                f"    Operations: {result.total_operations:,}",
-                f"    Success Rate: {result.success_rate:.2%}",
-                f"    Avg Response Time: {result.average_response_time:.3f}s",
-                f"    Memory Peak: {result.memory_peak_mb:.1f}MB",
-                ""
-            ])
+            report_lines.extend(
+                [
+                    f"  {result.test_name}: {status}",
+                    f"    Operations: {result.total_operations:,}",
+                    f"    Success Rate: {result.success_rate:.2%}",
+                    f"    Avg Response Time: {result.average_response_time:.3f}s",
+                    f"    Memory Peak: {result.memory_peak_mb:.1f}MB",
+                    "",
+                ]
+            )
 
         # Performance metrics
         if any(r.performance_metrics for r in self.results):
@@ -607,28 +638,28 @@ class StressTestingFramework:
             all_errors.extend(result.errors)
 
         if all_errors:
-            report_lines.extend([
-                "ERROR SUMMARY:",
-                f"  Total Errors: {len(all_errors)}",
-                "  Sample Errors:"
-            ])
+            report_lines.extend(
+                [
+                    "ERROR SUMMARY:",
+                    f"  Total Errors: {len(all_errors)}",
+                    "  Sample Errors:",
+                ]
+            )
             for error in all_errors[:5]:  # Show first 5 errors
                 report_lines.append(f"    - {error}")
             if len(all_errors) > 5:
                 report_lines.append(f"    ... and {len(all_errors) - 5} more")
             report_lines.append("")
 
-        report_lines.extend([
-            "=" * 80,
-            "END STRESS TEST REPORT",
-            "=" * 80
-        ])
+        report_lines.extend(["=" * 80, "END STRESS TEST REPORT", "=" * 80])
 
         return "\n".join(report_lines)
 
 
 # Factory functions for easy integration
-def create_stress_testing_framework(config: StressTestConfig | None = None) -> StressTestingFramework:
+def create_stress_testing_framework(
+    config: StressTestConfig | None = None,
+) -> StressTestingFramework:
     """Create a stress testing framework with optional configuration."""
     return StressTestingFramework(config)
 
@@ -637,23 +668,23 @@ def create_stress_test_config(
     max_concurrent: int = 50,
     duration: int = 60,
     success_rate: float = 0.95,
-    enable_chaos: bool = False
+    enable_chaos: bool = False,
 ) -> StressTestConfig:
     """Create a stress test configuration with common parameters."""
     return StressTestConfig(
         max_concurrent_operations=max_concurrent,
         test_duration_seconds=duration,
         expected_success_rate=success_rate,
-        enable_chaos_testing=enable_chaos
+        enable_chaos_testing=enable_chaos,
     )
 
 
 # Export key classes and functions
 __all__ = [
-    'PerformanceBaseline',
-    'StressTestConfig',
-    'StressTestResult',
-    'StressTestingFramework',
-    'create_stress_test_config',
-    'create_stress_testing_framework'
+    "PerformanceBaseline",
+    "StressTestConfig",
+    "StressTestResult",
+    "StressTestingFramework",
+    "create_stress_test_config",
+    "create_stress_testing_framework",
 ]

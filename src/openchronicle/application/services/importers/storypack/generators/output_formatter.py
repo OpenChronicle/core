@@ -28,30 +28,31 @@ class OutputFormatter(IOutputFormatter):
 
         # Formatting templates
         self.formatting_options = {
-            'json_indent': 2,
-            'max_summary_length': 200,
-            'max_error_display': 10,
-            'datetime_format': '%Y-%m-%d %H:%M:%S'
+            "json_indent": 2,
+            "max_summary_length": 200,
+            "max_error_display": 10,
+            "datetime_format": "%Y-%m-%d %H:%M:%S",
         }
 
-    def format_import_result(self, result: ImportResult,
-                           format_type: str = 'summary') -> str:
+    def format_import_result(
+        self, result: ImportResult, format_type: str = "summary"
+    ) -> str:
         """
         Format import result for display.
-        
+
         Args:
             result: Import result to format
             format_type: Type of formatting ('summary', 'detailed', 'json')
-            
+
         Returns:
             Formatted string representation
         """
         try:
-            if format_type == 'summary':
+            if format_type == "summary":
                 return self._format_summary(result)
-            if format_type == 'detailed':
+            if format_type == "detailed":
                 return self._format_detailed(result)
-            if format_type == 'json':
+            if format_type == "json":
                 return self._format_json(result)
             self.logger.warning(f"Unknown format type: {format_type}, using summary")
             return self._format_summary(result)
@@ -60,26 +61,27 @@ class OutputFormatter(IOutputFormatter):
             self.logger.error(f"Failed to format import result: {e}")
             return f"Error formatting result: {e}"
 
-    def generate_report(self, result: ImportResult,
-                       report_type: str = 'standard') -> dict[str, Any]:
+    def generate_report(
+        self, result: ImportResult, report_type: str = "standard"
+    ) -> dict[str, Any]:
         """
         Generate comprehensive import report.
-        
+
         Args:
             result: Import result to generate report for
             report_type: Type of report ('standard', 'technical', 'executive')
-            
+
         Returns:
             Structured report data
         """
         try:
             base_report = self._create_base_report(result)
 
-            if report_type == 'standard':
+            if report_type == "standard":
                 return self._enhance_standard_report(base_report, result)
-            if report_type == 'technical':
+            if report_type == "technical":
                 return self._enhance_technical_report(base_report, result)
-            if report_type == 'executive':
+            if report_type == "executive":
                 return self._enhance_executive_report(base_report, result)
             self.logger.warning(f"Unknown report type: {report_type}, using standard")
             return self._enhance_standard_report(base_report, result)
@@ -88,27 +90,28 @@ class OutputFormatter(IOutputFormatter):
             self.logger.error(f"Failed to generate report: {e}")
             return self._create_error_report(e, result)
 
-    def save_report(self, report: dict[str, Any], output_path: Path,
-                   format_type: str = 'json') -> bool:
+    def save_report(
+        self, report: dict[str, Any], output_path: Path, format_type: str = "json"
+    ) -> bool:
         """
         Save report to file.
-        
+
         Args:
             report: Report data to save
             output_path: Path where to save the report
             format_type: Format to save ('json', 'txt', 'html')
-            
+
         Returns:
             True if saved successfully, False otherwise
         """
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            if format_type == 'json':
+            if format_type == "json":
                 return self._save_json_report(report, output_path)
-            if format_type == 'txt':
+            if format_type == "txt":
                 return self._save_text_report(report, output_path)
-            if format_type == 'html':
+            if format_type == "html":
                 return self._save_html_report(report, output_path)
             self.logger.error(f"Unsupported format type: {format_type}")
             return False
@@ -119,9 +122,11 @@ class OutputFormatter(IOutputFormatter):
 
     def format_import_summary(self, result: ImportResult) -> str:
         """Format import results for display."""
-        return self.format_import_result(result, 'summary')
+        return self.format_import_result(result, "summary")
 
-    def generate_readme(self, context: ImportContext, content_summary: dict[str, Any]) -> str:
+    def generate_readme(
+        self, context: ImportContext, content_summary: dict[str, Any]
+    ) -> str:
         """Generate README content for the storypack."""
         readme_lines = [
             f"# {context.storypack_name}",
@@ -133,22 +138,24 @@ class OutputFormatter(IOutputFormatter):
             f"- **Import Mode**: {context.import_mode}",
             f"- **AI Processing**: {'Enabled' if context.ai_available else 'Disabled'}",
             "",
-            "## Content Categories"
+            "## Content Categories",
         ]
 
-        files_by_category = content_summary.get('files_by_category', {})
+        files_by_category = content_summary.get("files_by_category", {})
         for category, files in files_by_category.items():
             readme_lines.append(f"- **{category.title()}**: {len(files)} files")
 
-        readme_lines.extend([
-            "",
-            "## Import Details",
-            f"- **Source**: {context.source_path}",
-            f"- **Created**: {context.target_path.stat().st_ctime if context.target_path.exists() else 'N/A'}",
-            "",
-            "---",
-            "*Generated by OpenChronicle Storypack Import System*"
-        ])
+        readme_lines.extend(
+            [
+                "",
+                "## Import Details",
+                f"- **Source**: {context.source_path}",
+                f"- **Created**: {context.target_path.stat().st_ctime if context.target_path.exists() else 'N/A'}",
+                "",
+                "---",
+                "*Generated by OpenChronicle Storypack Import System*",
+            ]
+        )
 
         return "\n".join(readme_lines)
 
@@ -181,7 +188,7 @@ class OutputFormatter(IOutputFormatter):
             f"Import Status: {status}",
             f"Storypack: {result.storypack_name}",
             f"Files Processed: {result.files_processed}",
-            f"Processing Time: {result.processing_time:.2f}s"
+            f"Processing Time: {result.processing_time:.2f}s",
         ]
 
         if result.errors:
@@ -217,9 +224,9 @@ class OutputFormatter(IOutputFormatter):
         sections.append("=== FILE PROCESSING ===")
         sections.append(f"Total Files Processed: {result.files_processed}")
 
-        if result.metadata.get('files_by_category'):
+        if result.metadata.get("files_by_category"):
             sections.append("\nFiles by Category:")
-            for category, files in result.metadata['files_by_category'].items():
+            for category, files in result.metadata["files_by_category"].items():
                 sections.append(f"  {category}: {len(files)}")
 
         # Generated files
@@ -228,16 +235,22 @@ class OutputFormatter(IOutputFormatter):
             for file_path in result.generated_files[:10]:  # Show first 10
                 sections.append(f"  - {file_path}")
             if len(result.generated_files) > 10:
-                sections.append(f"  ... and {len(result.generated_files) - 10} more files")
+                sections.append(
+                    f"  ... and {len(result.generated_files) - 10} more files"
+                )
 
         # Errors section
         if result.errors:
             sections.append(f"\n=== ERRORS ({len(result.errors)}) ===")
-            for i, error in enumerate(result.errors[:self.formatting_options['max_error_display']]):
+            for i, error in enumerate(
+                result.errors[: self.formatting_options["max_error_display"]]
+            ):
                 sections.append(f"{i+1}. {error}")
 
-            if len(result.errors) > self.formatting_options['max_error_display']:
-                remaining = len(result.errors) - self.formatting_options['max_error_display']
+            if len(result.errors) > self.formatting_options["max_error_display"]:
+                remaining = (
+                    len(result.errors) - self.formatting_options["max_error_display"]
+                )
                 sections.append(f"... and {remaining} more errors")
 
         # Warnings section
@@ -253,13 +266,23 @@ class OutputFormatter(IOutputFormatter):
         if result.metadata:
             sections.append("\n=== METADATA ===")
             for key, value in result.metadata.items():
-                if key not in ['files_by_category']:  # Skip already displayed
+                if key not in ["files_by_category"]:  # Skip already displayed
                     if isinstance(value, (dict, list)):
-                        sections.append(f"{key}: {type(value).__name__} with {len(value)} items")
+                        sections.append(
+                            f"{key}: {type(value).__name__} with {len(value)} items"
+                        )
                     else:
                         value_str = str(value)
-                        if len(value_str) > self.formatting_options['max_summary_length']:
-                            value_str = value_str[:self.formatting_options['max_summary_length']] + "..."
+                        if (
+                            len(value_str)
+                            > self.formatting_options["max_summary_length"]
+                        ):
+                            value_str = (
+                                value_str[
+                                    : self.formatting_options["max_summary_length"]
+                                ]
+                                + "..."
+                            )
                         sections.append(f"{key}: {value_str}")
 
         return "\n".join(sections)
@@ -268,115 +291,127 @@ class OutputFormatter(IOutputFormatter):
         """Format result as JSON."""
         # Convert ImportResult to dict for JSON serialization
         result_dict = {
-            'success': result.success,
-            'storypack_name': result.storypack_name,
-            'storypack_path': str(result.storypack_path) if result.storypack_path else None,
-            'files_processed': result.files_processed,
-            'generated_files': [str(f) for f in result.generated_files],
-            'processing_time': result.processing_time,
-            'created_at': result.created_at,
-            'errors': result.errors,
-            'warnings': result.warnings,
-            'metadata': result.metadata
+            "success": result.success,
+            "storypack_name": result.storypack_name,
+            "storypack_path": str(result.storypack_path)
+            if result.storypack_path
+            else None,
+            "files_processed": result.files_processed,
+            "generated_files": [str(f) for f in result.generated_files],
+            "processing_time": result.processing_time,
+            "created_at": result.created_at,
+            "errors": result.errors,
+            "warnings": result.warnings,
+            "metadata": result.metadata,
         }
 
-        return json.dumps(result_dict, indent=self.formatting_options['json_indent'])
+        return json.dumps(result_dict, indent=self.formatting_options["json_indent"])
 
     def _create_base_report(self, result: ImportResult) -> dict[str, Any]:
         """Create base report structure."""
         return {
-            'report_info': {
-                'generated_at': datetime.now().strftime(self.formatting_options['datetime_format']),
-                'report_version': '1.0',
-                'openchronicle_version': 'current'  # Would be filled from actual version
+            "report_info": {
+                "generated_at": datetime.now().strftime(
+                    self.formatting_options["datetime_format"]
+                ),
+                "report_version": "1.0",
+                "openchronicle_version": "current",  # Would be filled from actual version
             },
-            'import_summary': {
-                'success': result.success,
-                'storypack_name': result.storypack_name,
-                'storypack_path': str(result.storypack_path) if result.storypack_path else None,
-                'files_processed': result.files_processed,
-                'processing_time': result.processing_time,
-                'created_at': result.created_at
+            "import_summary": {
+                "success": result.success,
+                "storypack_name": result.storypack_name,
+                "storypack_path": str(result.storypack_path)
+                if result.storypack_path
+                else None,
+                "files_processed": result.files_processed,
+                "processing_time": result.processing_time,
+                "created_at": result.created_at,
             },
-            'results': {
-                'generated_files_count': len(result.generated_files),
-                'errors_count': len(result.errors),
-                'warnings_count': len(result.warnings)
-            }
+            "results": {
+                "generated_files_count": len(result.generated_files),
+                "errors_count": len(result.errors),
+                "warnings_count": len(result.warnings),
+            },
         }
 
-    def _enhance_standard_report(self, base_report: dict[str, Any],
-                               result: ImportResult) -> dict[str, Any]:
+    def _enhance_standard_report(
+        self, base_report: dict[str, Any], result: ImportResult
+    ) -> dict[str, Any]:
         """Enhance report with standard details."""
         report = base_report.copy()
 
         # Add file details
-        report['file_processing'] = {
-            'generated_files': [str(f) for f in result.generated_files],
-            'files_by_category': result.metadata.get('files_by_category', {})
+        report["file_processing"] = {
+            "generated_files": [str(f) for f in result.generated_files],
+            "files_by_category": result.metadata.get("files_by_category", {}),
         }
 
         # Add issues
         if result.errors:
-            report['issues'] = {
-                'errors': result.errors,
-                'warnings': result.warnings
-            }
+            report["issues"] = {"errors": result.errors, "warnings": result.warnings}
 
         # Add key metadata
         if result.metadata:
-            report['import_details'] = {
-                key: value for key, value in result.metadata.items()
-                if key not in ['files_by_category']
+            report["import_details"] = {
+                key: value
+                for key, value in result.metadata.items()
+                if key not in ["files_by_category"]
             }
 
         return report
 
-    def _enhance_technical_report(self, base_report: dict[str, Any],
-                                result: ImportResult) -> dict[str, Any]:
+    def _enhance_technical_report(
+        self, base_report: dict[str, Any], result: ImportResult
+    ) -> dict[str, Any]:
         """Enhance report with technical details."""
         report = self._enhance_standard_report(base_report, result)
 
         # Add technical metrics
-        report['technical_metrics'] = {
-            'processing_efficiency': result.files_processed / max(result.processing_time, 0.001),
-            'error_rate': len(result.errors) / max(result.files_processed, 1),
-            'success_rate': 1.0 if result.success else 0.0
+        report["technical_metrics"] = {
+            "processing_efficiency": result.files_processed
+            / max(result.processing_time, 0.001),
+            "error_rate": len(result.errors) / max(result.files_processed, 1),
+            "success_rate": 1.0 if result.success else 0.0,
         }
 
         # Add detailed metadata
-        report['technical_details'] = result.metadata
+        report["technical_details"] = result.metadata
 
         # Add system information (would be enhanced with actual system data)
-        report['system_info'] = {
-            'platform': 'windows',  # Would be detected
-            'python_version': 'current',  # Would be detected
-            'memory_usage': 'not_tracked',  # Would be implemented
-            'disk_usage': 'not_tracked'  # Would be implemented
+        report["system_info"] = {
+            "platform": "windows",  # Would be detected
+            "python_version": "current",  # Would be detected
+            "memory_usage": "not_tracked",  # Would be implemented
+            "disk_usage": "not_tracked",  # Would be implemented
         }
 
         return report
 
-    def _enhance_executive_report(self, base_report: dict[str, Any],
-                                result: ImportResult) -> dict[str, Any]:
+    def _enhance_executive_report(
+        self, base_report: dict[str, Any], result: ImportResult
+    ) -> dict[str, Any]:
         """Enhance report with executive summary."""
         report = base_report.copy()
 
         # Executive summary
-        report['executive_summary'] = {
-            'status': 'Completed Successfully' if result.success else 'Completed with Issues',
-            'key_metrics': {
-                'files_imported': result.files_processed,
-                'time_taken': f"{result.processing_time:.1f} seconds",
-                'issues_found': len(result.errors) + len(result.warnings)
+        report["executive_summary"] = {
+            "status": "Completed Successfully"
+            if result.success
+            else "Completed with Issues",
+            "key_metrics": {
+                "files_imported": result.files_processed,
+                "time_taken": f"{result.processing_time:.1f} seconds",
+                "issues_found": len(result.errors) + len(result.warnings),
             },
-            'recommendations': self._generate_recommendations(result)
+            "recommendations": self._generate_recommendations(result),
         }
 
         # High-level statistics
-        report['statistics'] = {
-            'content_categories': len(result.metadata.get('files_by_category', {})),
-            'success_rate': '100%' if result.success else f"{((result.files_processed - len(result.errors)) / max(result.files_processed, 1) * 100):.1f}%"
+        report["statistics"] = {
+            "content_categories": len(result.metadata.get("files_by_category", {})),
+            "success_rate": "100%"
+            if result.success
+            else f"{((result.files_processed - len(result.errors)) / max(result.files_processed, 1) * 100):.1f}%",
         }
 
         return report
@@ -386,47 +421,65 @@ class OutputFormatter(IOutputFormatter):
         recommendations = []
 
         if result.errors:
-            recommendations.append("Review and address import errors before using the storypack")
+            recommendations.append(
+                "Review and address import errors before using the storypack"
+            )
 
         if result.warnings:
-            recommendations.append("Consider addressing warnings to improve content quality")
+            recommendations.append(
+                "Consider addressing warnings to improve content quality"
+            )
 
         if result.files_processed > 100:
-            recommendations.append("Large import completed - consider organizing content into subcategories")
+            recommendations.append(
+                "Large import completed - consider organizing content into subcategories"
+            )
 
         if result.processing_time > 60:
-            recommendations.append("Long processing time - consider using AI processing for better efficiency")
+            recommendations.append(
+                "Long processing time - consider using AI processing for better efficiency"
+            )
 
         if not recommendations:
-            recommendations.append("Import completed successfully - storypack is ready for use")
+            recommendations.append(
+                "Import completed successfully - storypack is ready for use"
+            )
 
         return recommendations
 
-    def _create_error_report(self, error: Exception, result: ImportResult) -> dict[str, Any]:
+    def _create_error_report(
+        self, error: Exception, result: ImportResult
+    ) -> dict[str, Any]:
         """Create error report when report generation fails."""
         return {
-            'report_info': {
-                'generated_at': datetime.now().strftime(self.formatting_options['datetime_format']),
-                'status': 'error',
-                'error': str(error)
+            "report_info": {
+                "generated_at": datetime.now().strftime(
+                    self.formatting_options["datetime_format"]
+                ),
+                "status": "error",
+                "error": str(error),
             },
-            'import_summary': {
-                'success': False,
-                'storypack_name': result.storypack_name if result else 'unknown',
-                'error_message': f"Report generation failed: {error}"
-            }
+            "import_summary": {
+                "success": False,
+                "storypack_name": result.storypack_name if result else "unknown",
+                "error_message": f"Report generation failed: {error}",
+            },
         }
 
     def _save_json_report(self, report: dict[str, Any], output_path: Path) -> bool:
         """Save report as JSON."""
         try:
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(report, f, indent=self.formatting_options['json_indent'])
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=self.formatting_options["json_indent"])
 
-            log_system_event("output_formatter", "JSON report saved", {
-                "output_path": str(output_path),
-                "report_sections": list(report.keys())
-            })
+            log_system_event(
+                "output_formatter",
+                "JSON report saved",
+                {
+                    "output_path": str(output_path),
+                    "report_sections": list(report.keys()),
+                },
+            )
             return True
 
         except Exception as e:
@@ -436,12 +489,14 @@ class OutputFormatter(IOutputFormatter):
     def _save_text_report(self, report: dict[str, Any], output_path: Path) -> bool:
         """Save report as text."""
         try:
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(self._convert_report_to_text(report))
 
-            log_system_event("output_formatter", "Text report saved", {
-                "output_path": str(output_path)
-            })
+            log_system_event(
+                "output_formatter",
+                "Text report saved",
+                {"output_path": str(output_path)},
+            )
             return True
 
         except Exception as e:
@@ -453,12 +508,14 @@ class OutputFormatter(IOutputFormatter):
         try:
             html_content = self._convert_report_to_html(report)
 
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
-            log_system_event("output_formatter", "HTML report saved", {
-                "output_path": str(output_path)
-            })
+            log_system_event(
+                "output_formatter",
+                "HTML report saved",
+                {"output_path": str(output_path)},
+            )
             return True
 
         except Exception as e:
@@ -524,9 +581,9 @@ class OutputFormatter(IOutputFormatter):
 """
 
         # Add report content (simplified version)
-        if 'import_summary' in report:
-            summary = report['import_summary']
-            status_class = 'success' if summary.get('success') else 'error'
+        if "import_summary" in report:
+            summary = report["import_summary"]
+            status_class = "success" if summary.get("success") else "error"
 
             html += f"""
     <div class="section">

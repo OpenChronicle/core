@@ -157,14 +157,10 @@ class StateTracker:
             # Aggregate metrics for all characters
             all_metrics = {}
             for char_id in self.character_states.keys():
-                all_metrics[char_id] = self._get_character_consistency_metrics(
-                    char_id
-                )
+                all_metrics[char_id] = self._get_character_consistency_metrics(char_id)
 
             # Calculate system-wide metrics
-            all_metrics[
-                "system_summary"
-            ] = self._calculate_system_consistency_metrics()
+            all_metrics["system_summary"] = self._calculate_system_consistency_metrics()
             return all_metrics
 
         except Exception as e:

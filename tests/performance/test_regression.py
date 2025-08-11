@@ -1,7 +1,7 @@
 """
 Performance regression tests for OpenChronicle database operations.
 
-Implements performance regression testing setup as specified in 
+Implements performance regression testing setup as specified in
 Development Master Plan Phase 1 Week 4.
 
 These tests validate that performance doesn't regress between versions

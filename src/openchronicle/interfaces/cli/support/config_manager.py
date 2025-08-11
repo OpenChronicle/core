@@ -19,7 +19,7 @@ class ConfigManager:
     def __init__(self, config_dir: str | Path | None = None):
         """
         Initialize configuration manager.
-        
+
         Args:
             config_dir: Optional custom config directory
         """
@@ -40,8 +40,10 @@ class ConfigManager:
             "color_output": True,
             "max_table_rows": 50,
             "progress_bars": True,
-            "editor": os.environ.get("EDITOR", "notepad" if os.name == "nt" else "nano"),
-            "pager": os.environ.get("PAGER", "more" if os.name == "nt" else "less")
+            "editor": os.environ.get(
+                "EDITOR", "notepad" if os.name == "nt" else "nano"
+            ),
+            "pager": os.environ.get("PAGER", "more" if os.name == "nt" else "less"),
         }
 
         # Default user preferences
@@ -50,7 +52,7 @@ class ConfigManager:
             "favorite_models": [],
             "recent_files": [],
             "workspace_paths": [],
-            "aliases": {}
+            "aliases": {},
         }
 
         # Load existing configuration
@@ -64,7 +66,7 @@ class ConfigManager:
         # Load CLI configuration
         if self.cli_config_file.exists():
             try:
-                with open(self.cli_config_file, encoding='utf-8') as f:
+                with open(self.cli_config_file, encoding="utf-8") as f:
                     self.cli_config = {**self.default_cli_config, **json.load(f)}
             except (OSError, json.JSONDecodeError):
                 self.cli_config = self.default_cli_config.copy()
@@ -74,8 +76,11 @@ class ConfigManager:
         # Load user preferences
         if self.user_preferences_file.exists():
             try:
-                with open(self.user_preferences_file, encoding='utf-8') as f:
-                    self.user_preferences = {**self.default_user_preferences, **json.load(f)}
+                with open(self.user_preferences_file, encoding="utf-8") as f:
+                    self.user_preferences = {
+                        **self.default_user_preferences,
+                        **json.load(f),
+                    }
             except (OSError, json.JSONDecodeError):
                 self.user_preferences = self.default_user_preferences.copy()
         else:
@@ -85,11 +90,11 @@ class ConfigManager:
         """Save current configuration to files."""
         try:
             # Save CLI configuration
-            with open(self.cli_config_file, 'w', encoding='utf-8') as f:
+            with open(self.cli_config_file, "w", encoding="utf-8") as f:
                 json.dump(self.cli_config, f, indent=2)
 
             # Save user preferences
-            with open(self.user_preferences_file, 'w', encoding='utf-8') as f:
+            with open(self.user_preferences_file, "w", encoding="utf-8") as f:
                 json.dump(self.user_preferences, f, indent=2)
 
         except OSError as e:
@@ -98,11 +103,11 @@ class ConfigManager:
     def get_setting(self, key: str, default: Any = None) -> Any:
         """
         Get a CLI configuration setting.
-        
+
         Args:
             key: Setting key
             default: Default value if key not found
-            
+
         Returns:
             Setting value or default
         """
@@ -111,7 +116,7 @@ class ConfigManager:
     def set_setting(self, key: str, value: Any, save: bool = True):
         """
         Set a CLI configuration setting.
-        
+
         Args:
             key: Setting key
             value: Setting value
@@ -124,11 +129,11 @@ class ConfigManager:
     def get_preference(self, key: str, default: Any = None) -> Any:
         """
         Get a user preference.
-        
+
         Args:
             key: Preference key
             default: Default value if key not found
-            
+
         Returns:
             Preference value or default
         """
@@ -137,7 +142,7 @@ class ConfigManager:
     def set_preference(self, key: str, value: Any, save: bool = True):
         """
         Set a user preference.
-        
+
         Args:
             key: Preference key
             value: Preference value
@@ -150,7 +155,7 @@ class ConfigManager:
     def add_recent_file(self, file_path: str | Path, max_recent: int = 10):
         """
         Add a file to recent files list.
-        
+
         Args:
             file_path: Path to file
             max_recent: Maximum number of recent files to keep
@@ -173,7 +178,7 @@ class ConfigManager:
     def add_favorite_model(self, model_name: str):
         """
         Add a model to favorites list.
-        
+
         Args:
             model_name: Name of the model
         """
@@ -185,7 +190,7 @@ class ConfigManager:
     def remove_favorite_model(self, model_name: str):
         """
         Remove a model from favorites list.
-        
+
         Args:
             model_name: Name of the model
         """
@@ -194,16 +199,18 @@ class ConfigManager:
             favorites.remove(model_name)
             self.set_preference("favorite_models", favorites)
 
-    def get_openchronicle_config(self, config_file: str = "system_config.json") -> dict[str, Any]:
+    def get_openchronicle_config(
+        self, config_file: str = "system_config.json"
+    ) -> dict[str, Any]:
         """
         Load OpenChronicle system configuration.
-        
+
         Args:
             config_file: Configuration file name
-            
+
         Returns:
             Configuration dictionary
-            
+
         Raises:
             FileNotFoundError: If config file doesn't exist
             ValueError: If config file is invalid JSON
@@ -211,10 +218,12 @@ class ConfigManager:
         config_path = self.config_dir / config_file
 
         if not config_path.exists():
-            raise FileNotFoundError(f"OpenChronicle config file not found: {config_path}")
+            raise FileNotFoundError(
+                f"OpenChronicle config file not found: {config_path}"
+            )
 
         try:
-            with open(config_path, encoding='utf-8') as f:
+            with open(config_path, encoding="utf-8") as f:
                 return json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in config file {config_path}: {e}")
@@ -222,7 +231,7 @@ class ConfigManager:
     def update_openchronicle_config(self, config_file: str, updates: dict[str, Any]):
         """
         Update OpenChronicle system configuration.
-        
+
         Args:
             config_file: Configuration file name
             updates: Dictionary of updates to apply
@@ -232,7 +241,7 @@ class ConfigManager:
         # Load existing config
         if config_path.exists():
             try:
-                with open(config_path, encoding='utf-8') as f:
+                with open(config_path, encoding="utf-8") as f:
                     config = json.load(f)
             except (OSError, json.JSONDecodeError):
                 config = {}
@@ -244,7 +253,7 @@ class ConfigManager:
 
         # Save updated config
         try:
-            with open(config_path, 'w', encoding='utf-8') as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2)
         except OSError as e:
             typer.echo(f"Error updating config file {config_path}: {e}", err=True)
@@ -263,24 +272,24 @@ class ConfigManager:
     def export_settings(self, export_path: str | Path):
         """
         Export all settings to a file.
-        
+
         Args:
             export_path: Path to export file
         """
         export_data = {
             "cli_config": self.cli_config,
             "user_preferences": self.user_preferences,
-            "export_version": "1.0"
+            "export_version": "1.0",
         }
 
         export_path = Path(export_path)
-        with open(export_path, 'w', encoding='utf-8') as f:
+        with open(export_path, "w", encoding="utf-8") as f:
             json.dump(export_data, f, indent=2)
 
     def import_settings(self, import_path: str | Path, merge: bool = True):
         """
         Import settings from a file.
-        
+
         Args:
             import_path: Path to import file
             merge: Whether to merge with existing settings or replace
@@ -291,7 +300,7 @@ class ConfigManager:
             raise FileNotFoundError(f"Import file not found: {import_path}")
 
         try:
-            with open(import_path, encoding='utf-8') as f:
+            with open(import_path, encoding="utf-8") as f:
                 import_data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in import file: {e}")
@@ -307,14 +316,17 @@ class ConfigManager:
         else:
             # Replace existing settings
             self.cli_config = {**self.default_cli_config, **cli_config}
-            self.user_preferences = {**self.default_user_preferences, **user_preferences}
+            self.user_preferences = {
+                **self.default_user_preferences,
+                **user_preferences,
+            }
 
         self.save_configuration()
 
     def get_all_settings(self) -> dict[str, Any]:
         """
         Get all CLI settings and preferences.
-        
+
         Returns:
             Dictionary containing all settings
         """
@@ -324,6 +336,6 @@ class ConfigManager:
             "config_files": {
                 "cli_config_file": str(self.cli_config_file),
                 "user_preferences_file": str(self.user_preferences_file),
-                "config_dir": str(self.config_dir)
-            }
+                "config_dir": str(self.config_dir),
+            },
         }

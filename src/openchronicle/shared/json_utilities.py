@@ -62,7 +62,9 @@ class JSONUtilities:
             return (
                 "{}"
                 if isinstance(data, dict)
-                else "[]" if isinstance(data, list) else '""'
+                else "[]"
+                if isinstance(data, list)
+                else '""'
             )
 
     @staticmethod

@@ -12,5 +12,6 @@ from tests.skip_markers import skip_utilities
 # Skip all tests in this file until updated for modern architecture
 pytestmark = skip_utilities
 
+
 def test_placeholder():
     """Placeholder test to prevent test discovery issues."""

@@ -31,13 +31,13 @@ python main.py story import ./content "My Story" --ai-enabled
 
 ## Remaining Legacy Files
 
-### storypack_importer.legacy/
+### storypack_importer_legacy/
 - **Status**: Legacy backup of old monolithic importer
 - **Replacement**: Modular system in `src/openchronicle/application/services/importers/storypack/`
 - **Action**: Can be removed after verification period
 
 ### chatbot_importer/ & assistant_importer/
-- **Status**: Stub implementations  
+- **Status**: Stub implementations
 - **Target**: Will be fully implemented in application services layer
 - **Timeline**: Phase 2 of architectural modernization
 
@@ -65,7 +65,7 @@ python main.py story import ./content "My Story" --ai-enabled
 # Import the orchestrator
 from src.openchronicle.application.services.importers.storypack import StorypackOrchestrator
 
-# Import specific components  
+# Import specific components
 from src.openchronicle.application.services.importers.storypack import (
     ContentParser,
     MetadataExtractor,
@@ -82,8 +82,8 @@ python main.py story import ./my-content "Adventure Story"
 
 ---
 
-**Migration completed**: January 10, 2025  
-**Architecture**: Hexagonal (Domain-Driven Design)  
+**Migration completed**: January 10, 2025
+**Architecture**: Hexagonal (Domain-Driven Design)
 **Integration**: Application Services Layer
 
 ## Legacy Documentation Archive

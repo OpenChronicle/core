@@ -11,16 +11,17 @@ Following the dependency inversion principle:
 - Domain never imports from infrastructure
 """
 
-from .persistence_port import IPersistencePort
 from .memory_port import IMemoryPort
-from .storage_port import IStoragePort
-from .registry_port import IRegistryPort
 from .performance_port import IPerformancePort
+from .persistence_port import IPersistencePort
+from .registry_port import IRegistryPort
+from .storage_port import IStoragePort
+
 
 __all__ = [
     "IPersistencePort",
-    "IMemoryPort", 
+    "IMemoryPort",
     "IStoragePort",
     "IRegistryPort",
-    "IPerformancePort"
+    "IPerformancePort",
 ]

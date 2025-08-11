@@ -191,7 +191,7 @@ class LabelingSystem:
             total_stats = execute_query(
                 self.story_id,
                 """
-                SELECT 
+                SELECT
                     COUNT(*) as total_scenes,
                     COUNT(scene_label) as labeled_scenes
                 FROM scenes

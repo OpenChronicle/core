@@ -13,7 +13,6 @@ from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 from src.openchronicle.application.orchestrators import ModelManager
 from src.openchronicle.domain import ModelResponse

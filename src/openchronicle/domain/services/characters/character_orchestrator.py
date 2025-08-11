@@ -707,9 +707,7 @@ class CharacterOrchestrator(CharacterEventHandler):
         for component_name, component in self.components.items():
             if hasattr(component, "cleanup_cache"):
                 try:
-                    results[component_name] = component.cleanup_cache(
-                        max_age_hours
-                    )
+                    results[component_name] = component.cleanup_cache(max_age_hours)
                 except Exception as e:
                     logger.error(f"Error cleaning up {component_name} cache: {e}")
                     results[component_name] = 0

@@ -48,7 +48,7 @@ main.py → cli/main.py (root level, wrong architecture layer)
 main.py → src/openchronicle/interfaces/cli/main.py
 │
 ├── interfaces/cli/          # Interface Layer
-├── application/            # Application Layer  
+├── application/            # Application Layer
 ├── domain/                # Domain Layer
 └── infrastructure/        # Infrastructure Layer
 ```
@@ -59,7 +59,7 @@ src/openchronicle/interfaces/cli/
 ├── main.py                 # CLI entry point
 ├── commands/              # Command groups
 │   ├── story/            # Story management
-│   ├── models/           # Model operations  
+│   ├── models/           # Model operations
 │   ├── system/           # System administration
 │   ├── config/           # Configuration management
 │   └── test/             # Testing commands
@@ -72,7 +72,7 @@ src/openchronicle/interfaces/cli/
 ## Command Availability
 ```
 ✅ story    - Story management and generation commands
-✅ models   - Model management and testing commands  
+✅ models   - Model management and testing commands
 ✅ system   - System administration and diagnostics commands
 ✅ config   - Enhanced configuration management commands
 ✅ test     - Test execution and validation commands

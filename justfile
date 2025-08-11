@@ -40,7 +40,7 @@ init: dev-install
 clean:
     #!/usr/bin/env powershell
     Write-Host "🧹 Cleaning build artifacts..." -ForegroundColor Blue
-    
+
     # Remove build directories
     $paths = @('build', 'dist', '*.egg-info', '.pytest_cache', 'htmlcov', '.coverage')
     foreach($path in $paths) {
@@ -49,13 +49,13 @@ clean:
             Write-Host "  Removed: $path" -ForegroundColor Gray
         }
     }
-    
+
     # Remove Python cache
-    Get-ChildItem -Recurse -Directory -Name '__pycache__' | ForEach-Object { 
-        Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue 
+    Get-ChildItem -Recurse -Directory -Name '__pycache__' | ForEach-Object {
+        Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue
     }
     Get-ChildItem -Recurse -File -Name '*.pyc' | Remove-Item -Force -ErrorAction SilentlyContinue
-    
+
     Write-Host "✅ Clean complete!" -ForegroundColor Green
 
 # 🎨 CODE FORMATTING & LINTING
@@ -180,18 +180,18 @@ status:
     #!/usr/bin/env powershell
     Write-Host "📊 OpenChronicle Project Status:" -ForegroundColor Cyan
     Write-Host ""
-    
+
     $srcFiles = (Get-ChildItem src -Recurse -Filter "*.py").Count
-    $testFiles = (Get-ChildItem tests -Recurse -Filter "*.py").Count  
+    $testFiles = (Get-ChildItem tests -Recurse -Filter "*.py").Count
     $docFiles = (Get-ChildItem docs -Recurse -Filter "*.md").Count
-    
+
     Write-Host "  📁 Source files: $srcFiles" -ForegroundColor White
     Write-Host "  🧪 Test files: $testFiles" -ForegroundColor White
     Write-Host "  📚 Documentation files: $docFiles" -ForegroundColor White
-    
+
     $pythonVersion = python -c "import sys; print(sys.version.split()[0])"
     Write-Host "  🐍 Python version: $pythonVersion" -ForegroundColor White
-    
+
     # Test ratio
     $testRatio = [math]::Round(($testFiles / $srcFiles) * 100, 1)
     Write-Host "  📈 Test coverage ratio: $testRatio%" -ForegroundColor White

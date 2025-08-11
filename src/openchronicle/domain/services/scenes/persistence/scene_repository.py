@@ -23,7 +23,9 @@ from ..shared.scene_models import SceneFilter
 class SceneRepository:
     """Handles scene data persistence and retrieval using dependency injection."""
 
-    def __init__(self, story_id: str, persistence_port: Optional[IPersistencePort] = None):
+    def __init__(
+        self, story_id: str, persistence_port: Optional[IPersistencePort] = None
+    ):
         """
         Initialize repository for a specific story.
 
@@ -32,14 +34,17 @@ class SceneRepository:
             persistence_port: Persistence interface implementation (injected)
         """
         self.story_id = story_id
-        
+
         # If no persistence port provided, create default adapter
         if persistence_port is None:
-            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import PersistenceAdapter
+            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import (
+                PersistenceAdapter,
+            )
+
             self.persistence = PersistenceAdapter()
         else:
             self.persistence = persistence_port
-            
+
         self._init_database()
 
     def _init_database(self) -> None:
@@ -63,8 +68,8 @@ class SceneRepository:
             success = self.persistence.execute_update(
                 self.story_id,
                 """
-                INSERT OR REPLACE INTO scenes 
-                (scene_id, timestamp, input, output, memory_snapshot, flags, canon_refs, 
+                INSERT OR REPLACE INTO scenes
+                (scene_id, timestamp, input, output, memory_snapshot, flags, canon_refs,
                  analysis, scene_label, structured_tags, story_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -80,7 +85,7 @@ class SceneRepository:
                     db_data["scene_label"],
                     db_data["structured_tags"],
                     self.story_id,
-                ]
+                ],
             )
 
             return True
@@ -109,7 +114,7 @@ class SceneRepository:
                 FROM scenes
                 WHERE scene_id = ?
             """,
-                [scene_id]
+                [scene_id],
             )
 
             if not rows:

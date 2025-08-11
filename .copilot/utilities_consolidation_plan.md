@@ -5,7 +5,7 @@
 ### Well-Architected Components
 The `utilities/storypack_import/` package is excellently structured with:
 - SOLID architecture principles
-- Clear interfaces and implementations  
+- Clear interfaces and implementations
 - Modular components (parsers, processors, generators)
 - Comprehensive orchestrator pattern
 
@@ -48,7 +48,7 @@ from src.openchronicle.application.services.import.storypack import ContentClass
 ### Phase 1A: Move Import Services (CURRENT)
 1. Create `src/openchronicle/application/services/import/` directory
 2. Move `utilities/storypack_import/` → `import/storypack/`
-3. Update imports in CLI commands  
+3. Update imports in CLI commands
 4. Update imports in moved modules
 5. Test import functionality
 
@@ -57,7 +57,7 @@ from src.openchronicle.application.services.import.storypack import ContentClass
 2. Update any remaining utility references
 3. Clean up old utilities directory
 
-### Phase 1C: Configuration Centralization  
+### Phase 1C: Configuration Centralization
 1. Consolidate config files using pydantic-settings
 2. Remove duplicate configuration managers
 3. Centralize all settings
@@ -69,7 +69,7 @@ from src.openchronicle.application.services.import.storypack import ContentClass
 - Better separation between business logic and infrastructure
 - Cleaner dependency graph
 
-### Maintainability  
+### Maintainability
 - Single location for import functionality
 - Easier testing and mocking
 - Better IDE navigation and intellisense
@@ -102,7 +102,7 @@ src/openchronicle/application/
 - `cli/commands/story/__init__.py` - update import statements
 - Any other CLI commands using utilities
 
-### Core Updates  
+### Core Updates
 - Remove utilities from sys.path additions
 - Update any core modules importing utilities
 

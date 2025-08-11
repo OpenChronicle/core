@@ -22,7 +22,7 @@ __all__ = [
     "OpenChronicleCommand",
     "OutputManager",
     "StoryCommand",
-    "SystemCommand"
+    "SystemCommand",
 ]
 
 __version__ = "1.0.0"

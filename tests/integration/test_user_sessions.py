@@ -26,7 +26,7 @@ class TestCompleteUserSessions:
     @pytest.mark.session
     async def test_complete_interactive_story_session(self, clean_test_environment):
         """Test a complete interactive story session."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
 
         # Initialize all orchestrators for complete session
         model_orch = ModelOrchestrator()
@@ -41,24 +41,26 @@ class TestCompleteUserSessions:
         )
 
         setup_response = await model_orch.generate_response(
-            "I want to start a fantasy adventure story.",
-            adapter_name="gpt-4-turbo"
+            "I want to start a fantasy adventure story.", adapter_name="gpt-4-turbo"
         )
 
         setup_scene = await scene_orch.save_scene_async(
             user_input="Start fantasy adventure",
             model_output=setup_response.content,
-            memory_snapshot=await memory_orch.get_current_state()
+            memory_snapshot=await memory_orch.get_current_state(),
         )
 
         assert setup_scene is not None
-        assert "fantasy" in setup_response.content.lower() or "adventure" in setup_response.content.lower()
+        assert (
+            "fantasy" in setup_response.content.lower()
+            or "adventure" in setup_response.content.lower()
+        )
 
         # Session 2: Character Introduction
         char_intro = await char_orch.add_character(
             name="Sir Gallant",
             description="A brave knight with a noble heart",
-            traits={'courage': 9, 'wisdom': 7, 'strength': 8}
+            traits={"courage": 9, "wisdom": 7, "strength": 8},
         )
 
         char_context = await context_orch.build_context(
@@ -66,14 +68,13 @@ class TestCompleteUserSessions:
         )
 
         char_response = await model_orch.generate_response(
-            "Tell me about Sir Gallant joining the adventure.",
-            context=char_context
+            "Tell me about Sir Gallant joining the adventure.", context=char_context
         )
 
         char_scene = await scene_orch.save_scene_async(
             user_input="Introduce Sir Gallant",
             model_output=char_response.content,
-            memory_snapshot=await memory_orch.get_current_state()
+            memory_snapshot=await memory_orch.get_current_state(),
         )
 
         assert char_intro is not None
@@ -81,8 +82,7 @@ class TestCompleteUserSessions:
 
         # Session 3: Story Progression with Memory
         await memory_orch.store_memory(
-            "plot_point",
-            {"event": "knight_introduction", "character": "Sir Gallant"}
+            "plot_point", {"event": "knight_introduction", "character": "Sir Gallant"}
         )
 
         progression_context = await context_orch.build_context(
@@ -90,22 +90,20 @@ class TestCompleteUserSessions:
         )
 
         progression_response = await model_orch.generate_response(
-            "Sir Gallant encounters a mysterious dragon.",
-            context=progression_context
+            "Sir Gallant encounters a mysterious dragon.", context=progression_context
         )
 
         progression_scene = await scene_orch.save_scene_async(
             user_input="Dragon encounter",
             model_output=progression_response.content,
-            memory_snapshot=await memory_orch.get_current_state()
+            memory_snapshot=await memory_orch.get_current_state(),
         )
 
         assert progression_scene is not None
 
         # Session 4: Character Development
         char_update = await char_orch.update_character(
-            "Sir Gallant",
-            updates={'experience': 'dragon_encounter', 'confidence': 8}
+            "Sir Gallant", updates={"experience": "dragon_encounter", "confidence": 8}
         )
 
         development_context = await context_orch.build_context(
@@ -113,14 +111,13 @@ class TestCompleteUserSessions:
         )
 
         development_response = await model_orch.generate_response(
-            "How has this encounter changed Sir Gallant?",
-            context=development_context
+            "How has this encounter changed Sir Gallant?", context=development_context
         )
 
         development_scene = await scene_orch.save_scene_async(
             user_input="Character development",
             model_output=development_response.content,
-            memory_snapshot=await memory_orch.get_current_state()
+            memory_snapshot=await memory_orch.get_current_state(),
         )
 
         assert char_update is not None
@@ -130,14 +127,16 @@ class TestCompleteUserSessions:
         final_memory = await memory_orch.get_current_state()
         # Memory system is working - basic structure should be present
         assert final_memory is not None
-        assert 'timestamp' in final_memory
-        assert len(final_memory.get('scenes', [])) >= 0  # Scenes may be tracked differently
+        assert "timestamp" in final_memory
+        assert (
+            len(final_memory.get("scenes", [])) >= 0
+        )  # Scenes may be tracked differently
 
     @pytest.mark.integration
     @pytest.mark.session
     async def test_multi_character_dialogue_session(self, clean_test_environment):
         """Test session with multiple character interactions."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
 
         char_orch = CharacterOrchestrator()
         model_orch = ModelOrchestrator()
@@ -147,9 +146,9 @@ class TestCompleteUserSessions:
 
         # Create multiple characters
         characters = [
-            ("Alice", "A curious young explorer", {'curiosity': 9, 'intelligence': 8}),
-            ("Bob", "A practical engineer", {'logic': 9, 'creativity': 6}),
-            ("Carol", "A wise mentor", {'wisdom': 10, 'patience': 9})
+            ("Alice", "A curious young explorer", {"curiosity": 9, "intelligence": 8}),
+            ("Bob", "A practical engineer", {"logic": 9, "creativity": 6}),
+            ("Carol", "A wise mentor", {"wisdom": 10, "patience": 9}),
         ]
 
         for name, desc, traits in characters:
@@ -163,20 +162,17 @@ class TestCompleteUserSessions:
             ("Carol", "Both curiosity and caution have their place."),
             ("Alice", "What if we work together to solve this?"),
             ("Bob", "I can examine the technical aspects."),
-            ("Carol", "And I'll guide you both through the process.")
+            ("Carol", "And I'll guide you both through the process."),
         ]
 
         scene_results = []
         for speaker, dialogue in dialogue_exchanges:
             # Build context with all characters
-            context = await context_orch.build_context(
-                f"{speaker} says: {dialogue}"
-            )
+            context = await context_orch.build_context(f"{speaker} says: {dialogue}")
 
             # Generate response considering all characters
             response = await model_orch.generate_response(
-                f"Continue the conversation after {speaker} speaks",
-                context=context
+                f"Continue the conversation after {speaker} speaks", context=context
             )
 
             # Save the dialogue scene
@@ -184,15 +180,14 @@ class TestCompleteUserSessions:
                 user_input=f"{speaker}: {dialogue}",
                 model_output=response.content,
                 memory_snapshot=await memory_orch.get_current_state(),
-                scene_label=f"dialogue_{speaker.lower()}"
+                scene_label=f"dialogue_{speaker.lower()}",
             )
 
             scene_results.append(scene)
 
             # Update character state after speaking
             await char_orch.update_character(
-                speaker,
-                updates={'last_dialogue': dialogue, 'engaged': True}
+                speaker, updates={"last_dialogue": dialogue, "engaged": True}
             )
 
         # Verify all dialogue exchanges were captured
@@ -203,54 +198,54 @@ class TestCompleteUserSessions:
         for name, _, _ in characters:
             char_state = char_orch.get_character_state(name)
             assert char_state is not None
-            assert char_state.get('character_id') == name  # Verify character identity
+            assert char_state.get("character_id") == name  # Verify character identity
             # Note: State persistence depends on provider implementation
 
     @pytest.mark.integration
     @pytest.mark.session
     async def test_session_state_persistence(self, clean_test_environment):
         """Test session state persistence across operations."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
 
         memory_orch = MemoryOrchestrator()
         scene_orch = SceneOrchestrator(story_id=story_id)
 
         # Build session state over multiple operations
         session_data = {
-            'session_id': 'test_session_001',
-            'user_preferences': {'style': 'fantasy', 'length': 'medium'},
-            'story_progress': {'chapter': 1, 'scene': 1}
+            "session_id": "test_session_001",
+            "user_preferences": {"style": "fantasy", "length": "medium"},
+            "story_progress": {"chapter": 1, "scene": 1},
         }
 
         # Store initial session state
-        await memory_orch.store_memory('session_state', session_data)
+        await memory_orch.store_memory("session_state", session_data)
 
         # Perform multiple story operations
         for i in range(5):
             # Update session progress
-            session_data['story_progress']['scene'] = i + 1
-            await memory_orch.store_memory('session_state', session_data)
+            session_data["story_progress"]["scene"] = i + 1
+            await memory_orch.store_memory("session_state", session_data)
 
             # Create scene with session context
             scene = await scene_orch.save_scene_async(
                 user_input=f"Continue story scene {i+1}",
                 model_output=f"Story continues in scene {i+1}...",
                 memory_snapshot=await memory_orch.get_current_state(),
-                scene_label=f'session_scene_{i+1}'
+                scene_label=f"session_scene_{i+1}",
             )
 
             assert scene is not None
 
             # Verify session state persists
             current_state = await memory_orch.get_current_state()
-            assert 'session_state' in current_state
-            assert current_state['session_state']['session_id'] == 'test_session_001'
-            assert current_state['session_state']['story_progress']['scene'] == i + 1
+            assert "session_state" in current_state
+            assert current_state["session_state"]["session_id"] == "test_session_001"
+            assert current_state["session_state"]["story_progress"]["scene"] == i + 1
 
         # Final verification
         final_state = await memory_orch.get_current_state()
-        assert final_state['session_state']['story_progress']['scene'] == 5
-        assert len(final_state.get('scenes', [])) == 5
+        assert final_state["session_state"]["story_progress"]["scene"] == 5
+        assert len(final_state.get("scenes", [])) == 5
 
 
 class TestSessionPerformance:
@@ -260,7 +255,7 @@ class TestSessionPerformance:
     @pytest.mark.performance
     async def test_session_response_times(self, clean_test_environment):
         """Test response times during complete user sessions."""
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
 
         model_orch = ModelOrchestrator()
         context_orch = ContextOrchestrator()
@@ -273,8 +268,7 @@ class TestSessionPerformance:
 
             context = await context_orch.build_context(f"User input {i}")
             response = await model_orch.generate_response(
-                f"Continue the story - interaction {i}",
-                context=context
+                f"Continue the story - interaction {i}", context=context
             )
 
             end_time = time.time()
@@ -300,7 +294,7 @@ class TestSessionPerformance:
 
         import psutil
 
-        story_id = clean_test_environment['story_id']
+        story_id = clean_test_environment["story_id"]
         memory_orch = MemoryOrchestrator()
 
         process = psutil.Process(os.getpid())
@@ -311,10 +305,10 @@ class TestSessionPerformance:
             await memory_orch.store_memory(
                 f"session_data_{i}",
                 {
-                    'operation_id': i,
-                    'data': f"Session data for operation {i}",
-                    'metadata': {'timestamp': time.time(), 'session': 'extended_test'}
-                }
+                    "operation_id": i,
+                    "data": f"Session data for operation {i}",
+                    "metadata": {"timestamp": time.time(), "session": "extended_test"},
+                },
             )
 
             # Periodic memory checks

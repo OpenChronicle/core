@@ -67,8 +67,8 @@ python utilities/main.py chatbot-importer conversations/ output_story/ \
 
 ## Implementation Status
 
-**Status**: Planning/Design Phase  
-**Priority**: Medium  
+**Status**: Planning/Design Phase
+**Priority**: Medium
 **Dependencies**: Core story creation system
 
 ### Development Plan

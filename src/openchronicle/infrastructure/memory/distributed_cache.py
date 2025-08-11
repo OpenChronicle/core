@@ -81,7 +81,6 @@ class DistributedCacheConfig(CacheConfig):
         enable_cache_warming: bool = True,
         warming_batch_size: int = 100,
     ):
-
         super().__init__(
             redis_host,
             redis_port,
@@ -588,9 +587,10 @@ class DistributedMultiTierCache(MultiTierCache):
 
                 # Record partition metrics
                 if self.cluster_manager.partitioner:
-                    _, key_hash = (
-                        self.cluster_manager.partitioner.get_partition_for_key(key)
-                    )
+                    (
+                        _,
+                        key_hash,
+                    ) = self.cluster_manager.partitioner.get_partition_for_key(key)
                     self.metrics.record_partition_operation(
                         f"partition_{node_index}", "get", key_hash
                     )
@@ -670,9 +670,10 @@ class DistributedMultiTierCache(MultiTierCache):
                 )
 
                 if self.cluster_manager.partitioner:
-                    _, key_hash = (
-                        self.cluster_manager.partitioner.get_partition_for_key(key)
-                    )
+                    (
+                        _,
+                        key_hash,
+                    ) = self.cluster_manager.partitioner.get_partition_for_key(key)
                     self.metrics.record_partition_operation(
                         f"partition_{node_index}", "set", key_hash
                     )

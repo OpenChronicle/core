@@ -127,9 +127,7 @@ class GenerationEngine:
         # Generic naming
         return f"{prefix}-{timestamp}.{extension}"
 
-    def _generate_image_id(
-        self, image_type: ImageType, name: str | None = None
-    ) -> str:
+    def _generate_image_id(self, image_type: ImageType, name: str | None = None) -> str:
         """Generate unique image ID"""
         base = f"{image_type.value}"
         if name:

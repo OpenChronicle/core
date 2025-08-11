@@ -173,7 +173,7 @@ class BookmarkSearchEngine:
         """Search bookmarks by their associated scene content."""
         try:
             query = """
-                SELECT b.id, b.story_id, b.scene_id, b.label, b.description, b.bookmark_type, 
+                SELECT b.id, b.story_id, b.scene_id, b.label, b.description, b.bookmark_type,
                        b.created_at, b.metadata, s.input, s.output
                 FROM bookmarks b
                 JOIN scenes s ON b.scene_id = s.scene_id

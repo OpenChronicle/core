@@ -14,7 +14,7 @@ env:
   PYTHON_VERSION_MATRIX: '["3.11", "3.12"]'
   PRIMARY_PYTHON: '3.12'
   FORCE_COLOR: "1"
-  
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -108,22 +108,22 @@ jobs:
           import ast
           import sys
           from pathlib import Path
-          
+
           violations = []
           src_path = Path('src')
-          
+
           for py_file in src_path.rglob('*.py'):
               try:
                   with open(py_file) as f:
                       tree = ast.parse(f.read())
-                  
+
                   for node in ast.walk(tree):
                       if isinstance(node, ast.ImportFrom):
                           if node.module and node.module.startswith('...'):
                               violations.append(f'{py_file}: Deep relative import {node.module}')
               except Exception:
                   continue
-          
+
           if violations:
               print('⚠️ Import structure issues:')
               for v in violations:
@@ -373,7 +373,7 @@ jobs:
           echo "## Cyclomatic Complexity" >> metrics.md
           radon cc src/ --average --total-average >> metrics.md
           echo "" >> metrics.md
-          echo "## Maintainability Index" >> metrics.md  
+          echo "## Maintainability Index" >> metrics.md
           radon mi src/ --show >> metrics.md
           echo "" >> metrics.md
           echo "## Lizard Analysis" >> metrics.md
@@ -407,7 +407,7 @@ jobs:
         run: |
           echo "🎉 OpenChronicle ready for deployment!"
           echo "✅ Architecture compliance: PASSED"
-          echo "✅ Quality gates: PASSED"  
+          echo "✅ Quality gates: PASSED"
           echo "✅ Security scans: PASSED"
           echo "✅ Tests: PASSED"
           echo "✅ Build validation: PASSED"

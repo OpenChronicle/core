@@ -245,7 +245,7 @@ class DatabaseHealthChecker:
             # Get all tables
             cursor = await conn.execute(
                 """
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name NOT LIKE 'sqlite_%'
                 ORDER BY name
             """
@@ -324,7 +324,7 @@ class DatabaseHealthChecker:
             # Table counts
             cursor = await conn.execute(
                 """
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='table' AND name NOT LIKE 'sqlite_%'
             """
             )

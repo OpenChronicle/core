@@ -139,18 +139,18 @@ class ContentAnalysisOrchestrator(ContentAnalysisComponent):
         # Check if extraction is requested
         if context.get("extract_characters", False):
             try:
-                extraction_result["characters"] = (
-                    await self.character_extractor.extract_data(content)
-                )
+                extraction_result[
+                    "characters"
+                ] = await self.character_extractor.extract_data(content)
             except Exception as e:
                 log_error(f"Character extraction failed: {e}")
                 extraction_result["characters"] = {}
 
         if context.get("extract_locations", False):
             try:
-                extraction_result["locations"] = (
-                    await self.location_extractor.extract_data(content)
-                )
+                extraction_result[
+                    "locations"
+                ] = await self.location_extractor.extract_data(content)
             except Exception as e:
                 log_error(f"Location extraction failed: {e}")
                 extraction_result["locations"] = {}

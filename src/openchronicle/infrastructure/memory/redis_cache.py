@@ -411,9 +411,7 @@ class CachedCharacterManager:
 class CachedMemoryOrchestrator:
     """Memory orchestrator with Redis caching."""
 
-    def __init__(
-        self, original_orchestrator, cache_config: CacheConfig | None = None
-    ):
+    def __init__(self, original_orchestrator, cache_config: CacheConfig | None = None):
         self.original = original_orchestrator
         self.cache = MultiTierCache(cache_config)
         self.cached_character_manager = CachedCharacterManager(

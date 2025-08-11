@@ -25,8 +25,12 @@ try:
     from src.openchronicle.shared.logging_system import log_info
 except ImportError:
     # Fallback logging if logging system not available
-    def log_info(msg): print(f"INFO: {msg}")
-    def log_error(msg): print(f"ERROR: {msg}")
+    def log_info(msg):
+        print(f"INFO: {msg}")
+
+    def log_error(msg):
+        print(f"ERROR: {msg}")
+
 
 # Import core components
 try:
@@ -54,26 +58,48 @@ try:
     from src.openchronicle.infrastructure.persistence.database_orchestrator import (
         startup_health_check,
     )
+
     CORE_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Core components not available for interactive mode: {e}")
+
     # Create placeholder functions and classes
-    def load_storypack(*args, **kwargs): return None
+    def load_storypack(*args, **kwargs):
+        return None
+
     class ContextOrchestrator:
-        def __init__(self): pass
+        def __init__(self):
+            pass
+
     class MemoryOrchestrator:
-        def __init__(self): pass
+        def __init__(self):
+            pass
+
     class TimelineOrchestrator:
-        def __init__(self): pass
+        def __init__(self):
+            pass
+
     class SceneOrchestrator:
-        def __init__(self): pass
+        def __init__(self):
+            pass
+
     class ModelOrchestrator:
-        def __init__(self): pass
+        def __init__(self):
+            pass
+
     class ContentAnalyzer:
-        def __init__(self): pass
-    def create_image_engine(*args, **kwargs): return None
-    class ImageType: pass
-    def startup_health_check(): return True
+        def __init__(self):
+            pass
+
+    def create_image_engine(*args, **kwargs):
+        return None
+
+    class ImageType:
+        pass
+
+    def startup_health_check():
+        return True
+
     CORE_AVAILABLE = False
 
 # Security imports
@@ -115,22 +141,30 @@ class InteractiveStorySession:
             # Load the story
             try:
                 self.story = load_storypack(self.story_id)
-                self.output_manager.success(f"Story '{self.story_id}' loaded successfully")
+                self.output_manager.success(
+                    f"Story '{self.story_id}' loaded successfully"
+                )
             except Exception as e:
                 self.output_manager.error(f"Failed to load story: {e}")
                 return False
 
             # Initialize model
             try:
-                await self.model_manager.initialize_adapter(self.model_manager.config["default_adapter"])
-                self.output_manager.success(f"Model ready: {self.model_manager.default_adapter}")
+                await self.model_manager.initialize_adapter(
+                    self.model_manager.config["default_adapter"]
+                )
+                self.output_manager.success(
+                    f"Model ready: {self.model_manager.default_adapter}"
+                )
             except Exception as e:
                 self.output_manager.warning(f"Model initialization failed: {e}")
                 self.output_manager.info("System will use fallback mode")
 
             return True
 
-    def secure_user_input(self, prompt: str, context_info: str = "user_interaction") -> str:
+    def secure_user_input(
+        self, prompt: str, context_info: str = "user_interaction"
+    ) -> str:
         """Secure wrapper for user input with validation."""
         try:
             raw_input = Prompt.ask(prompt).strip()
@@ -141,9 +175,13 @@ class InteractiveStorySession:
             if not validation_result.is_valid:
                 if validation_result.threat_level == SecurityThreatLevel.CRITICAL:
                     self.output_manager.error("Input rejected due to security concerns")
-                    log_error(f"Critical security violation in user input: {validation_result.error_message}")
+                    log_error(
+                        f"Critical security violation in user input: {validation_result.error_message}"
+                    )
                     return ""
-                self.output_manager.warning(f"Input warning: {validation_result.error_message}")
+                self.output_manager.warning(
+                    f"Input warning: {validation_result.error_message}"
+                )
                 return validation_result.sanitized_value or ""
 
             return validation_result.sanitized_value or raw_input
@@ -167,8 +205,8 @@ class InteractiveStorySession:
             "routing": {
                 "adapter": self.model_manager.default_adapter,
                 "max_tokens": 1024,
-                "temperature": 0.7
-            }
+                "temperature": 0.7,
+            },
         }
 
     async def process_story_input(self, user_input: str):
@@ -182,7 +220,9 @@ class InteractiveStorySession:
         max_tokens = routing.get("max_tokens", 1024)
         temperature = routing.get("temperature", 0.7)
 
-        self.output_manager.info(f"Using {preferred_adapter} adapter (max_tokens: {max_tokens}, temp: {temperature})")
+        self.output_manager.info(
+            f"Using {preferred_adapter} adapter (max_tokens: {max_tokens}, temp: {temperature})"
+        )
 
         # Generate AI response
         with Status("✨ Generating response...", console=self.console):
@@ -192,7 +232,7 @@ class InteractiveStorySession:
                     adapter_name=preferred_adapter,
                     story_id=self.story_id,
                     max_tokens=max_tokens,
-                    temperature=temperature
+                    temperature=temperature,
                 )
             except Exception as e:
                 self.output_manager.error(f"AI generation failed: {e}")
@@ -203,10 +243,16 @@ class InteractiveStorySession:
         if analysis:
             try:
                 content_analyzer_instance = ContentAnalyzer(self.model_manager)
-                content_flags = await content_analyzer_instance.generate_content_flags(analysis, ai_response)
+                content_flags = await content_analyzer_instance.generate_content_flags(
+                    analysis, ai_response
+                )
                 for flag in content_flags:
-                    await self.memory_orchestrator.add_memory_flag(self.story_id, flag["name"], flag["value"])
-                self.output_manager.info(f"Generated {len(content_flags)} content flags")
+                    await self.memory_orchestrator.add_memory_flag(
+                        self.story_id, flag["name"], flag["value"]
+                    )
+                self.output_manager.info(
+                    f"Generated {len(content_flags)} content flags"
+                )
             except Exception as e:
                 self.output_manager.warning(f"Flag generation failed: {e}")
 
@@ -215,38 +261,42 @@ class InteractiveStorySession:
             user_input=user_input,
             model_output=ai_response,
             memory_snapshot=context["memory"],
-            analysis_data=analysis
+            analysis_data=analysis,
         )
 
         # Add to recent events
-        await self.memory_orchestrator.add_recent_event(self.story_id, f"User: {user_input}")
+        await self.memory_orchestrator.add_recent_event(
+            self.story_id, f"User: {user_input}"
+        )
 
         # Display the response
-        self.output_manager.panel(
-            ai_response,
-            title="AI Response",
-            style="blue"
-        )
+        self.output_manager.panel(ai_response, title="AI Response", style="blue")
 
         self.output_manager.info(f"Scene logged: {scene_id}")
 
     def print_memory_summary(self):
         """Print a summary of current memory state."""
         try:
-            summary = asyncio.run(self.memory_orchestrator.get_memory_summary(self.story_id))
+            summary = asyncio.run(
+                self.memory_orchestrator.get_memory_summary(self.story_id)
+            )
 
             memory_data = [
-                {"Aspect": "Characters", "Count": str(summary['character_count'])},
-                {"Aspect": "World State Keys", "Count": str(len(summary['world_state_keys']))},
-                {"Aspect": "Active Flags", "Count": str(len(summary['active_flags']))},
-                {"Aspect": "Recent Events", "Count": str(summary['recent_events_count'])},
-                {"Aspect": "Last Updated", "Count": summary['last_updated']}
+                {"Aspect": "Characters", "Count": str(summary["character_count"])},
+                {
+                    "Aspect": "World State Keys",
+                    "Count": str(len(summary["world_state_keys"])),
+                },
+                {"Aspect": "Active Flags", "Count": str(len(summary["active_flags"]))},
+                {
+                    "Aspect": "Recent Events",
+                    "Count": str(summary["recent_events_count"]),
+                },
+                {"Aspect": "Last Updated", "Count": summary["last_updated"]},
             ]
 
             self.output_manager.table(
-                memory_data,
-                title="📚 Memory Summary",
-                headers=["Aspect", "Count"]
+                memory_data, title="📚 Memory Summary", headers=["Aspect", "Count"]
             )
         except Exception as e:
             self.output_manager.error(f"Failed to get memory summary: {e}")
@@ -260,24 +310,30 @@ class InteractiveStorySession:
             for adapter_name in adapters:
                 try:
                     info = self.model_manager.get_adapter_info(adapter_name)
-                    model_data.append({
-                        "Adapter": adapter_name,
-                        "Provider": info['provider'],
-                        "Model": info['model_name'],
-                        "Status": "Ready" if info["initialized"] else "Not initialized"
-                    })
+                    model_data.append(
+                        {
+                            "Adapter": adapter_name,
+                            "Provider": info["provider"],
+                            "Model": info["model_name"],
+                            "Status": "Ready"
+                            if info["initialized"]
+                            else "Not initialized",
+                        }
+                    )
                 except Exception as e:
-                    model_data.append({
-                        "Adapter": adapter_name,
-                        "Provider": "Unknown",
-                        "Model": "Unknown",
-                        "Status": f"Error: {e}"
-                    })
+                    model_data.append(
+                        {
+                            "Adapter": adapter_name,
+                            "Provider": "Unknown",
+                            "Model": "Unknown",
+                            "Status": f"Error: {e}",
+                        }
+                    )
 
             self.output_manager.table(
                 model_data,
                 title="🤖 Available Models",
-                headers=["Adapter", "Provider", "Model", "Status"]
+                headers=["Adapter", "Provider", "Model", "Status"],
             )
         except Exception as e:
             self.output_manager.error(f"Failed to get model info: {e}")
@@ -291,9 +347,11 @@ class InteractiveStorySession:
             for i, adapter in enumerate(adapters):
                 self.console.print(f"{i+1}. {adapter}")
 
-            choice = self.secure_user_input("Select adapter number (or press Enter to cancel)", "adapter_selection")
+            choice = self.secure_user_input(
+                "Select adapter number (or press Enter to cancel)", "adapter_selection"
+            )
             if choice.isdigit() and 1 <= int(choice) <= len(adapters):
-                adapter_name = adapters[int(choice)-1]
+                adapter_name = adapters[int(choice) - 1]
 
                 with Status(f"Initializing {adapter_name}...", console=self.console):
                     success = await self.model_manager.initialize_adapter(adapter_name)
@@ -311,7 +369,7 @@ class InteractiveStorySession:
         """Show available rollback options."""
         try:
             rollback_points = await self.timeline_orchestrator.list_rollback_points()
-            candidates = rollback_points.get('rollback_points', [])
+            candidates = rollback_points.get("rollback_points", [])
 
             if not candidates:
                 self.output_manager.info("No rollback candidates available.")
@@ -319,31 +377,42 @@ class InteractiveStorySession:
 
             rollback_data = []
             for i, candidate in enumerate(candidates[:5]):  # Show top 5
-                rollback_data.append({
-                    "Option": str(i+1),
-                    "Scene": candidate.get('scene_summary', 'Unknown'),
-                    "Scene ID": candidate.get('scene_id', 'Unknown')
-                })
+                rollback_data.append(
+                    {
+                        "Option": str(i + 1),
+                        "Scene": candidate.get("scene_summary", "Unknown"),
+                        "Scene ID": candidate.get("scene_id", "Unknown"),
+                    }
+                )
 
             self.output_manager.table(
                 rollback_data,
                 title="⏪ Rollback Options",
-                headers=["Option", "Scene", "Scene ID"]
+                headers=["Option", "Scene", "Scene ID"],
             )
 
-            choice = self.secure_user_input("Enter number to rollback (or press Enter to skip)", "rollback_selection")
+            choice = self.secure_user_input(
+                "Enter number to rollback (or press Enter to skip)",
+                "rollback_selection",
+            )
             if choice.isdigit() and 1 <= int(choice) <= len(candidates):
-                candidate = candidates[int(choice)-1]
-                rollback_id = candidate.get('rollback_id') or candidate.get('scene_id')
+                candidate = candidates[int(choice) - 1]
+                rollback_id = candidate.get("rollback_id") or candidate.get("scene_id")
 
                 if rollback_id:
                     with Status("⏪ Rolling back...", console=self.console):
-                        result = await self.timeline_orchestrator.rollback_to_point(rollback_id)
+                        result = await self.timeline_orchestrator.rollback_to_point(
+                            rollback_id
+                        )
 
-                    if result.get('success'):
-                        self.output_manager.success(f"Rolled back to: {candidate.get('scene_summary', 'Unknown')}")
+                    if result.get("success"):
+                        self.output_manager.success(
+                            f"Rolled back to: {candidate.get('scene_summary', 'Unknown')}"
+                        )
                     else:
-                        self.output_manager.error(f"Rollback failed: {result.get('error', 'Unknown error')}")
+                        self.output_manager.error(
+                            f"Rollback failed: {result.get('error', 'Unknown error')}"
+                        )
         except Exception as e:
             self.output_manager.error(f"Error showing rollback options: {e}")
 
@@ -361,28 +430,30 @@ class InteractiveStorySession:
             "• 'keys' - Manage API keys\n"
             "• 'quit' - Exit session",
             title="🎭 Interactive Story Session",
-            style="cyan"
+            style="cyan",
         )
 
         while True:
             try:
-                user_input = self.secure_user_input("\n[bold cyan]You:[/bold cyan] ", "story_input")
+                user_input = self.secure_user_input(
+                    "\n[bold cyan]You:[/bold cyan] ", "story_input"
+                )
 
-                if user_input.lower() in ['quit', 'exit', 'q']:
+                if user_input.lower() in ["quit", "exit", "q"]:
                     break
-                if user_input.lower() == 'memory':
+                if user_input.lower() == "memory":
                     self.print_memory_summary()
                     continue
-                if user_input.lower() == 'rollback':
+                if user_input.lower() == "rollback":
                     await self.show_rollback_options()
                     continue
-                if user_input.lower() == 'models':
+                if user_input.lower() == "models":
                     self.show_model_info()
                     continue
-                if user_input.lower() == 'switch':
+                if user_input.lower() == "switch":
                     await self.switch_model()
                     continue
-                if user_input.lower() == 'keys':
+                if user_input.lower() == "keys":
                     self.output_manager.info("API key management coming soon!")
                     continue
                 if not user_input:
@@ -402,7 +473,7 @@ class InteractiveStorySession:
         self.output_manager.panel(
             "Story session ended. Thank you for using OpenChronicle!",
             title="👋 Session Complete",
-            style="green"
+            style="green",
         )
 
         try:
@@ -417,8 +488,13 @@ class InteractiveCommand(StoryCommand):
     def __init__(self, output_manager: OutputManager):
         super().__init__(output_manager)
 
-    def execute(self, story_id: str, non_interactive: bool = False,
-                max_iterations: int = 50, input_text: str | None = None) -> bool:
+    def execute(
+        self,
+        story_id: str,
+        non_interactive: bool = False,
+        max_iterations: int = 50,
+        input_text: str | None = None,
+    ) -> bool:
         """Execute the interactive story command."""
         try:
             session = InteractiveStorySession(story_id, self.output_manager)
@@ -428,7 +504,9 @@ class InteractiveCommand(StoryCommand):
                 if await session.initialize():
                     if non_interactive:
                         # Run in non-interactive mode for testing
-                        await self._run_non_interactive_mode(session, input_text, max_iterations)
+                        await self._run_non_interactive_mode(
+                            session, input_text, max_iterations
+                        )
                     else:
                         await session.run_interactive_session()
                     return True
@@ -440,8 +518,12 @@ class InteractiveCommand(StoryCommand):
             self.output_manager.error(f"Failed to run interactive session: {e}")
             return False
 
-    async def _run_non_interactive_mode(self, session: InteractiveStorySession,
-                                     input_text: str | None, max_iterations: int):
+    async def _run_non_interactive_mode(
+        self,
+        session: InteractiveStorySession,
+        input_text: str | None,
+        max_iterations: int,
+    ):
         """Run in non-interactive mode for testing/automation."""
         self.output_manager.info("Running in non-interactive mode...")
 
@@ -453,7 +535,7 @@ class InteractiveCommand(StoryCommand):
             test_inputs = [
                 "Look around the forest clearing.",
                 "Check my equipment.",
-                "memory"
+                "memory",
             ]
 
         iterations = min(len(test_inputs), max_iterations)
@@ -462,36 +544,48 @@ class InteractiveCommand(StoryCommand):
             self.output_manager.info(f"Input {i+1}: {test_input}")
 
             # Handle special commands
-            if test_input.lower() == 'memory':
+            if test_input.lower() == "memory":
                 session.print_memory_summary()
                 continue
-            if test_input.lower() in ['models']:
+            if test_input.lower() in ["models"]:
                 session.show_model_info()
                 continue
 
             # Process story input
             await session.process_story_input(test_input)
 
-        self.output_manager.success(f"Non-interactive mode completed ({iterations} iterations)")
+        self.output_manager.success(
+            f"Non-interactive mode completed ({iterations} iterations)"
+        )
 
 
 # CLI command definition
-interactive_app = typer.Typer(name="interactive", help="Interactive story session commands")
+interactive_app = typer.Typer(
+    name="interactive", help="Interactive story session commands"
+)
+
 
 @interactive_app.command("start")
 def start_interactive_session(
     story_id: str = typer.Argument("demo-story", help="Story ID to load"),
-    non_interactive: bool = typer.Option(False, "--non-interactive", help="Run in non-interactive mode for testing"),
-    max_iterations: int = typer.Option(50, "--max-iterations", help="Maximum iterations in non-interactive mode"),
-    input_text: str | None = typer.Option(None, "--input", help="Single input to process in non-interactive mode")
+    non_interactive: bool = typer.Option(
+        False, "--non-interactive", help="Run in non-interactive mode for testing"
+    ),
+    max_iterations: int = typer.Option(
+        50, "--max-iterations", help="Maximum iterations in non-interactive mode"
+    ),
+    input_text: str
+    | None = typer.Option(
+        None, "--input", help="Single input to process in non-interactive mode"
+    ),
 ):
     """
     Start an interactive story session.
-    
+
     Launch a rich, interactive storytelling experience with the specified story.
     Provides full conversation mode with memory management, rollback options,
     and model switching capabilities.
-    
+
     Examples:
         openchronicle story interactive start my-adventure
         openchronicle story interactive start demo-story --non-interactive --input "Hello world"
@@ -504,7 +598,7 @@ def start_interactive_session(
             story_id=story_id,
             non_interactive=non_interactive,
             max_iterations=max_iterations,
-            input_text=input_text
+            input_text=input_text,
         )
 
         if not success:
@@ -514,6 +608,6 @@ def start_interactive_session(
         OutputManager().error(f"Error starting interactive session: {e}")
         raise typer.Exit(1)
 
+
 if __name__ == "__main__":
     interactive_app()
-

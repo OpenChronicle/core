@@ -8,7 +8,7 @@ backward compatibility and clean architecture separation.
 
 Usage:
     python main.py [CLI_COMMANDS]
-    
+
 Architecture:
     main.py → src/openchronicle/interfaces/cli/main.py → src/openchronicle/ (core business logic)
 """
@@ -27,10 +27,10 @@ def main():
     try:
         # Import and run the modern CLI from its new location
         from openchronicle.interfaces.cli.main import app
-        
+
         # Pass all command line arguments to the CLI
         app()
-        
+
     except ImportError as e:
         print(f"❌ Error loading OpenChronicle CLI: {e}")
         print("💡 Please ensure all dependencies are installed:")

@@ -20,6 +20,8 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from src.openchronicle.domain.services.scenes.scene_orchestrator import (
     SceneOrchestrator,
 )
+
+
 # from src.openchronicle.infrastructure.memory import MemoryOrchestrator - REPLACED WITH DEPENDENCY INJECTION
 # from src.openchronicle.infrastructure.persistence import execute_query - REPLACED WITH DEPENDENCY INJECTION
 # from src.openchronicle.infrastructure.persistence import execute_update - REPLACED WITH DEPENDENCY INJECTION
@@ -63,7 +65,7 @@ class StateManager:
         execute_update(
             self.story_id,
             """
-            INSERT OR REPLACE INTO rollback_points 
+            INSERT OR REPLACE INTO rollback_points
             (rollback_id, scene_id, timestamp, description, scene_data, state_snapshot)
             VALUES (?, ?, ?, ?, ?, ?)
         """,
@@ -213,7 +215,7 @@ class StateManager:
         old_points = execute_query(
             self.story_id,
             """
-            SELECT rollback_id FROM rollback_points 
+            SELECT rollback_id FROM rollback_points
             WHERE timestamp < ? ORDER BY timestamp ASC
         """,
             (cutoff_iso,),
@@ -261,7 +263,7 @@ class StateManager:
             recent_scenes = execute_query(
                 self.story_id,
                 """
-                SELECT scene_id, timestamp FROM scenes 
+                SELECT scene_id, timestamp FROM scenes
                 ORDER BY timestamp DESC LIMIT 5
             """,
             )
@@ -350,7 +352,7 @@ class StateManager:
         execute_update(
             self.story_id,
             """
-            UPDATE rollback_points 
+            UPDATE rollback_points
             SET last_used = ?, usage_count = COALESCE(usage_count, 0) + 1
             WHERE rollback_id = ?
         """,

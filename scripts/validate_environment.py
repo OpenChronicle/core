@@ -21,10 +21,7 @@ def run_command(command: str) -> tuple[bool, str]:
     """Run a shell command and return success status and output."""
     try:
         result = subprocess.run(
-            command.split(),
-            check=False, capture_output=True,
-            text=True,
-            timeout=30
+            command.split(), check=False, capture_output=True, text=True, timeout=30
         )
         return result.returncode == 0, result.stdout + result.stderr
     except subprocess.TimeoutExpired:
@@ -37,9 +34,13 @@ def check_python_version() -> bool:
     """Check if Python version is 3.11+."""
     version_info = sys.version_info
     if version_info >= (3, 11):
-        print(f"✅ Python {version_info.major}.{version_info.minor}.{version_info.micro}")
+        print(
+            f"✅ Python {version_info.major}.{version_info.minor}.{version_info.micro}"
+        )
         return True
-    print(f"❌ Python {version_info.major}.{version_info.minor}.{version_info.micro} - Need 3.11+")
+    print(
+        f"❌ Python {version_info.major}.{version_info.minor}.{version_info.micro} - Need 3.11+"
+    )
     return False
 
 
@@ -50,7 +51,7 @@ def check_tool_installed(tool_name: str, command: str = None) -> bool:
         # Try to get version if possible
         success, output = run_command(f"{command} --version")
         if success:
-            version = output.strip().split('\n')[0]
+            version = output.strip().split("\n")[0]
             print(f"✅ {tool_name}: {version}")
         else:
             print(f"✅ {tool_name}: Installed")
@@ -82,7 +83,7 @@ def check_project_structure() -> bool:
         "src/openchronicle/py.typed",
         "tests",
         "pyproject.toml",
-        ".pre-commit-config.yaml"
+        ".pre-commit-config.yaml",
     ]
 
     all_exist = True
@@ -122,7 +123,7 @@ def check_quality_tools() -> bool:
     for tool_name, command in tools_and_commands:
         success, output = run_command(command)
         if success:
-            version = output.strip().split('\n')[0]
+            version = output.strip().split("\n")[0]
             print(f"✅ {tool_name}: {version}")
         else:
             print(f"❌ {tool_name}: Not working - {output}")
@@ -158,7 +159,7 @@ def check_configuration_files() -> bool:
         "pyproject.toml",
         ".pre-commit-config.yaml",
         ".editorconfig",
-        "src/openchronicle/py.typed"
+        "src/openchronicle/py.typed",
     ]
 
     all_valid = True
@@ -198,7 +199,10 @@ def check_import_paths() -> bool:
     try:
         sys.path.insert(0, str(Path("src")))
         import openchronicle
-        print(f"✅ Import check: openchronicle v{getattr(openchronicle, '__version__', 'dev')}")
+
+        print(
+            f"✅ Import check: openchronicle v{getattr(openchronicle, '__version__', 'dev')}"
+        )
         return True
     except ImportError as e:
         print(f"❌ Import check: Failed - {e}")

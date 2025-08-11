@@ -365,9 +365,7 @@ class HealthMonitor:
         """Get current health status for an adapter."""
         return self.current_status.get(adapter_name, HealthStatus.UNKNOWN)
 
-    def get_performance_summary(
-        self, adapter_name: str
-    ) -> PerformanceMetrics | None:
+    def get_performance_summary(self, adapter_name: str) -> PerformanceMetrics | None:
         """Get performance metrics summary for an adapter."""
         return self.performance_metrics.get(adapter_name)
 

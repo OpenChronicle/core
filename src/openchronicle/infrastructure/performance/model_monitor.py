@@ -244,6 +244,7 @@ class PerformanceMonitor:
             return self.performance_monitor.track_operation(
                 adapter_name, operation_type, **kwargs
             )
+
         # Return a no-op context manager if monitoring is disabled
         @asynccontextmanager
         async def dummy_tracker():

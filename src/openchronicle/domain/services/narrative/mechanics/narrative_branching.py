@@ -395,9 +395,9 @@ class NarrativeBranchingEngine:
         # Template-specific changes
         if "expertise" in template or "mastery" in template:
             skill_bonus = random.randint(1, 3)
-            stat_changes[f"{resolution_result.resolution_type.value}_skill"] = (
-                skill_bonus
-            )
+            stat_changes[
+                f"{resolution_result.resolution_type.value}_skill"
+            ] = skill_bonus
 
         if "injury" in template:
             stat_changes["health"] = random.randint(-10, -5)

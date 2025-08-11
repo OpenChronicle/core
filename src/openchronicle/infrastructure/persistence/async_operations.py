@@ -17,9 +17,7 @@ class AsyncDatabaseOperations:
     def __init__(self, connection_manager: AsyncConnectionManager):
         self.connection_manager = connection_manager
 
-    async def init_database(
-        self, story_id: str, is_test: bool | None = None
-    ) -> bool:
+    async def init_database(self, story_id: str, is_test: bool | None = None) -> bool:
         """Initialize the database with required tables."""
         try:
             async with self.connection_manager.get_connection(
@@ -104,7 +102,7 @@ class AsyncDatabaseOperations:
                     # Scenes FTS
                     await conn.execute(
                         """
-                        CREATE VIRTUAL TABLE IF NOT EXISTS scenes_fts 
+                        CREATE VIRTUAL TABLE IF NOT EXISTS scenes_fts
                         USING fts5(id, title, content, characters, tokenize='porter')
                     """
                     )
@@ -154,7 +152,7 @@ class AsyncDatabaseOperations:
                 # Get table information
                 cursor = await conn.execute(
                     """
-                    SELECT name FROM sqlite_master 
+                    SELECT name FROM sqlite_master
                     WHERE type='table' AND name NOT LIKE 'sqlite_%'
                 """
                 )
@@ -254,9 +252,7 @@ class AsyncDatabaseOperations:
         except aiosqlite.Error:
             return False
 
-    async def check_integrity(
-        self, story_id: str, is_test: bool | None = None
-    ) -> bool:
+    async def check_integrity(self, story_id: str, is_test: bool | None = None) -> bool:
         """Run PRAGMA integrity_check on database."""
         try:
             async with self.connection_manager.get_connection(

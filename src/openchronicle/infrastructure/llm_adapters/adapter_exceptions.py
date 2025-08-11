@@ -8,10 +8,8 @@ Following OpenChronicle naming convention: adapter_exceptions.py
 """
 
 
-
 class AdapterError(Exception):
     """Base exception for adapter-related errors."""
-
 
 
 class AdapterNotFoundError(AdapterError):
@@ -39,9 +37,7 @@ class AdapterInitializationError(AdapterError):
 class AdapterConfigurationError(AdapterError):
     """Raised when adapter configuration is invalid."""
 
-    def __init__(
-        self, provider: str | None = None, config_issue: str | None = None
-    ):
+    def __init__(self, provider: str | None = None, config_issue: str | None = None):
         self.provider = provider
         self.config_issue = config_issue
         if provider and config_issue:
@@ -75,9 +71,7 @@ class AdapterConnectionError(AdapterError):
 class AdapterResponseError(AdapterError):
     """Raised when adapter receives an invalid response."""
 
-    def __init__(
-        self, provider: str | None = None, response_issue: str | None = None
-    ):
+    def __init__(self, provider: str | None = None, response_issue: str | None = None):
         self.provider = provider
         self.response_issue = response_issue
         if provider and response_issue:
@@ -109,9 +103,7 @@ class AdapterTimeoutError(AdapterError):
 class AdapterRateLimitError(AdapterError):
     """Raised when adapter hits rate limits."""
 
-    def __init__(
-        self, provider: str | None = None, retry_after: int | None = None
-    ):
+    def __init__(self, provider: str | None = None, retry_after: int | None = None):
         self.provider = provider
         self.retry_after = retry_after
         if provider and retry_after:

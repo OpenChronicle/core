@@ -61,7 +61,7 @@ class FTSManager:
 
                 # Get list of FTS tables using secure query execution
                 list_query = """
-                    SELECT name FROM sqlite_master 
+                    SELECT name FROM sqlite_master
                     WHERE type='table' AND name LIKE '%_fts'
                 """
 
@@ -117,7 +117,7 @@ class FTSManager:
                 # Get list of FTS tables
                 cursor.execute(
                     """
-                    SELECT name FROM sqlite_master 
+                    SELECT name FROM sqlite_master
                     WHERE type='table' AND name LIKE '%_fts'
                 """
                 )
@@ -161,7 +161,7 @@ class FTSManager:
                 # Get list of FTS tables
                 cursor.execute(
                     """
-                    SELECT name FROM sqlite_master 
+                    SELECT name FROM sqlite_master
                     WHERE type='table' AND name LIKE '%_fts'
                 """
                 )

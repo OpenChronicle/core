@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Any
-from typing import Optional
 
 from fastapi import FastAPI
 from fastapi import WebSocket
@@ -146,9 +145,7 @@ class ConnectionManager:
             self.disconnect(client_id)
             return False
 
-    async def broadcast(
-        self, event: Event, event_type_filter: EventType | None = None
-    ):
+    async def broadcast(self, event: Event, event_type_filter: EventType | None = None):
         """Broadcast an event to all subscribed clients."""
         target_type = event_type_filter or event.type
 

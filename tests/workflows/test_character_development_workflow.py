@@ -44,12 +44,20 @@ class TestCharacterDevelopmentWorkflow:
                 "initial_traits": {
                     "personality": "shy, intelligent, curious about magic",
                     "background": "village librarian with untapped magical potential",
-                    "fears": ["public speaking", "making mistakes", "disappointing others"],
-                    "desires": ["learn powerful magic", "help her village", "gain confidence"],
+                    "fears": [
+                        "public speaking",
+                        "making mistakes",
+                        "disappointing others",
+                    ],
+                    "desires": [
+                        "learn powerful magic",
+                        "help her village",
+                        "gain confidence",
+                    ],
                     "relationships": {},
                     "character_level": 1,
-                    "emotional_state": "nervous but hopeful"
-                }
+                    "emotional_state": "nervous but hopeful",
+                },
             },
             "mentor_character": {
                 "name": "Archmage Valdris",
@@ -58,35 +66,46 @@ class TestCharacterDevelopmentWorkflow:
                     "background": "ancient wizard with centuries of experience",
                     "teaching_style": "gradual revelation, learning through challenges",
                     "relationship_to_protagonist": "mentor",
-                    "emotional_state": "cautiously optimistic about new student"
-                }
+                    "emotional_state": "cautiously optimistic about new student",
+                },
             },
             "development_events": [
                 {
                     "event_type": "first_lesson",
                     "description": "Lyra attempts her first magical spell under Valdris' guidance",
-                    "challenges": ["controlling magical energy", "overcoming fear of failure"],
-                    "expected_growth": ["magical_skill", "confidence"]
+                    "challenges": [
+                        "controlling magical energy",
+                        "overcoming fear of failure",
+                    ],
+                    "expected_growth": ["magical_skill", "confidence"],
                 },
                 {
                     "event_type": "public_demonstration",
                     "description": "Lyra must demonstrate her progress to village elders",
                     "challenges": ["public speaking", "performance under pressure"],
-                    "expected_growth": ["courage", "self_esteem", "leadership"]
+                    "expected_growth": ["courage", "self_esteem", "leadership"],
                 },
                 {
                     "event_type": "mentor_conflict",
                     "description": "Lyra disagrees with Valdris about magical ethics",
                     "challenges": ["standing up to authority", "articulating beliefs"],
-                    "expected_growth": ["independence", "moral_reasoning", "assertiveness"]
+                    "expected_growth": [
+                        "independence",
+                        "moral_reasoning",
+                        "assertiveness",
+                    ],
                 },
                 {
                     "event_type": "crisis_leadership",
                     "description": "Village under threat, Lyra must lead magical defense",
                     "challenges": ["making critical decisions", "protecting others"],
-                    "expected_growth": ["leadership", "responsibility", "magical_mastery"]
-                }
-            ]
+                    "expected_growth": [
+                        "leadership",
+                        "responsibility",
+                        "magical_mastery",
+                    ],
+                },
+            ],
         }
 
     @pytest_asyncio.fixture
@@ -107,11 +126,13 @@ class TestCharacterDevelopmentWorkflow:
             "character": character_orchestrator,
             "memory": memory_orchestrator,
             "content": content_orchestrator,
-            "database": database_orchestrator
+            "database": database_orchestrator,
         }
 
     @pytest.mark.asyncio
-    async def test_complete_character_development_arc(self, character_development_scenario, character_orchestrators):
+    async def test_complete_character_development_arc(
+        self, character_development_scenario, character_orchestrators
+    ):
         """Test complete character development from introduction to mastery."""
         story_id = character_development_scenario["story_id"]
         orchestrators = character_orchestrators
@@ -119,21 +140,23 @@ class TestCharacterDevelopmentWorkflow:
         protagonist = character_development_scenario["protagonist"]
         mentor = character_development_scenario["mentor_character"]
 
-        print(f"🧙‍♀️ Starting character development workflow for: {protagonist['name']}")
+        print(
+            f"🧙‍♀️ Starting character development workflow for: {protagonist['name']}"
+        )
 
         # === PHASE 1: CHARACTER INITIALIZATION ===
         # Create protagonist
-        protagonist_result = await orchestrators["character"].create_character(
+        await orchestrators["character"].create_character(
             story_id=story_id,
             character_name=protagonist["name"],
-            character_data=protagonist["initial_traits"]
+            character_data=protagonist["initial_traits"],
         )
 
         # Create mentor
-        mentor_result = await orchestrators["character"].create_character(
+        await orchestrators["character"].create_character(
             story_id=story_id,
             character_name=mentor["name"],
-            character_data=mentor["initial_traits"]
+            character_data=mentor["initial_traits"],
         )
 
         print("✅ Characters initialized")
@@ -144,7 +167,7 @@ class TestCharacterDevelopmentWorkflow:
                 "growth_metrics": {},
                 "relationship_changes": {},
                 "skill_progression": {},
-                "emotional_journey": []
+                "emotional_journey": [],
             }
         }
 
@@ -153,12 +176,12 @@ class TestCharacterDevelopmentWorkflow:
 
             # --- EVENT SIMULATION ---
             # Simulate character responses to event
-            event_interaction = {
+            {
                 "event_description": event["description"],
                 "character_challenges": event["challenges"],
                 "protagonist_response": f"Lyra responds to {event['event_type']} with determination despite her fears",
                 "mentor_guidance": f"Valdris provides guidance appropriate for {event['event_type']}",
-                "event_outcome": "mixed success with learning opportunities"
+                "event_outcome": "mixed success with learning opportunities",
             }
 
             # --- CHARACTER GROWTH APPLICATION ---
@@ -166,11 +189,17 @@ class TestCharacterDevelopmentWorkflow:
             growth_updates = {}
             for growth_area in event["expected_growth"]:
                 if growth_area == "magical_skill":
-                    growth_updates["magical_ability"] = growth_updates.get("magical_ability", 0) + 1
+                    growth_updates["magical_ability"] = (
+                        growth_updates.get("magical_ability", 0) + 1
+                    )
                 elif growth_area == "confidence":
-                    growth_updates["confidence_level"] = growth_updates.get("confidence_level", 0) + 1
+                    growth_updates["confidence_level"] = (
+                        growth_updates.get("confidence_level", 0) + 1
+                    )
                 elif growth_area == "leadership":
-                    growth_updates["leadership_experience"] = growth_updates.get("leadership_experience", 0) + 1
+                    growth_updates["leadership_experience"] = (
+                        growth_updates.get("leadership_experience", 0) + 1
+                    )
                 # Add more growth mappings as needed
 
             # Update character data with growth
@@ -182,21 +211,23 @@ class TestCharacterDevelopmentWorkflow:
                     "growth_areas": event["expected_growth"],
                     "skill_improvements": growth_updates,
                     "challenges_faced": event["challenges"],
-                    "development_stage": i + 1
-                }
+                    "development_stage": i + 1,
+                },
             )
 
             # --- RELATIONSHIP DEVELOPMENT ---
             # Update relationship between protagonist and mentor
             relationship_update = self._calculate_relationship_change(
-                event["event_type"], i, len(character_development_scenario["development_events"])
+                event["event_type"],
+                i,
+                len(character_development_scenario["development_events"]),
             )
 
             await orchestrators["character"].update_character_relationship(
                 story_id=story_id,
                 character_name=protagonist["name"],
                 other_character=mentor["name"],
-                relationship_data=relationship_update
+                relationship_data=relationship_update,
             )
 
             # --- MEMORY CONSOLIDATION ---
@@ -206,7 +237,7 @@ class TestCharacterDevelopmentWorkflow:
                 "character_growth": event["expected_growth"],
                 "character_challenges": event["challenges"],
                 "development_stage": f"stage_{i+1}",
-                "character_evolution": growth_updates
+                "character_evolution": growth_updates,
             }
 
             await orchestrators["memory"].update_character_memory(
@@ -214,12 +245,16 @@ class TestCharacterDevelopmentWorkflow:
             )
 
             # Track growth for validation
-            character_growth_tracking[protagonist["name"]]["growth_metrics"].update(growth_updates)
-            character_growth_tracking[protagonist["name"]]["emotional_journey"].append({
-                "stage": i + 1,
-                "event": event["event_type"],
-                "emotional_state": self._determine_emotional_state(event, i)
-            })
+            character_growth_tracking[protagonist["name"]]["growth_metrics"].update(
+                growth_updates
+            )
+            character_growth_tracking[protagonist["name"]]["emotional_journey"].append(
+                {
+                    "stage": i + 1,
+                    "event": event["event_type"],
+                    "emotional_state": self._determine_emotional_state(event, i),
+                }
+            )
 
             print(f"  ✅ Character development applied for event {i+1}")
 
@@ -262,8 +297,8 @@ class TestCharacterDevelopmentWorkflow:
             context={
                 "analysis_type": "character_development",
                 "story_id": story_id,
-                "character_name": protagonist["name"]
-            }
+                "character_name": protagonist["name"],
+            },
         )
 
         print("✅ Character development analysis completed")
@@ -271,12 +306,23 @@ class TestCharacterDevelopmentWorkflow:
         # === WORKFLOW METRICS ===
         workflow_metrics = {
             "characters_developed": 2,  # Protagonist + mentor
-            "development_events": len(character_development_scenario["development_events"]),
-            "growth_areas_tracked": len(set().union(*[event['expected_growth'] for event in character_development_scenario['development_events']])),
+            "development_events": len(
+                character_development_scenario["development_events"]
+            ),
+            "growth_areas_tracked": len(
+                set().union(
+                    *[
+                        event["expected_growth"]
+                        for event in character_development_scenario[
+                            "development_events"
+                        ]
+                    ]
+                )
+            ),
             "relationship_developments": 1,  # Protagonist-mentor relationship
             "memory_updates": len(character_development_scenario["development_events"]),
             "character_consistency": "maintained",
-            "development_arc_completion": "successful"
+            "development_arc_completion": "successful",
         }
 
         print("🏁 Character development workflow completed!")
@@ -286,44 +332,56 @@ class TestCharacterDevelopmentWorkflow:
             "character_growth": character_growth_tracking,
             "final_state": final_character_state,
             "content_analysis": content_analysis,
-            "metrics": workflow_metrics
+            "metrics": workflow_metrics,
         }
 
-    def _calculate_relationship_change(self, event_type: str, event_index: int, total_events: int) -> dict[str, Any]:
+    def _calculate_relationship_change(
+        self, event_type: str, event_index: int, total_events: int
+    ) -> dict[str, Any]:
         """Calculate how relationship changes based on event type and progression."""
         relationship_data = {
             "interaction_count": event_index + 1,
-            "relationship_stage": f"stage_{event_index + 1}"
+            "relationship_stage": f"stage_{event_index + 1}",
         }
 
         if event_type == "first_lesson":
-            relationship_data.update({
-                "trust_level": "building",
-                "mentor_satisfaction": "hopeful",
-                "student_respect": "high"
-            })
+            relationship_data.update(
+                {
+                    "trust_level": "building",
+                    "mentor_satisfaction": "hopeful",
+                    "student_respect": "high",
+                }
+            )
         elif event_type == "public_demonstration":
-            relationship_data.update({
-                "trust_level": "increased",
-                "mentor_pride": "growing",
-                "public_acknowledgment": "mentor_support"
-            })
+            relationship_data.update(
+                {
+                    "trust_level": "increased",
+                    "mentor_pride": "growing",
+                    "public_acknowledgment": "mentor_support",
+                }
+            )
         elif event_type == "mentor_conflict":
-            relationship_data.update({
-                "trust_level": "tested_but_maintained",
-                "independence_recognized": "emerging",
-                "mutual_respect": "deepened"
-            })
+            relationship_data.update(
+                {
+                    "trust_level": "tested_but_maintained",
+                    "independence_recognized": "emerging",
+                    "mutual_respect": "deepened",
+                }
+            )
         elif event_type == "crisis_leadership":
-            relationship_data.update({
-                "trust_level": "complete",
-                "mentor_pride": "profound",
-                "relationship_evolution": "equals"
-            })
+            relationship_data.update(
+                {
+                    "trust_level": "complete",
+                    "mentor_pride": "profound",
+                    "relationship_evolution": "equals",
+                }
+            )
 
         return relationship_data
 
-    def _determine_emotional_state(self, event: dict[str, Any], event_index: int) -> str:
+    def _determine_emotional_state(
+        self, event: dict[str, Any], event_index: int
+    ) -> str:
         """Determine character's emotional state after event."""
         if event["event_type"] == "first_lesson":
             return "nervous excitement, cautious hope"
@@ -336,7 +394,9 @@ class TestCharacterDevelopmentWorkflow:
         return f"developing emotional maturity (stage {event_index + 1})"
 
     @pytest.mark.asyncio
-    async def test_character_relationship_network(self, character_development_scenario, character_orchestrators):
+    async def test_character_relationship_network(
+        self, character_development_scenario, character_orchestrators
+    ):
         """Test complex character relationship networks and development."""
         story_id = f"{character_development_scenario['story_id']}_network"
         orchestrators = character_orchestrators
@@ -346,7 +406,7 @@ class TestCharacterDevelopmentWorkflow:
             {"name": "Hero", "role": "protagonist"},
             {"name": "Mentor", "role": "guide"},
             {"name": "Rival", "role": "challenger"},
-            {"name": "Friend", "role": "supporter"}
+            {"name": "Friend", "role": "supporter"},
         ]
 
         # Create all characters
@@ -354,7 +414,7 @@ class TestCharacterDevelopmentWorkflow:
             await orchestrators["character"].create_character(
                 story_id=story_id,
                 character_name=char["name"],
-                character_data={"role": char["role"], "status": "active"}
+                character_data={"role": char["role"], "status": "active"},
             )
 
         # Establish relationship network
@@ -363,7 +423,7 @@ class TestCharacterDevelopmentWorkflow:
             ("Hero", "Rival", "competitive"),
             ("Hero", "Friend", "supportive"),
             ("Mentor", "Rival", "cautious_disapproval"),
-            ("Friend", "Rival", "tense_tolerance")
+            ("Friend", "Rival", "tense_tolerance"),
         ]
 
         for char1, char2, relationship_type in relationships:
@@ -371,13 +431,13 @@ class TestCharacterDevelopmentWorkflow:
                 story_id=story_id,
                 character1=char1,
                 character2=char2,
-                relationship_data={"type": relationship_type, "strength": "moderate"}
+                relationship_data={"type": relationship_type, "strength": "moderate"},
             )
 
         # Validate network creation
-        hero_relationships = await orchestrators["character"].get_character_relationships(
-            story_id, "Hero"
-        )
+        hero_relationships = await orchestrators[
+            "character"
+        ].get_character_relationships(story_id, "Hero")
 
         # Hero should have relationships with all other characters
         assert len(hero_relationships) >= 3
@@ -385,7 +445,9 @@ class TestCharacterDevelopmentWorkflow:
         print("✅ Character relationship network test passed")
 
     @pytest.mark.asyncio
-    async def test_character_consistency_over_time(self, character_development_scenario, character_orchestrators):
+    async def test_character_consistency_over_time(
+        self, character_development_scenario, character_orchestrators
+    ):
         """Test character consistency across multiple story sessions."""
         story_id = f"{character_development_scenario['story_id']}_consistency"
         orchestrators = character_orchestrators
@@ -396,7 +458,7 @@ class TestCharacterDevelopmentWorkflow:
         await orchestrators["character"].create_character(
             story_id=story_id,
             character_name=protagonist["name"],
-            character_data=protagonist["initial_traits"]
+            character_data=protagonist["initial_traits"],
         )
 
         # Simulate multiple story sessions with character interactions
@@ -407,13 +469,13 @@ class TestCharacterDevelopmentWorkflow:
                 "session_number": session + 1,
                 "experiences_gained": f"session_{session + 1}_experiences",
                 "personality_reinforcement": "core_traits_maintained",
-                "growth_incremental": True
+                "growth_incremental": True,
             }
 
             await orchestrators["character"].update_character_development(
                 story_id=story_id,
                 character_name=protagonist["name"],
-                development_data=session_development
+                development_data=session_development,
             )
 
         # Validate character maintained core consistency

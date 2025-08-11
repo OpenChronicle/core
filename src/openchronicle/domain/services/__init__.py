@@ -6,24 +6,17 @@ or value objects. They coordinate between entities and implement complex
 business rules.
 """
 
-import re
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from ..entities import Character
 from ..entities import Scene
 from ..entities import Story
 from ..entities import StoryStatus
-from ..value_objects import ContextPriority
-from ..value_objects import MemoryState
 from ..value_objects import NarrativeContext
 
 
@@ -687,9 +680,7 @@ class CharacterService(ABC):
     """Abstract base class for character service."""
 
     @abstractmethod
-    async def get_character(
-        self, story_id: str, character_id: str
-    ) -> Character | None:
+    async def get_character(self, story_id: str, character_id: str) -> Character | None:
         """Get character by ID."""
 
     @abstractmethod

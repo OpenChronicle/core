@@ -177,9 +177,9 @@ class TimelineOrchestrator:
             # Add navigation metadata
             if include_bookmarks:
                 navigation_manager = self._get_navigation_manager()
-                timeline_data["navigation"] = (
-                    await navigation_manager.build_navigation_structure(timeline_data)
-                )
+                timeline_data[
+                    "navigation"
+                ] = await navigation_manager.build_navigation_structure(timeline_data)
 
             # Add metrics
             processing_time = self._get_current_time_ms() - start_time

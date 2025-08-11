@@ -19,7 +19,6 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 
 # Ensure module can find its dependencies
@@ -31,10 +30,10 @@ if str(current_dir.parent.parent) not in sys.path:
 from .shared.centralized_config import CentralizedConfigManager
 from .shared.dependency_injection import get_container
 from .shared.error_handling import OpenChronicleError
-from .shared.logging_system import log_info, log_warning, log_error, log_system_event
-
-if TYPE_CHECKING:
-    from typing import Any
+from .shared.logging_system import log_error
+from .shared.logging_system import log_info
+from .shared.logging_system import log_system_event
+from .shared.logging_system import log_warning
 
 
 # === PRIMARY ORCHESTRATORS ===

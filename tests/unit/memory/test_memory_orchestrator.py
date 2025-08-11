@@ -24,6 +24,7 @@ try:
     from src.openchronicle.infrastructure.memory.memory_orchestrator import (
         MemoryOrchestrator,
     )
+
     MEMORY_ORCHESTRATOR_AVAILABLE = True
 except ImportError as e:
     MEMORY_ORCHESTRATOR_AVAILABLE = False
@@ -45,7 +46,7 @@ class TestMemoryOrchestrator:
         assert MemoryOrchestrator is not None
 
         # Verify class has expected attributes
-        assert hasattr(MemoryOrchestrator, '__init__')
+        assert hasattr(MemoryOrchestrator, "__init__")
         assert callable(MemoryOrchestrator)
 
     def test_orchestrator_initialization(self):
@@ -59,14 +60,19 @@ class TestMemoryOrchestrator:
 
         # Verify orchestrator has expected attributes for memory management
         expected_attributes = [
-            'character_manager', 'context_builder', 'repository', 'get_character_memory'
+            "character_manager",
+            "context_builder",
+            "repository",
+            "get_character_memory",
         ]
 
         for attr in expected_attributes:
             # Check if orchestrator has these attributes OR has methods to access them
-            has_attr = (hasattr(orchestrator, attr) or
-                       hasattr(orchestrator, f'get_{attr}') or
-                       hasattr(orchestrator, f'{attr}_manager'))
+            has_attr = (
+                hasattr(orchestrator, attr)
+                or hasattr(orchestrator, f"get_{attr}")
+                or hasattr(orchestrator, f"{attr}_manager")
+            )
             assert has_attr, f"MemoryOrchestrator should have access to {attr}"
 
     def test_orchestrator_components_initialization(self):
@@ -80,15 +86,23 @@ class TestMemoryOrchestrator:
         # Note: Component access might be via methods rather than direct attributes
         component_checks = [
             # Check for memory management
-            lambda orch: hasattr(orch, 'character_manager') or hasattr(orch, 'get_character_memory') or hasattr(orch, 'add_memory_flag'),
+            lambda orch: hasattr(orch, "character_manager")
+            or hasattr(orch, "get_character_memory")
+            or hasattr(orch, "add_memory_flag"),
             # Check for character state management
-            lambda orch: hasattr(orch, 'character_manager') or hasattr(orch, 'format_character_snapshot_for_prompt') or hasattr(orch, 'character_state'),
+            lambda orch: hasattr(orch, "character_manager")
+            or hasattr(orch, "format_character_snapshot_for_prompt")
+            or hasattr(orch, "character_state"),
             # Check for persistence
-            lambda orch: hasattr(orch, 'db_manager') or hasattr(orch, 'archive_memory_snapshot') or hasattr(orch, 'persist_state'),
+            lambda orch: hasattr(orch, "db_manager")
+            or hasattr(orch, "archive_memory_snapshot")
+            or hasattr(orch, "persist_state"),
         ]
 
         for i, check in enumerate(component_checks):
-            assert check(orchestrator), f"Component check {i+1} failed for MemoryOrchestrator"
+            assert check(
+                orchestrator
+            ), f"Component check {i+1} failed for MemoryOrchestrator"
 
     def test_memory_management_workflow(self):
         """Test core memory management workflow coordination."""
@@ -99,8 +113,12 @@ class TestMemoryOrchestrator:
 
         # Test that orchestrator can handle basic memory operations
         basic_operations = [
-            'get_character_memory', 'add_memory_flag', 'add_recent_event',
-            'analyze_memory_health', 'archive_memory_snapshot', 'create_scene_context'
+            "get_character_memory",
+            "add_memory_flag",
+            "add_recent_event",
+            "analyze_memory_health",
+            "archive_memory_snapshot",
+            "create_scene_context",
         ]
 
         available_operations = []
@@ -109,7 +127,9 @@ class TestMemoryOrchestrator:
                 available_operations.append(operation)
 
         # At least some memory management operations should be available
-        assert len(available_operations) > 0, "MemoryOrchestrator should have memory management methods"
+        assert (
+            len(available_operations) > 0
+        ), "MemoryOrchestrator should have memory management methods"
 
     def test_orchestrator_error_handling(self):
         """Test MemoryOrchestrator error handling and graceful degradation."""
@@ -129,7 +149,9 @@ class TestMemoryOrchestrator:
             str(orchestrator)  # Should not raise exception
             repr(orchestrator)  # Should not raise exception
         except Exception as e:
-            pytest.fail(f"MemoryOrchestrator should handle basic operations gracefully: {e}")
+            pytest.fail(
+                f"MemoryOrchestrator should handle basic operations gracefully: {e}"
+            )
 
     def test_orchestrator_configuration_handling(self):
         """Test MemoryOrchestrator configuration and settings management."""
@@ -140,11 +162,13 @@ class TestMemoryOrchestrator:
 
         # Test configuration access patterns - MemoryOrchestrator doesn't have config methods
         # but should have its components accessible
-        component_access = any([
-            hasattr(orchestrator, 'repository'),
-            hasattr(orchestrator, 'character_manager'),
-            hasattr(orchestrator, 'context_builder')
-        ])
+        component_access = any(
+            [
+                hasattr(orchestrator, "repository"),
+                hasattr(orchestrator, "character_manager"),
+                hasattr(orchestrator, "context_builder"),
+            ]
+        )
 
         # Orchestrator should have access to its components
         assert component_access, "MemoryOrchestrator should provide component access"
@@ -162,18 +186,25 @@ class TestMemoryManagementMethods:
 
         # Test character memory methods exist
         character_methods = [
-            'update_character_memory', 'get_character_state', 'save_character_state',
-            'character_memory', 'update_character', 'manage_character'
+            "update_character_memory",
+            "get_character_state",
+            "save_character_state",
+            "character_memory",
+            "update_character",
+            "manage_character",
         ]
 
-        available_methods = [method for method in character_methods
-                           if hasattr(orchestrator, method)]
+        available_methods = [
+            method for method in character_methods if hasattr(orchestrator, method)
+        ]
 
         if available_methods:
             # If character methods are available, test basic functionality
             assert len(available_methods) > 0
         else:
-            pytest.skip("Character memory methods not exposed in current implementation")
+            pytest.skip(
+                "Character memory methods not exposed in current implementation"
+            )
 
     def test_memory_persistence_handling(self):
         """Test memory persistence and database synchronization."""
@@ -184,28 +215,42 @@ class TestMemoryManagementMethods:
 
         # Test persistence methods
         persistence_methods = [
-            'save_memory', 'load_memory', 'persist_state',
-            'sync_database', 'persist_memory', 'memory_persistence'
+            "save_memory",
+            "load_memory",
+            "persist_state",
+            "sync_database",
+            "persist_memory",
+            "memory_persistence",
         ]
 
         # Test actual persistence methods that exist
         persistence_methods = [
-            'save_current_memory', 'load_current_memory', 'store_memory',
-            'archive_memory_snapshot', 'restore_memory_from_snapshot'
+            "save_current_memory",
+            "load_current_memory",
+            "store_memory",
+            "archive_memory_snapshot",
+            "restore_memory_from_snapshot",
         ]
 
-        available_persistence_methods = [method for method in persistence_methods
-                                       if hasattr(orchestrator, method)]
+        available_persistence_methods = [
+            method for method in persistence_methods if hasattr(orchestrator, method)
+        ]
 
         if available_persistence_methods:
             assert len(available_persistence_methods) > 0
             # Test one of the available methods
-            if hasattr(orchestrator, 'save_current_memory'):
+            if hasattr(orchestrator, "save_current_memory"):
                 # Test with dummy data
-                result = orchestrator.save_current_memory("test_story", {"test": "data"})
-                assert isinstance(result, bool), "save_current_memory should return boolean"
+                result = orchestrator.save_current_memory(
+                    "test_story", {"test": "data"}
+                )
+                assert isinstance(
+                    result, bool
+                ), "save_current_memory should return boolean"
         else:
-            pytest.skip("Memory persistence methods not exposed in current implementation")
+            pytest.skip(
+                "Memory persistence methods not exposed in current implementation"
+            )
 
     def test_consistency_engine_handling(self):
         """Test memory consistency validation and error correction."""
@@ -216,23 +261,38 @@ class TestMemoryManagementMethods:
 
         # Test character memory consistency through existing methods
         consistency_test_methods = [
-            'update_character_memory', 'get_character_memory', 'get_character_memory_snapshot'
+            "update_character_memory",
+            "get_character_memory",
+            "get_character_memory_snapshot",
         ]
 
-        available_consistency_methods = [method for method in consistency_test_methods
-                                       if hasattr(orchestrator, method)]
+        available_consistency_methods = [
+            method
+            for method in consistency_test_methods
+            if hasattr(orchestrator, method)
+        ]
 
         if available_consistency_methods:
             assert len(available_consistency_methods) > 0
             # Test memory consistency through character memory operations
-            if hasattr(orchestrator, 'update_character_memory') and hasattr(orchestrator, 'get_character_memory'):
+            if hasattr(orchestrator, "update_character_memory") and hasattr(
+                orchestrator, "get_character_memory"
+            ):
                 # Update character memory
-                orchestrator.update_character_memory("test_story", "test_character", {"mood": "happy"})
+                orchestrator.update_character_memory(
+                    "test_story", "test_character", {"mood": "happy"}
+                )
                 # Retrieve to verify consistency
-                memory = orchestrator.get_character_memory("test_story", "test_character")
-                assert isinstance(memory, dict), "Character memory should return dictionary"
+                memory = orchestrator.get_character_memory(
+                    "test_story", "test_character"
+                )
+                assert isinstance(
+                    memory, dict
+                ), "Character memory should return dictionary"
         else:
-            pytest.skip("Consistency engine methods not exposed in current implementation")
+            pytest.skip(
+                "Consistency engine methods not exposed in current implementation"
+            )
 
 
 class TestMemoryOrchestrationIntegration:
@@ -250,14 +310,16 @@ class TestMemoryOrchestrationIntegration:
 
         # Check for memory system-related attributes or methods
         memory_integration_indicators = [
-            hasattr(orchestrator, 'character_manager'),
-            hasattr(orchestrator, 'get_character_memory'),
-            hasattr(orchestrator, 'add_memory_flag'),
-            hasattr(orchestrator, 'analyze_memory_health'),
-            hasattr(orchestrator, 'memory_system')
+            hasattr(orchestrator, "character_manager"),
+            hasattr(orchestrator, "get_character_memory"),
+            hasattr(orchestrator, "add_memory_flag"),
+            hasattr(orchestrator, "analyze_memory_health"),
+            hasattr(orchestrator, "memory_system"),
         ]
 
-        assert any(memory_integration_indicators), "MemoryOrchestrator should integrate with memory systems"
+        assert any(
+            memory_integration_indicators
+        ), "MemoryOrchestrator should integrate with memory systems"
 
     def test_character_management_integration(self):
         """Test integration between MemoryOrchestrator and character management."""
@@ -268,14 +330,16 @@ class TestMemoryOrchestrationIntegration:
 
         # Test character management integration
         character_integration_indicators = [
-            hasattr(orchestrator, 'character_state'),
-            hasattr(orchestrator, 'character_manager'),
-            hasattr(orchestrator, 'update_character'),
-            hasattr(orchestrator, 'get_character_state'),
-            hasattr(orchestrator, 'character_system')
+            hasattr(orchestrator, "character_state"),
+            hasattr(orchestrator, "character_manager"),
+            hasattr(orchestrator, "update_character"),
+            hasattr(orchestrator, "get_character_state"),
+            hasattr(orchestrator, "character_system"),
         ]
 
-        assert any(character_integration_indicators), "MemoryOrchestrator should integrate with character management"
+        assert any(
+            character_integration_indicators
+        ), "MemoryOrchestrator should integrate with character management"
 
     def test_persistence_layer_coordination(self):
         """Test MemoryOrchestrator coordination of persistence operations."""
@@ -286,14 +350,16 @@ class TestMemoryOrchestrationIntegration:
 
         # Test persistence coordination capability
         persistence_coordination_indicators = [
-            hasattr(orchestrator, 'db_manager'),
-            hasattr(orchestrator, 'archive_memory_snapshot'),
-            hasattr(orchestrator, 'add_recent_event'),
-            hasattr(orchestrator, 'create_scene_context'),
-            hasattr(orchestrator, 'persistence_manager')
+            hasattr(orchestrator, "db_manager"),
+            hasattr(orchestrator, "archive_memory_snapshot"),
+            hasattr(orchestrator, "add_recent_event"),
+            hasattr(orchestrator, "create_scene_context"),
+            hasattr(orchestrator, "persistence_manager"),
         ]
 
-        assert any(persistence_coordination_indicators), "MemoryOrchestrator should coordinate persistence operations"
+        assert any(
+            persistence_coordination_indicators
+        ), "MemoryOrchestrator should coordinate persistence operations"
 
 
 class TestMemoryOrchestrationWithMocks:
@@ -320,4 +386,6 @@ class TestMemoryOrchestrationWithMocks:
             str(orchestrator)
             repr(orchestrator)
         except Exception as e:
-            pytest.fail(f"Memory persistence workflow should handle mock scenarios: {e}")
+            pytest.fail(
+                f"Memory persistence workflow should handle mock scenarios: {e}"
+            )

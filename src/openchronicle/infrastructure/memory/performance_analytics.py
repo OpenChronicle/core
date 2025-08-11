@@ -246,7 +246,11 @@ class AlertManager:
             return None
 
         triggered = False
-        if (rule.comparison == "lt" and value < rule.threshold) or (rule.comparison == "gt" and value > rule.threshold) or (rule.comparison == "eq" and abs(value - rule.threshold) < 0.001):
+        if (
+            (rule.comparison == "lt" and value < rule.threshold)
+            or (rule.comparison == "gt" and value > rule.threshold)
+            or (rule.comparison == "eq" and abs(value - rule.threshold) < 0.001)
+        ):
             triggered = True
 
         if triggered:
@@ -276,7 +280,9 @@ class AlertManager:
                 value = node_metrics.get(suffix)
                 if value is not None:
                     triggered = False
-                    if (rule.comparison == "lt" and value < rule.threshold) or (rule.comparison == "gt" and value > rule.threshold):
+                    if (rule.comparison == "lt" and value < rule.threshold) or (
+                        rule.comparison == "gt" and value > rule.threshold
+                    ):
                         triggered = True
 
                     if triggered:
@@ -307,9 +313,7 @@ class AlertManager:
         if 0 <= alert_id < len(self.active_alerts):
             self.active_alerts[alert_id].resolved = True
 
-    def get_active_alerts(
-        self, severity: str | None = None
-    ) -> list[PerformanceAlert]:
+    def get_active_alerts(self, severity: str | None = None) -> list[PerformanceAlert]:
         """Get active alerts, optionally filtered by severity."""
         alerts = [a for a in self.active_alerts if not a.resolved]
 

@@ -12,7 +12,8 @@ This analyzer now uses dependency injection following hexagonal architecture pri
 
 import json
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 # Import domain interfaces (following dependency inversion principle)
 from src.openchronicle.domain.ports.persistence_port import IPersistencePort
@@ -21,7 +22,9 @@ from src.openchronicle.domain.ports.persistence_port import IPersistencePort
 class MoodAnalyzer:
     """Handles mood analysis and scene type classification using dependency injection."""
 
-    def __init__(self, story_id: str, persistence_port: Optional[IPersistencePort] = None):
+    def __init__(
+        self, story_id: str, persistence_port: Optional[IPersistencePort] = None
+    ):
         """
         Initialize mood analyzer for a specific story.
 
@@ -30,10 +33,13 @@ class MoodAnalyzer:
             persistence_port: Persistence interface implementation (injected)
         """
         self.story_id = story_id
-        
+
         # If no persistence port provided, create default adapter
         if persistence_port is None:
-            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import PersistenceAdapter
+            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import (
+                PersistenceAdapter,
+            )
+
             self.persistence = PersistenceAdapter()
         else:
             self.persistence = persistence_port
@@ -92,8 +98,7 @@ class MoodAnalyzer:
                 WHERE structured_tags LIKE ?
                 ORDER BY timestamp DESC
             """,
-                [f'%"{mood}"%']
-            )
+                [f'%"{mood}"%'],
             )
 
             results = []
@@ -150,7 +155,7 @@ class MoodAnalyzer:
                 WHERE structured_tags LIKE ?
                 ORDER BY timestamp DESC
             """,
-                [f'%"scene_type":"{scene_type}"%']
+                [f'%"scene_type":"{scene_type}"%'],
             )
 
             results = []
@@ -207,8 +212,7 @@ class MoodAnalyzer:
                 WHERE structured_tags LIKE ?
                 ORDER BY timestamp ASC
             """,
-                [f'%"{character_name}"%']
-            )
+                [f'%"{character_name}"%'],
             )
 
             timeline = []
@@ -254,7 +258,7 @@ class MoodAnalyzer:
                 SELECT structured_tags
                 FROM scenes
                 WHERE structured_tags IS NOT NULL
-            """
+            """,
             )
 
             mood_counts = {}
@@ -337,9 +341,7 @@ class MoodAnalyzer:
         except (json.JSONDecodeError, TypeError):
             return {}
 
-    def _extract_scene_type_info(
-        self, structured_tags: str | None
-    ) -> dict[str, Any]:
+    def _extract_scene_type_info(self, structured_tags: str | None) -> dict[str, Any]:
         """Extract scene type information from structured tags."""
         if not structured_tags:
             return {}

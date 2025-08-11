@@ -10,7 +10,8 @@ Handles scene management operations:
 This manager now uses dependency injection following hexagonal architecture principles.
 """
 
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 # Import domain interfaces (following dependency inversion principle)
 from src.openchronicle.domain.ports.persistence_port import IPersistencePort
@@ -21,7 +22,12 @@ from ..persistence.scene_repository import SceneRepository
 class SceneManager:
     """Manages scene lifecycle and state operations using dependency injection."""
 
-    def __init__(self, story_id: str, repository: SceneRepository, persistence_port: Optional[IPersistencePort] = None):
+    def __init__(
+        self,
+        story_id: str,
+        repository: SceneRepository,
+        persistence_port: Optional[IPersistencePort] = None,
+    ):
         """
         Initialize scene manager.
 
@@ -32,10 +38,13 @@ class SceneManager:
         """
         self.story_id = story_id
         self.repository = repository
-        
+
         # If no persistence port provided, create default adapter
         if persistence_port is None:
-            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import PersistenceAdapter
+            from src.openchronicle.infrastructure.persistence_adapters.persistence_adapter import (
+                PersistenceAdapter,
+            )
+
             self.persistence = PersistenceAdapter()
         else:
             self.persistence = persistence_port
@@ -69,7 +78,7 @@ class SceneManager:
                 WHERE timestamp > ? AND story_id = ?
                 ORDER BY timestamp ASC
             """,
-                [target_timestamp, self.story_id]
+                [target_timestamp, self.story_id],
             )
 
             if not scenes_to_remove:
@@ -87,10 +96,10 @@ class SceneManager:
             success = self.persistence.self.persistence.execute_update(
                 self.story_id,
                 """
-                DELETE FROM scenes 
+                DELETE FROM scenes
                 WHERE timestamp > ? AND story_id = ?
             """,
-                [target_timestamp, self.story_id]
+                [target_timestamp, self.story_id],
             )
 
             print(
@@ -124,7 +133,7 @@ class SceneManager:
             scenes_to_remove = self.persistence.execute_query(
                 self.story_id,
                 """
-                SELECT scene_id, timestamp, scene_label, 
+                SELECT scene_id, timestamp, scene_label,
                        LENGTH(input) as input_length,
                        LENGTH(output) as output_length
                 FROM scenes
