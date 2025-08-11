@@ -256,8 +256,8 @@ def get_mock_image_adapter():
 
 
 # Enhanced mock adapters (imported normally)
-from tests.mocks.mock_adapters import MockDatabaseManager  # noqa: E402
-from tests.mocks.mock_adapters import MockModelOrchestrator  # noqa: E402
+from tests.fixtures.mock_adapters import MockDatabaseManager  # noqa: E402
+from tests.fixtures.mock_adapters import MockModelOrchestrator  # noqa: E402
 
 
 # -----------------------------------------------------------------------------

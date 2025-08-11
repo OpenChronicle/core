@@ -7,10 +7,16 @@ Provides minimal navigation functionality when full system is unavailable.
 from typing import Any
 
 
+
+from src.openchronicle.domain.ports.persistence_port import IPersistencePort
+from typing import Optional
+
 class FallbackNavigationManager:
     """Minimal fallback navigation manager."""
 
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, persistence_port: IPersistencePort):
+        self.persistence_port = persistence_port
+
         self.story_id = story_id
 
     async def get_navigation_history(self) -> list[dict[str, Any]]:
@@ -20,12 +26,11 @@ class FallbackNavigationManager:
             from pathlib import Path
 
             sys.path.append(str(Path(__file__).parent.parent.parent))
-            # from src.openchronicle.infrastructure.persistence import execute_query - REPLACED WITH DEPENDENCY INJECTION
-            # from src.openchronicle.infrastructure.persistence import init_database - REPLACED WITH DEPENDENCY INJECTION
+            # Infrastructure dependencies replaced with dependency injection
 
-            init_database(self.story_id)
+            await self.persistence_port.init_database(self.story_id)
 
-            rows = execute_query(
+            rows = await self.persistence_port.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, scene_title, timestamp

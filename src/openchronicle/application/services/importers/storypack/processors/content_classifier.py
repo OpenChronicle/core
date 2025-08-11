@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from src.openchronicle.domain.ports.storypack_port import IStorypackProcessorPort\n\n#!/usr/bin/env python3
 """
 OpenChronicle Content Classifier
 
@@ -11,7 +11,7 @@ from typing import Any
 
 from src.openchronicle.shared.logging_system import get_logger
 
-from ..interfaces import IContentClassifier
+
 
 
 class ContentClassifier(IContentClassifier):

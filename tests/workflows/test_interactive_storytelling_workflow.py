@@ -27,7 +27,7 @@ from src.openchronicle.infrastructure.memory import MemoryOrchestrator
 from src.openchronicle.infrastructure.persistence import DatabaseOrchestrator
 
 # Import test utilities
-from tests.mocks.mock_adapters import MockModelOrchestrator
+from tests.fixtures.mock_adapters import MockModelOrchestrator
 
 
 class TestInteractiveStorytellingWorkflow:

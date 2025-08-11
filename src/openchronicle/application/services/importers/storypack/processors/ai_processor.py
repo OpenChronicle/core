@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from src.openchronicle.domain.ports.storypack_port import IStorypackProcessorPort\n\n#!/usr/bin/env python3
 """
 OpenChronicle AI Processor
 
@@ -14,8 +14,8 @@ from src.openchronicle.shared.logging_system import log_error
 from src.openchronicle.shared.logging_system import log_system_event
 from src.openchronicle.shared.logging_system import log_warning
 
-from ..interfaces import IAIProcessor
-from ..interfaces import ImportContext
+
+
 
 
 class AIProcessor(IAIProcessor):

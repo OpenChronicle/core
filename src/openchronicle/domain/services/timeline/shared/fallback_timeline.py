@@ -9,10 +9,16 @@ from datetime import datetime
 from typing import Any
 
 
+
+from src.openchronicle.domain.ports.persistence_port import IPersistencePort
+from typing import Optional
+
 class FallbackTimelineManager:
     """Minimal fallback timeline manager."""
 
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, persistence_port: IPersistencePort):
+        self.persistence_port = persistence_port
+
         self.story_id = story_id
 
     async def build_full_timeline(
@@ -25,12 +31,9 @@ class FallbackTimelineManager:
             from pathlib import Path
 
             sys.path.append(str(Path(__file__).parent.parent.parent))
-            # from src.openchronicle.infrastructure.persistence import execute_query - REPLACED WITH DEPENDENCY INJECTION
-            # from src.openchronicle.infrastructure.persistence import init_database - REPLACED WITH DEPENDENCY INJECTION
+            await self.persistence_port.init_database(self.story_id)
 
-            init_database(self.story_id)
-
-            scenes = execute_query(
+            scenes = await self.persistence_port.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, timestamp, input, output

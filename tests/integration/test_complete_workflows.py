@@ -24,10 +24,10 @@ from src.openchronicle.infrastructure.memory.memory_orchestrator import (
     MemoryOrchestrator,
 )
 
-from tests.mocks.mock_adapters import MockDatabaseManager
+from tests.fixtures.mock_adapters import MockDatabaseManager
 
 # Import enhanced mock adapters for isolated testing
-from tests.mocks.mock_adapters import MockModelOrchestrator
+from tests.fixtures.mock_adapters import MockModelOrchestrator
 
 
 class TestCompleteSceneGenerationWorkflow:

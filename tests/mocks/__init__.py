@@ -6,14 +6,14 @@ Mock module __init__.py
 Mock module __init__.py
 """
 
-from .mock_adapters import AsyncTestMockAdapter
-from .mock_adapters import TestMockAdapter
-from .mock_adapters import TestMockState
-from .mock_adapters import TestResponse
-from .mock_adapters import create_deterministic_mock
-from .mock_adapters import create_error_mock
-from .mock_adapters import create_multi_response_mock
-from .mock_adapters import create_test_mock
+from tests.fixtures.mock_adapters import AsyncTestMockAdapter
+from tests.fixtures.mock_adapters import TestMockAdapter
+from tests.fixtures.mock_adapters import TestMockState
+from tests.fixtures.mock_adapters import TestResponse
+from tests.fixtures.mock_adapters import create_deterministic_mock
+from tests.fixtures.mock_adapters import create_error_mock
+from tests.fixtures.mock_adapters import create_multi_response_mock
+from tests.fixtures.mock_adapters import create_test_mock
 
 
 __all__ = [

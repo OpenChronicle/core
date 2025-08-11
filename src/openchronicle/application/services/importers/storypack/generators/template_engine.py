@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from src.openchronicle.domain.ports.storypack_port import IStorypackProcessorPort\n\n#!/usr/bin/env python3
 """
 OpenChronicle Template Engine
 
@@ -13,8 +13,8 @@ from typing import Any
 from src.openchronicle.shared.logging_system import get_logger
 from src.openchronicle.shared.logging_system import log_system_event
 
-from ..interfaces import ImportContext
-from ..interfaces import ITemplateEngine
+
+
 
 
 class TemplateEngine(ITemplateEngine):

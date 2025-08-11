@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from src.openchronicle.domain.ports.storypack_port import IStorypackProcessorPort\n\n#!/usr/bin/env python3
 """
 OpenChronicle Metadata Extractor
 
@@ -13,7 +13,7 @@ from typing import Any
 
 from src.openchronicle.shared.logging_system import get_logger
 
-from ..interfaces import IMetadataExtractor
+
 
 
 class MetadataExtractor(IMetadataExtractor):

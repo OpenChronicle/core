@@ -14,12 +14,17 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
+from src.openchronicle.domain.ports.performance_interface_port import IPerformanceInterfacePort
+from ..interfaces.performance_interfaces import IBottleneckAnalyzer
+from ..interfaces.performance_interfaces import PerformanceMetrics
+from ..interfaces.performance_interfaces import BottleneckReport
+
 from src.openchronicle.shared.logging_system import get_logger
 from src.openchronicle.shared.logging_system import log_system_event
 
-from ..interfaces.performance_interfaces import BottleneckReport
-from ..interfaces.performance_interfaces import IBottleneckAnalyzer
-from ..interfaces.performance_interfaces import PerformanceMetrics
+
+
+
 
 
 @dataclass

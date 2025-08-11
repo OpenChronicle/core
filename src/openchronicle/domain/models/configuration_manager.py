@@ -27,13 +27,9 @@ from src.openchronicle.shared.logging_system import log_error
 from src.openchronicle.shared.logging_system import log_system_event
 from src.openchronicle.shared.logging_system import log_warning
 
-# Local import to avoid hard dependency at module import time
-try:
-    from src.openchronicle.infrastructure.registry.registry_manager import (
-        RegistryManager,
-    )
-except Exception:  # pragma: no cover - optional in some environments
-    RegistryManager = None  # type: ignore
+# Use domain port for registry operations (hexagonal architecture compliance)
+from src.openchronicle.domain.ports.configuration_port import IRegistryPort
+from typing import Optional
 
 
 class ConfigurationManager:

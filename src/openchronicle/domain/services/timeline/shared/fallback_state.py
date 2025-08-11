@@ -10,10 +10,16 @@ from datetime import datetime
 from typing import Any
 
 
+
+from src.openchronicle.domain.ports.persistence_port import IPersistencePort
+from typing import Optional
+
 class FallbackStateManager:
     """Minimal fallback state manager."""
 
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, persistence_port: IPersistencePort):
+        self.persistence_port = persistence_port
+
         self.story_id = story_id
 
     async def create_rollback_point(
@@ -25,16 +31,13 @@ class FallbackStateManager:
             from pathlib import Path
 
             sys.path.append(str(Path(__file__).parent.parent.parent))
-            # from src.openchronicle.infrastructure.persistence import execute_update - REPLACED WITH DEPENDENCY INJECTION
-            # from src.openchronicle.infrastructure.persistence import init_database - REPLACED WITH DEPENDENCY INJECTION
-
-            init_database(self.story_id)
+            await self.persistence_port.init_database(self.story_id)
 
             rollback_id = (
                 f"fallback_{scene_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             )
 
-            execute_update(
+            await self.persistence_port.execute_update(
                 self.story_id,
                 """
                 INSERT OR REPLACE INTO rollback_points
@@ -72,12 +75,9 @@ class FallbackStateManager:
             from pathlib import Path
 
             sys.path.append(str(Path(__file__).parent.parent.parent))
-            # from src.openchronicle.infrastructure.persistence import execute_query - REPLACED WITH DEPENDENCY INJECTION
-            # from src.openchronicle.infrastructure.persistence import init_database - REPLACED WITH DEPENDENCY INJECTION
+            await self.persistence_port.init_database(self.story_id)
 
-            init_database(self.story_id)
-
-            rows = execute_query(
+            rows = await self.persistence_port.execute_query(
                 self.story_id,
                 """
                 SELECT rollback_id, scene_id, timestamp, description
