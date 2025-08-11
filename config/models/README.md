@@ -109,7 +109,7 @@ config/models/
 - `openai_gpt4_turbo.json` - GPT-4 Turbo for high-quality tasks
 - `openai_gpt35_turbo.json` - Cost-effective GPT-3.5 Turbo
 
-### ✅ **Anthropic Models** 
+### ✅ **Anthropic Models**
 - `anthropic_claude35_sonnet.json` - Claude 3.5 Sonnet for complex analysis
 - `anthropic_claude35_haiku.json` - Claude 3.5 Haiku for speed and cost
 - `my_production_claude.json` - Custom-named production config

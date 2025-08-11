@@ -121,7 +121,7 @@
     ],
     "weaknesses": [
       {
-        "_comment": "Array can expand - add as many weaknesses as needed", 
+        "_comment": "Array can expand - add as many weaknesses as needed",
         "weakness": "{{WEAKNESS}}",
         "severity": "{{WEAKNESS_IMPACT}}"
       }

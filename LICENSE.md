@@ -1,9 +1,9 @@
 # 📜 License
 
-## OpenChronicle Core Engine  
-Licensed under the GNU Affero General Public License v3.0  
+## OpenChronicle Core Engine
+Licensed under the GNU Affero General Public License v3.0
 
-© 2024–2025 CarlDog / OpenChronicle  
+© 2024–2025 CarlDog / OpenChronicle
 
 ---
 
@@ -16,7 +16,7 @@ You are free to:
 
 However:
 - If you modify this software and make it available to others (e.g., via a website, cloud platform, or SaaS), you must also publish your modified source code under the same license.
-- There is no warranty, express or implied. For details, see the full license text:  
+- There is no warranty, express or implied. For details, see the full license text:
   🔗 https://www.gnu.org/licenses/agpl-3.0.html
 
 ---

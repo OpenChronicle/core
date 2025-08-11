@@ -1,8 +1,8 @@
 # Pythonic Filename Conflict Resolution
 
-**Date**: August 9, 2025  
-**Status**: Revised Architecture (Pythonic Best Practices)  
-**Philosophy**: Follow Python conventions while solving pytest conflicts  
+**Date**: August 9, 2025
+**Status**: Revised Architecture (Pythonic Best Practices)
+**Philosophy**: Follow Python conventions while solving pytest conflicts
 
 ## Python Best Practices Analysis
 
@@ -29,7 +29,7 @@ Keep the excellent hierarchical structure, rename only the problematic generic f
 ```python
 # CURRENT CONFLICTS
 main.py                  # Root app entry
-cli/main.py             # CLI entry  
+cli/main.py             # CLI entry
 core/main.py            # Core API entry
 tests/main.py           # Test runner
 utilities/main.py       # Utilities entry
@@ -52,7 +52,7 @@ cli/lib/*/orchestrator.py              # Rename to manager.py
 
 # RESULT: Clear hierarchy preserved, unique names
 core/performance/orchestrator.py       # Main orchestrator
-core/content/analysis/analyzer.py      # Content analyzer  
+core/content/analysis/analyzer.py      # Content analyzer
 core/content/context/builder.py        # Context builder
 cli/lib/backup/manager.py              # Backup manager
 cli/lib/apikeys/manager.py             # API key manager
@@ -77,7 +77,7 @@ Use `__init__.py` files to create clean import interfaces:
 # core/performance/__init__.py
 from .orchestrator import PerformanceOrchestrator
 
-# core/content/analysis/__init__.py  
+# core/content/analysis/__init__.py
 from .analyzer import ContentAnalyzer
 
 # core/content/context/__init__.py
@@ -114,7 +114,7 @@ collect_ignore = ["utilities/", "cli/lib/"]
 ```powershell
 # Rename only the conflicting entry points
 Move-Item "cli\main.py" "cli\cli_app.py"
-Move-Item "core\main.py" "core\api.py"  
+Move-Item "core\main.py" "core\api.py"
 Move-Item "tests\main.py" "tests\runner.py"
 Move-Item "utilities\main.py" "utilities\cli.py"
 

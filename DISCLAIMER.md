@@ -169,5 +169,5 @@ OpenChronicle is **NOT** intended for:
 
 ---
 
-© 2024–2025 CarlDog / OpenChronicle Project  
+© 2024–2025 CarlDog / OpenChronicle Project
 Licensed under GNU Affero General Public License v3.0

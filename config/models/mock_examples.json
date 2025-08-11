@@ -13,7 +13,7 @@
     "enabled": true
   },
   "mock_analytical_writer": {
-    "provider": "mock", 
+    "provider": "mock",
     "model_name": "analytical-writer-v1",
     "personality": "analytical",
     "response_quality": "high",
@@ -27,7 +27,7 @@
   },
   "mock_fast_prototype": {
     "provider": "mock",
-    "model_name": "fast-prototype-v1", 
+    "model_name": "fast-prototype-v1",
     "personality": "concise",
     "response_quality": "medium",
     "response_length": "short",

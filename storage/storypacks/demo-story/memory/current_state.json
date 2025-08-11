@@ -75,7 +75,7 @@
     },
     {
       "location": "Oakshield Smithy",
-      "timestamp": "2024-01-01T10:00:00Z", 
+      "timestamp": "2024-01-01T10:00:00Z",
       "characters_present": ["kira_brightwell", "finn_oakshield"],
       "key_events": ["Equipment preparation", "Safety discussions"],
       "mood": "practical_preparation"
@@ -136,7 +136,7 @@
       "significance": "Establishes the central theme about responsible use of knowledge"
     },
     {
-      "speaker": "kira_brightwell", 
+      "speaker": "kira_brightwell",
       "content": "I understand the risks, Master Theron. But how can we preserve knowledge if we never seek to understand it fully?",
       "context": "Response to Theron's warnings, showing her determination",
       "significance": "Shows Kira's mature understanding and readiness for advanced study"

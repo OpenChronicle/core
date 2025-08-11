@@ -13,7 +13,7 @@ This document provides a definitive analysis of truly missing vs. already implem
 
 **Evidence Found**:
 - `ContentClassifier` with comprehensive content analysis
-- `KeywordDetector` for automated content flagging  
+- `KeywordDetector` for automated content flagging
 - `InputValidator` with SQL injection and script injection protection
 - Complete NSFW detection and content filtering
 - Comprehensive legal framework (TERMS.md, DISCLAIMER.md, PRIVACY.md)
@@ -72,13 +72,13 @@ This document provides a definitive analysis of truly missing vs. already implem
 class CharacterInterviewEngine:
     def start_interview_session(self, character_id: str) -> InterviewSession:
         """Initiate out-of-world character interview session."""
-        
+
     def ask_question(self, question: str, question_type: str) -> str:
         """Ask character direct questions about beliefs, motivations, etc."""
-        
+
     def explore_motivation(self, motivation_area: str) -> Dict[str, Any]:
         """Deep dive into specific character motivation areas."""
-        
+
     def debug_character_consistency(self, scenario: str) -> ConsistencyReport:
         """Test character consistency across hypothetical scenarios."""
 ```
@@ -103,10 +103,10 @@ class CharacterInterviewEngine:
 class MotivationAnalyzer:
     def analyze_character_motivations(self, character_id: str) -> MotivationProfile:
         """Extract and analyze character motivation patterns."""
-        
+
     def calculate_response_weights(self, motivations: List[str], context: str) -> Dict[str, float]:
         """Calculate response weighting based on motivation relevance."""
-        
+
     def apply_motivation_bias(self, prompt: str, weights: Dict[str, float]) -> str:
         """Apply motivation-driven bias to prompt before LLM processing."""
 ```
@@ -132,10 +132,10 @@ class MotivationAnalyzer:
 class NarrativeAnalyzer:
     def generate_story_heatmap(self, story_id: str) -> NarrativeHeatmap:
         """Generate visual heatmap of story emotional intensity."""
-        
+
     def analyze_emotional_flow(self, scenes: List[str]) -> EmotionalFlowChart:
         """Analyze emotional progression across scenes."""
-        
+
     def detect_pacing_issues(self, story_structure: Dict) -> List[PacingIssue]:
         """Identify potential pacing problems in narrative structure."""
 ```

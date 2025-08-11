@@ -81,7 +81,7 @@ python -c "import yaml, httpx; from PIL import Image; print('All OK')"
 # OpenChronicle test
 python -c "import sys; sys.path.insert(0, '.'); from core.image_generation_engine import create_image_engine; print('Engine OK')"
 
-# Test image registry integration  
+# Test image registry integration
 python -c "import sys; sys.path.insert(0, '.'); from core.image_generation_engine import load_model_registry; r = load_model_registry(); print('Registry OK:', r.get('default_image_model'))"
 
 # Main application modes
@@ -119,14 +119,14 @@ python -m pytest tests/ -v
 
 ## Automation Support
 - **Command Line Interface**: Full argparse support with help
-- **Non-Interactive Mode**: `--non-interactive` for testing/automation 
+- **Non-Interactive Mode**: `--non-interactive` for testing/automation
 - **Quick Test Mode**: `--test` for system validation
 - **Auto-Exit**: No hanging on user input in automated modes
 - **CI/CD Ready**: Supports automated testing and deployment
 
 ## Warning Suppression
 - **Model Loading Warnings**: Suppressed "Some weights of... were not used" messages during model initialization
-- **Deprecation Warnings**: Suppressed "return_all_scores is now deprecated" messages  
+- **Deprecation Warnings**: Suppressed "return_all_scores is now deprecated" messages
 - **Console Output**: Reduced verbosity during model loading with stdout/stderr redirection
 - **Remaining Output**: Some PyTorch/accelerate library messages may still appear but are minimal
 - **Production Ready**: Clean console output while preserving all functionality

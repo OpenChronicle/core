@@ -68,7 +68,7 @@ cli/
 from utilities.storypack_import import StorypackOrchestrator
 from utilities.storypack_import.parsers import ContentParser
 
-# System commands  
+# System commands
 from utilities.optimize_database import DatabaseOptimizer
 from utilities.performance.orchestrator import PerformanceOrchestrator
 from utilities.cleanup_storage import StorageCleanup
@@ -81,7 +81,7 @@ from cli.utilities.storypack import StorypackOrchestrator, ContentParser
 
 # System commands
 from cli.utilities.database import DatabaseOptimizer
-from cli.utilities.performance import PerformanceOrchestrator  
+from cli.utilities.performance import PerformanceOrchestrator
 from cli.utilities.storage import StorageCleanup
 ```
 
@@ -131,7 +131,7 @@ from cli.utilities.storage import StorageCleanup
 The reorganized CLI structure provides:
 
 1. **🎯 Clear Organization** - Logical grouping of related functionality
-2. **🔧 Easy Maintenance** - Predictable file locations and clean imports  
+2. **🔧 Easy Maintenance** - Predictable file locations and clean imports
 3. **📈 Scalability** - Easy to extend with new commands and utilities
 4. **🛡️ Separation of Concerns** - CLI code separated from core functionality
 5. **🏢 Professional Structure** - Enterprise-grade code organization

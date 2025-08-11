@@ -33,7 +33,7 @@ tasks/
 - Content risk tagging and classification
 - MVP completion for v0.1.x release
 
-### 🚀 High Priority  
+### 🚀 High Priority
 - Character consistency engine
 - Character interaction dynamics
 - Emotional stability and gratification loop prevention

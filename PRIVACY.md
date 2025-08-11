@@ -1,6 +1,6 @@
 # 🔒 OpenChronicle Privacy Policy
 
-**Effective Date:** July 18, 2025  
+**Effective Date:** July 18, 2025
 **Last Updated:** July 18, 2025
 
 OpenChronicle is a **local-first, self-hosted storytelling engine**. This privacy policy explains how we handle data and protect your privacy.
@@ -163,5 +163,5 @@ For optional features requiring external services:
 
 ---
 
-© 2024–2025 CarlDog / OpenChronicle Project  
+© 2024–2025 CarlDog / OpenChronicle Project
 Licensed under GNU Affero General Public License v3.0

@@ -1,8 +1,8 @@
 # ADR-001: Hexagonal Architecture Adoption
 
-**Status**: Accepted  
-**Date**: 2025-08-09  
-**Deciders**: OpenChronicle Team  
+**Status**: Accepted
+**Date**: 2025-08-09
+**Deciders**: OpenChronicle Team
 
 ## Context
 

@@ -20,34 +20,34 @@ The filename is purely for human organization. The system discovers and processe
 ```python
 class DynamicRegistryManager:
     """Dynamically loads provider configs based on JSON content, not filenames."""
-    
+
     def discover_providers(self) -> Dict[str, Dict[str, Any]]:
         """Scan models directory and organize by provider from JSON content."""
         providers = {}
-        
+
         for json_file in self.models_dir.glob("*.json"):
             try:
                 with open(json_file, 'r') as f:
                     config = json.load(f)
-                
+
                 # Get provider from JSON content, NOT filename
                 provider_name = config.get("provider")
                 if not provider_name:
                     logger.warning(f"Config {json_file.name} missing 'provider' field, skipping")
                     continue
-                
+
                 # Initialize provider group if needed
                 if provider_name not in providers:
                     providers[provider_name] = {"configs": []}
-                
+
                 # Add this config to the provider group
                 config["_config_file"] = json_file.name  # Track source file
                 providers[provider_name]["configs"].append(config)
-                
+
             except Exception as e:
                 logger.error(f"Failed to load config {json_file.name}: {e}")
                 continue
-        
+
         return providers
 ```
 
@@ -55,7 +55,7 @@ class DynamicRegistryManager:
 
 1. **User Freedom**: Users can name files however they want:
    - `my_favorite_ollama.json`
-   - `production_openai.json` 
+   - `production_openai.json`
    - `experimental_claude.json`
 
 2. **Content Authority**: Only the JSON content matters for processing

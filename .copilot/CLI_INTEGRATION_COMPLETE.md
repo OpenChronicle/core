@@ -132,7 +132,7 @@ openchronicle system database health --detailed --fix
 ### **Standalone Scripts Status**
 - ✅ `run_tests.py` - **REMOVED** (integrated into CLI)
 - ⚠️ `utilities/storypack_import_cli.py` - Keep as reference/fallback
-- ⚠️ `utilities/performance/cli.py` - Keep as reference/fallback  
+- ⚠️ `utilities/performance/cli.py` - Keep as reference/fallback
 - ⚠️ `utilities/optimize_database.py` - Keep as reference/fallback
 - ⚠️ `utilities/database_health_validator.py` - Keep as reference/fallback
 - ⚠️ `utilities/cleanup_storage.py` - Keep as reference/fallback

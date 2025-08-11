@@ -47,7 +47,7 @@ storypack_name/
 
 ### 3. Semantic Organization
 - **characters/**: People, beings, entities in the story
-- **locations/**: Places, buildings, geographical areas  
+- **locations/**: Places, buildings, geographical areas
 - **lore/**: World-building, magic systems, cultures, **items and artifacts**
 - **narrative/**: Plot structure, acts, scenes, story progression
 
@@ -59,7 +59,7 @@ storypack_name/
 - **Naming**: Descriptive names like `sarah_chen.json`, `dark_lord.json`
 - **Content**: Personality, background, relationships, development arcs
 
-### Locations  
+### Locations
 - **Individual files**: One JSON per significant location
 - **Template**: location_template.json
 - **Naming**: Clear identifiers like `tavern.json`, `castle_throne_room.json`
@@ -69,7 +69,7 @@ storypack_name/
 - **Individual files**: One JSON per world-building element
 - **Templates**: world_template.json, content_template.json
 - **Items placement**: **All significant items go in lore/**
-- **Examples**: 
+- **Examples**:
   - `magic_system.json` - How magic works
   - `ancient_history.json` - Historical events
   - `legendary_weapons.json` - Important weapons and artifacts
@@ -104,7 +104,7 @@ storypack_name/
   "name": "King Arthur",
   "personal_items": [
     {
-      "name": "Excalibur", 
+      "name": "Excalibur",
       "significance": "Primary weapon and symbol of kingship",
       "lore_reference": "lore/excalibur.json"
     }
@@ -134,7 +134,7 @@ storypack_name/
 ## Importer Behavior
 
 ### Directory Creation Logic
-1. **Always created**: characters/, locations/, lore/ 
+1. **Always created**: characters/, locations/, lore/
 2. **Created on demand**: narrative/ (only if narrative content discovered)
 3. **Root files**: meta.json (always), README.md (auto-generated)
 4. **Optional configs**: style_guide.json, instructions.json (created when relevant)
@@ -161,7 +161,7 @@ content_categories = {
 ### Template Mapping
 - **meta.json**: meta_template.json
 - **characters/*.json**: character_template.json
-- **locations/*.json**: location_template.json  
+- **locations/*.json**: location_template.json
 - **lore/*.json**: world_template.json OR content_template.json
 - **narrative/*.json**: narrative_template.json OR scene_template.json
 - **style_guide.json**: style_guide_template.json

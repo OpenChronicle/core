@@ -10,7 +10,7 @@ OpenChronicle templates provide flexible, import-adaptable character and scene d
 ### **Core Templates:**
 - **`character_template.json`** - Comprehensive character profiles with expandable arrays
 - **`location_template.json`** - Unified location template for rooms, buildings, regions, or worlds
-- **`scene_template.json`** - Scene metadata with optional enhancements  
+- **`scene_template.json`** - Scene metadata with optional enhancements
 - **`meta_template.json`** - Story metadata and organizational features
 - **`style_guide_template.json`** - Writing style and tone guidance
 - **`instructions_template.json`** - AI behavior guidance
@@ -60,7 +60,7 @@ OpenChronicle templates provide flexible, import-adaptable character and scene d
 - `name` - Character name
 - `basic_info.age` - Character age
 - `physical_description.hair` - Hair description
-- `physical_description.eyes` - Eye description  
+- `physical_description.eyes` - Eye description
 - `personality.core_traits` - Core personality traits (array)
 
 ### **Optional Sections (12):**

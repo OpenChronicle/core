@@ -1,8 +1,8 @@
 # ADR-000: [Title]
 
-**Status**: Proposed | Accepted | Deprecated | Superseded  
-**Date**: YYYY-MM-DD  
-**Deciders**: [List team members involved]  
+**Status**: Proposed | Accepted | Deprecated | Superseded
+**Date**: YYYY-MM-DD
+**Deciders**: [List team members involved]
 
 ## Context
 
@@ -15,7 +15,7 @@ What is the issue that we're seeing that is motivating this decision or change?
 
 ### Constraints
 - Technical constraints
-- Time constraints  
+- Time constraints
 - Resource constraints
 
 ## Decision
@@ -41,7 +41,7 @@ What becomes easier or more difficult to do because of this change?
 - Problems solved
 - Improvements achieved
 
-### Negative  
+### Negative
 - New complexities introduced
 - Potential risks
 - Trade-offs made

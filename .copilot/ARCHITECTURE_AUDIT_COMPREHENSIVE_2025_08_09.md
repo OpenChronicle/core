@@ -1,8 +1,8 @@
 # OpenChronicle Architecture Audit - August 9, 2025
 
-**Auditor**: Senior Python Architect  
-**Repository**: openchronicle-core  
-**Focus**: Structure, Maintainability, Modern Python Best Practices  
+**Auditor**: Senior Python Architect
+**Repository**: openchronicle-core
+**Focus**: Structure, Maintainability, Modern Python Best Practices
 
 ---
 
@@ -71,7 +71,7 @@ openchronicle-core/                           # ❌ FLAT LAYOUT (NOT src/)
 ### Entry Points Identified
 1. **`main.py`** (817 lines) - Primary application entry with god module antipattern
 2. **`cli/main.py`** - CLI framework entry point
-3. **`core/main.py`** - Core API entry point  
+3. **`core/main.py`** - Core API entry point
 4. **`tests/main.py`** - Test runner entry point
 5. **`utilities/main.py`** - Utilities CLI entry point
 
@@ -312,19 +312,19 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production"] = "development"
     debug: bool = False
     log_level: str = "INFO"
-    
+
     # Database
     database_url: str = "sqlite:///openchronicle.db"
-    
+
     # LLM Configuration
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
     default_model: str = "gpt-4"
-    
+
     # Cache
     redis_url: str | None = None
     cache_ttl: int = 3600
-    
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -547,7 +547,7 @@ jobs:
 
 ### Effort: **L (Large)**
 ### Risks: **HIGH** - Major refactoring with potential breaking changes
-### Mitigation: 
+### Mitigation:
 - Create branch for migration
 - Move packages incrementally with test validation
 - Keep old structure until new one is fully validated
@@ -559,7 +559,7 @@ jobs:
 
 ## Phase 2 — Testing & Typing - 2 weeks
 
-### Checklist  
+### Checklist
 - [ ] Restructure tests to mirror `src/` layout exactly
 - [ ] Create centralized fixtures in `tests/fixtures/`
 - [ ] Add parametrized tests for common patterns
@@ -899,7 +899,7 @@ Contains core business entities, value objects, and domain services.
 ### Application Layer (`src/openchronicle/application/`)
 Orchestrates domain objects to fulfill use cases.
 - **Commands**: Write operations
-- **Queries**: Read operations  
+- **Queries**: Read operations
 - **Orchestrators**: Complex workflows
 
 ### Infrastructure Layer (`src/openchronicle/infrastructure/`)

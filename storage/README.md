@@ -13,7 +13,7 @@ The `storage/` directory contains all OpenChronicle content and data files, orga
   - Import/export location for story content
   - Primary location for user-created storytelling content
 
-- **`chatbots/`** - AI chatbot configurations  
+- **`chatbots/`** - AI chatbot configurations
   - Single-voice AI persona definitions
   - Chatbot personality and behavior configurations
   - Leverages OpenChronicle's CharacterConsistencyEngine
@@ -109,9 +109,9 @@ The `storage/` directory contains all OpenChronicle content and data files, orga
 
 ## **💡 Directory Philosophy**
 
-**🎯 ORGANIZED:** Clear separation by purpose and lifecycle  
-**🔐 PROTECTED:** User content isolated from system files  
-**🧹 MAINTAINABLE:** Easy cleanup and maintenance procedures  
-**📈 SCALABLE:** Structure supports growth and expansion  
+**🎯 ORGANIZED:** Clear separation by purpose and lifecycle
+**🔐 PROTECTED:** User content isolated from system files
+**🧹 MAINTAINABLE:** Easy cleanup and maintenance procedures
+**📈 SCALABLE:** Structure supports growth and expansion
 
 This storage organization provides a clean, maintainable structure that separates user content from system data while maintaining easy access to all OpenChronicle functionality!

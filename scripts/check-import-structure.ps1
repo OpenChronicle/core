@@ -1,17 +1,17 @@
-# 📁 OpenChronicle Architecture Guard - Import Structure
+# OpenChronicle Architecture Guard - Import Structure
 # Validates import patterns for maintainability
 
-Write-Output "🔍 Validating import patterns..."
+Write-Output "Validating import patterns..."
 
 # Check for deep relative imports (prefer absolute)
 $DEEP_RELATIVES = Select-String -Path "src\**\*.py" -Pattern "from \.\.\." -Recurse 2>$null
 
 if ($DEEP_RELATIVES) {
-    Write-Output "⚠️ WARNING: Deep relative imports detected (prefer absolute):"
-    Write-Output $DEEP_RELATIVES
+    Write-Output "WARNING: Deep relative imports detected (prefer absolute):"
+    $DEEP_RELATIVES | ForEach-Object { Write-Output $_.Line }
     Write-Output ""
-    Write-Output "💡 Consider converting to absolute imports:"
-    Write-Output "  from ...deep.path → from src.openchronicle.deep.path"
+    Write-Output "Consider converting to absolute imports:"
+    Write-Output "  from ...deep.path -> from src.openchronicle.deep.path"
     Write-Output ""
 }
 
@@ -19,8 +19,8 @@ if ($DEEP_RELATIVES) {
 $ABSOLUTE_IMPORTS = (Select-String -Path "src\**\*.py" -Pattern "from src\.openchronicle" -Recurse 2>$null | Measure-Object).Count
 $RELATIVE_IMPORTS = (Select-String -Path "src\**\*.py" -Pattern "from \." -Recurse 2>$null | Measure-Object).Count
 
-Write-Output "📊 Import pattern metrics:"
+Write-Output "Import pattern metrics:"
 Write-Output "  Absolute imports: $ABSOLUTE_IMPORTS"
 Write-Output "  Relative imports: $RELATIVE_IMPORTS"
 
-Write-Output "✅ Import structure validation complete"
+Write-Output "Import structure validation complete"

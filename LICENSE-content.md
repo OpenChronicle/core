@@ -1,6 +1,6 @@
 # 📘 License: Story Content
 
-**OpenChronicle Storypacks, Templates, and Canon Files**  
+**OpenChronicle Storypacks, Templates, and Canon Files**
 Licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 ---
@@ -29,7 +29,7 @@ All example and included story content located in:
 
 ## 🔒 This License Does *Not* Apply To:
 - The OpenChronicle core engine
-- Any application logic, CLI tools, or API logic  
+- Any application logic, CLI tools, or API logic
 These are licensed separately under AGPL-3.0 (see `LICENSE.md`).
 
 ---

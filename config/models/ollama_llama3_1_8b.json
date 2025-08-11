@@ -1,5 +1,5 @@
 {
-  "provider": "ollama", 
+  "provider": "ollama",
   "display_name": "Ollama - Llama 3.1 8B",
   "description": "Local Llama 3.1 8B model via Ollama",
   "enabled": true,
@@ -36,7 +36,7 @@
   "health_check": {
     "enabled": true,
     "endpoint": "/api/tags",
-    "method": "GET", 
+    "method": "GET",
     "interval": 300,
     "timeout": 15
   },
@@ -61,7 +61,7 @@
     "inference_speed": "fast",
     "recommended_for": [
       "local_development",
-      "privacy_sensitive_tasks", 
+      "privacy_sensitive_tasks",
       "extended_conversations"
     ]
   },

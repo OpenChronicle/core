@@ -43,7 +43,7 @@ requests>=2.31.0                 # HTTP requests
 
 # Optional: Install only what you need
 # pip install openai anthropic google-generativeai
-# pip install groq cohere mistralai  
+# pip install groq cohere mistralai
 # pip install transformers torch
 # pip install stability-sdk replicate
 # pip install pillow requests

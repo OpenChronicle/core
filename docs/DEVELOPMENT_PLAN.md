@@ -1,8 +1,8 @@
 # OpenChronicle Development Plan
 
-**Version**: 1.0  
-**Updated**: August 9, 2025  
-**Status**: Active - Phase 0 Ready  
+**Version**: 1.0
+**Updated**: August 9, 2025
+**Status**: Active - Phase 0 Ready
 
 ## 1. Scope & Non-Goals
 
@@ -29,7 +29,7 @@ Current State (DUAL):
 Target State (UNIFIED):
 src/openchronicle/
 ├── domain/                  # Core business logic
-├── application/             # Use cases and orchestration  
+├── application/             # Use cases and orchestration
 ├── infrastructure/          # External service adapters
 ├── interfaces/              # User-facing adapters
 └── shared/                  # Cross-cutting concerns

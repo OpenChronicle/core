@@ -9,7 +9,7 @@ The `import/` directory provides a safe, organized way to prepare story content 
 ## How It Works
 
 1. **Content Staging**: Place story content folders in this directory
-2. **Scanning**: Use `--scan` mode to discover available imports  
+2. **Scanning**: Use `--scan` mode to discover available imports
 3. **Import**: Use `--import-dir` mode to safely import content
 4. **Duplicate Prevention**: System checks for existing storypacks and warns about conflicts
 
