@@ -14,6 +14,10 @@ from ..shared import ValidationResult
 from .response_models import ContextAnalysis
 from .response_models import ContextQuality
 from .response_models import ResponseComplexity
+from openchronicle.shared.logging_system import (
+    get_logger,
+    log_error_with_context,
+)
 
 
 class ContextAnalyzer(NarrativeComponent):
@@ -29,6 +33,7 @@ class ContextAnalyzer(NarrativeComponent):
 
     def __init__(self, config: dict[str, Any] = None):
         super().__init__("ContextAnalyzer", config)
+        self.logger = get_logger("openchronicle.response.context")
 
         # Analysis thresholds
         self.quality_thresholds = (
@@ -65,6 +70,15 @@ class ContextAnalyzer(NarrativeComponent):
     def process(self, data: dict[str, Any]) -> ContextAnalysis:
         """Analyze context data and return analysis results."""
         try:
+            self.logger.log_info(
+                "context analysis started",
+                extra={
+                    "component": "ContextAnalyzer",
+                    "phase": "process:start",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
             context_data = data.get("context", {})
 
             # Assess context quality
@@ -93,7 +107,7 @@ class ContextAnalyzer(NarrativeComponent):
             # Calculate confidence
             confidence = self._calculate_analysis_confidence(context_data, quality)
 
-            return ContextAnalysis(
+            analysis = ContextAnalysis(
                 quality=quality,
                 complexity_needs=complexity,
                 content_type=content_type,
@@ -105,8 +119,28 @@ class ContextAnalyzer(NarrativeComponent):
                 missing_elements=missing_elements,
                 recommendations=recommendations,
             )
+            self.logger.log_info(
+                "context analysis completed",
+                extra={
+                    "component": "ContextAnalyzer",
+                    "phase": "process:complete",
+                    "quality": getattr(quality, "name", str(quality)),
+                    "complexity": getattr(complexity, "name", str(complexity)),
+                    "content_type": content_type,
+                },
+            )
+            return analysis
 
         except Exception as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ContextAnalyzer",
+                    "phase": "process:exception",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
             return ContextAnalysis(
                 quality=ContextQuality.POOR,
                 complexity_needs=ResponseComplexity.SIMPLE,

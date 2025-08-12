@@ -1,5 +1,5 @@
 """
-Statistics Engine - Scene statistics and analytics
+Scene Statistics - Scene statistics and analytics
 
 Provides comprehensive statistics and analytics for scenes:
 - Token usage analysis
@@ -8,20 +8,21 @@ Provides comprehensive statistics and analytics for scenes:
 - Content analysis
 """
 
+from __future__ import annotations
+
 import json
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from openchronicle.domain.ports.persistence_port import IPersistencePort
+from openchronicle.shared.logging_system import log_error_with_context
 
 
-class StatisticsEngine:
+class SceneStatistics:
     """Handles scene statistics and analytics."""
 
     def __init__(self, story_id: str, persistence_port: Optional[IPersistencePort] = None):
-        """
-        Initialize statistics engine for a specific story.
+        """Initialize statistics for a specific story.
 
         Args:
             story_id: Story identifier
@@ -30,14 +31,8 @@ class StatisticsEngine:
         self.persistence = persistence_port
 
     def get_scenes_with_long_turns(self) -> list[dict[str, Any]]:
-        """
-        Get scenes with unusually long user inputs or model outputs.
-
-        Returns:
-            List of scenes with long turns
-        """
+        """Return scenes with unusually long user inputs or model outputs."""
         try:
-            # Query for scenes with long content (>2000 characters for either input or output)
             if not self.persistence:
                 return []
             rows = self.persistence.execute_query(
@@ -52,9 +47,9 @@ class StatisticsEngine:
             """,
             )
 
-            results = []
+            results: list[dict[str, Any]] = []
             for row in rows:
-                scene_data = {
+                scene_data: dict[str, Any] = {
                     "scene_id": row["scene_id"],
                     "timestamp": row["timestamp"],
                     "scene_label": row.get("scene_label"),
@@ -62,18 +57,13 @@ class StatisticsEngine:
                     "output_length": row["output_length"],
                     "total_length": row["input_length"] + row["output_length"],
                     "input_preview": (
-                        row["input"][:200] + "..."
-                        if len(row["input"]) > 200
-                        else row["input"]
+                        row["input"][:200] + "..." if len(row["input"]) > 200 else row["input"]
                     ),
                     "output_preview": (
-                        row["output"][:200] + "..."
-                        if len(row["output"]) > 200
-                        else row["output"]
+                        row["output"][:200] + "..." if len(row["output"]) > 200 else row["output"]
                     ),
                 }
 
-                # Add token information if available in structured tags
                 if row.get("structured_tags"):
                     try:
                         tags = json.loads(row["structured_tags"])
@@ -86,19 +76,13 @@ class StatisticsEngine:
 
             return results
 
-        except Exception as e:
-            print(f"Error getting scenes with long turns: {e}")
+        except Exception as e:  # noqa: BLE001 - broad for telemetry safety at boundary
+            log_error_with_context(e, {"operation": "get_scenes_with_long_turns", "story_id": self.story_id})
             return []
 
     def get_token_usage_stats(self) -> dict[str, Any]:
-        """
-        Get comprehensive token usage statistics.
-
-        Returns:
-            Dictionary with token usage analytics
-        """
+        """Return comprehensive token usage statistics."""
         try:
-            # Get all scenes with structured tags
             if not self.persistence:
                 return {
                     "total_tokens": 0,
@@ -120,8 +104,8 @@ class StatisticsEngine:
 
             total_tokens = 0
             total_cost = 0.0
-            model_usage = {}
-            daily_usage = {}
+            model_usage: dict[str, dict[str, Any]] = {}
+            daily_usage: dict[str, dict[str, int]] = {}
             scene_count = 0
 
             for row in rows:
@@ -136,21 +120,15 @@ class StatisticsEngine:
                         total_cost += cost
                         scene_count += 1
 
-                        # Track model usage
                         if model in model_usage:
                             model_usage[model]["tokens"] += tokens
                             model_usage[model]["scenes"] += 1
                             model_usage[model]["cost"] += cost
                         else:
-                            model_usage[model] = {
-                                "tokens": tokens,
-                                "scenes": 1,
-                                "cost": cost,
-                            }
+                            model_usage[model] = {"tokens": tokens, "scenes": 1, "cost": cost}
 
-                        # Track daily usage
                         if row["timestamp"]:
-                            date = row["timestamp"][:10]  # Extract YYYY-MM-DD
+                            date = row["timestamp"][:10]
                             if date in daily_usage:
                                 daily_usage[date]["tokens"] += tokens
                                 daily_usage[date]["scenes"] += 1
@@ -160,7 +138,6 @@ class StatisticsEngine:
                 except (json.JSONDecodeError, TypeError, KeyError):
                     continue
 
-            # Calculate averages
             avg_tokens_per_scene = total_tokens / scene_count if scene_count > 0 else 0
 
             return {
@@ -173,8 +150,8 @@ class StatisticsEngine:
                 "generated_at": datetime.utcnow().isoformat(),
             }
 
-        except Exception as e:
-            print(f"Error getting token usage stats: {e}")
+        except Exception as e:  # noqa: BLE001
+            log_error_with_context(e, {"operation": "get_token_usage_stats", "story_id": self.story_id})
             return {
                 "total_tokens": 0,
                 "total_cost": 0.0,
@@ -186,14 +163,8 @@ class StatisticsEngine:
             }
 
     def get_scene_summary_stats(self) -> dict[str, Any]:
-        """
-        Get comprehensive scene statistics.
-
-        Returns:
-            Dictionary with scene analytics
-        """
+        """Return comprehensive scene statistics."""
         try:
-            # Basic scene counts
             if not self.persistence:
                 return {"error": "No persistence configured"}
             basic_stats = self.persistence.execute_query(
@@ -218,7 +189,6 @@ class StatisticsEngine:
 
             stats = basic_stats[0]
 
-            # Scene labels distribution
             label_stats = self.persistence.execute_query(
                 self.story_id,
                 """
@@ -230,7 +200,6 @@ class StatisticsEngine:
             """,
             )
 
-            # Recent activity (last 7 days)
             recent_cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
             recent_stats = self.persistence.execute_query(
                 self.story_id,
@@ -252,46 +221,27 @@ class StatisticsEngine:
                     else 0
                 ),
                 "analysis_percentage": (
-                    round(
-                        (stats["scenes_with_analysis"] / stats["total_scenes"]) * 100, 1
-                    )
+                    round((stats["scenes_with_analysis"] / stats["total_scenes"]) * 100, 1)
                     if stats["total_scenes"] > 0
                     else 0
                 ),
-                "average_input_length": (
-                    round(stats["avg_input_length"], 1)
-                    if stats["avg_input_length"]
-                    else 0
-                ),
-                "average_output_length": (
-                    round(stats["avg_output_length"], 1)
-                    if stats["avg_output_length"]
-                    else 0
-                ),
+                "average_input_length": round(stats["avg_input_length"], 1) if stats["avg_input_length"] else 0,
+                "average_output_length": round(stats["avg_output_length"], 1) if stats["avg_output_length"] else 0,
                 "max_input_length": stats["max_input_length"] or 0,
                 "max_output_length": stats["max_output_length"] or 0,
                 "first_scene_time": stats["first_scene_time"],
                 "last_scene_time": stats["last_scene_time"],
-                "recent_scenes_7_days": (
-                    recent_stats[0]["recent_scenes"] if recent_stats else 0
-                ),
-                "label_distribution": {
-                    row["scene_label"]: row["count"] for row in label_stats
-                },
+                "recent_scenes_7_days": (recent_stats[0]["recent_scenes"] if recent_stats else 0),
+                "label_distribution": {row["scene_label"]: row["count"] for row in label_stats},
                 "generated_at": datetime.utcnow().isoformat(),
             }
 
-        except Exception as e:
-            print(f"Error getting scene summary stats: {e}")
+        except Exception as e:  # noqa: BLE001
+            log_error_with_context(e, {"operation": "get_scene_summary_stats", "story_id": self.story_id})
             return {"error": str(e)}
 
     def get_content_length_distribution(self) -> dict[str, Any]:
-        """
-        Get distribution of content lengths across scenes.
-
-        Returns:
-            Dictionary with length distribution analytics
-        """
+        """Return distribution of content lengths across scenes."""
         try:
             if not self.persistence:
                 return {"error": "No persistence configured"}
@@ -310,15 +260,14 @@ class StatisticsEngine:
             if not rows:
                 return {"error": "No scenes found"}
 
-            # Categorize by length
-            short_scenes = 0  # < 500 chars total
-            medium_scenes = 0  # 500-2000 chars
-            long_scenes = 0  # 2000-5000 chars
-            very_long_scenes = 0  # > 5000 chars
+            short_scenes = 0
+            medium_scenes = 0
+            long_scenes = 0
+            very_long_scenes = 0
 
-            input_lengths = []
-            output_lengths = []
-            total_lengths = []
+            input_lengths: list[int] = []
+            output_lengths: list[int] = []
+            total_lengths: list[int] = []
 
             for row in rows:
                 input_len = row["input_length"]
@@ -340,62 +289,37 @@ class StatisticsEngine:
 
             total_scenes = len(rows)
 
+            def pct(x: int) -> float:
+                return round((x / total_scenes) * 100, 1) if total_scenes else 0.0
+
             return {
                 "total_scenes": total_scenes,
                 "length_categories": {
-                    "short_scenes": {
-                        "count": short_scenes,
-                        "percentage": round((short_scenes / total_scenes) * 100, 1),
-                    },
-                    "medium_scenes": {
-                        "count": medium_scenes,
-                        "percentage": round((medium_scenes / total_scenes) * 100, 1),
-                    },
-                    "long_scenes": {
-                        "count": long_scenes,
-                        "percentage": round((long_scenes / total_scenes) * 100, 1),
-                    },
-                    "very_long_scenes": {
-                        "count": very_long_scenes,
-                        "percentage": round((very_long_scenes / total_scenes) * 100, 1),
-                    },
+                    "short_scenes": {"count": short_scenes, "percentage": pct(short_scenes)},
+                    "medium_scenes": {"count": medium_scenes, "percentage": pct(medium_scenes)},
+                    "long_scenes": {"count": long_scenes, "percentage": pct(long_scenes)},
+                    "very_long_scenes": {"count": very_long_scenes, "percentage": pct(very_long_scenes)},
                 },
                 "length_statistics": {
-                    "median_input_length": (
-                        sorted(input_lengths)[total_scenes // 2]
-                        if total_scenes > 0
-                        else 0
-                    ),
-                    "median_output_length": (
-                        sorted(output_lengths)[total_scenes // 2]
-                        if total_scenes > 0
-                        else 0
-                    ),
-                    "median_total_length": (
-                        sorted(total_lengths)[total_scenes // 2]
-                        if total_scenes > 0
-                        else 0
-                    ),
+                    "median_input_length": (sorted(input_lengths)[total_scenes // 2] if total_scenes > 0 else 0),
+                    "median_output_length": (sorted(output_lengths)[total_scenes // 2] if total_scenes > 0 else 0),
+                    "median_total_length": (sorted(total_lengths)[total_scenes // 2] if total_scenes > 0 else 0),
                     "max_total_length": max(total_lengths) if total_lengths else 0,
                     "min_total_length": min(total_lengths) if total_lengths else 0,
                 },
             }
 
-        except Exception as e:
-            print(f"Error getting content length distribution: {e}")
+        except Exception as e:  # noqa: BLE001
+            log_error_with_context(e, {"operation": "get_content_length_distribution", "story_id": self.story_id})
             return {"error": str(e)}
 
     def get_status(self) -> str:
-        """
-        Get statistics engine status.
-
-        Returns:
-            Status string
-        """
+        """Return statistics engine status string."""
         try:
             stats = self.get_scene_summary_stats()
             if "error" in stats:
                 return "error"
             return f"active ({stats['total_scenes']} scenes analyzed)"
-        except Exception:
+        except Exception as e:  # noqa: BLE001
+            log_error_with_context(e, {"operation": "get_status", "story_id": self.story_id})
             return "error"

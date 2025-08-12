@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from openchronicle.shared.logging_system import log_warning, log_error
 
 
 @dataclass
@@ -57,7 +58,14 @@ class NarrativeStateManager:
                     for key, state_data in data.items():
                         self.states[key] = NarrativeState(**state_data)
         except Exception as e:
-            print(f"Warning: Could not load narrative states: {e}")
+            log_warning(
+                f"Could not load narrative states: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "load_states",
+                    f"storage_dir:{self.storage_dir}",
+                ],
+            )
 
     def get_state(self, story_id: str, character_id: str = "") -> NarrativeState:
         """Get or create narrative state."""
@@ -84,7 +92,15 @@ class NarrativeStateManager:
             return True
 
         except Exception as e:
-            print(f"Error updating narrative state: {e}")
+            log_error(
+                f"Error updating narrative state: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "update_state",
+                    f"story:{story_id}",
+                    (f"character:{character_id}" if character_id else "character:__global__"),
+                ],
+            )
             return False
 
     def _save_states(self):
@@ -94,7 +110,14 @@ class NarrativeStateManager:
             with open(state_file, "w", encoding="utf-8") as f:
                 json.dump({k: asdict(v) for k, v in self.states.items()}, f, indent=2)
         except Exception as e:
-            print(f"Warning: Could not save narrative states: {e}")
+            log_warning(
+                f"Could not save narrative states: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "save_states",
+                    f"storage_dir:{self.storage_dir}",
+                ],
+            )
 
     def cleanup(self):
         """Cleanup and save final state."""

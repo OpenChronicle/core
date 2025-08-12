@@ -17,6 +17,7 @@ from typing import Optional
 
 # Import domain interfaces (following dependency inversion principle)
 from openchronicle.domain.ports.persistence_port import IPersistencePort
+from openchronicle.shared.logging_system import log_error_with_context
 
 
 class MoodAnalyzer:
@@ -129,7 +130,7 @@ class MoodAnalyzer:
             return results
 
         except Exception as e:
-            print(f"Error getting scenes by mood '{mood}': {e}")
+            log_error_with_context(e, {"operation": "get_scenes_by_mood", "story_id": self.story_id, "mood": mood})
             return []
 
     def get_scenes_by_type(self, scene_type: str) -> list[dict[str, Any]]:
@@ -188,7 +189,7 @@ class MoodAnalyzer:
             return results
 
         except Exception as e:
-            print(f"Error getting scenes by type '{scene_type}': {e}")
+            log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
             return []
 
     def get_character_mood_timeline(self, character_name: str) -> list[dict[str, Any]]:
@@ -239,7 +240,7 @@ class MoodAnalyzer:
             return timeline_with_trends
 
         except Exception as e:
-            print(f"Error getting character mood timeline for '{character_name}': {e}")
+            log_error_with_context(e, {"operation": "get_character_mood_timeline", "story_id": self.story_id, "character_name": character_name})
             return []
 
     def get_mood_distribution(self) -> dict[str, Any]:
@@ -314,7 +315,7 @@ class MoodAnalyzer:
             }
 
         except Exception as e:
-            print(f"Error getting mood distribution: {e}")
+            log_error_with_context(e, {"operation": "get_mood_distribution", "story_id": self.story_id})
             return {"error": str(e)}
 
     def _extract_mood_info(
@@ -418,5 +419,6 @@ class MoodAnalyzer:
             if "error" in distribution:
                 return "error"
             return f"active ({distribution['total_scenes_with_moods']} scenes with mood data)"
-        except Exception:
+        except Exception as e:
+            log_error_with_context(e, {"operation": "get_status", "story_id": self.story_id})
             return "error"

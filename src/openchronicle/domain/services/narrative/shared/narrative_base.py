@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from typing import Any
+from openchronicle.shared.logging_system import log_error, log_warning
 
 
 @dataclass
@@ -116,7 +117,12 @@ class StateManager:
             self.states[key] = state.copy()
             return True
 
-        except Exception:
+        except Exception as e:
+            # Log and preserve existing return semantics
+            log_error(
+                f"StateManager.set_state failed: {type(e).__name__}: {e}",
+                context_tags=["narrative_base", "state_manager", f"key:{key}"],
+            )
             return False
 
     def update_state(self, key: str, updates: dict[str, Any]) -> bool:
@@ -129,7 +135,16 @@ class StateManager:
             current_state.update(updates)
             return self.set_state(key, current_state)
 
-        except Exception:
+        except Exception as e:
+            log_error(
+                f"StateManager.update_state failed: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_base",
+                    "state_manager",
+                    f"key:{key}",
+                    "operation:update",
+                ],
+            )
             return False
 
     def get_state_history(self, key: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -144,7 +159,11 @@ class StateManager:
             self.states.pop(key, None)
             self.state_history.pop(key, None)
             return True
-        except Exception:
+        except Exception as e:
+            log_error(
+                f"StateManager.clear_state failed: {type(e).__name__}: {e}",
+                context_tags=["narrative_base", "state_manager", f"key:{key}", "operation:clear"],
+            )
             return False
 
 
@@ -162,7 +181,15 @@ class EventProcessor:
                 self.event_handlers[event_type] = []
             self.event_handlers[event_type].append(handler)
             return True
-        except Exception:
+        except Exception as e:
+            log_error(
+                f"EventProcessor.register_handler failed: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_base",
+                    "event_processor",
+                    f"event_type:{event_type}",
+                ],
+            )
             return False
 
     def process_event(self, event: NarrativeEvent) -> list[dict[str, Any]]:
@@ -181,6 +208,16 @@ class EventProcessor:
                     if result:
                         results.append(result)
                 except Exception as e:
+                    # Log handler failure but continue processing other handlers
+                    log_warning(
+                        f"Event handler error: {type(e).__name__}: {e}",
+                        context_tags=[
+                            "narrative_base",
+                            "event_processor",
+                            f"event_type:{event.event_type}",
+                            f"handler:{getattr(handler, '__name__', str(handler))}",
+                        ],
+                    )
                     results.append({"error": str(e), "handler": str(handler)})
 
             # Record processed event
@@ -194,6 +231,14 @@ class EventProcessor:
             return results
 
         except Exception as e:
+            log_error(
+                f"EventProcessor.process_event failed: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_base",
+                    "event_processor",
+                    f"event_type:{getattr(event, 'event_type', 'unknown')}",
+                ],
+            )
             return [{"error": str(e)}]
 
     def get_event_statistics(self) -> dict[str, Any]:

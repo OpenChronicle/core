@@ -101,6 +101,8 @@ class SceneRepository:
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error saving scene {scene_data.scene_id}: {e}",
+                story_id=self.story_id,
+                scene_id=scene_data.scene_id,
                 context_tags=["scene","repository","save","error"],
             )
             raise SaveSceneError(str(e)) from e
@@ -136,6 +138,8 @@ class SceneRepository:
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error loading scene {scene_id}: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
                 context_tags=["scene","repository","load","error"],
             )
             raise LoadSceneError(str(e)) from e
@@ -186,6 +190,7 @@ class SceneRepository:
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error listing scenes: {e}",
+                story_id=self.story_id,
                 context_tags=["scene","repository","list","error"],
             )
             raise ListScenesError(str(e)) from e
@@ -217,6 +222,7 @@ class SceneRepository:
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error counting scenes: {e}",
+                story_id=self.story_id,
                 context_tags=["scene","repository","count","error"],
             )
             raise CountScenesError(str(e)) from e
@@ -245,6 +251,8 @@ class SceneRepository:
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error deleting scene {scene_id}: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
                 context_tags=["scene","repository","delete","error"],
             )
             return False
@@ -274,6 +282,8 @@ class SceneRepository:
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error updating scene label for {scene_id}: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
                 context_tags=["scene","repository","update_label","error"],
             )
             return False

@@ -17,6 +17,10 @@ from .response_models import ContextQuality
 from .response_models import ResponseComplexity
 from .response_models import ResponsePlan
 from .response_models import ResponseStrategy
+from openchronicle.shared.logging_system import (
+    get_logger,
+    log_error_with_context,
+)
 
 
 class ResponsePlanner(NarrativeComponent):
@@ -32,6 +36,7 @@ class ResponsePlanner(NarrativeComponent):
 
     def __init__(self, config: dict[str, Any] = None):
         super().__init__("ResponsePlanner", config)
+        self.logger = get_logger("openchronicle.response.planner")
 
         # Strategy selection weights
         self.strategy_weights = (
@@ -83,6 +88,15 @@ class ResponsePlanner(NarrativeComponent):
     def process(self, data: dict[str, Any]) -> ResponsePlan:
         """Plan a response based on context analysis."""
         try:
+            self.logger.log_info(
+                "response planning started",
+                extra={
+                    "component": "ResponsePlanner",
+                    "phase": "process:start",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
             context_analysis = data.get("context_analysis")
             preferences = data.get("preferences", {})
 
@@ -91,14 +105,38 @@ class ResponsePlanner(NarrativeComponent):
 
             # Select response strategy
             strategy = self._select_response_strategy(context_analysis, preferences)
+            self.logger.log_debug(
+                "strategy selected",
+                extra={
+                    "component": "ResponsePlanner",
+                    "phase": "process:strategy",
+                    "strategy": getattr(strategy, "name", str(strategy)),
+                },
+            )
 
             # Determine response complexity
             complexity = self._determine_response_complexity(
                 context_analysis, preferences
             )
+            self.logger.log_debug(
+                "complexity determined",
+                extra={
+                    "component": "ResponsePlanner",
+                    "phase": "process:complexity",
+                    "complexity": getattr(complexity, "name", str(complexity)),
+                },
+            )
 
             # Plan content focus
             content_focus = self._plan_content_focus(context_analysis, strategy)
+            self.logger.log_debug(
+                "content focus planned",
+                extra={
+                    "component": "ResponsePlanner",
+                    "phase": "process:content_focus",
+                    "content_focus": content_focus,
+                },
+            )
 
             # Select tone and style
             tone = self._select_tone(context_analysis, strategy)
@@ -116,7 +154,7 @@ class ResponsePlanner(NarrativeComponent):
             # Set quality targets
             quality_targets = self._set_quality_targets(complexity, strategy)
 
-            return ResponsePlan(
+            plan = ResponsePlan(
                 strategy=strategy,
                 complexity=complexity,
                 content_focus=content_focus,
@@ -127,9 +165,28 @@ class ResponsePlanner(NarrativeComponent):
                 context_integration=context_integration,
                 quality_targets=quality_targets,
             )
+            self.logger.log_info(
+                "response planning completed",
+                extra={
+                    "component": "ResponsePlanner",
+                    "phase": "process:complete",
+                    "estimated_length": estimated_length,
+                    "key_points_count": len(key_points),
+                },
+            )
+            return plan
 
         except Exception as e:
             # Return safe default plan
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponsePlanner",
+                    "phase": "process:exception",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
             return ResponsePlan(
                 strategy=ResponseStrategy.CONSERVATIVE,
                 complexity=ResponseComplexity.SIMPLE,

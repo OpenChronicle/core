@@ -71,6 +71,8 @@ class SceneManager:
             if not target_scene:
                 log_warning(
                     f"Target scene {scene_id} not found",
+                    story_id=self.story_id,
+                    scene_id=scene_id,
                     context_tags=["scene","rollback","not_found"],
                 )
                 return False
@@ -93,6 +95,8 @@ class SceneManager:
             if not scenes_to_remove:
                 log_info(
                     f"No scenes to rollback after {scene_id}",
+                    story_id=self.story_id,
+                    scene_id=scene_id,
                     context_tags=["scene","rollback","no_op"],
                 )
                 return True  # Nothing to rollback, but operation successful
@@ -116,6 +120,8 @@ class SceneManager:
 
             log_info(
                 f"Rollback successful: removed {len(scenes_to_remove)} scenes after {scene_id}",
+                story_id=self.story_id,
+                scene_id=scene_id,
                 context_tags=["scene","rollback","success"],
             )
             return True
@@ -123,6 +129,8 @@ class SceneManager:
         except (RuntimeError, ValueError, KeyError, TypeError) as e:  # narrowed
             log_error(
                 f"Error rolling back to scene {scene_id}: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
                 context_tags=["scene","rollback","error"],
             )
             raise RollbackSceneError(str(e)) from e

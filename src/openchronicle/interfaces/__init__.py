@@ -20,6 +20,7 @@ from .events import create_event_app
 from .events import run_event_server
 from .web import create_web_app
 from .web import run_web_server
+from ..shared.logging_system import log_info, log_error, log_system_event
 
 
 __all__ = [
@@ -81,11 +82,19 @@ def run_all_servers(
             log_level="info",
         )
 
-    print("🚀 Starting all OpenChronicle interface servers...")
-    print(f"   📊 API Server: http://{host}:{api_port}")
-    print(f"   🌐 Web Interface: http://{host}:{web_port}")
-    print(f"   ⚡ Event Server: http://{host}:{event_port}")
-    print("   🎯 CLI: Use 'openchronicle' command")
+    log_system_event(
+        "startup",
+        "Starting all OpenChronicle interface servers",
+        {
+            "api_url": f"http://{host}:{api_port}",
+            "web_url": f"http://{host}:{web_port}",
+            "event_url": f"http://{host}:{event_port}",
+        },
+    )
+    log_info("API Server starting", context_tags=["interfaces","api"], host=host, port=api_port)
+    log_info("Web Interface starting", context_tags=["interfaces","web"], host=host, port=web_port)
+    log_info("Event Server starting", context_tags=["interfaces","events"], host=host, port=event_port)
+    log_info("CLI available via 'openchronicle' command", context_tags=["interfaces","cli"]) 
 
     # Start processes
     processes = []
@@ -110,14 +119,13 @@ def run_all_servers(
         for process in processes:
             process.join()
     except KeyboardInterrupt:
-        print("\n🔄 Shutting down all servers...")
+        log_system_event("shutdown", "Shutting down all servers via KeyboardInterrupt")
         for process in processes:
             process.terminate()
 
         for process in processes:
             process.join()
-
-        print("✅ All servers stopped")
+        log_info("All servers stopped", context_tags=["interfaces"]) 
 
 
 # ================================

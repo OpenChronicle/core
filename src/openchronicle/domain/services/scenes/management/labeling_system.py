@@ -10,6 +10,11 @@ Handles scene labeling operations:
 from typing import Any
 
 from ..persistence.scene_repository import SceneRepository
+from openchronicle.shared.logging_system import (
+    log_error_with_context,
+    log_info,
+    log_warning,
+)
 
 
 class LabelingSystem:
@@ -25,6 +30,7 @@ class LabelingSystem:
         """
         self.story_id = story_id
         self.repository = repository
+    # Centralized logging via shared.logging_system helpers (no per-instance logger)
 
     def update_scene_label(self, scene_id: str, scene_label: str) -> bool:
         """
@@ -40,7 +46,13 @@ class LabelingSystem:
         try:
             # Validate label (basic validation)
             if not scene_label or not scene_label.strip():
-                print(f"Invalid label provided for scene {scene_id}")
+                # Invalid input; warn and bail without raising
+                log_warning(
+                    "Invalid label provided",
+                    story_id=self.story_id,
+                    scene_id=scene_id,
+                    context_tags=["update_scene_label"],
+                )
                 return False
 
             # Clean and normalize label
@@ -50,12 +62,24 @@ class LabelingSystem:
             success = self.repository.update_scene_label(scene_id, normalized_label)
 
             if success:
-                print(f"Scene {scene_id} labeled as '{normalized_label}'")
+                log_info(
+                    "Scene labeled",
+                    story_id=self.story_id,
+                    scene_id=scene_id,
+                    context_tags=["update_scene_label", f"label={normalized_label}"],
+                )
 
             return success
 
         except Exception as e:
-            print(f"Error updating scene label for {scene_id}: {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "update_scene_label",
+                    "story_id": self.story_id,
+                    "scene_id": scene_id,
+                },
+            )
             return False
 
     def get_scenes_by_label(self, scene_label: str) -> list[dict[str, Any]]:
@@ -108,7 +132,14 @@ class LabelingSystem:
             return results
 
         except Exception as e:
-            print(f"Error getting scenes by label '{scene_label}': {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_scenes_by_label",
+                    "story_id": self.story_id,
+                    "scene_label": scene_label,
+                },
+            )
             return []
 
     def get_labeled_scenes(self) -> list[dict[str, Any]]:
@@ -157,7 +188,13 @@ class LabelingSystem:
             return results
 
         except Exception as e:
-            print(f"Error getting labeled scenes: {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_labeled_scenes",
+                    "story_id": self.story_id,
+                },
+            )
             return []
 
     def get_label_statistics(self) -> dict[str, Any]:
@@ -220,7 +257,13 @@ class LabelingSystem:
             }
 
         except Exception as e:
-            print(f"Error getting label statistics: {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_label_statistics",
+                    "story_id": self.story_id,
+                },
+            )
             return {"error": str(e)}
 
     def suggest_labels(self, scene_id: str) -> list[str]:
@@ -291,7 +334,14 @@ class LabelingSystem:
             return suggestions[:5]
 
         except Exception as e:
-            print(f"Error suggesting labels for scene {scene_id}: {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "suggest_labels",
+                    "story_id": self.story_id,
+                    "scene_id": scene_id,
+                },
+            )
             return []
 
     def rename_label(self, old_label: str, new_label: str) -> dict[str, Any]:
@@ -356,6 +406,15 @@ class LabelingSystem:
             }
 
         except Exception as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "rename_label",
+                    "story_id": self.story_id,
+                    "old_label": old_label,
+                    "new_label": new_label,
+                },
+            )
             return {"success": False, "error": f"Error renaming label: {e}"}
 
     def delete_label(self, label: str) -> dict[str, Any]:
@@ -401,6 +460,14 @@ class LabelingSystem:
             }
 
         except Exception as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "delete_label",
+                    "story_id": self.story_id,
+                    "label": label,
+                },
+            )
             return {"success": False, "error": f"Error deleting label: {e}"}
 
     def get_status(self) -> str:
@@ -416,5 +483,12 @@ class LabelingSystem:
                 return "error"
 
             return f"active ({stats['labeled_scenes']}/{stats['total_scenes']} scenes labeled, {stats['unique_labels']} unique labels)"
-        except Exception:
+        except Exception as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_status",
+                    "story_id": self.story_id,
+                },
+            )
             return "error"

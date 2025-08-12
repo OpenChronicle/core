@@ -10,6 +10,7 @@ from pathlib import Path
 import aiosqlite
 
 from .shared import DatabaseConfig
+from ...shared.logging_system import log_error
 
 
 class AsyncConnectionManager:
@@ -20,16 +21,11 @@ class AsyncConnectionManager:
 
     def _get_db_path(self, story_id: str, is_test: bool | None = None) -> str:
         """Get database path for story."""
-        if is_test is None:
-            is_test = self._is_test_context()
-
-        if is_test:
-            base_dir = Path("storage/temp/test_data") / story_id
-        else:
-            base_dir = Path("storage/data") / story_id
-
+        # Use shared DatabaseConfig to avoid hard-coded paths drifting from sync code
+        base_path = self.config.get_base_path(is_test)
+        base_dir = Path(base_path) / story_id
         base_dir.mkdir(parents=True, exist_ok=True)
-        return str(base_dir / "openchronicle.db")
+        return str(base_dir / self.config.db_filename)
 
     def _is_test_context(self) -> bool:
         """Detect if running in test context."""
@@ -58,5 +54,11 @@ class AsyncConnectionManager:
             async with self.get_connection(story_id, is_test) as conn:
                 await conn.execute("SELECT 1")
                 return True
-        except Exception:
+        except Exception as e:
+            # Log the exception for diagnostics but keep the boolean contract
+            log_error(
+                f"Async DB connection check failed: {e}",
+                context_tags=["db","async","check_connection"],
+                story_id=story_id,
+            )
             return False

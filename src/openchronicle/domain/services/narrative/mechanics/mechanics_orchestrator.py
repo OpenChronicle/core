@@ -7,11 +7,13 @@ Coordinates dice engine, branching, and resolution components.
 Author: OpenChronicle Development Team
 """
 
-import logging
 from datetime import datetime
 from typing import Any
-
-from openchronicle.shared.logging_system import log_system_event
+from openchronicle.shared.logging_system import (
+    get_logger,
+    log_error_with_context,
+    log_system_event,
+)
 
 from .dice_engine import DiceEngine
 from .mechanics_models import CharacterPerformance
@@ -37,7 +39,7 @@ class MechanicsOrchestrator:
             config: Optional resolution configuration
         """
         self.config = config or ResolutionConfig()
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("openchronicle.mechanics")
 
         # Initialize components
         self.dice_engine = DiceEngine(self.config)
@@ -166,7 +168,15 @@ class MechanicsOrchestrator:
 
         except Exception as e:
             self.error_count += 1
-            self.logger.error(f"Error resolving action: {e}")
+            log_error_with_context(
+                e,
+                context={
+                    "component": "MechanicsOrchestrator",
+                    "phase": "resolve_action",
+                    "character_id": getattr(request, "character_id", None),
+                    "resolution_type": getattr(getattr(request, "resolution_type", None), "value", None),
+                },
+            )
 
             return MechanicsResult(request=request, success=False, error_message=str(e))
 
@@ -184,7 +194,15 @@ class MechanicsOrchestrator:
                 max_branches=max_branches,
             )
         except Exception as e:
-            self.logger.error(f"Error creating branches: {e}")
+            log_error_with_context(
+                e,
+                context={
+                    "component": "MechanicsOrchestrator",
+                    "phase": "create_narrative_branches",
+                    "character_id": getattr(resolution_result, "character_id", None),
+                    "max_branches": max_branches,
+                },
+            )
             return []
 
     async def simulate_action(
@@ -252,7 +270,15 @@ class MechanicsOrchestrator:
             }
 
         except Exception as e:
-            self.logger.error(f"Error in simulation: {e}")
+            log_error_with_context(
+                e,
+                context={
+                    "component": "MechanicsOrchestrator",
+                    "phase": "simulate_action",
+                    "character_id": getattr(request, "character_id", None),
+                    "iterations": iterations,
+                },
+            )
             return {"error": str(e)}
 
     def _get_character_skill(

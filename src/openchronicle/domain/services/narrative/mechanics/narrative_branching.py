@@ -7,12 +7,15 @@ Extracted from NarrativeDiceEngine for modular architecture.
 Author: OpenChronicle Development Team
 """
 
-import logging
 import random
 from datetime import datetime
 from typing import Any
 
-from openchronicle.shared.logging_system import log_system_event
+from openchronicle.shared.logging_system import (
+    get_logger,
+    log_error_with_context,
+    log_system_event,
+)
 
 from ..shared.narrative_exceptions import NarrativeSystemError
 from .mechanics_models import CharacterPerformance
@@ -27,7 +30,7 @@ class NarrativeBranchingEngine:
 
     def __init__(self):
         """Initialize narrative branching engine."""
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("openchronicle.mechanics.branching")
 
         # Branch templates for different outcome types
         self.outcome_templates = {
@@ -167,6 +170,19 @@ class NarrativeBranchingEngine:
             context = {}
 
         try:
+            self.logger.log_info(
+                "create_narrative_branches started",
+                extra={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:start",
+                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
+                    "resolution_type": getattr(
+                        resolution_result.resolution_type, "name", str(resolution_result.resolution_type)
+                    ),
+                    "character_id": getattr(resolution_result, "character_id", None),
+                    "max_branches": max_branches,
+                },
+            )
             branches = []
 
             # Get templates for this outcome
@@ -213,11 +229,30 @@ class NarrativeBranchingEngine:
                 "narrative_branches_created",
                 f"Created {len(branches)} branches for {resolution_result.outcome.value}",
             )
+            self.logger.log_info(
+                "create_narrative_branches completed",
+                extra={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:complete",
+                    "branch_count": len(branches),
+                },
+            )
 
             return branches
 
         except Exception as e:
-            self.logger.error(f"Error creating narrative branches: {e}")
+            log_error_with_context(
+                e,
+                context={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:exception",
+                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
+                    "resolution_type": getattr(
+                        resolution_result.resolution_type, "name", str(resolution_result.resolution_type)
+                    ),
+                    "character_id": getattr(resolution_result, "character_id", None),
+                },
+            )
             raise NarrativeSystemError(f"Branch creation failed: {e}")
 
     def _create_branch_from_template(

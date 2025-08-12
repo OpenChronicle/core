@@ -6,7 +6,6 @@ defined in the application layer. These repositories handle data persistence
 and retrieval from various storage systems.
 """
 
-import asyncio
 import json
 import sqlite3
 from datetime import datetime
@@ -17,6 +16,7 @@ from openchronicle.domain import Character
 from openchronicle.domain import Scene
 from openchronicle.domain import Story
 from openchronicle.domain import StoryStatus
+from openchronicle.shared.logging_system import log_error
 
 
 class FileSystemStoryRepository:
@@ -49,7 +49,7 @@ class FileSystemStoryRepository:
 
             return True
         except Exception as e:
-            print(f"Error saving story {story.id}: {e}")
+            log_error(f"Error saving story {story.id}: {e}")
             return False
 
     async def get_by_id(self, story_id: str) -> Story | None:
@@ -81,7 +81,7 @@ class FileSystemStoryRepository:
                 ),
             )
         except Exception as e:
-            print(f"Error loading story {story_id}: {e}")
+            log_error(f"Error loading story {story_id}: {e}")
             return None
 
     async def delete(self, story_id: str) -> bool:
@@ -92,7 +92,7 @@ class FileSystemStoryRepository:
                 story_file.unlink()
             return True
         except Exception as e:
-            print(f"Error deleting story {story_id}: {e}")
+            log_error(f"Error deleting story {story_id}: {e}")
             return False
 
     async def list_all(self, limit: int = 50, offset: int = 0) -> list[Story]:
@@ -110,7 +110,7 @@ class FileSystemStoryRepository:
 
             return stories
         except Exception as e:
-            print(f"Error listing stories: {e}")
+            log_error(f"Error listing stories: {e}")
             return []
 
 
@@ -150,7 +150,7 @@ class FileSystemCharacterRepository:
 
             return True
         except Exception as e:
-            print(f"Error saving character {character.id}: {e}")
+            log_error(f"Error saving character {character.id}: {e}")
             return False
 
     async def get_by_id(self, character_id: str) -> Character | None:
@@ -188,7 +188,7 @@ class FileSystemCharacterRepository:
                 ),
             )
         except Exception as e:
-            print(f"Error loading character {character_id}: {e}")
+            log_error(f"Error loading character {character_id}: {e}")
             return None
 
     async def get_by_story(self, story_id: str) -> list[Character]:
@@ -202,7 +202,7 @@ class FileSystemCharacterRepository:
 
             return sorted(characters, key=lambda c: c.created_at or datetime.min)
         except Exception as e:
-            print(f"Error getting characters for story {story_id}: {e}")
+            log_error(f"Error getting characters for story {story_id}: {e}")
             return []
 
 
@@ -239,7 +239,7 @@ class FileSystemSceneRepository:
 
             return True
         except Exception as e:
-            print(f"Error saving scene {scene.id}: {e}")
+            log_error(f"Error saving scene {scene.id}: {e}")
             return False
 
     async def get_by_id(self, scene_id: str) -> Scene | None:
@@ -272,7 +272,7 @@ class FileSystemSceneRepository:
                 ),
             )
         except Exception as e:
-            print(f"Error loading scene {scene_id}: {e}")
+            log_error(f"Error loading scene {scene_id}: {e}")
             return None
 
     async def get_by_story(
@@ -292,7 +292,7 @@ class FileSystemSceneRepository:
 
             return story_scenes[offset : offset + limit]
         except Exception as e:
-            print(f"Error getting scenes for story {story_id}: {e}")
+            log_error(f"Error getting scenes for story {story_id}: {e}")
             return []
 
 
@@ -303,37 +303,34 @@ class SQLiteStoryRepository:
     def __init__(self, db_path: str = "storage/openchronicle.db"):
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        asyncio.create_task(self._initialize_db())
+        # Initialize DB schema synchronously to avoid race conditions and temp files
+        self._initialize_db_sync()
 
-    async def _initialize_db(self):
-        """Initialize the database schema."""
-        async with aiofiles.open("temp_init.sql", "w") as f:
-            await f.write(
-                """
-                CREATE TABLE IF NOT EXISTS stories (
-                    id TEXT PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    status TEXT DEFAULT 'active',
-                    world_state TEXT,
-                    created_at TEXT,
-                    updated_at TEXT
-                );
+    def _initialize_db_sync(self) -> None:
+        """Initialize the database schema (synchronously, no temp files)."""
+        init_sql = """
+            CREATE TABLE IF NOT EXISTS stories (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                status TEXT DEFAULT 'active',
+                world_state TEXT,
+                created_at TEXT,
+                updated_at TEXT
+            );
 
-                CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);
-                CREATE INDEX IF NOT EXISTS idx_stories_updated ON stories(updated_at);
-            """
-            )
-
-        # Execute in sync context for initialization
-        conn = sqlite3.connect(self.db_path)
+            CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);
+            CREATE INDEX IF NOT EXISTS idx_stories_updated ON stories(updated_at);
+        """
         try:
-            with open("temp_init.sql") as f:
-                conn.executescript(f.read())
-            conn.commit()
-        finally:
-            conn.close()
-            Path("temp_init.sql").unlink(missing_ok=True)
+            conn = sqlite3.connect(self.db_path)
+            try:
+                conn.executescript(init_sql)
+                conn.commit()
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            log_error(f"SQLite initialization failed: {e}")
 
 
 # Export all repository implementations

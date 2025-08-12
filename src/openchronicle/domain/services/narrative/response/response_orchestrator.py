@@ -25,6 +25,7 @@ from .response_models import ResponsePlan
 from .response_models import ResponseRequest
 from .response_models import ResponseResult
 from .response_planner import ResponsePlanner
+from openchronicle.shared.logging_system import get_logger, log_error_with_context
 
 
 class ResponseOrchestrator(NarrativeComponent):
@@ -44,6 +45,9 @@ class ResponseOrchestrator(NarrativeComponent):
         config: dict[str, Any] = None,
     ):
         super().__init__("ResponseOrchestrator", config)
+
+        # Centralized logger
+        self.logger = get_logger()
 
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -75,6 +79,10 @@ class ResponseOrchestrator(NarrativeComponent):
         start_time = time.time()
 
         try:
+            self.logger.info(
+                "ResponseOrchestrator: processing request",
+                context_tags=["response","start"],
+            )
             # Extract request data
             request = self._create_request_from_data(data)
 
@@ -87,11 +95,25 @@ class ResponseOrchestrator(NarrativeComponent):
             analysis_start = time.time()
             context_analysis = self._analyze_context(request.context)
             analysis_time = time.time() - analysis_start
+            self.logger.debug(
+                "ResponseOrchestrator: context analyzed",
+                context_tags=["response","analyze"],
+                request_id=getattr(request, "request_id", None),
+                analysis_time=analysis_time,
+            )
 
             # Step 2: Plan response
             planning_start = time.time()
             response_plan = self._plan_response(context_analysis, request)
             planning_time = time.time() - planning_start
+            self.logger.debug(
+                "ResponseOrchestrator: response planned",
+                context_tags=["response","plan"],
+                request_id=getattr(request, "request_id", None),
+                planning_time=planning_time,
+                strategy=getattr(response_plan, "strategy", None),
+                complexity=getattr(response_plan, "complexity", None),
+            )
 
             # Step 3: Generate response (placeholder - will integrate with existing generation)
             generation_start = time.time()
@@ -99,6 +121,13 @@ class ResponseOrchestrator(NarrativeComponent):
                 context_analysis, response_plan
             )
             generation_time = time.time() - generation_start
+            self.logger.debug(
+                "ResponseOrchestrator: response generated",
+                context_tags=["response","generate"],
+                request_id=getattr(request, "request_id", None),
+                generation_time=generation_time,
+                generated_len=len(generated_response) if isinstance(generated_response, str) else None,
+            )
 
             # Step 4: Evaluate response (placeholder for now)
             evaluation_start = time.time()
@@ -106,6 +135,13 @@ class ResponseOrchestrator(NarrativeComponent):
                 generated_response, context_analysis, response_plan
             )
             evaluation_time = time.time() - evaluation_start
+            self.logger.debug(
+                "ResponseOrchestrator: response evaluated",
+                context_tags=["response","evaluate"],
+                request_id=getattr(request, "request_id", None),
+                evaluation_time=evaluation_time,
+                overall_score=getattr(evaluation, "overall_score", None),
+            )
 
             # Update metrics
             self._update_metrics(
@@ -127,9 +163,29 @@ class ResponseOrchestrator(NarrativeComponent):
             self.response_history.append(result)
             self._save_orchestrator_data()
 
+            self.logger.info(
+                "ResponseOrchestrator: request complete",
+                context_tags=["response","success"],
+                request_id=getattr(request, "request_id", None),
+                total_time=time.time() - start_time,
+            )
+
             return result
 
         except Exception as e:
+            # Log with context, but preserve current return behavior
+            try:
+                req_id = getattr(locals().get("request", None), "request_id", None)
+            except Exception:
+                req_id = None
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponseOrchestrator",
+                    "request_id": req_id,
+                    "phase": "process",
+                },
+            )
             return ResponseResult(
                 request=(
                     request
@@ -348,9 +404,16 @@ class ResponseOrchestrator(NarrativeComponent):
                     )
                 json.dump(history_data, f, indent=2)
 
-        except Exception:
-            # Don't fail the main operation if saving fails
-            pass
+        except Exception as e:
+            # Don't fail the main operation if saving fails, but log it
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponseOrchestrator",
+                    "phase": "save",
+                    "data_dir": str(self.data_dir),
+                },
+            )
 
     def _load_orchestrator_data(self) -> None:
         """Load existing orchestrator data."""
@@ -379,6 +442,13 @@ class ResponseOrchestrator(NarrativeComponent):
                         "responses_generated", 0
                     )
 
-        except Exception:
-            # Start fresh if loading fails
-            pass
+        except Exception as e:
+            # Start fresh if loading fails, but log it
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponseOrchestrator",
+                    "phase": "load",
+                    "data_dir": str(self.data_dir),
+                },
+            )

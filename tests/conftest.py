@@ -32,6 +32,69 @@ for p in (project_root, src_dir):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
+# Disable bytecode writes and purge any stale caches to avoid intermittent import of
+# legacy modules compiled from previous runs. This ensures deterministic imports.
+os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
+
+def _purge_py_caches(root: Path) -> None:
+    try:
+        # Remove __pycache__ directories
+        for d in root.rglob("__pycache__"):
+            shutil.rmtree(d, ignore_errors=True)
+        # Remove any stray .pyc files
+        for f in root.rglob("*.pyc"):
+            try:
+                f.unlink(missing_ok=True)  # type: ignore[arg-type]
+            except Exception:
+                pass
+    except Exception:
+        # Never break collection due to cleanup
+        pass
+
+# Purge caches for both repo root and src dir pre-collection
+_purge_py_caches(project_root)
+_purge_py_caches(src_dir)
+
+# Enforce that 'openchronicle' is resolved from our workspace src, not an installed package
+try:
+    import importlib
+    import importlib.abc
+    import importlib.machinery
+
+    # MetaPathFinder to force all future 'openchronicle' imports to come from src_dir
+    class _OCSrcFinder(importlib.abc.MetaPathFinder):
+        def find_spec(self, fullname: str, path=None, target=None):  # type: ignore[override]
+            if not fullname.startswith("openchronicle"):
+                return None
+            return importlib.machinery.PathFinder.find_spec(fullname, [str(src_dir)])
+
+    # Insert our finder at the front if not already present (before any import of openchronicle)
+    if not any(type(f).__name__ == "_OCSrcFinder" for f in sys.meta_path):
+        sys.meta_path.insert(0, _OCSrcFinder())
+
+    # Proactively purge any preloaded 'openchronicle' modules not from our src_dir
+    src_norm = os.path.normcase(str(src_dir.resolve())) + os.sep
+    to_purge = [
+        name
+        for name, mod in list(sys.modules.items())
+        if name.startswith("openchronicle")
+        and getattr(mod, "__file__", None)
+        and not os.path.normcase(os.path.abspath(mod.__file__)).startswith(src_norm)  # type: ignore[attr-defined]
+    ]
+    for name in to_purge:
+        sys.modules.pop(name, None)
+    importlib.invalidate_caches()
+except Exception:
+    # Never fail test collection due to path enforcement
+    pass
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Extra guard: purge caches again right before tests run."""
+    _purge_py_caches(project_root)
+    _purge_py_caches(src_dir)
+
 
 # -----------------------------------------------------------------------------
 # TEST CONFIG MANAGER

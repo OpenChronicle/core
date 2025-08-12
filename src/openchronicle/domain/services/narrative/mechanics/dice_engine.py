@@ -7,11 +7,14 @@ Extracted from NarrativeDiceEngine for modular architecture.
 Author: OpenChronicle Development Team
 """
 
-import logging
 import random
 from typing import Any
 
-from openchronicle.shared.logging_system import log_system_event
+from openchronicle.shared.logging_system import (
+    get_logger,
+    log_error_with_context,
+    log_system_event,
+)
 
 from ..shared.narrative_exceptions import NarrativeSystemError
 from .mechanics_models import DiceRoll
@@ -32,7 +35,7 @@ class DiceEngine:
             config: Optional resolution configuration
         """
         self.config = config or ResolutionConfig()
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("openchronicle.mechanics.dice")
 
         # Dice configurations
         self.dice_configs = {
@@ -121,7 +124,17 @@ class DiceEngine:
             return dice_roll
 
         except Exception as e:
-            self.logger.error(f"Error rolling dice: {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_dice",
+                    "dice_type": getattr(dice_type, "value", str(dice_type)),
+                    "count": count,
+                    "modifier": modifier,
+                    "advantage": advantage,
+                    "disadvantage": disadvantage,
+                },
+            )
             raise NarrativeSystemError(f"Dice rolling failed: {e}")
 
     def _roll_single_die(self, dice_type: DiceType) -> int:
@@ -168,7 +181,13 @@ class DiceEngine:
             return self.roll_dice(dice_type, count, modifier)
 
         except Exception as e:
-            self.logger.error(f"Error parsing dice string '{dice_string}': {e}")
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_multiple",
+                    "dice_string": dice_string,
+                },
+            )
             raise NarrativeSystemError(f"Invalid dice notation: {dice_string}")
 
     def _parse_dice_string(self, dice_string: str) -> tuple[int, DiceType, int]:

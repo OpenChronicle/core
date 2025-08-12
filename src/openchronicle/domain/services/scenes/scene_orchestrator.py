@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 """
 Scene Orchestrator - Unified Scene Management
 
 This orchestrator coordinates between all scene subsystems:
 - Scene persistence (scene_repository, scene_serializer)
-- Scene analysis (statistics_engine, mood_analyzer)
+- Scene analysis (scene_statistics, mood_analyzer)
 - Scene management (scene_manager, labeling_system)
 - Shared utilities (scene_models, id_generator)
 
@@ -13,6 +15,7 @@ Replaces the legacy monolithic scene_logger.py with a clean orchestration patter
 from datetime import UTC
 from datetime import datetime
 from typing import Any
+from typing import TYPE_CHECKING
 
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
@@ -24,8 +27,11 @@ from openchronicle.domain.errors.persistence_errors import (
     RollbackSceneError,
 )
 
-from .analysis.mood_analyzer import MoodAnalyzer
-from .analysis.statistics_engine import StatisticsEngine
+# Avoid importing analysis submodules at module import time to prevent
+# package-level side effects and stale import-cache issues.
+if TYPE_CHECKING:
+    from .analysis.mood_analyzer import MoodAnalyzer
+    from .analysis.scene_statistics import SceneStatistics
 from .management.labeling_system import LabelingSystem
 from .management.scene_manager import SceneManager
 
@@ -79,7 +85,11 @@ class SceneOrchestrator:
             persistence_port if persistence_port is not None else InMemorySqlitePersistence()
         )
 
-        log_info(f"SceneOrchestrator initialized for story {story_id}")
+        log_info(
+            "SceneOrchestrator initialized",
+            story_id=story_id,
+            context_tags=["init"],
+        )
 
     # ===== COMPONENT PROPERTIES (LAZY LOADING) =====
 
@@ -98,17 +108,25 @@ class SceneOrchestrator:
         return self._serializer
 
     @property
-    def statistics_engine(self) -> StatisticsEngine:
+    def statistics_engine(self) -> "SceneStatistics":
         """Get statistics engine (lazy loaded)."""
         if self._statistics_engine is None:
-            self._statistics_engine = StatisticsEngine(self.story_id, self._persistence_port)
+            from .analysis.scene_statistics import SceneStatistics
+
+            self._statistics_engine = SceneStatistics(
+                self.story_id, self._persistence_port
+            )
         return self._statistics_engine
 
     @property
     def mood_analyzer(self) -> MoodAnalyzer:
         """Get mood analyzer (lazy loaded)."""
         if self._mood_analyzer is None:
-            self._mood_analyzer = MoodAnalyzer(self.story_id, self._persistence_port)
+            from .analysis.mood_analyzer import MoodAnalyzer
+
+            self._mood_analyzer = MoodAnalyzer(
+                self.story_id, self._persistence_port
+            )
         return self._mood_analyzer
 
     @property
@@ -190,18 +208,37 @@ class SceneOrchestrator:
             try:
                 success = self.repository.save_scene(scene_data)
             except SaveSceneError as e:
-                log_error(f"SaveSceneError: {e}")
+                log_error(
+                    f"SaveSceneError: {e}",
+                    story_id=self.story_id,
+                    scene_id=scene_id,
+                    context_tags=["save_scene"],
+                )
                 return ""
 
             if success:
                 self._update_operation_metrics()
-                log_info(f"Scene {scene_id} saved successfully")
+                log_info(
+                    "Scene saved successfully",
+                    story_id=self.story_id,
+                    scene_id=scene_id,
+                    context_tags=["save_scene"],
+                )
                 return scene_id
-            log_error(f"Failed to save scene {scene_id}")
+            log_error(
+                "Failed to save scene",
+                story_id=self.story_id,
+                scene_id=scene_id,
+                context_tags=["save_scene"],
+            )
             return ""
 
         except (ValueError, TypeError, RuntimeError, KeyError) as e:
-            log_error(f"Error saving scene: {e}")
+            log_error(
+                f"Error saving scene: {e}",
+                story_id=self.story_id,
+                context_tags=["save_scene"],
+            )
             return ""
 
     async def log_scene_fragment(self, story_id: str, fragment: dict[str, Any]) -> bool:
@@ -219,7 +256,9 @@ class SceneOrchestrator:
         try:
             if story_id != self.story_id:
                 log_warning(
-                    f"log_scene_fragment called with mismatched story_id: {story_id} != {self.story_id}"
+                    "log_scene_fragment called with mismatched story_id",
+                    story_id=self.story_id,
+                    context_tags=["log_scene_fragment", f"incoming={story_id}"],
                 )
 
             user_input = fragment.get("user_input", "")
@@ -245,7 +284,11 @@ class SceneOrchestrator:
 
             return bool(scene_id)
         except (ValueError, TypeError, RuntimeError, KeyError) as e:
-            log_error(f"Error logging scene fragment: {e}")
+            log_error(
+                f"Error logging scene fragment: {e}",
+                story_id=self.story_id,
+                context_tags=["log_scene_fragment"],
+            )
             return False
 
     async def save_scene_async(
@@ -309,10 +352,20 @@ class SceneOrchestrator:
                 return self.serializer.serialize_scene_for_output(scene_data)
             return None
         except LoadSceneError as e:
-            log_error(f"LoadSceneError for {scene_id}: {e}")
+            log_error(
+                f"LoadSceneError: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
+                context_tags=["load_scene"],
+            )
             return None
         except (ValueError, TypeError, RuntimeError, KeyError) as e:
-            log_error(f"Unexpected error loading scene {scene_id}: {e}")
+            log_error(
+                f"Unexpected error loading scene: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
+                context_tags=["load_scene"],
+            )
             return None
 
     def list_scenes(self, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
@@ -323,10 +376,18 @@ class SceneOrchestrator:
                 self.serializer.serialize_scene_for_output(scene) for scene in scenes
             ]
         except ListScenesError as e:
-            log_error(f"ListScenesError: {e}")
+            log_error(
+                f"ListScenesError: {e}",
+                story_id=self.story_id,
+                context_tags=["list_scenes"],
+            )
             return []
         except (ValueError, TypeError, RuntimeError, KeyError) as e:
-            log_error(f"Unexpected error listing scenes: {e}")
+            log_error(
+                f"Unexpected error listing scenes: {e}",
+                story_id=self.story_id,
+                context_tags=["list_scenes"],
+            )
             return []
 
     # ===== SCENE ANALYSIS OPERATIONS =====
@@ -378,7 +439,12 @@ class SceneOrchestrator:
         try:
             return self.scene_manager.rollback_to_scene(scene_id)
         except RollbackSceneError as e:
-            log_error(f"RollbackSceneError: {e}")
+            log_error(
+                f"RollbackSceneError: {e}",
+                story_id=self.story_id,
+                scene_id=scene_id,
+                context_tags=["rollback"],
+            )
             return False
 
     # ===== ORCHESTRATOR STATUS =====

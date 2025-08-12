@@ -13,6 +13,7 @@ from dataclasses import field
 from datetime import UTC
 from datetime import datetime
 from typing import Any
+from openchronicle.shared.logging_system import log_error_with_context
 
 
 @dataclass
@@ -38,9 +39,16 @@ class StructuredTags:
                         "generation_time": usage.get("generation_time", 0.0),
                     }
                 )
-            except Exception:
-                # If token manager fails, continue without token info
-                pass
+            except Exception as e:
+                # If token manager fails, continue without token info but log context
+                log_error_with_context(
+                    e,
+                    {
+                        "operation": "structured_tags.add_token_information",
+                        "has_token_manager": True,
+                        "token_manager_type": type(token_manager).__name__,
+                    },
+                )
 
     def _add_scene_metadata(self) -> None:
         """Add basic scene metadata."""
