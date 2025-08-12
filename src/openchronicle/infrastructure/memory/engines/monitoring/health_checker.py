@@ -8,9 +8,13 @@ Extracted from production_monitoring.py for better modularity.
 import asyncio
 import logging
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, UTC
-from typing import Any, TYPE_CHECKING
+from dataclasses import asdict
+from dataclasses import dataclass
+from datetime import UTC
+from datetime import datetime
+from typing import TYPE_CHECKING
+from typing import Any
+
 
 if TYPE_CHECKING:
     from ...cache_orchestrator import DistributedMultiTierCache
@@ -61,6 +65,10 @@ class HealthChecker:
                     await client.ping()
                     node_time = time.time() - node_start
                     total_response_time += node_time
+                except (ConnectionError, TimeoutError) as e:
+                    failed_nodes.append(f"node_{node_index}: Network error - {e!s}")
+                except (ConnectionError, TimeoutError) as e:
+                    failed_nodes.append(f"node_{node_index}: Network error - {e!s}")
                 except Exception as e:
                     failed_nodes.append(f"node_{node_index}: {e!s}")
 
@@ -90,6 +98,22 @@ class HealthChecker:
                 timestamp=datetime.now(UTC),
             )
 
+        except (ConnectionError, TimeoutError) as e:
+            return HealthCheckResult(
+                name="redis_connectivity",
+                status="unhealthy",
+                response_time_ms=(time.time() - start_time) * 1000,
+                details={"error": f"Network connectivity error: {e!s}"},
+                timestamp=datetime.now(UTC),
+            )
+        except (ConnectionError, TimeoutError) as e:
+            return HealthCheckResult(
+                name="redis_connectivity",
+                status="unhealthy",
+                response_time_ms=(time.time() - start_time) * 1000,
+                details={"error": f"Network error: {str(e)}"},
+                timestamp=datetime.now(UTC),
+            )
         except Exception as e:
             return HealthCheckResult(
                 name="redis_connectivity",
@@ -150,6 +174,14 @@ class HealthChecker:
                 timestamp=datetime.now(UTC),
             )
 
+        except (ConnectionError, TimeoutError) as e:
+            return HealthCheckResult(
+                name="cache_operations",
+                status="unhealthy",
+                response_time_ms=(time.time() - start_time) * 1000,
+                details={"error": f"Network error: {str(e)}"},
+                timestamp=datetime.now(UTC),
+            )
         except Exception as e:
             return HealthCheckResult(
                 name="cache_operations",

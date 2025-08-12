@@ -17,9 +17,11 @@ from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pydantic import Field
+
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
+from openchronicle.shared.exceptions import ValidationError, ServiceError, ConfigurationError
 
 
 # ================================
@@ -256,10 +258,38 @@ async def create_story(
             metadata=story.metadata,
         )
 
+    except HTTPException:
+        # Re-raise HTTP exceptions without modification
+        raise
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid story data: {e!s}",
+        )
+    except (ServiceError, ConfigurationError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Service error creating story: {e!s}",
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid story data: {e!s}",
+        )
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error creating story: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create story: {e!s}",
+            detail=f"Unexpected error creating story: {e!s}",
         )
 
 
@@ -291,10 +321,35 @@ async def get_story(
 
     except HTTPException:
         raise
+    except (ValueError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid story ID: {e!s}",
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Service error retrieving story: {e!s}",
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid story ID: {e!s}",
+        )
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error retrieving story: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get story: {e!s}",
+            detail=f"Unexpected error retrieving story: {e!s}",
         )
 
 
@@ -339,10 +394,25 @@ async def update_story(
 
     except HTTPException:
         raise
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid update data: {e!s}",
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Service error updating story: {e!s}",
+        )
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error updating story: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update story: {e!s}",
+            detail=f"Unexpected error updating story: {e!s}",
         )
 
 
@@ -379,10 +449,25 @@ async def list_stories(
 
     except HTTPException:
         raise
+    except (ValueError, TypeError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid pagination parameters: {e!s}",
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Service error listing stories: {e!s}",
+        )
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error listing stories: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list stories: {e!s}",
+            detail=f"Unexpected error listing stories: {e!s}",
         )
 
 
@@ -437,6 +522,21 @@ async def create_character(
 
     except HTTPException:
         raise
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid character data: {e!s}",
+        )
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error creating character: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -476,6 +576,21 @@ async def get_character(
 
     except HTTPException:
         raise
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid character ID: {e!s}",
+        )
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error getting character: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -520,6 +635,16 @@ async def list_story_characters(
 
     except HTTPException:
         raise
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error listing characters: {e!s}",
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -570,6 +695,16 @@ async def generate_scene(
 
     except HTTPException:
         raise
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error generating scene: {e!s}",
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -612,6 +747,16 @@ async def list_story_scenes(
 
     except HTTPException:
         raise
+    except (AttributeError, KeyError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Data structure error listing scenes: {e!s}",
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Network connectivity error: {e!s}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

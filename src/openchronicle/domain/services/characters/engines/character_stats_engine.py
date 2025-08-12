@@ -10,7 +10,9 @@ Author: OpenChronicle Development Team
 import logging
 from typing import Any
 
-from ..core.character_data import CharacterData, CharacterStats, CharacterStatType
+from ..core.character_data import CharacterData
+from ..core.character_data import CharacterStats
+from ..core.character_data import CharacterStatType
 
 
 logger = logging.getLogger(__name__)
@@ -94,8 +96,11 @@ class CharacterStatsEngine:
             )
             return True
 
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.error(f"Invalid data or parameters updating character stat: {e}")
+            return False
         except Exception as e:
-            logger.error(f"Error updating character stat: {e}")
+            logger.error(f"Unexpected error updating character stat: {e}")
             return False
 
     def get_effective_stat(
@@ -125,8 +130,11 @@ class CharacterStatsEngine:
                 
             return base_value
 
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.error(f"Invalid data calculating effective stat {stat_type.value}: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Error getting effective stat {stat_type.value}: {e}")
+            logger.error(f"Unexpected error getting effective stat {stat_type.value}: {e}")
             return None
 
     def calculate_stat_modifier(self, stat_value: int) -> int:

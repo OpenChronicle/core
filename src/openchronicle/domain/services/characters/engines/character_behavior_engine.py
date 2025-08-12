@@ -62,6 +62,14 @@ class CharacterBehaviorEngine:
                 )
                 context.update(provider_context)
                 logger.debug(f"Added context from {provider.__class__.__name__}")
+            except (AttributeError, KeyError) as e:
+                logger.error(
+                    f"Provider data structure error in {provider.__class__.__name__}: {e}"
+                )
+            except (ValueError, TypeError) as e:
+                logger.error(
+                    f"Provider parameter error in {provider.__class__.__name__}: {e}"
+                )
             except Exception as e:
                 logger.error(
                     f"Error getting behavior context from {provider.__class__.__name__}: {e}"
@@ -87,6 +95,14 @@ class CharacterBehaviorEngine:
                 )
                 modifiers.update(provider_modifiers)
                 logger.debug(f"Added modifiers from {provider.__class__.__name__}")
+            except (AttributeError, KeyError) as e:
+                logger.error(
+                    f"Provider data structure error in {provider.__class__.__name__}: {e}"
+                )
+            except (ValueError, TypeError) as e:
+                logger.error(
+                    f"Provider parameter error in {provider.__class__.__name__}: {e}"
+                )
             except Exception as e:
                 logger.error(
                     f"Error getting response modifiers from {provider.__class__.__name__}: {e}"

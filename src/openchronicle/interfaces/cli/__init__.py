@@ -18,6 +18,9 @@ from rich.progress import TextColumn
 from rich.prompt import Confirm
 from rich.prompt import Prompt
 from rich.table import Table
+
+from openchronicle.shared.exceptions import ValidationError, ServiceError
+
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
@@ -196,8 +199,18 @@ async def create(title: str, description: str, genre: str, interactive: bool):
                 for error in result.errors:
                     console.print(f"  • {error}")
 
+    except (ValidationError, ValueError) as e:
+        console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
+    except ServiceError as e:
+        console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
+    except (ConnectionError, TimeoutError) as e:
+        console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
+    except OSError as e:
+        console.print(f"[bold red]❌ File system error:[/bold red] {e!s}")
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
     except Exception as e:
-        console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
+        console.print(f"[bold red]❌ Unexpected error:[/bold red] {e!s}")
     finally:
         await cli_app.shutdown()
 
@@ -248,6 +261,14 @@ async def list(limit: int):
                 for error in result.errors:
                     console.print(f"  • {error}")
 
+    except (ValidationError, ValueError) as e:
+        console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
+    except ServiceError as e:
+        console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
+    except (ConnectionError, TimeoutError) as e:
+        console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
@@ -289,6 +310,14 @@ async def show(story_id: str):
         else:
             console.print(f"[bold red]❌ Story not found:[/bold red] {story_id}")
 
+    except (ValidationError, ValueError) as e:
+        console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
+    except ServiceError as e:
+        console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
+    except (ConnectionError, TimeoutError) as e:
+        console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
@@ -395,6 +424,14 @@ async def create(story_id: str, name: str, interactive: bool):
                 for error in result.errors:
                     console.print(f"  • {error}")
 
+    except (ValidationError, ValueError) as e:
+        console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
+    except ServiceError as e:
+        console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
+    except (ConnectionError, TimeoutError) as e:
+        console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
@@ -445,6 +482,8 @@ async def list(story_id: str):
             for error in result.errors:
                 console.print(f"  • {error}")
 
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
@@ -565,6 +604,10 @@ async def generate(story_id: str, interactive: bool):
                 for error in result.errors:
                     console.print(f"  • {error}")
 
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
+    except (ConnectionError, TimeoutError) as e:
+        console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
@@ -609,6 +652,8 @@ async def list(story_id: str, limit: int):
             for error in result.errors:
                 console.print(f"  • {error}")
 
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error:[/bold red] {e!s}")
     finally:
@@ -640,6 +685,10 @@ async def status():
             status_color = "green" if status == "healthy" else "red"
             console.print(f"  • {component}: [{status_color}]{status}[/{status_color}]")
 
+    except (AttributeError, KeyError) as e:
+        console.print(f"[bold red]❌ Data structure error checking status:[/bold red] {e!s}")
+    except (ConnectionError, TimeoutError) as e:
+        console.print(f"[bold red]❌ Network error checking status:[/bold red] {e!s}")
     except Exception as e:
         console.print(f"[bold red]❌ Error checking status:[/bold red] {e!s}")
     finally:

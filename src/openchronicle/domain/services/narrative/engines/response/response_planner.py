@@ -10,6 +10,9 @@ Author: OpenChronicle Development Team
 import random
 from typing import Any
 
+from openchronicle.shared.logging_system import get_logger
+from openchronicle.shared.logging_system import log_error_with_context
+
 from ...shared import NarrativeComponent
 from ...shared import ValidationResult
 from .response_models import ContextAnalysis
@@ -17,10 +20,6 @@ from .response_models import ContextQuality
 from .response_models import ResponseComplexity
 from .response_models import ResponsePlan
 from .response_models import ResponseStrategy
-from openchronicle.shared.logging_system import (
-    get_logger,
-    log_error_with_context,
-)
 
 
 class ResponsePlanner(NarrativeComponent):
@@ -176,6 +175,66 @@ class ResponsePlanner(NarrativeComponent):
             )
             return plan
 
+        except (AttributeError, KeyError) as e:
+            # Return safe default plan for data structure errors
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponsePlanner",
+                    "phase": "process:data_structure_error",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
+            return ResponsePlan(
+                strategy=ResponseStrategy.CONSERVATIVE,
+                estimated_length=100,
+                key_points=["Response planning data structure error occurred"],
+                tone_adjustments=[],
+                pacing_notes=[],
+                character_focus=[],
+                issues=["Response planning data structure error"],
+            )
+        except (ValueError, TypeError) as e:
+            # Return safe default plan for parameter errors
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponsePlanner",
+                    "phase": "process:parameter_error",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
+            return ResponsePlan(
+                strategy=ResponseStrategy.CONSERVATIVE,
+                estimated_length=100,
+                key_points=["Response planning parameter error occurred"],
+                tone_adjustments=[],
+                pacing_notes=[],
+                character_focus=[],
+                issues=["Response planning parameter error"],
+            )
+        except (AttributeError, KeyError) as e:
+            # Data structure error - return safe default plan
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ResponsePlanner",
+                    "phase": "process:data_structure_error",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
+            return ResponsePlan(
+                strategy=ResponseStrategy.CONSERVATIVE,
+                estimated_length=100,
+                key_points=["Response planning data structure error occurred"],
+                tone_adjustments=[],
+                pacing_notes=[],
+                character_focus=[],
+                issues=["Response planning data structure error"],
+            )
         except Exception as e:
             # Return safe default plan
             log_error_with_context(

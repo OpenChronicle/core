@@ -85,6 +85,10 @@ class TemporalStateManager:
                 timestamp = timestamp[:-1] + "+00:00"
             dt = datetime.fromisoformat(timestamp)
             return dt.isoformat()
+        except (ValueError, TypeError):
+            return datetime.now(UTC).isoformat()
+        except (AttributeError, OSError):
+            return datetime.now(UTC).isoformat()
         except Exception:
             return datetime.now(UTC).isoformat()
 
@@ -115,6 +119,10 @@ class TemporalStateManager:
                             "gap_type": "significant" if gap_hours > 72 else "moderate",
                         }
                     )
+            except (ValueError, TypeError):
+                continue
+            except (KeyError, AttributeError):
+                continue
             except Exception:
                 continue
 

@@ -278,13 +278,27 @@ class ErrorHandler:
         """Log warning with context."""
         log_warning(f"Management System Warning: {message}")
         if context:
-            log_warning(f"Context: {json.dumps(context, default=str)}")
+            try:
+                log_warning(f"Context: {json.dumps(context, default=str)}")
+            except (TypeError, ValueError) as e:
+                log_warning(f"Context serialization error: {e}")
+            except Exception as e:
+                log_warning(f"Context logging error: {e}")
 
     @staticmethod
     def safe_execute(func: Callable, *args, default_return=None, **kwargs):
         """Safely execute function with error handling."""
         try:
             return func(*args, **kwargs)
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error in safe execution of {func.__name__}: {e}")
+            return default_return
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error in safe execution of {func.__name__}: {e}")
+            return default_return
+        except (ValueError, TypeError) as e:
+            log_error(f"Parameter error in safe execution of {func.__name__}: {e}")
+            return default_return
         except Exception as e:
             log_error(f"Safe execution failed for {func.__name__}: {e}")
             return default_return

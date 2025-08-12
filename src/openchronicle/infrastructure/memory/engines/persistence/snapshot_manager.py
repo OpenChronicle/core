@@ -106,6 +106,10 @@ class SnapshotManager:
             # But we can provide stats on how many would be cleaned
             return len(snapshots) - self.max_snapshots
 
+        except (AttributeError, KeyError):
+            return 0
+        except (ValueError, TypeError):
+            return 0
         except Exception:
             return 0
 

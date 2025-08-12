@@ -12,15 +12,17 @@ Extracted from legacy main.py to fit hexagonal architecture.
 """
 
 from dataclasses import dataclass
-from typing import Any
 from typing import TYPE_CHECKING
+from typing import Any
 
+from openchronicle.shared.exceptions import ServiceError, ValidationError, ModelError, NarrativeError
 from openchronicle.domain.entities import Story
 from openchronicle.domain.services import CharacterService
 from openchronicle.domain.services import MemoryService
 from openchronicle.domain.services import SceneService
 from openchronicle.domain.services import StoryService
 from openchronicle.shared.retry_policy import RetryPolicy
+
 
 if TYPE_CHECKING:
     from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
@@ -209,9 +211,7 @@ class StoryProcessingService:
         temperature: float,
     ) -> str:
         """Generate AI response using specified adapter and parameters."""
-        from openchronicle.domain.models.model_orchestrator import (
-            ModelOrchestrator,
-        )
+        from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 
         model_manager = ModelOrchestrator()
         policy = RetryPolicy(max_attempts=3, base_delay=0.4, retry_exceptions=(Exception,))  # TODO: narrow exception types
@@ -231,11 +231,16 @@ class StoryProcessingService:
                 f"Generated AI response: {ai_response[:100]}..."
             )
             return ai_response
-        except Exception as e:  # Final failure after retries
+        except (ModelError, NarrativeError) as e:  # Model/narrative failures after retries
             await self.logging_service.log_error(
-                f"AI generation failed after retries: {e}"
+                f"Model/narrative error after retries: {e}"
             )
-            return f"[Error generating response after retries: {e}]"
+            return f"[Model error after retries: {e}]"
+        except Exception as e:  # Final unexpected failure after retries
+            await self.logging_service.log_error(
+                f"Unexpected AI generation failure after retries: {e}"
+            )
+            return f"[Unexpected error generating response after retries: {e}]"
 
     async def _generate_content_flags(
         self, story_id: str, analysis: dict[str, Any], ai_response: str
@@ -249,7 +254,9 @@ class StoryProcessingService:
                 )
             else:
                 # Fallback for backward compatibility
-                from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+                from openchronicle.domain.ports.content_analysis_port import (
+                    IContentAnalysisPort,
+                )
                 
                 class MockContentAnalysisPort(IContentAnalysisPort):
                     async def generate_content_flags(
@@ -281,8 +288,11 @@ class StoryProcessingService:
             )
             return content_flags
 
+        except (ServiceError, ValidationError) as e:
+            await self.logging_service.log_error(f"Service/validation error in content flag generation: {e}")
+            return []
         except Exception as e:
-            await self.logging_service.log_error(f"Content flag generation failed: {e}")
+            await self.logging_service.log_error(f"Unexpected error in content flag generation: {e}")
             return []
 
     async def _log_scene(
@@ -312,8 +322,11 @@ class StoryProcessingService:
             await self.logging_service.log_info(f"Scene logged with ID: {scene_id}")
             return scene_id
 
+        except (ServiceError, ValidationError) as e:
+            await self.logging_service.log_error(f"Service/validation error in scene logging: {e}")
+            return None
         except Exception as e:
-            await self.logging_service.log_error(f"Scene logging failed: {e}")
+            await self.logging_service.log_error(f"Unexpected error in scene logging: {e}")
             return None
 
 

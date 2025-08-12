@@ -162,6 +162,9 @@ class DatabaseOperations:
                 conn.commit()
                 return True
 
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            print(f"Database error in initialization: {e}")
+            return False
         except Exception as e:
             print(f"Database initialization error: {e}")
             return False
@@ -182,6 +185,9 @@ class DatabaseOperations:
                 else:
                     cursor.execute(query)
                 return cursor.fetchall()
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            print(f"Database error in query execution: {e}")
+            return []
         except Exception as e:
             print(f"Query execution error: {e}")
             return []
@@ -203,6 +209,9 @@ class DatabaseOperations:
                     cursor.execute(query)
                 conn.commit()
                 return cursor.rowcount
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            print(f"Database error in update execution: {e}")
+            return 0
         except Exception as e:
             print(f"Update execution error: {e}")
             return 0
@@ -224,6 +233,9 @@ class DatabaseOperations:
                     cursor.execute(query)
                 conn.commit()
                 return cursor.lastrowid or 0
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            print(f"Database error in insert execution: {e}")
+            return 0
         except Exception as e:
             print(f"Insert execution error: {e}")
             return 0
@@ -315,6 +327,8 @@ class DatabaseOperations:
                             continue
                     stats.fts_total_docs = total_docs
 
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            print(f"Database error getting database stats: {e}")
         except Exception as e:
             print(f"Error getting database stats: {e}")
 

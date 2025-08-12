@@ -9,15 +9,14 @@ Author: OpenChronicle Development Team
 
 from typing import Any
 
+from openchronicle.shared.logging_system import get_logger
+from openchronicle.shared.logging_system import log_error_with_context
+
 from ...shared import NarrativeComponent
 from ...shared import ValidationResult
 from .response_models import ContextAnalysis
 from .response_models import ContextQuality
 from .response_models import ResponseComplexity
-from openchronicle.shared.logging_system import (
-    get_logger,
-    log_error_with_context,
-)
 
 
 class ContextAnalyzer(NarrativeComponent):
@@ -131,6 +130,40 @@ class ContextAnalyzer(NarrativeComponent):
             )
             return analysis
 
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ContextAnalyzer",
+                    "phase": "process:data_structure_error",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
+            return ContextAnalysis(
+                quality=ContextQuality.POOR,
+                complexity_needs=ResponseComplexity.SIMPLE,
+                detected_patterns=[],
+                content_type=content_type,
+                issues=["Context analysis data structure error"],
+            )
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "ContextAnalyzer",
+                    "phase": "process:parameter_error",
+                    "request_id": data.get("request_id"),
+                    "story_id": data.get("story_id"),
+                },
+            )
+            return ContextAnalysis(
+                quality=ContextQuality.POOR,
+                complexity_needs=ResponseComplexity.SIMPLE,
+                detected_patterns=[],
+                content_type=content_type,
+                issues=["Context analysis parameter error"],
+            )
         except Exception as e:
             log_error_with_context(
                 e,

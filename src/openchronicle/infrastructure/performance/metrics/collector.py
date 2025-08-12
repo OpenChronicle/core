@@ -11,17 +11,16 @@ from datetime import datetime
 from typing import Any
 
 import psutil
+
+from openchronicle.domain.ports.performance_interface_port import (
+    IPerformanceInterfacePort,
+)
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
-from openchronicle.domain.ports.performance_interface_port import IPerformanceInterfacePort
 from ..interfaces.performance_interfaces import IMetricsCollector
-from ..interfaces.performance_interfaces import PerformanceMetrics
 from ..interfaces.performance_interfaces import OperationContext
-
-
-
-
+from ..interfaces.performance_interfaces import PerformanceMetrics
 
 
 class MetricsCollector(IMetricsCollector):
@@ -119,6 +118,16 @@ class MetricsCollector(IMetricsCollector):
 
             return metrics
 
+        except (KeyError, AttributeError) as e:
+            self.logger.error(
+                f"Performance metrics data structure error for {operation_id}: {e}"
+            )
+            return self._create_fallback_metrics(operation_id, success, error_message)
+        except (ValueError, TypeError) as e:
+            self.logger.error(
+                f"Performance metrics parameter error for {operation_id}: {e}"
+            )
+            return self._create_fallback_metrics(operation_id, success, error_message)
         except Exception as e:
             self.logger.error(
                 f"Failed to finish operation tracking for {operation_id}: {e}"
@@ -157,8 +166,34 @@ class MetricsCollector(IMetricsCollector):
                 "timestamp": time.time(),
             }
 
+        except (OSError, IOError) as e:
+            # Handle system access errors during metrics collection
+            self.logger.error(f"System access error collecting metrics: {e}")
+            return {
+                "cpu_percent": 0.0,
+                "memory_mb": 0.0,
+                "memory_percent": 0.0,
+                "disk_read_mb": 0.0,
+                "disk_write_mb": 0.0,
+                "network_sent_mb": 0.0,
+                "network_recv_mb": 0.0,
+                "timestamp": time.time(),
+            }
+        except (AttributeError, ValueError) as e:
+            # Handle psutil API errors during metrics collection
+            self.logger.error(f"Metrics calculation error: {e}")
+            return {
+                "cpu_percent": 0.0,
+                "memory_mb": 0.0,
+                "memory_percent": 0.0,
+                "disk_read_mb": 0.0,
+                "disk_write_mb": 0.0,
+                "network_sent_mb": 0.0,
+                "network_recv_mb": 0.0,
+                "timestamp": time.time(),
+            }
         except Exception as e:
-            self.logger.error(f"Failed to collect system metrics: {e}")
+            self.logger.error(f"Unexpected error collecting system metrics: {e}")
             return {
                 "cpu_percent": 0.0,
                 "memory_mb": 0.0,

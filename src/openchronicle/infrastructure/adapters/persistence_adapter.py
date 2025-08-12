@@ -2,12 +2,17 @@
 Persistence adapter implementing domain persistence port.
 Provides concrete implementation of persistence operations.
 """
-from typing import Dict, Any, Optional, List
 import asyncio
+import json
 import os
 from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from openchronicle.domain.ports.persistence_port import IPersistencePort
+from openchronicle.shared.exceptions import InfrastructureError
 
 
 class PersistenceAdapter(IPersistencePort):
@@ -39,8 +44,14 @@ class PersistenceAdapter(IPersistencePort):
                 timeline_file.write_text("[]", encoding='utf-8')
             
             return True
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error initializing database for {story_id}: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            print(f"JSON encoding error initializing database for {story_id}: {e}")
+            return False
         except Exception as e:
-            print(f"Error initializing database for {story_id}: {e}")
+            print(f"Unexpected error initializing database for {story_id}: {e}")
             return False
     
     async def execute_query(self, story_id: str, query: str, params: Optional[Dict] = None) -> List[Dict]:
@@ -59,8 +70,14 @@ class PersistenceAdapter(IPersistencePort):
             else:
                 return []
                 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error executing query for {story_id}: {e}")
+            return []
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"JSON processing error executing query for {story_id}: {e}")
+            return []
         except Exception as e:
-            print(f"Error executing query for {story_id}: {e}")
+            print(f"Unexpected error executing query for {story_id}: {e}")
             return []
     
     async def execute_update(self, story_id: str, query: str, params: Optional[Dict] = None) -> bool:
@@ -76,8 +93,14 @@ class PersistenceAdapter(IPersistencePort):
             else:
                 return True
                 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error executing update for {story_id}: {e}")
+            return False
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"JSON processing error executing update for {story_id}: {e}")
+            return False
         except Exception as e:
-            print(f"Error executing update for {story_id}: {e}")
+            print(f"Unexpected error executing update for {story_id}: {e}")
             return False
     
     async def get_scenes(self, story_id: str, limit: int = 5) -> List[Dict]:
@@ -87,13 +110,18 @@ class PersistenceAdapter(IPersistencePort):
             scenes_file = story_path / "scenes.json"
             
             if scenes_file.exists():
-                import json
                 scenes = json.loads(scenes_file.read_text(encoding='utf-8'))
                 return scenes[-limit:] if scenes else []
             
             return []
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error getting scenes for {story_id}: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error getting scenes for {story_id}: {e}")
+            return []
         except Exception as e:
-            print(f"Error getting scenes for {story_id}: {e}")
+            print(f"Unexpected error getting scenes for {story_id}: {e}")
             return []
     
     async def get_scene_by_id(self, story_id: str, scene_id: str) -> Optional[Dict]:
@@ -103,15 +131,20 @@ class PersistenceAdapter(IPersistencePort):
             scenes_file = story_path / "scenes.json"
             
             if scenes_file.exists():
-                import json
                 scenes = json.loads(scenes_file.read_text(encoding='utf-8'))
                 for scene in scenes:
                     if scene.get('id') == scene_id:
                         return scene
             
             return None
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error getting scene {scene_id} for {story_id}: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error getting scene {scene_id} for {story_id}: {e}")
+            return None
         except Exception as e:
-            print(f"Error getting scene {scene_id} for {story_id}: {e}")
+            print(f"Unexpected error getting scene {scene_id} for {story_id}: {e}")
             return None
     
     async def update_scene_state(self, story_id: str, scene_id: str, state_data: Dict) -> bool:
@@ -121,7 +154,6 @@ class PersistenceAdapter(IPersistencePort):
             scenes_file = story_path / "scenes.json"
             
             if scenes_file.exists():
-                import json
                 scenes = json.loads(scenes_file.read_text(encoding='utf-8'))
                 
                 for scene in scenes:
@@ -133,25 +165,52 @@ class PersistenceAdapter(IPersistencePort):
                 return True
             
             return False
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error updating scene {scene_id} for {story_id}: {e}")
+            return False
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error updating scene {scene_id} for {story_id}: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            print(f"JSON encode error updating scene {scene_id} for {story_id}: {e}")
+            return False
         except Exception as e:
-            print(f"Error updating scene {scene_id} for {story_id}: {e}")
+            print(f"Unexpected error updating scene {scene_id} for {story_id}: {e}")
             return False
     
     async def _query_scenes(self, story_path: Path, params: Dict) -> List[Dict]:
         """Query scenes data."""
-        scenes_file = story_path / "scenes.json"
-        if scenes_file.exists():
-            import json
-            return json.loads(scenes_file.read_text(encoding='utf-8'))
-        return []
+        try:
+            scenes_file = story_path / "scenes.json"
+            if scenes_file.exists():
+                return json.loads(scenes_file.read_text(encoding='utf-8'))
+            return []
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error querying scenes: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error querying scenes: {e}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error querying scenes: {e}")
+            return []
     
     async def _query_timeline(self, story_path: Path, params: Dict) -> List[Dict]:
         """Query timeline data."""
-        timeline_file = story_path / "timeline.json"
-        if timeline_file.exists():
-            import json
-            return json.loads(timeline_file.read_text(encoding='utf-8'))
-        return []
+        try:
+            timeline_file = story_path / "timeline.json"
+            if timeline_file.exists():
+                return json.loads(timeline_file.read_text(encoding='utf-8'))
+            return []
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error querying timeline: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error querying timeline: {e}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error querying timeline: {e}")
+            return []
     
     async def _update_scenes(self, story_path: Path, params: Dict) -> bool:
         """Update scenes data."""

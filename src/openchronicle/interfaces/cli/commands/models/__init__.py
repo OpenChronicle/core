@@ -9,6 +9,7 @@ from typing import Any
 
 import typer
 from rich.prompt import Prompt
+
 from openchronicle.interfaces.cli.support.base_command import ModelCommand
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
 
@@ -276,6 +277,10 @@ def list_models(
         else:
             output_manager.warning("No models configured")
 
+    except ValueError as e:
+        OutputManager().error(f"Invalid model configuration: {e}")
+    except (ConnectionError, TimeoutError) as e:
+        OutputManager().error(f"Network error accessing model registry: {e}")
     except Exception as e:
         OutputManager().error(f"Error listing models: {e}")
 
@@ -337,6 +342,10 @@ def test_models(
             else:
                 output_manager.warning("No test results available")
 
+    except (AttributeError, KeyError) as e:
+        OutputManager().error(f"Data structure error testing models: {e}")
+    except (ValueError, TypeError) as e:
+        OutputManager().error(f"Parameter error testing models: {e}")
     except Exception as e:
         OutputManager().error(f"Error testing models: {e}")
 
@@ -405,6 +414,10 @@ def configure_provider(
                 style="green",
             )
 
+    except (AttributeError, KeyError) as e:
+        OutputManager().error(f"Configuration data error: {e}")
+    except (ValueError, TypeError) as e:
+        OutputManager().error(f"Parameter error configuring provider: {e}")
     except Exception as e:
         OutputManager().error(f"Error configuring provider: {e}")
 
@@ -475,6 +488,10 @@ def benchmark_models(
                     # Would save results to file
                     output_manager.success("Benchmark results saved to benchmarks/")
 
+    except (AttributeError, KeyError) as e:
+        OutputManager().error(f"Error accessing benchmark data: {e}")
+    except (ValueError, TypeError) as e:
+        OutputManager().error(f"Error with benchmark parameters: {e}")
     except Exception as e:
         OutputManager().error(f"Error running benchmark: {e}")
 
@@ -548,6 +565,10 @@ def model_status(
                 type_data, title="Models by Type", headers=["type", "models"]
             )
 
+    except (AttributeError, KeyError) as e:
+        OutputManager().error(f"Error accessing model status data: {e}")
+    except (ValueError, TypeError) as e:
+        OutputManager().error(f"Error with status parameters: {e}")
     except Exception as e:
         OutputManager().error(f"Error getting model status: {e}")
 

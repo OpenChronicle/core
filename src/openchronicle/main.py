@@ -23,7 +23,6 @@ from pathlib import Path
 # NOTE: Removed prior sys.path mutation that inserted the project root.
 # With a proper editable install (pip install -e .) or when tests add the
 # src directory, this is unnecessary and can mask packaging issues.
-
 # Core infrastructure with new paths
 from .shared.centralized_config import CentralizedConfigManager
 from .shared.dependency_injection import get_container

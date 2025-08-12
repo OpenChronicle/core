@@ -100,6 +100,10 @@ class GenerationEngine:
             with open(self.metadata_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
+        except (OSError, IOError, PermissionError) as e:
+            logger.error(f"File system error saving image metadata: {e}")
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Data structure error saving image metadata: {e}")
         except Exception as e:
             logger.error(f"Failed to save image metadata: {e}")
 

@@ -9,8 +9,11 @@ from typing import Any
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
 from rich.table import Table
+
 
 # Placeholder classes for future implementation
 PerformanceOrchestrator = None
@@ -150,6 +153,22 @@ def database_optimize(
                         status
                     )
                     
+                except (OSError, IOError, PermissionError) as e:
+                    table.add_row(
+                        str(db_path.name),
+                        "Unknown",
+                        "Unknown", 
+                        "0 B",
+                        f"❌ File Error: {str(e)[:30]}..."
+                    )
+                except (ValueError, TypeError) as e:
+                    table.add_row(
+                        str(db_path.name),
+                        "Unknown",
+                        "Unknown", 
+                        "0 B",
+                        f"❌ Parameter Error: {str(e)[:30]}..."
+                    )
                 except Exception as e:
                     table.add_row(
                         str(db_path.name),
@@ -164,6 +183,16 @@ def database_optimize(
             if not (dry_run or analyze_only):
                 console.print(f"💾 Total space saved: {_format_file_size(total_saved)}")
 
+    except (OSError, IOError, PermissionError) as e:
+        console.print(f"❌ [red]Database optimization file access error: {e}[/red]")
+        if verbose:
+            console.print_exception()
+        raise typer.Exit(1)
+    except (ValueError, TypeError) as e:
+        console.print(f"❌ [red]Database optimization parameter error: {e}[/red]")
+        if verbose:
+            console.print_exception()
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"❌ [red]Database optimization error: {e}[/red]")
         if verbose:
@@ -265,6 +294,18 @@ def database_health(
                     
                     health_results.append(health_result)
                     
+                except (OSError, IOError, PermissionError) as e:
+                    health_results.append({
+                        "database": str(db_path.name),
+                        "status": "File Access Error",
+                        "error": str(e)
+                    })
+                except (ValueError, TypeError) as e:
+                    health_results.append({
+                        "database": str(db_path.name),
+                        "status": "Parameter Error",
+                        "error": str(e)
+                    })
                 except Exception as e:
                     health_results.append({
                         "database": str(db_path.name),
@@ -313,6 +354,12 @@ def database_health(
         healthy_count = sum(1 for r in health_results if r.get("status") == "Healthy")
         console.print(f"\n📊 Health Summary: {healthy_count}/{len(health_results)} databases healthy")
 
+    except (OSError, IOError, PermissionError) as e:
+        console.print(f"❌ [red]Database health check file access error: {e}[/red]")
+        raise typer.Exit(1)
+    except (ValueError, TypeError) as e:
+        console.print(f"❌ [red]Database health check parameter error: {e}[/red]")
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"❌ [red]Database health check error: {e}[/red]")
         raise typer.Exit(1)

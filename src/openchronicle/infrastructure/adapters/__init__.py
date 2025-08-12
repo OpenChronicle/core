@@ -14,9 +14,10 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from openchronicle.domain.ports.model_management_port import IModelManagementPort
 from openchronicle.domain import ModelResponse
 from openchronicle.domain import NarrativeContext
+from openchronicle.domain.ports.model_management_port import IModelManagementPort
+from openchronicle.shared.exceptions import ModelError, InfrastructureError
 
 
 @dataclass
@@ -178,9 +179,15 @@ class OpenAIAdapter(BaseModelAdapter):
             )
 
             return response.choices[0].message.content
+        except ImportError as e:
+            self.logger.error(f"OpenAI package not available: {e}")
+            raise ModelError(f"OpenAI client not available: {e}") from e
+        except (ConnectionError, TimeoutError) as e:
+            self.logger.error(f"OpenAI connection error: {e}")
+            raise ModelError(f"OpenAI connection failed: {e}") from e
         except Exception as e:
             self.logger.error(f"OpenAI API error: {e}")
-            raise
+            raise ModelError(f"OpenAI API failed: {e}") from e
 
 
 class AnthropicAdapter(BaseModelAdapter):
@@ -224,9 +231,15 @@ class AnthropicAdapter(BaseModelAdapter):
             )
 
             return response.content[0].text
+        except ImportError as e:
+            self.logger.error(f"Anthropic package not available: {e}")
+            raise ModelError(f"Anthropic client not available: {e}") from e
+        except (ConnectionError, TimeoutError) as e:
+            self.logger.error(f"Anthropic connection error: {e}")
+            raise ModelError(f"Anthropic connection failed: {e}") from e
         except Exception as e:
             self.logger.error(f"Anthropic API error: {e}")
-            raise
+            raise ModelError(f"Anthropic API failed: {e}") from e
 
 
 class OllamaAdapter(BaseModelAdapter):
@@ -269,11 +282,15 @@ class OllamaAdapter(BaseModelAdapter):
                         result = await response.json()
                         return result.get("response", "")
                     raise Exception(f"Ollama API error: {response.status}")
-        except ImportError:
-            raise ImportError("aiohttp package not installed. Run: pip install aiohttp")
+        except ImportError as e:
+            self.logger.error(f"aiohttp package not available: {e}")
+            raise InfrastructureError("aiohttp package not installed. Run: pip install aiohttp") from e
+        except (ConnectionError, TimeoutError) as e:
+            self.logger.error(f"Ollama connection error: {e}")
+            raise ModelError(f"Ollama connection failed: {e}") from e
         except Exception as e:
             self.logger.error(f"Ollama API error: {e}")
-            raise
+            raise ModelError(f"Ollama API failed: {e}") from e
 
 
 class ModelManagementAdapter(IModelManagementPort):
@@ -343,6 +360,11 @@ class ModelManagementAdapter(IModelManagementPort):
                     finish_reason="completed",
                 )
 
+            except ModelError as e:
+                # Re-raise domain errors
+                last_error = str(e)
+                self.logger.warning(f"Model {model_name} failed with domain error: {e}")
+                continue
             except Exception as e:
                 last_error = str(e)
                 self.logger.warning(f"Model {model_name} failed: {e}")

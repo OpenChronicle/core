@@ -7,11 +7,10 @@ Provides basic timeline functionality when full timeline system is unavailable.
 from datetime import UTC
 from datetime import datetime
 from typing import Any
-
-
+from typing import Optional
 
 from openchronicle.domain.ports.persistence_port import IPersistencePort
-from typing import Optional
+
 
 class FallbackTimelineManager:
     """Minimal fallback timeline manager."""

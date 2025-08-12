@@ -101,8 +101,12 @@ class FTSManager:
                 conn.commit()
                 return True
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during FTS optimization
+            print(f"Database error optimizing FTS indexes: {e}")
+            return False
         except Exception as e:
-            print(f"Error optimizing FTS indexes: {e}")
+            print(f"Unexpected error optimizing FTS indexes: {e}")
             return False
 
     def rebuild_fts_index(self, story_id: str, is_test: bool | None = None) -> bool:
@@ -136,8 +140,12 @@ class FTSManager:
                 conn.commit()
                 return True
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during FTS index rebuilding
+            print(f"Database error rebuilding FTS indexes: {e}")
+            return False
         except Exception as e:
-            print(f"Error rebuilding FTS indexes: {e}")
+            print(f"Unexpected error rebuilding FTS indexes: {e}")
             return False
 
     def get_fts_stats(
@@ -187,8 +195,12 @@ class FTSManager:
                         )
                         continue
 
+        except sqlite3.Error as e:
+            print(f"Database error getting FTS stats: {e}")
+        except (OSError, IOError) as e:
+            print(f"File system error accessing FTS database: {e}")
         except Exception as e:
-            print(f"Error getting FTS stats: {e}")
+            print(f"Unexpected error getting FTS stats: {e}")
 
         return stats
 
@@ -228,8 +240,14 @@ class FTSManager:
                 conn.commit()
                 return True
 
+        except sqlite3.Error as e:
+            print(f"Database error syncing FTS table {fts_table}: {e}")
+            return False
+        except (OSError, IOError) as e:
+            print(f"File system error accessing FTS database: {e}")
+            return False
         except Exception as e:
-            print(f"Error syncing FTS table {fts_table}: {e}")
+            print(f"Unexpected error syncing FTS table {fts_table}: {e}")
             return False
 
     def search_fts(
@@ -259,8 +277,14 @@ class FTSManager:
 
                 return cursor.fetchall()
 
+        except sqlite3.Error as e:
+            print(f"Database error performing FTS search: {e}")
+            return []
+        except (OSError, IOError) as e:
+            print(f"File system error accessing FTS database: {e}")
+            return []
         except Exception as e:
-            print(f"Error performing FTS search: {e}")
+            print(f"Unexpected error performing FTS search: {e}")
             return []
 
     def _escape_fts_query(self, query: str) -> str:

@@ -5,14 +5,13 @@ Provides a rich interactive storytelling experience through the CLI framework.
 """
 
 import asyncio
+from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.status import Status
 
-
-from pathlib import Path
 
 # Import the main application logic
 try:
@@ -25,6 +24,28 @@ except ImportError:
 
     def log_error(msg):
         print(f"ERROR: {msg}")
+
+
+# Import exception types for proper handling
+try:
+    from openchronicle.shared.exceptions import (
+        DatabaseError,
+        DatabaseConnectionError,
+        ModelError,
+        ModelConnectionError,
+        ValidationError,
+        InfrastructureError,
+        OpenChronicleError,
+        CacheError,
+        CacheConnectionError,
+    )
+except ImportError:
+    # Fallback exception types if not available
+    class OpenChronicleError(Exception):
+        pass
+    DatabaseError = DatabaseConnectionError = OpenChronicleError
+    ModelError = ModelConnectionError = OpenChronicleError
+    ValidationError = InfrastructureError = OpenChronicleError
 
 
 # Import core components
@@ -126,8 +147,12 @@ class InteractiveStorySession:
             try:
                 await startup_health_check()
                 self.output_manager.success("Database health check passed")
-            except Exception as e:
+            except (DatabaseError, DatabaseConnectionError) as e:
                 self.output_manager.warning(f"Database health check failed: {e}")
+                # Continue with degraded functionality
+            except (ConnectionError, OSError) as e:
+                self.output_manager.warning(f"Network/system error during health check: {e}")
+                # Continue with degraded functionality
 
             # Load the story
             try:
@@ -135,8 +160,11 @@ class InteractiveStorySession:
                 self.output_manager.success(
                     f"Story '{self.story_id}' loaded successfully"
                 )
-            except Exception as e:
+            except (FileNotFoundError, ValidationError) as e:
                 self.output_manager.error(f"Failed to load story: {e}")
+                return False
+            except (DatabaseError, InfrastructureError) as e:
+                self.output_manager.error(f"System error while loading story: {e}")
                 return False
 
             # Initialize model
@@ -147,8 +175,14 @@ class InteractiveStorySession:
                 self.output_manager.success(
                     f"Model ready: {self.model_manager.default_adapter}"
                 )
-            except Exception as e:
+            except (ModelError, ModelConnectionError) as e:
                 self.output_manager.warning(f"Model initialization failed: {e}")
+                self.output_manager.info("System will use fallback mode")
+            except (ConnectionError, TimeoutError) as e:
+                self.output_manager.warning(f"Network error during model setup: {e}")
+                self.output_manager.info("System will use fallback mode")
+            except (KeyError, ValueError) as e:
+                self.output_manager.warning(f"Configuration error: {e}")
                 self.output_manager.info("System will use fallback mode")
 
             return True
@@ -179,7 +213,11 @@ class InteractiveStorySession:
 
         except KeyboardInterrupt:
             raise
-        except Exception as e:
+        except ValidationError as e:
+            log_error(f"Input validation failed: {e}")
+            self.output_manager.error("Invalid input format")
+            return ""
+        except (AttributeError, ValueError) as e:
             log_error(f"Error processing user input: {e}")
             return ""
 
@@ -225,8 +263,12 @@ class InteractiveStorySession:
                     max_tokens=max_tokens,
                     temperature=temperature,
                 )
-            except Exception as e:
+            except (ModelError, ConnectionError, CacheError) as e:
                 self.output_manager.error(f"AI generation failed: {e}")
+                ai_response = f"[Error generating response: {e}]"
+            except Exception as e:
+                # Unexpected error during AI generation
+                self.output_manager.error(f"Unexpected AI generation error: {e}")
                 ai_response = f"[Error generating response: {e}]"
 
         # Generate content flags from analysis and response
@@ -244,8 +286,11 @@ class InteractiveStorySession:
                 self.output_manager.info(
                     f"Generated {len(content_flags)} content flags"
                 )
-            except Exception as e:
+            except (ModelError, CacheError, InfrastructureError) as e:
                 self.output_manager.warning(f"Flag generation failed: {e}")
+            except Exception as e:
+                # Unexpected error during content flag generation
+                self.output_manager.warning(f"Unexpected flag generation error: {e}")
 
         # Log the scene
         scene_id = self.scene_orchestrator.save_scene(
@@ -289,8 +334,11 @@ class InteractiveStorySession:
             self.output_manager.table(
                 memory_data, title="📚 Memory Summary", headers=["Aspect", "Count"]
             )
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.output_manager.error(f"Failed to get memory summary: {e}")
+        except Exception as e:
+            # Unexpected error accessing memory summary
+            self.output_manager.error(f"Unexpected memory summary error: {e}")
 
     def show_model_info(self):
         """Show information about available models."""
@@ -311,7 +359,7 @@ class InteractiveStorySession:
                             else "Not initialized",
                         }
                     )
-                except Exception as e:
+                except (ModelError, ModelConnectionError, InfrastructureError) as e:
                     model_data.append(
                         {
                             "Adapter": adapter_name,
@@ -320,14 +368,27 @@ class InteractiveStorySession:
                             "Status": f"Error: {e}",
                         }
                     )
+                except Exception as e:
+                    # Unexpected error getting adapter info
+                    model_data.append(
+                        {
+                            "Adapter": adapter_name,
+                            "Provider": "Unknown",
+                            "Model": "Unknown",
+                            "Status": f"Unexpected error: {e}",
+                        }
+                    )
 
             self.output_manager.table(
                 model_data,
                 title="🤖 Available Models",
                 headers=["Adapter", "Provider", "Model", "Status"],
             )
-        except Exception as e:
+        except (ModelError, ModelConnectionError, InfrastructureError) as e:
             self.output_manager.error(f"Failed to get model info: {e}")
+        except Exception as e:
+            # Unexpected error getting model info
+            self.output_manager.error(f"Unexpected model info error: {e}")
 
     async def switch_model(self):
         """Switch the active model adapter."""
@@ -353,8 +414,11 @@ class InteractiveStorySession:
                 else:
                     self.output_manager.error(f"Failed to initialize {adapter_name}")
 
-        except Exception as e:
+        except (ModelError, ModelConnectionError, InfrastructureError) as e:
             self.output_manager.error(f"Error switching model: {e}")
+        except Exception as e:
+            # Unexpected error during model switch
+            self.output_manager.error(f"Unexpected model switch error: {e}")
 
     async def show_rollback_options(self):
         """Show available rollback options."""
@@ -404,8 +468,11 @@ class InteractiveStorySession:
                         self.output_manager.error(
                             f"Rollback failed: {result.get('error', 'Unknown error')}"
                         )
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.output_manager.error(f"Error showing rollback options: {e}")
+        except Exception as e:
+            # Unexpected error during rollback operations
+            self.output_manager.error(f"Unexpected rollback error: {e}")
 
     async def run_interactive_session(self):
         """Run the main interactive story session."""
@@ -456,9 +523,13 @@ class InteractiveStorySession:
             except KeyboardInterrupt:
                 self.output_manager.info("\nSession interrupted by user")
                 break
-            except Exception as e:
+            except (ValidationError, CacheError, ModelError, InfrastructureError) as e:
                 self.output_manager.error(f"Session error: {e}")
                 log_error(f"Interactive session error: {e}")
+            except Exception as e:
+                # Unexpected error during session
+                self.output_manager.error(f"Unexpected session error: {e}")
+                log_error(f"Unexpected interactive session error: {e}")
 
         # Cleanup
         self.output_manager.panel(
@@ -469,8 +540,11 @@ class InteractiveStorySession:
 
         try:
             await self.model_manager.shutdown()
-        except Exception as e:
+        except (ModelError, ModelConnectionError, InfrastructureError) as e:
             log_error(f"Error shutting down model manager: {e}")
+        except Exception as e:
+            # Unexpected error during shutdown
+            log_error(f"Unexpected shutdown error: {e}")
 
 
 class InteractiveCommand(StoryCommand):
@@ -505,6 +579,12 @@ class InteractiveCommand(StoryCommand):
 
             return asyncio.run(run_session())
 
+        except (AttributeError, KeyError) as e:
+            self.output_manager.error(f"Session data error: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            self.output_manager.error(f"Parameter error in interactive session: {e}")
+            return False
         except Exception as e:
             self.output_manager.error(f"Failed to run interactive session: {e}")
             return False
@@ -595,8 +675,12 @@ def start_interactive_session(
         if not success:
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (ValidationError, ModelError, DatabaseError, InfrastructureError) as e:
         OutputManager().error(f"Error starting interactive session: {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        # Unexpected error during command initialization
+        OutputManager().error(f"Unexpected interactive session error: {e}")
         raise typer.Exit(1)
 
 

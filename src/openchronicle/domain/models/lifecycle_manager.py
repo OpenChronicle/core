@@ -625,6 +625,12 @@ class LifecycleManager:
             sock.close()
 
             return result == 0
+        except (socket.gaierror, socket.herror) as e:
+            # Handle DNS and hostname resolution errors
+            return False
+        except (socket.timeout, ConnectionError, OSError) as e:
+            # Handle network connectivity errors
+            return False
         except Exception:
             return False
 

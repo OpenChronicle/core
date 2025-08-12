@@ -26,6 +26,7 @@ Architecture Principles:
 - Performance-Focused: Caching and optimization built-in
 """
 
+from openchronicle.shared.exceptions import InfrastructureError, ModelError, ConfigurationError, ServiceError
 from .adapters import AnthropicAdapter
 from .adapters import BaseModelAdapter
 from .adapters import MockModelAdapter
@@ -167,8 +168,13 @@ class InfrastructureContainer:
                     model_config = ModelConfig(**adapter_config)
                     adapter = create_adapter(model_config.provider, model_config)
                     self._model_manager.register_adapter(name, adapter)
+                except (ModelError, ConfigurationError) as e:
+                    print(f"Configuration error registering adapter {name}: {e}")
+                except (AttributeError, KeyError) as e:
+                    print(f"Data structure error registering adapter {name}: {e}")
                 except Exception as e:
-                    print(f"Failed to register adapter {name}: {e}")
+                    print(f"Unexpected error registering adapter {name}: {e}")
+                    # Consider logging the full traceback for debugging
 
         return self._model_manager
 
@@ -198,10 +204,22 @@ class InfrastructureContainer:
                 "status": "healthy",
                 "type": type(story_repo).__name__,
             }
+        except (InfrastructureError, ServiceError) as e:
+            results["components"]["story_repository"] = {
+                "status": "unhealthy",
+                "error": f"Infrastructure error: {str(e)}",
+            }
+            results["status"] = "degraded"
+        except (AttributeError, KeyError) as e:
+            results["components"]["story_repository"] = {
+                "status": "unhealthy",
+                "error": f"Data structure error: {str(e)}",
+            }
+            results["status"] = "degraded"
         except Exception as e:
             results["components"]["story_repository"] = {
                 "status": "unhealthy",
-                "error": str(e),
+                "error": f"Unexpected error: {str(e)}",
             }
             results["status"] = "degraded"
 
@@ -212,10 +230,22 @@ class InfrastructureContainer:
                 "status": "healthy",
                 "type": type(memory_manager).__name__,
             }
+        except (InfrastructureError, ServiceError) as e:
+            results["components"]["memory_manager"] = {
+                "status": "unhealthy",
+                "error": f"Infrastructure error: {str(e)}",
+            }
+            results["status"] = "degraded"
+        except (AttributeError, KeyError) as e:
+            results["components"]["memory_manager"] = {
+                "status": "unhealthy",
+                "error": f"Data structure error: {str(e)}",
+            }
+            results["status"] = "degraded"
         except Exception as e:
             results["components"]["memory_manager"] = {
                 "status": "unhealthy",
-                "error": str(e),
+                "error": f"Unexpected error: {str(e)}",
             }
             results["status"] = "degraded"
 
@@ -229,8 +259,23 @@ class InfrastructureContainer:
                 "status": "healthy" if cached_value == "test" else "degraded",
                 "type": type(cache).__name__,
             }
+        except (InfrastructureError, ServiceError) as e:
+            results["components"]["cache"] = {
+                "status": "unhealthy", 
+                "error": f"Infrastructure error: {str(e)}"
+            }
+            results["status"] = "degraded"
+        except (AttributeError, KeyError) as e:
+            results["components"]["cache"] = {
+                "status": "unhealthy", 
+                "error": f"Data structure error: {str(e)}"
+            }
+            results["status"] = "degraded"
         except Exception as e:
-            results["components"]["cache"] = {"status": "unhealthy", "error": str(e)}
+            results["components"]["cache"] = {
+                "status": "unhealthy", 
+                "error": f"Unexpected error: {str(e)}"
+            }
             results["status"] = "degraded"
 
         try:
@@ -243,10 +288,22 @@ class InfrastructureContainer:
                 "adapter_count": adapter_count,
                 "available_models": list(model_manager.adapters.keys()),
             }
+        except (InfrastructureError, ModelError) as e:
+            results["components"]["model_manager"] = {
+                "status": "unhealthy",
+                "error": f"Infrastructure/Model error: {str(e)}",
+            }
+            results["status"] = "degraded"
+        except (AttributeError, KeyError) as e:
+            results["components"]["model_manager"] = {
+                "status": "unhealthy",
+                "error": f"Data structure error: {str(e)}",
+            }
+            results["status"] = "degraded"
         except Exception as e:
             results["components"]["model_manager"] = {
                 "status": "unhealthy",
-                "error": str(e),
+                "error": f"Unexpected error: {str(e)}",
             }
             results["status"] = "degraded"
 

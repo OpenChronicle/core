@@ -12,7 +12,8 @@ import json
 import logging
 import time
 from typing import TYPE_CHECKING
-from typing import Any, Callable
+from typing import Any
+from typing import Callable
 
 
 if TYPE_CHECKING:
@@ -186,6 +187,14 @@ class MultiTierCache:
                 # Test connection
                 await self._redis_client.ping()
                 self.logger.info("Redis connection established")
+            except (ConnectionError, TimeoutError) as e:
+                self.logger.warning(f"Redis network error: {e}")
+                self._redis_available = False
+                return None
+            except (ImportError, ModuleNotFoundError) as e:
+                self.logger.warning(f"Redis module not available: {e}")
+                self._redis_available = False
+                return None
             except Exception as e:
                 self.logger.warning(f"Redis unavailable: {e}")
                 self._redis_available = False
@@ -250,6 +259,10 @@ class MultiTierCache:
                         )
                 else:
                     self.metrics.record_miss("redis")
+            except (ConnectionError, TimeoutError) as e:
+                self.logger.error(f"Redis network error for key {key}: {e}")
+            except (AttributeError, KeyError) as e:
+                self.logger.error(f"Redis data structure error for key {key}: {e}")
             except Exception as e:
                 self.logger.error(f"Redis error for key {key}: {e}")
 
@@ -300,6 +313,12 @@ class MultiTierCache:
                 serialized = json.dumps(value, default=str)
                 await redis_client.setex(key, ttl, serialized)
                 self.logger.debug(f"Cached in Redis: {key} (TTL: {ttl}s)")
+            except (ConnectionError, TimeoutError) as e:
+                self.logger.error(f"Redis network error caching key {key}: {e}")
+                success = False
+            except (TypeError, ValueError) as e:
+                self.logger.error(f"JSON serialization error for key {key}: {e}")
+                success = False
             except Exception as e:
                 self.logger.error(f"Redis cache error for key {key}: {e}")
                 success = False

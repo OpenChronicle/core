@@ -373,6 +373,14 @@ class RegistryValidator:
             registry.validate_complete()
             self.logger.info("Registry validation successful")
             return registry
+        except (ValueError, TypeError) as e:
+            error_msg = f"Registry validation parameter error: {e}"
+            self.logger.error(error_msg)
+            raise SchemaValidationError(error_msg) from e
+        except (AttributeError, KeyError) as e:
+            error_msg = f"Registry validation data structure error: {e}"
+            self.logger.error(error_msg)
+            raise SchemaValidationError(error_msg) from e
         except Exception as e:
             error_msg = f"Registry validation failed: {e}"
             self.logger.error(error_msg)
@@ -395,6 +403,14 @@ class RegistryValidator:
             provider = ProviderConfig(**config_data)
             self.logger.info(f"Provider '{provider.provider}' validation successful")
             return provider
+        except (ValueError, TypeError) as e:
+            error_msg = f"Provider validation parameter error: {e}"
+            self.logger.error(error_msg)
+            raise SchemaValidationError(error_msg) from e
+        except (AttributeError, KeyError) as e:
+            error_msg = f"Provider validation data structure error: {e}"
+            self.logger.error(error_msg)
+            raise SchemaValidationError(error_msg) from e
         except Exception as e:
             error_msg = f"Provider validation failed: {e}"
             self.logger.error(error_msg)

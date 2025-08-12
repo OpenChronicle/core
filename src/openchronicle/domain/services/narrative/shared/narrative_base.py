@@ -14,7 +14,9 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from typing import Any
-from openchronicle.shared.logging_system import log_error, log_warning
+
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_warning
 
 
 @dataclass
@@ -230,6 +232,26 @@ class EventProcessor:
 
             return results
 
+        except (AttributeError, KeyError) as e:
+            log_error(
+                f"EventProcessor.process_event data structure error: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_base",
+                    "event_processor",
+                    f"event_type:{getattr(event, 'event_type', 'unknown')}",
+                ],
+            )
+            return [{"error": str(e)}]
+        except (ValueError, TypeError) as e:
+            log_error(
+                f"EventProcessor.process_event parameter error: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_base",
+                    "event_processor",
+                    f"event_type:{getattr(event, 'event_type', 'unknown')}",
+                ],
+            )
+            return [{"error": str(e)}]
         except Exception as e:
             log_error(
                 f"EventProcessor.process_event failed: {type(e).__name__}: {e}",

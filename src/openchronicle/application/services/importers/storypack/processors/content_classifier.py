@@ -2,6 +2,8 @@
 from openchronicle.application.services.importers.storypack.interfaces import (
     IContentClassifier,
 )
+
+
 """
 OpenChronicle Content Classifier
 
@@ -13,8 +15,6 @@ import re
 from typing import Any
 
 from openchronicle.shared.logging_system import get_logger
-
-
 
 
 class ContentClassifier(IContentClassifier):

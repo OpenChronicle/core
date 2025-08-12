@@ -8,6 +8,7 @@ from typing import Any
 
 from openchronicle.domain.ports.persistence_port import IPersistencePort
 
+
 class FallbackNavigationManager:
     """Minimal fallback navigation manager."""
 

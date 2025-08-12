@@ -95,6 +95,9 @@ class NavigationManager:
 
             return [self._format_bookmark(row) for row in rows]
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error getting chapter bookmarks: {e}")
+            return []
         except Exception as e:
             log_warning(f"Failed to get chapter bookmarks: {e}")
             return []
@@ -139,6 +142,9 @@ class NavigationManager:
 
             return timeline
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error getting timeline bookmarks: {e}")
+            return []
         except Exception as e:
             log_warning(f"Failed to get timeline bookmarks: {e}")
             return []
@@ -216,6 +222,9 @@ class NavigationManager:
 
             return None
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error finding next bookmark: {e}")
+            return None
         except Exception as e:
             log_warning(f"Failed to find next bookmark: {e}")
             return None
@@ -238,6 +247,9 @@ class NavigationManager:
 
             return None
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error finding previous bookmark: {e}")
+            return None
         except Exception as e:
             log_warning(f"Failed to find previous bookmark: {e}")
             return None
@@ -265,6 +277,9 @@ class NavigationManager:
 
             return None
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error finding chapter for scene: {e}")
+            return None
         except Exception as e:
             log_warning(f"Failed to find chapter for scene: {e}")
             return None

@@ -16,10 +16,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.status import HTTP_303_SEE_OTHER
+
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
-from starlette.status import HTTP_303_SEE_OTHER
 
 
 # ================================

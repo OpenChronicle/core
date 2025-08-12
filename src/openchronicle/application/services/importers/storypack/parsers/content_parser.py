@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
     ContentFile,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     IContentParser,
 )
+
+
 """
 OpenChronicle Content Parser
 
@@ -12,6 +16,7 @@ Follows single responsibility principle - only handles file operations.
 
 from pathlib import Path
 
+from openchronicle.shared.exceptions import ServiceError, InfrastructureError, ValidationError
 
 try:
     import chardet
@@ -22,9 +27,6 @@ except ImportError:
 
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
-
-
-
 
 
 class ContentParser(IContentParser):
@@ -94,11 +96,15 @@ class ContentParser(IContentParser):
                         discovered_files[content_file.category].append(content_file)
                         total_files += 1
 
+                    except (OSError, IOError, PermissionError) as e:
+                        self.logger.warning(f"File system error processing file {file_path}: {e}")
                     except Exception as e:
-                        self.logger.warning(f"Failed to process file {file_path}: {e}")
+                        self.logger.warning(f"Unexpected error processing file {file_path}: {e}")
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error scanning directory {source_path}: {e}")
         except Exception as e:
-            self.logger.error(f"Error scanning directory {source_path}: {e}")
+            self.logger.error(f"Unexpected error scanning directory {source_path}: {e}")
 
         # Log discovery results
         category_counts = {
@@ -164,9 +170,15 @@ class ContentParser(IContentParser):
 
             return content, encoding
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error reading file {file_path}: {e}")
+            raise InfrastructureError(f"Cannot read file {file_path}: {e}")
+        except UnicodeDecodeError as e:
+            self.logger.error(f"Encoding error reading file {file_path}: {e}")
+            raise ValidationError(f"File encoding issue {file_path}: {e}")
         except Exception as e:
-            self.logger.error(f"Failed to read file {file_path}: {e}")
-            raise OSError(f"Cannot read file {file_path}: {e}")
+            self.logger.error(f"Unexpected error reading file {file_path}: {e}")
+            raise ServiceError(f"Unexpected file read failure {file_path}: {e}")
 
     def validate_file_format(self, file_path: Path) -> bool:
         """
@@ -237,8 +249,11 @@ class ContentParser(IContentParser):
             # Default to UTF-8 if detection fails or confidence is low
             return "utf-8"
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.warning(f"File system error during encoding detection for {file_path}: {e}")
+            return "utf-8"
         except Exception as e:
-            self.logger.warning(f"Encoding detection failed for {file_path}: {e}")
+            self.logger.warning(f"Unexpected error during encoding detection for {file_path}: {e}")
             return "utf-8"
 
     def _validate_json_file(self, file_path: Path) -> bool:
@@ -249,6 +264,12 @@ class ContentParser(IContentParser):
             with open(file_path, encoding="utf-8") as f:
                 json.load(f)
             return True
+        except (OSError, IOError, PermissionError):
+            return False
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return False
+        except (AttributeError, KeyError):
+            return False
         except Exception:
             return False
 
@@ -270,5 +291,11 @@ class ContentParser(IContentParser):
 
             return True
 
+        except (OSError, IOError, PermissionError):
+            return False
+        except UnicodeDecodeError:
+            return False
+        except (AttributeError, KeyError):
+            return False
         except Exception:
             return False

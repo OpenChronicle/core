@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
     ImportContext,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     IValidationEngine,
 )
+
+
 """
 OpenChronicle Validation Engine
 
@@ -15,9 +19,6 @@ from pathlib import Path
 
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
-
-
-
 
 
 class ValidationEngine(IValidationEngine):
@@ -149,8 +150,10 @@ class ValidationEngine(IValidationEngine):
         # Validate target path
         try:
             context.target_path.mkdir(parents=True, exist_ok=True)
+        except (OSError, IOError, PermissionError) as e:
+            issues.append(f"File system error creating target directory {context.target_path}: {e}")
         except Exception as e:
-            issues.append(f"Cannot create target directory {context.target_path}: {e}")
+            issues.append(f"Unexpected error creating target directory {context.target_path}: {e}")
 
         # Check if storypack already exists
         if context.target_path.exists():
@@ -348,6 +351,8 @@ class ValidationEngine(IValidationEngine):
                     and file_path.suffix.lower() in supported_extensions
                 ):
                     supported_files.append(file_path)
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.warning(f"File system error scanning source directory {source_path}: {e}")
         except Exception as e:
             self.logger.warning(f"Error scanning source directory {source_path}: {e}")
 
@@ -376,6 +381,8 @@ class ValidationEngine(IValidationEngine):
             if "title" in meta_data and not isinstance(meta_data["title"], str):
                 issues.append("meta.json field 'title' must be a string")
 
+        except (OSError, IOError, PermissionError) as e:
+            issues.append(f"File system error reading meta.json: {e}")
         except json.JSONDecodeError as e:
             issues.append(f"meta.json is not valid JSON: {e}")
         except Exception as e:
@@ -390,6 +397,9 @@ class ValidationEngine(IValidationEngine):
         # Check if directory is accessible
         try:
             files = list(dir_path.glob("*"))
+        except (OSError, IOError, PermissionError) as e:
+            issues.append(f"File system error accessing directory {dir_path.name}: {e}")
+            return issues
         except Exception as e:
             issues.append(f"Cannot access directory {dir_path.name}: {e}")
             return issues
@@ -402,6 +412,8 @@ class ValidationEngine(IValidationEngine):
             try:
                 with open(content_file, encoding="utf-8") as f:
                     json.load(f)
+            except (OSError, IOError, PermissionError) as e:
+                issues.append(f"File system error reading {dir_path.name}/{content_file.name}: {e}")
             except json.JSONDecodeError:
                 issues.append(f"Invalid JSON in {dir_path.name}/{content_file.name}")
             except Exception as e:

@@ -8,7 +8,21 @@ from __future__ import annotations
 import asyncio
 import random
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Type
+from typing import Awaitable
+from typing import Callable
+from typing import Type
+
+from .exceptions import InfrastructureError
+
+
+# Default retriable exceptions - focus on transient infrastructure failures
+DEFAULT_RETRIABLE_EXCEPTIONS = (
+    ConnectionError,          # Network connectivity issues
+    OSError,                 # System-level errors (file access, etc.)
+    TimeoutError,            # Timeout-related errors  
+    InfrastructureError,     # Our custom infrastructure errors
+    asyncio.TimeoutError,    # Async timeout errors
+)
 
 
 @dataclass
@@ -17,7 +31,7 @@ class RetryPolicy:
     base_delay: float = 0.5  # seconds
     max_delay: float = 5.0
     jitter: float = 0.25  # proportion of delay for jitter window
-    retry_exceptions: tuple[Type[Exception], ...] = (Exception,)  # TODO narrow
+    retry_exceptions: tuple[Type[Exception], ...] = DEFAULT_RETRIABLE_EXCEPTIONS
 
     async def run(self, fn: Callable[[], Awaitable]):  # type: ignore[override]
         last_error: Exception | None = None
@@ -38,10 +52,21 @@ class RetryPolicy:
 
 
 def retryable(*exceptions: Type[Exception]):
-    """Convenience decorator to attach a simple retry with default policy."""
+    """Convenience decorator to attach a simple retry with default policy.
+    
+    Args:
+        *exceptions: Specific exceptions to retry on. If none provided,
+                    uses DEFAULT_RETRIABLE_EXCEPTIONS.
+    
+    Example:
+        @retryable(ConnectionError, TimeoutError)
+        async def fetch_data():
+            # This will retry on ConnectionError and TimeoutError
+            pass
+    """
     def decorator(func):
         async def wrapper(*args, **kwargs):
-            policy = RetryPolicy(retry_exceptions=exceptions or (Exception,))
+            policy = RetryPolicy(retry_exceptions=exceptions or DEFAULT_RETRIABLE_EXCEPTIONS)
             return await policy.run(lambda: func(*args, **kwargs))
         return wrapper
     return decorator

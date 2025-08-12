@@ -12,9 +12,10 @@ Components:
 """
 
 from .consistency_validation_engine import ConsistencyValidationEngine
-from .interaction_dynamics_engine import InteractionDynamicsEngine  
+from .interaction_dynamics_engine import InteractionDynamicsEngine
 from .presentation_style_engine import PresentationStyleEngine
 from .stats_behavior_engine import StatsBehaviorEngine
+
 
 __all__ = [
     "ConsistencyValidationEngine",

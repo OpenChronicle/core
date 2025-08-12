@@ -7,14 +7,14 @@ Handles scene labeling operations:
 - Label organization and validation
 """
 
+import sqlite3
 from typing import Any
 
+from openchronicle.shared.logging_system import log_error_with_context
+from openchronicle.shared.logging_system import log_info
+from openchronicle.shared.logging_system import log_warning
+
 from ..persistence.scene_repository import SceneRepository
-from openchronicle.shared.logging_system import (
-    log_error_with_context,
-    log_info,
-    log_warning,
-)
 
 
 class LabelingSystem:
@@ -71,6 +71,17 @@ class LabelingSystem:
 
             return success
 
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "update_scene_label",
+                    "story_id": self.story_id,
+                    "scene_id": scene_id,
+                    "error_type": "validation_error"
+                },
+            )
+            return False
         except Exception as e:
             log_error_with_context(
                 e,
@@ -131,6 +142,28 @@ class LabelingSystem:
 
             return results
 
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_scenes_by_label",
+                    "story_id": self.story_id,
+                    "scene_label": scene_label,
+                    "error_type": "database_error"
+                },
+            )
+            return []
+        except (ValueError, KeyError, TypeError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_scenes_by_label",
+                    "story_id": self.story_id,
+                    "scene_label": scene_label,
+                    "error_type": "data_processing_error"
+                },
+            )
+            return []
         except Exception as e:
             log_error_with_context(
                 e,
@@ -187,6 +220,24 @@ class LabelingSystem:
 
             return results
 
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_labeled_scenes_data_error",
+                    "story_id": self.story_id,
+                },
+            )
+            return []
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_labeled_scenes_processing_error",
+                    "story_id": self.story_id,
+                },
+            )
+            return []
         except Exception as e:
             log_error_with_context(
                 e,
@@ -333,6 +384,26 @@ class LabelingSystem:
             # Limit to top 5 suggestions
             return suggestions[:5]
 
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "suggest_labels_data_error",
+                    "story_id": self.story_id,
+                    "scene_id": scene_id,
+                },
+            )
+            return []
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "suggest_labels_processing_error",
+                    "story_id": self.story_id,
+                    "scene_id": scene_id,
+                },
+            )
+            return []
         except Exception as e:
             log_error_with_context(
                 e,
@@ -459,6 +530,26 @@ class LabelingSystem:
                 "label_removed": label,
             }
 
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "remove_label_data_error",
+                    "story_id": self.story_id,
+                    "label": label,
+                },
+            )
+            return {"success": False, "error": f"Data structure error removing label: {e}"}
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "remove_label_parameter_error",
+                    "story_id": self.story_id,
+                    "label": label,
+                },
+            )
+            return {"success": False, "error": f"Parameter error removing label: {e}"}
         except Exception as e:
             log_error_with_context(
                 e,
@@ -483,6 +574,24 @@ class LabelingSystem:
                 return "error"
 
             return f"active ({stats['labeled_scenes']}/{stats['total_scenes']} scenes labeled, {stats['unique_labels']} unique labels)"
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_status_data_error",
+                    "story_id": self.story_id,
+                },
+            )
+            return "error"
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "get_status_formatting_error",
+                    "story_id": self.story_id,
+                },
+            )
+            return "error"
         except Exception as e:
             log_error_with_context(
                 e,

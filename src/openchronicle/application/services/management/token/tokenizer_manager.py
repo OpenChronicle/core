@@ -7,7 +7,8 @@ Handles tokenizer management and token estimation for different models.
 
 import tiktoken
 
-from openchronicle.shared.logging_system import log_error, log_warning
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_warning
 
 
 class TokenizerManager:
@@ -41,6 +42,12 @@ class TokenizerManager:
                     )
                     self.encoders[model_name] = tiktoken.get_encoding(fallback_encoding)
 
+            except (ImportError, ModuleNotFoundError) as e:
+                log_warning(f"Tiktoken module error for {model_name}: {e}")
+                self.encoders[model_name] = tiktoken.get_encoding("cl100k_base")
+            except (AttributeError, KeyError) as e:
+                log_warning(f"Configuration error for tokenizer {model_name}: {e}")
+                self.encoders[model_name] = tiktoken.get_encoding("cl100k_base")
             except Exception as e:
                 log_warning(f"Failed to get tokenizer for {model_name}: {e}")
                 self.encoders[model_name] = tiktoken.get_encoding("cl100k_base")
@@ -54,6 +61,14 @@ class TokenizerManager:
         try:
             tokenizer = self.get_tokenizer(model_name, provider)
             return len(tokenizer.encode(text))
+        except (ImportError, ModuleNotFoundError) as e:
+            log_error(f"Tiktoken module error for token estimation {model_name}: {e}")
+            # Fallback estimation: ~4 chars per token
+            return len(text) // 4
+        except (AttributeError, KeyError) as e:
+            log_error(f"Tokenizer configuration error for {model_name}: {e}")
+            # Fallback estimation: ~4 chars per token
+            return len(text) // 4
         except Exception as e:
             log_error(f"Token estimation failed for {model_name}: {e}")
             # Fallback estimation: ~4 chars per token
@@ -66,6 +81,14 @@ class TokenizerManager:
         try:
             tokenizer = self.get_tokenizer(model_name, provider)
             return [len(tokenizer.encode(text)) for text in texts]
+        except (ImportError, ModuleNotFoundError) as e:
+            log_error(f"Tiktoken module error for batch token estimation {model_name}: {e}")
+            # Fallback estimation: ~4 chars per token
+            return [len(text) // 4 for text in texts]
+        except (AttributeError, KeyError) as e:
+            log_error(f"Tokenizer configuration error for batch estimation {model_name}: {e}")
+            # Fallback estimation: ~4 chars per token
+            return [len(text) // 4 for text in texts]
         except Exception as e:
             log_error(f"Batch token estimation failed for {model_name}: {e}")
             # Fallback estimation

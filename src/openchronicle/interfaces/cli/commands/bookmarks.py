@@ -5,18 +5,18 @@ Manage story bookmarks via the domain services using dependency-injected ports.
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import uuid
+from datetime import UTC
+from datetime import datetime
 
 import typer
 
-from openchronicle.domain.ports.persistence_inmemory import (
-    InMemorySqlitePersistence,
-)
+from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
 from openchronicle.domain.services.timeline.shared.bookmark_manager import (
     SimpleBookmarkManager,
 )
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
+
 
 bookmarks_app = typer.Typer(help="Manage story bookmarks")
 

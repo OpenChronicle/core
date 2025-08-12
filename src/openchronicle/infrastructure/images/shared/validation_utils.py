@@ -162,6 +162,10 @@ class ImageValidator:
 
             return True, None
 
+        except (OSError, IOError, PermissionError) as e:
+            return False, f"File system error validating path: {e}"
+        except (ValueError, TypeError) as e:
+            return False, f"Path parameter error: {e}"
         except Exception as e:
             return False, f"Invalid file path: {e}"
 
@@ -252,6 +256,12 @@ class ImageValidator:
 
             return True, None
 
+        except (OSError, IOError) as e:
+            return False, f"File system error checking storage space: {e}"
+        except (ValueError, TypeError) as e:
+            return False, f"Parameter error checking storage space: {e}"
+        except ImportError as e:
+            return False, f"Module import error checking storage space: {e}"
         except Exception as e:
             return False, f"Could not check storage space: {e}"
 

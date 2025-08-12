@@ -257,8 +257,16 @@ class FileSystemCache(BaseCache):
 
             return value
 
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors specifically for cache file operations
+            print(f"File system error reading cache file {cache_file}: {e}")
+            return None
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            # Handle JSON parsing and data structure errors for cache entries
+            print(f"Cache data error reading cache file {cache_file}: {e}")
+            return None
         except Exception as e:
-            print(f"Error reading cache file {cache_file}: {e}")
+            print(f"Unexpected error reading cache file {cache_file}: {e}")
             return None
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
@@ -276,8 +284,16 @@ class FileSystemCache(BaseCache):
 
                 return True
 
+            except (OSError, IOError, PermissionError) as e:
+                # Handle file system errors specifically for cache file writing
+                print(f"File system error writing cache file for key {key}: {e}")
+                return False
+            except (TypeError, ValueError) as e:
+                # Handle JSON serialization errors for cache data
+                print(f"Data serialization error writing cache file for key {key}: {e}")
+                return False
             except Exception as e:
-                print(f"Error writing cache file for key {key}: {e}")
+                print(f"Unexpected error writing cache file for key {key}: {e}")
                 return False
 
     async def delete(self, key: str) -> bool:
@@ -289,8 +305,12 @@ class FileSystemCache(BaseCache):
                 cache_file.unlink()
                 return True
             return False
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors specifically for cache file deletion
+            print(f"File system error deleting cache file {cache_file}: {e}")
+            return False
         except Exception as e:
-            print(f"Error deleting cache file {cache_file}: {e}")
+            print(f"Unexpected error deleting cache file {cache_file}: {e}")
             return False
 
     async def clear(self) -> bool:
@@ -299,8 +319,12 @@ class FileSystemCache(BaseCache):
             for cache_file in self.cache_dir.glob("*.cache"):
                 cache_file.unlink()
             return True
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors specifically for cache clearing operations
+            print(f"File system error clearing cache: {e}")
+            return False
         except Exception as e:
-            print(f"Error clearing cache: {e}")
+            print(f"Unexpected error clearing cache: {e}")
             return False
 
     async def exists(self, key: str) -> bool:
@@ -324,7 +348,16 @@ class FileSystemCache(BaseCache):
 
             return True
 
-        except Exception:
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during cache existence check
+            print(f"File system error checking cache existence for {key}: {e}")
+            return False
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            # Handle cache data corruption during existence check
+            print(f"Cache data error checking existence for {key}: {e}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error checking cache existence for {key}: {e}")
             return False
 
     async def _evict_if_needed(self):
@@ -339,8 +372,11 @@ class FileSystemCache(BaseCache):
             for file_to_remove in files_to_remove:
                 try:
                     file_to_remove.unlink()
+                except (OSError, IOError, PermissionError) as e:
+                    # Handle file system errors during cache eviction
+                    print(f"File system error removing cache file {file_to_remove}: {e}")
                 except Exception as e:
-                    print(f"Error removing cache file {file_to_remove}: {e}")
+                    print(f"Unexpected error removing cache file {file_to_remove}: {e}")
 
 
 class ModelResponseCache(BaseCache):

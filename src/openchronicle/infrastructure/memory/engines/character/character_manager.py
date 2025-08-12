@@ -10,11 +10,11 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
-from ..persistence import MemoryRepository
 from ...shared.memory_models import MAX_MOOD_HISTORY
 from ...shared.memory_models import CharacterMemory
 from ...shared.memory_models import MoodEntry
 from ...shared.memory_models import VoiceProfile
+from ..persistence import MemoryRepository
 
 
 @dataclass
@@ -99,12 +99,42 @@ class CharacterManager:
                 new_mood=new_mood,
             )
 
+        except (KeyError, AttributeError) as e:
+            # Handle character data structure errors during update operations
+            return CharacterUpdateResult(
+                success=False,
+                character_name=character_name,
+                updated_fields=[],
+                warnings=[f"Character data error: {e!s}"],
+            )
+        except ValueError as e:
+            # Handle invalid data values during character updates
+            return CharacterUpdateResult(
+                success=False,
+                character_name=character_name,
+                updated_fields=[],
+                warnings=[f"Invalid data provided: {e!s}"],
+            )
+        except OSError as e:
+            return CharacterUpdateResult(
+                success=False,
+                character_name=character_name,
+                updated_fields=[],
+                warnings=[f"Memory storage error: {e!s}"],
+            )
+        except (AttributeError, KeyError) as e:
+            return CharacterUpdateResult(
+                success=False,
+                character_name=character_name,
+                updated_fields=[],
+                warnings=[f"Data structure error: {e!s}"],
+            )
         except Exception as e:
             return CharacterUpdateResult(
                 success=False,
                 character_name=character_name,
                 updated_fields=[],
-                warnings=[f"Update failed: {e!s}"],
+                warnings=[f"Unexpected update failure: {e!s}"],
             )
 
     def get_character_memory(
@@ -114,6 +144,12 @@ class CharacterManager:
         try:
             memory = self.repository.load_memory(story_id)
             return memory.characters.get(character_name)
+        except OSError as e:
+            # Memory storage access error
+            return None
+        except (AttributeError, KeyError):
+            # Data structure or missing character error
+            return None
         except Exception:
             return None
 
@@ -189,6 +225,12 @@ class CharacterManager:
             # Save updated memory
             return self.repository.save_memory(story_id, memory)
 
+        except OSError:
+            # Memory storage error
+            return False
+        except (AttributeError, KeyError, ValueError):
+            # Data structure or validation error
+            return False
         except Exception:
             return False
 
@@ -231,8 +273,14 @@ class CharacterManager:
 
             return voice_prompt.strip()
 
-        except Exception:
-            return f"Character: {character_name} (voice profile unavailable)"
+        except OSError as e:
+            # Memory storage error
+            return f"Character: {character_name} (voice profile unavailable - storage error)"
+        except (AttributeError, KeyError) as e:
+            # Data structure error
+            return f"Character: {character_name} (voice profile unavailable - data error)"
+        except Exception as e:
+            return f"Character: {character_name} (voice profile unavailable - unexpected error)"
 
     def add_dialogue_entry(
         self, story_id: str, character_name: str, dialogue: str, max_history: int = 50
@@ -256,7 +304,13 @@ class CharacterManager:
 
             return self.repository.save_memory(story_id, memory)
 
-        except Exception:
+        except OSError as e:
+            # Memory storage error
+            return False
+        except (AttributeError, KeyError, ValueError) as e:
+            # Data structure or validation error
+            return False
+        except Exception as e:
             return False
 
     def _update_character_mood(

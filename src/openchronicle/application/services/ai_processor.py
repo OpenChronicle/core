@@ -11,14 +11,16 @@ Follows hexagonal architecture principles with dependency injection.
 """
 
 from dataclasses import dataclass
-from typing import Any
 from typing import TYPE_CHECKING
+from typing import Any
 
+from openchronicle.shared.exceptions import ModelError, ServiceError
 from openchronicle.shared.retry_policy import RetryPolicy
 
+
 if TYPE_CHECKING:
-    from openchronicle.domain.ports.model_management_port import IModelManagementPort
     from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+    from openchronicle.domain.ports.model_management_port import IModelManagementPort
 
 
 @dataclass
@@ -104,7 +106,9 @@ class AIProcessor:
                 return await _attempt()
         else:
             # Fallback for backward compatibility
-            from openchronicle.domain.ports.model_management_port import IModelManagementPort
+            from openchronicle.domain.ports.model_management_port import (
+                IModelManagementPort,
+            )
             
             class MockModelManagementPort(IModelManagementPort):
                 async def generate_response(
@@ -165,7 +169,9 @@ class AIProcessor:
                 }
         else:
             # Fallback for backward compatibility
-            from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+            from openchronicle.domain.ports.content_analysis_port import (
+                IContentAnalysisPort,
+            )
             
             class MockContentAnalysisPort(IContentAnalysisPort):
                 async def generate_content_flags(
@@ -286,8 +292,13 @@ class AIProcessor:
             try:
                 adapters = await self.model_management_port.get_available_adapters()
                 capabilities["available_adapters"] = adapters
-            except Exception:
-                capabilities["available_adapters"] = ["unknown"]
+            except (ModelError, ServiceError) as e:
+                capabilities["available_adapters"] = ["service_error"]
+            except (AttributeError, KeyError) as e:
+                # Data structure error
+                capabilities["available_adapters"] = ["data_error"]
+            except Exception as e:
+                capabilities["available_adapters"] = ["unknown_error"]
         else:
             capabilities["available_adapters"] = ["mock_adapter"]
         

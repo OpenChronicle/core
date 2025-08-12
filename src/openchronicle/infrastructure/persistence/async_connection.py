@@ -9,8 +9,8 @@ from pathlib import Path
 
 import aiosqlite
 
-from .shared import DatabaseConfig
 from ...shared.logging_system import log_error
+from .shared import DatabaseConfig
 
 
 class AsyncConnectionManager:
@@ -54,6 +54,14 @@ class AsyncConnectionManager:
             async with self.get_connection(story_id, is_test) as conn:
                 await conn.execute("SELECT 1")
                 return True
+        except OSError as e:
+            # Database file system error
+            log_error(
+                f"File system error in async connection check: {e}",
+                context_tags=["db","async","check_connection"],
+                story_id=story_id,
+            )
+            return False
         except Exception as e:
             # Log the exception for diagnostics but keep the boolean contract
             log_error(

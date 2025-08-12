@@ -93,6 +93,12 @@ Return empty object {{}} if no clear character information found."""
                 log_error("No valid JSON found in character extraction response")
                 return {}
 
+        except ValueError as e:
+            log_error(f"Invalid data format in character extraction: {e}")
+            return {}
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error during character extraction: {e}")
+            return {}
         except Exception as e:
             log_error(f"Character extraction failed: {e}")
             return {}
@@ -128,6 +134,12 @@ Return empty object {{}} if no clear character information found."""
                 return character_data
             return []
 
+        except ValueError as e:
+            log_error(f"Invalid data format in character extraction from {content_name}: {e}")
+            return []
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error during character extraction from {content_name}: {e}")
+            return []
         except Exception as e:
             log_error(f"Error extracting characters from {content_name}: {e}")
             return []

@@ -11,11 +11,9 @@ import random
 from datetime import datetime
 from typing import Any
 
-from openchronicle.shared.logging_system import (
-    get_logger,
-    log_error_with_context,
-    log_system_event,
-)
+from openchronicle.shared.logging_system import get_logger
+from openchronicle.shared.logging_system import log_error_with_context
+from openchronicle.shared.logging_system import log_system_event
 
 from ...shared.narrative_exceptions import NarrativeSystemError
 from .mechanics_models import CharacterPerformance
@@ -240,6 +238,56 @@ class NarrativeBranchingEngine:
 
             return branches
 
+        except ValueError as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:validation_error",
+                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
+                    "resolution_type": getattr(
+                        resolution_result.resolution_type, "name", str(resolution_result.resolution_type)
+                    ),
+                    "character_id": getattr(resolution_result, "character_id", None),
+                },
+            )
+            raise NarrativeSystemError(f"Invalid branch parameters: {e}")
+        except AttributeError as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:structure_error",
+                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
+                    "resolution_type": getattr(
+                        resolution_result.resolution_type, "name", str(resolution_result.resolution_type)
+                    ),
+                    "character_id": getattr(resolution_result, "character_id", None),
+                },
+            )
+            raise NarrativeSystemError(f"Branch data structure error: {e}")
+        except (ValueError, TypeError) as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:validation_error",
+                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
+                    "character_id": getattr(resolution_result, "character_id", None),
+                },
+            )
+            raise NarrativeSystemError(f"Branch parameter validation error: {e}")
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                context={
+                    "component": "NarrativeBranchingEngine",
+                    "phase": "create_branches:data_structure_error",
+                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
+                    "character_id": getattr(resolution_result, "character_id", None),
+                },
+            )
+            raise NarrativeSystemError(f"Branch data structure error: {e}")
         except Exception as e:
             log_error_with_context(
                 e,

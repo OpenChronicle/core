@@ -13,6 +13,15 @@ from typing import Any
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
+from openchronicle.shared.exceptions import (
+    NarrativeError,
+    ValidationError,
+    CacheError,
+    CacheConnectionError,
+    InfrastructureError,
+    ModelError,
+    OpenChronicleError,
+)
 
 
 class NarrativeCharacterIntegration:
@@ -51,8 +60,12 @@ class NarrativeCharacterIntegration:
                             story_id, character_id, proposed_action
                         )
                         validation.update(orchestrator_result)
-                except Exception as e:
+                except (NarrativeError, ValidationError, CacheError) as e:
                     log_error(f"Consistency orchestrator validation failed: {e}")
+                    validation["orchestrator_error"] = str(e)
+                except Exception as e:
+                    # Unexpected error during character action validation
+                    log_error(f"Unexpected consistency orchestrator error: {e}")
                     validation["orchestrator_error"] = str(e)
 
             # Add basic heuristic validation
@@ -71,8 +84,16 @@ class NarrativeCharacterIntegration:
             log_info(f"Validated character consistency for {character_id}: {validation['consistency_score']}")
             return validation
 
-        except Exception as e:
+        except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
             log_error(f"Error validating character consistency: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "consistency_score": 0.0
+            }
+        except Exception as e:
+            # Unexpected error during character consistency validation
+            log_error(f"Unexpected character consistency validation error: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -116,8 +137,11 @@ class NarrativeCharacterIntegration:
                             "emotional_tracking": orchestrator_result,
                             "timestamp": datetime.now().isoformat()
                         }
-                except Exception as e:
+                except (NarrativeError, ModelError, CacheError) as e:
                     log_error(f"Emotional orchestrator tracking failed: {e}")
+                except Exception as e:
+                    # Unexpected error during emotional tracking
+                    log_error(f"Unexpected emotional orchestrator error: {e}")
 
             # Basic emotional tracking result
             return {
@@ -128,8 +152,17 @@ class NarrativeCharacterIntegration:
                 "timestamp": datetime.now().isoformat()
             }
 
-        except Exception as e:
+        except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
             log_error(f"Error tracking character emotional changes: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "character_id": character_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            # Unexpected error during emotional tracking
+            log_error(f"Unexpected error tracking character emotional changes: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -169,8 +202,17 @@ class NarrativeCharacterIntegration:
                 "timestamp": datetime.now().isoformat()
             }
 
-        except Exception as e:
+        except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
             log_error(f"Error tracking emotional stability: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "character_id": character_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            # Unexpected error during emotional stability tracking
+            log_error(f"Unexpected error tracking emotional stability: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -226,8 +268,12 @@ class NarrativeCharacterIntegration:
                             story_id, character_id, emotional_transition
                         )
                         validation.update(orchestrator_result)
-                except Exception as e:
+                except (NarrativeError, ModelError, CacheError) as e:
                     log_error(f"Emotional orchestrator validation failed: {e}")
+                    validation["orchestrator_error"] = str(e)
+                except Exception as e:
+                    # Unexpected error during emotional validation
+                    log_error(f"Unexpected emotional orchestrator validation error: {e}")
                     validation["orchestrator_error"] = str(e)
             
             validation["timestamp"] = datetime.now().isoformat()
@@ -235,8 +281,17 @@ class NarrativeCharacterIntegration:
             log_info(f"Validated emotional consistency for {character_id}: {validation['consistency_score']}")
             return validation
 
-        except Exception as e:
+        except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
             log_error(f"Error validating emotional consistency: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "character_id": character_id,
+                "story_id": story_id
+            }
+        except Exception as e:
+            # Unexpected error during emotional consistency validation
+            log_error(f"Unexpected error validating emotional consistency: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -272,8 +327,12 @@ class NarrativeCharacterIntegration:
             log_info(f"Calculated quality metrics: {final_score:.3f}")
             return min(1.0, max(0.0, final_score))  # Clamp to [0, 1]
 
-        except Exception as e:
+        except (ValidationError, NarrativeError) as e:
             log_error(f"Error calculating quality metrics: {e}")
+            return 0.5  # Return neutral score on error
+        except Exception as e:
+            # Unexpected error during quality metrics calculation
+            log_error(f"Unexpected error calculating quality metrics: {e}")
             return 0.5  # Return neutral score on error
 
     def validate_narrative_consistency(
@@ -303,8 +362,12 @@ class NarrativeCharacterIntegration:
                         )
                         validation.update(orchestrator_result)
                         return validation
-                except Exception as e:
+                except (NarrativeError, ValidationError, CacheError) as e:
                     log_error(f"Consistency orchestrator validation failed: {e}")
+                    validation["orchestrator_error"] = str(e)
+                except Exception as e:
+                    # Unexpected error during narrative validation
+                    log_error(f"Unexpected consistency orchestrator validation error: {e}")
                     validation["orchestrator_error"] = str(e)
             
             # Basic narrative validation
@@ -320,8 +383,16 @@ class NarrativeCharacterIntegration:
             log_info(f"Validated narrative consistency: {validation['consistency_score']}")
             return validation
 
-        except Exception as e:
+        except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
             log_error(f"Error validating narrative consistency: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "story_id": story_id
+            }
+        except Exception as e:
+            # Unexpected error during narrative consistency validation
+            log_error(f"Unexpected error validating narrative consistency: {e}")
             return {
                 "success": False,
                 "error": str(e),

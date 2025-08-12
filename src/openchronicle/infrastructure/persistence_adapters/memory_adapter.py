@@ -34,6 +34,12 @@ class MemoryAdapter(IMemoryPort):
 
             orchestrator = MemoryOrchestrator(story_id)
             return orchestrator.store_character_memory(character_name, memory_data)
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Memory module import error: {e}")
+            return False
+        except (AttributeError, KeyError) as e:
+            print(f"Memory data structure error: {e}")
+            return False
         except Exception as e:
             print(f"Memory storage error: {e}")
             return False
@@ -56,6 +62,12 @@ class MemoryAdapter(IMemoryPort):
 
             orchestrator = MemoryOrchestrator(story_id)
             return orchestrator.get_character_memory(character_name)
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Memory module import error: {e}")
+            return None
+        except (AttributeError, KeyError) as e:
+            print(f"Memory data access error: {e}")
+            return None
         except Exception as e:
             print(f"Memory retrieval error: {e}")
             return None
@@ -79,6 +91,12 @@ class MemoryAdapter(IMemoryPort):
 
             orchestrator = MemoryOrchestrator(story_id)
             return orchestrator.update_character_memory(character_name, updates)
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Memory module import error: {e}")
+            return False
+        except (AttributeError, KeyError) as e:
+            print(f"Memory update data error: {e}")
+            return False
         except Exception as e:
             print(f"Memory update error: {e}")
             return False
@@ -99,6 +117,12 @@ class MemoryAdapter(IMemoryPort):
 
             orchestrator = MemoryOrchestrator(story_id)
             return orchestrator.delete_character_memory(character_name)
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Memory module import error: {e}")
+            return False
+        except (AttributeError, KeyError) as e:
+            print(f"Memory deletion data error: {e}")
+            return False
         except Exception as e:
             print(f"Memory deletion error: {e}")
             return False
@@ -118,6 +142,12 @@ class MemoryAdapter(IMemoryPort):
 
             orchestrator = MemoryOrchestrator(story_id)
             return orchestrator.list_characters()
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Memory module import error: {e}")
+            return []
+        except (AttributeError, KeyError) as e:
+            print(f"Memory listing data error: {e}")
+            return []
         except Exception as e:
             print(f"Memory listing error: {e}")
             return []
@@ -160,6 +190,12 @@ class MemoryAdapter(IMemoryPort):
 
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error in memory backup: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            print(f"JSON serialization error in memory backup: {e}")
+            return False
         except Exception as e:
             print(f"Memory backup error: {e}")
             return False
@@ -199,6 +235,18 @@ class MemoryAdapter(IMemoryPort):
 
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error in memory restore: {e}")
+            return False
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error in memory restore: {e}")
+            return False
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Memory module import error: {e}")
+            return False
+        except (AttributeError, KeyError) as e:
+            print(f"Memory restore data error: {e}")
+            return False
         except Exception as e:
             print(f"Memory restore error: {e}")
             return False

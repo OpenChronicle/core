@@ -12,7 +12,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from openchronicle.shared.logging_system import log_warning, log_error
+
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_warning
 
 
 @dataclass
@@ -57,6 +59,24 @@ class NarrativeStateManager:
                     data = json.load(f)
                     for key, state_data in data.items():
                         self.states[key] = NarrativeState(**state_data)
+        except (OSError, IOError, PermissionError) as e:
+            log_warning(
+                f"File system error loading narrative states: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "load_states",
+                    f"storage_dir:{self.storage_dir}",
+                ],
+            )
+        except json.JSONDecodeError as e:
+            log_warning(
+                f"JSON decode error loading narrative states: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "load_states",
+                    f"storage_dir:{self.storage_dir}",
+                ],
+            )
         except Exception as e:
             log_warning(
                 f"Could not load narrative states: {type(e).__name__}: {e}",
@@ -91,6 +111,28 @@ class NarrativeStateManager:
             self._save_states()
             return True
 
+        except (AttributeError, KeyError) as e:
+            log_error(
+                f"Data structure error updating narrative state: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "update_state",
+                    f"story:{story_id}",
+                    (f"character:{character_id}" if character_id else "character:__global__"),
+                ],
+            )
+            return False
+        except (ValueError, TypeError) as e:
+            log_error(
+                f"Parameter error updating narrative state: {type(e).__name__}: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "update_state",
+                    f"story:{story_id}",
+                    (f"character:{character_id}" if character_id else "character:__global__"),
+                ],
+            )
+            return False
         except Exception as e:
             log_error(
                 f"Error updating narrative state: {type(e).__name__}: {e}",
@@ -109,6 +151,24 @@ class NarrativeStateManager:
             state_file = self.storage_dir / "narrative_states.json"
             with open(state_file, "w", encoding="utf-8") as f:
                 json.dump({k: asdict(v) for k, v in self.states.items()}, f, indent=2)
+        except (OSError, IOError, PermissionError) as e:
+            log_warning(
+                f"File system error saving narrative states: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "save_states",
+                    f"storage_dir:{self.storage_dir}",
+                ],
+            )
+        except (AttributeError, KeyError) as e:
+            log_warning(
+                f"Data structure error saving narrative states: {e}",
+                context_tags=[
+                    "narrative_state",
+                    "save_states",
+                    f"storage_dir:{self.storage_dir}",
+                ],
+            )
         except Exception as e:
             log_warning(
                 f"Could not save narrative states: {type(e).__name__}: {e}",

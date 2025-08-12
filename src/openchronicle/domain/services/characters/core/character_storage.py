@@ -65,8 +65,11 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
             test_file = Path(self.storage_path) / ".write_test"
             test_file.write_text("test")
             test_file.unlink()
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during storage validation
+            raise ValueError(f"Storage path not writable due to file system error: {e}")
         except Exception as e:
-            raise ValueError(f"Storage path not writable: {e}")
+            raise ValueError(f"Storage path validation failed: {e}")
 
     def initialize_character(
         self, character_id: str, character_data: dict | None = None
@@ -141,8 +144,16 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
                 self.logger.debug(f"Character {character_id} saved to storage")
                 return True
 
+            except (OSError, IOError, PermissionError) as e:
+                # Handle file system errors during character saving
+                self.logger.error(f"File system error saving character {character_id}: {e}")
+                return False
+            except (TypeError, ValueError) as e:
+                # Handle JSON serialization errors during character saving
+                self.logger.error(f"JSON serialization error saving character {character_id}: {e}")
+                return False
             except Exception as e:
-                self.logger.error(f"Failed to save character {character_id}: {e}")
+                self.logger.error(f"Unexpected error saving character {character_id}: {e}")
                 return False
 
     def delete_character(self, character_id: str) -> bool:
@@ -158,9 +169,14 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
         if storage_file.exists():
             try:
                 storage_file.unlink()
-            except Exception as e:
+            except (OSError, IOError, PermissionError) as e:
                 self.logger.error(
                     f"Failed to delete character file {character_id}: {e}"
+                )
+                success = False
+            except Exception as e:
+                self.logger.error(
+                    f"Unexpected error deleting character file {character_id}: {e}"
                 )
                 success = False
 
@@ -210,6 +226,16 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
 
             return True
 
+        except (KeyError, AttributeError) as e:
+            self.logger.error(
+                f"Character data structure error updating {character_id} component {component_name}: {e}"
+            )
+            return False
+        except (ValueError, TypeError) as e:
+            self.logger.error(
+                f"Character component validation error for {character_id}.{component_name}: {e}"
+            )
+            return False
         except Exception as e:
             self.logger.error(
                 f"Failed to update character {character_id} component {component_name}: {e}"
@@ -251,8 +277,11 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
             self.emit_event("character_imported", {"character_id": character_id})
             return True
 
+        except (ValueError, TypeError, KeyError) as e:
+            self.logger.error(f"Invalid character data format during import: {e}")
+            return False
         except Exception as e:
-            self.logger.error(f"Failed to import character data: {e}")
+            self.logger.error(f"Unexpected error importing character data: {e}")
             return False
 
     def save_all_pending(self) -> dict[str, bool]:
@@ -308,6 +337,12 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
 
             return CharacterData.from_dict(character_dict)
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error loading character {character_id}: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            self.logger.error(f"JSON decode error loading character {character_id}: {e}")
+            return None
         except Exception as e:
             self.logger.error(f"Failed to load character {character_id}: {e}")
             return None
@@ -337,7 +372,9 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
 
                 return True
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error creating backup for {character_id}: {e}")
         except Exception as e:
-            self.logger.error(f"Failed to create backup for {character_id}: {e}")
+            self.logger.error(f"Unexpected error creating backup for {character_id}: {e}")
 
         return False

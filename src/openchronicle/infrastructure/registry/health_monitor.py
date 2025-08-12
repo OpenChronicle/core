@@ -237,7 +237,22 @@ class HealthMonitor:
                 response_time=response_time,
                 error_message="Health check timeout",
             )
-
+        except (ConnectionError, TimeoutError) as e:
+            response_time = (datetime.now(UTC) - start_time).total_seconds()
+            return HealthCheckResult(
+                adapter_name=adapter_name,
+                status=HealthStatus.UNHEALTHY,
+                response_time=response_time,
+                error_message=f"Connection error during health check: {e}",
+            )
+        except (AttributeError, KeyError) as e:
+            response_time = (datetime.now(UTC) - start_time).total_seconds()
+            return HealthCheckResult(
+                adapter_name=adapter_name,
+                status=HealthStatus.UNHEALTHY,
+                response_time=response_time,
+                error_message=f"Adapter configuration error: {e}",
+            )
         except Exception as e:
             response_time = (datetime.now(UTC) - start_time).total_seconds()
             return HealthCheckResult(

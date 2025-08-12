@@ -14,11 +14,14 @@ This module coordinates all system-related CLI commands:
 
 import typer
 
-# Import command modules
-from .system_info import system_info, system_diagnostics
-from .system_health import health_check
-from .system_maintenance import system_maintenance, storage_cleanup
 from .database_commands import database_app
+from .system_health import health_check
+from .system_info import system_diagnostics
+
+# Import command modules
+from .system_info import system_info
+from .system_maintenance import storage_cleanup
+from .system_maintenance import system_maintenance
 
 
 # Create the main system command group

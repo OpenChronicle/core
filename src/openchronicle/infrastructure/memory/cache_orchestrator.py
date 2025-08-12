@@ -16,13 +16,20 @@ import asyncio
 import json
 import logging
 import time
-from typing import Any, Callable
+from typing import Any
+from typing import Callable
 
-from .engines.caching.redis_cache import MultiTierCache
-from .engines.caching.config import DistributedCacheConfig, ClusterNode, PartitionConfig
-from .engines.caching.metrics import DistributedCacheMetrics
+from ...shared.exceptions import CacheConnectionError
+from ...shared.exceptions import CacheError
+from ...shared.exceptions import InfrastructureError
 from .engines.caching.cluster_manager import RedisClusterManager
+from .engines.caching.config import ClusterNode
+from .engines.caching.config import DistributedCacheConfig
+from .engines.caching.config import PartitionConfig
+from .engines.caching.metrics import DistributedCacheMetrics
+from .engines.caching.redis_cache import MultiTierCache
 from .engines.caching.warming_manager import CacheWarmingManager
+
 
 try:
     from cachetools import TTLCache
@@ -30,6 +37,14 @@ try:
 except ImportError:
     TTLCache = None
     CACHETOOLS_AVAILABLE = False
+
+try:
+    import redis
+    import redis.exceptions
+    REDIS_AVAILABLE = True
+except ImportError:
+    redis = None
+    REDIS_AVAILABLE = False
 
 
 class RetryPolicy:
@@ -101,19 +116,27 @@ class DistributedMultiTierCache(MultiTierCache):
         """Start background monitoring task."""
 
         async def monitor():
-            policy = RetryPolicy(max_attempts=3, base_delay=0.5, retry_exceptions=(Exception,))
+            policy = RetryPolicy(max_attempts=3, base_delay=0.5, 
+                               retry_exceptions=(CacheError, CacheConnectionError))
             while True:
                 try:
                     await asyncio.sleep(self.config.metrics_collection_interval)
                     try:
                         await policy.run(lambda: self._collect_metrics())
-                    except Exception as e:
+                    except (CacheError, CacheConnectionError) as e:
                         # Final failure after retries; logged inside _collect_metrics as well
                         self.logger.error(f"Monitoring collection failed after retries: {e}")
+                        raise InfrastructureError(f"Cache monitoring failed: {e}") from e
                 except asyncio.CancelledError:
                     break
+                except (ConnectionError, OSError) as e:
+                    self.logger.error(f"Network/system error in monitoring: {e}")
+                    # Don't break the loop for network issues, continue monitoring
                 except Exception as e:
-                    self.logger.error(f"Monitoring error: {e}")
+                    self.logger.error(f"Unexpected monitoring error: {e}")
+                    # For truly unexpected errors, we still continue but log more detail
+                    import traceback
+                    self.logger.debug(f"Full traceback: {traceback.format_exc()}")
 
         self._monitoring_task = asyncio.create_task(monitor())
 
@@ -144,16 +167,29 @@ class DistributedMultiTierCache(MultiTierCache):
                         f"Hit ratio: {keyspace_hits}/{keyspace_hits + keyspace_misses}"
                     )
 
-                except Exception as e:
+                except (CacheConnectionError, ConnectionError, OSError) as e:
                     self.metrics.record_cluster_operation(
                         f"node_{node_index}", "info", False, time.time() - start_time
                     )
                     self.logger.warning(
-                        f"Failed to collect metrics from node {node_index}: {e}"
+                        f"Connection failed to node {node_index}: {e}"
                     )
+                    raise CacheConnectionError(f"Node {node_index} unreachable: {e}") from e
+                except (redis.exceptions.RedisError, CacheError) as e:
+                    self.metrics.record_cluster_operation(
+                        f"node_{node_index}", "info", False, time.time() - start_time
+                    )
+                    self.logger.warning(
+                        f"Redis operation failed on node {node_index}: {e}"
+                    )
+                    raise CacheError(f"Redis operation failed: {e}") from e
 
+        except (CacheError, CacheConnectionError):
+            # Re-raise cache-specific errors
+            raise
         except Exception as e:
-            self.logger.error(f"Metrics collection error: {e}")
+            self.logger.error(f"Unexpected metrics collection error: {e}")
+            raise InfrastructureError(f"Metrics collection failed: {e}") from e
 
     def _make_key(self, *args: str) -> str:
         """Create a cache key from arguments."""

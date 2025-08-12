@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
-    ImportContext,
     IAIProcessor,
 )
+from openchronicle.application.services.importers.storypack.interfaces import (
+    ImportContext,
+)
+
+
 """
 OpenChronicle AI Processor
 
@@ -11,13 +15,14 @@ Handles model integration and content intelligence.
 """
 
 from pathlib import Path
-from typing import Any
 from typing import TYPE_CHECKING
+from typing import Any
 
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
+
 
 if TYPE_CHECKING:
     from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
@@ -41,7 +46,9 @@ class AIProcessor(IAIProcessor):
                 self.is_initialized = True
             else:
                 # Fallback for backward compatibility
-                from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+                from openchronicle.domain.ports.content_analysis_port import (
+                    IContentAnalysisPort,
+                )
                 
                 class MockContentAnalysisPort(IContentAnalysisPort):
                     async def generate_content_flags(
@@ -76,6 +83,14 @@ class AIProcessor(IAIProcessor):
 
             return success
 
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error initializing AI processor: {e}")
+            self.is_initialized = False
+            return False
+        except (AttributeError, KeyError) as e:
+            log_error(f"Configuration error initializing AI processor: {e}")
+            self.is_initialized = False
+            return False
         except Exception as e:
             log_error(f"Failed to initialize AI processor: {e}")
             self.is_initialized = False
@@ -208,6 +223,12 @@ class AIProcessor(IAIProcessor):
 
             return formatted_entities
 
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error in entity extraction for type {entity_type}: {e}")
+            return []
+        except (AttributeError, KeyError) as e:
+            log_error(f"Data structure error in entity extraction for type {entity_type}: {e}")
+            return []
         except Exception as e:
             log_error(f"Entity extraction failed for type {entity_type}: {e}")
             return []
@@ -322,6 +343,12 @@ class AIProcessor(IAIProcessor):
             messages.append("✗ AI analysis returned no results")
             return False, messages
 
+        except (ConnectionError, TimeoutError) as e:
+            messages.append(f"✗ Network error in AI capability test: {e!s}")
+            return False, messages
+        except (AttributeError, KeyError) as e:
+            messages.append(f"✗ Data structure error in AI capability test: {e!s}")
+            return False, messages
         except Exception as e:
             messages.append(f"✗ AI capability test failed: {e!s}")
             return False, messages
@@ -400,6 +427,9 @@ class AIProcessor(IAIProcessor):
                 category, enhanced
             )
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error in enhancement for category {category}: {e}")
+            enhanced["enhancement_error"] = str(e)
         except Exception as e:
             log_warning(f"Enhancement failed for category {category}: {e}")
             enhanced["enhancement_error"] = str(e)

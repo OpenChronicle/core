@@ -59,6 +59,9 @@ class ContentRouter(RoutingComponent):
                         # Prefer non-mock adapters but use what's available
                         non_mock = [a for a in available if not a.startswith("mock")]
                         default_adapter = non_mock[0] if non_mock else available[0]
+            except AttributeError as e:
+                log_warning(f"Model manager configuration error: {e}, using mock fallback")
+                default_adapter = "mock"
             except Exception as e:
                 log_warning(
                     f"Could not determine default adapter: {e}, using mock fallback"
@@ -90,7 +93,14 @@ class ContentRouter(RoutingComponent):
                     local_adapters = [a for a in available if a in ["ollama", "mock"]]
                     if local_adapters:
                         recommendation["adapter"] = local_adapters[0]
+                except AttributeError:
+                    # Model manager doesn't have get_available_adapters method
+                    pass
+                except (KeyError, ValueError):
+                    # Configuration or adapter data error
+                    pass
                 except Exception:
+                    # Any other error in adapter selection
                     pass
 
         # Adjust token limits based on priority

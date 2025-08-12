@@ -7,9 +7,9 @@ Handles context formatting, prompt generation, and narrative consistency.
 
 from dataclasses import dataclass
 
-from ..character.character_manager import CharacterManager
 from ...shared.memory_models import CharacterMemory
 from ...shared.memory_models import MemorySnapshot
+from ..character.character_manager import CharacterManager
 
 
 @dataclass
@@ -112,6 +112,10 @@ class ContextBuilder:
 
             return full_context
 
+        except (AttributeError, KeyError):
+            return f"{self.section_templates['header']}\n[Data structure error loading memory context]"
+        except (ValueError, TypeError):
+            return f"{self.section_templates['header']}\n[Template processing error loading memory context]"
         except Exception:
             return f"{self.section_templates['header']}\n[Error loading memory context]"
 

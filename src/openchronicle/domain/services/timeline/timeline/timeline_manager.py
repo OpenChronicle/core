@@ -11,17 +11,16 @@ This manager uses dependency injection following hexagonal architecture principl
 import json
 from datetime import UTC
 from datetime import datetime
-from typing import Any, Optional
-
-# Domain ports only - following hexagonal architecture
-from openchronicle.domain.ports.memory_port import IMemoryPort
-from openchronicle.domain.ports.persistence_port import IPersistencePort
-from openchronicle.domain.ports.persistence_inmemory import (
-    InMemorySqlitePersistence,
-)
+from typing import Any
+from typing import Optional
 
 # Bookmark management interface (to be injected, not directly imported)
 from typing import Protocol
+
+# Domain ports only - following hexagonal architecture
+from openchronicle.domain.ports.memory_port import IMemoryPort
+from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
+from openchronicle.domain.ports.persistence_port import IPersistencePort
 from openchronicle.shared.error_handling import OpenChronicleError
 from openchronicle.shared.logging_system import log_warning
 

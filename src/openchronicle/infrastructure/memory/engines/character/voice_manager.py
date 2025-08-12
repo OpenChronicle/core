@@ -124,7 +124,17 @@ class VoiceManager:
                 voice_completeness=completeness,
             )
 
-        except Exception:
+        except (AttributeError, KeyError) as e:
+            # Data structure error in voice profile
+            return VoiceAnalysis(
+                character_name=character.name,
+                speaking_style_consistency=0.0,
+                vocabulary_complexity="moderate",
+                dominant_traits=[],
+                speaking_patterns_count=0,
+                voice_completeness=0.0,
+            )
+        except Exception as e:
             return VoiceAnalysis(
                 character_name=character.name,
                 speaking_style_consistency=0.0,
@@ -319,7 +329,10 @@ class VoiceManager:
 
             return True
 
-        except Exception:
+        except (AttributeError, KeyError) as e:
+            # Data structure error in voice profile
+            return False
+        except Exception as e:
             return False
 
     def extract_voice_from_dialogue(

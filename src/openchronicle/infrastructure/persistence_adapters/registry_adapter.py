@@ -5,11 +5,13 @@ This adapter wraps the existing infrastructure registry functions
 to implement the domain interface, maintaining the dependency inversion principle.
 """
 
-from typing import Any, Optional
-
-from openchronicle.shared.logging_system import log_error, log_warning, log_info
+from typing import Any
+from typing import Optional
 
 from openchronicle.domain.ports.registry_port import IRegistryPort
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_info
+from openchronicle.shared.logging_system import log_warning
 
 
 class RegistryAdapter(IRegistryPort):

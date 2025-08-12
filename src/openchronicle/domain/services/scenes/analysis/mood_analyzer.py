@@ -11,6 +11,7 @@ This analyzer now uses dependency injection following hexagonal architecture pri
 """
 
 import json
+import sqlite3
 from datetime import datetime
 from typing import Any
 from typing import Optional
@@ -129,6 +130,12 @@ class MoodAnalyzer:
 
             return results
 
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_error_with_context(e, {"operation": "get_scenes_by_mood", "story_id": self.story_id, "mood": mood})
+            return []
+        except (ValueError, KeyError, TypeError) as e:
+            log_error_with_context(e, {"operation": "get_scenes_by_mood", "story_id": self.story_id, "mood": mood})
+            return []
         except Exception as e:
             log_error_with_context(e, {"operation": "get_scenes_by_mood", "story_id": self.story_id, "mood": mood})
             return []
@@ -188,6 +195,12 @@ class MoodAnalyzer:
 
             return results
 
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
+            return []
+        except (ValueError, KeyError, TypeError) as e:
+            log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
+            return []
         except Exception as e:
             log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
             return []
@@ -239,6 +252,9 @@ class MoodAnalyzer:
 
             return timeline_with_trends
 
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(e, {"operation": "get_character_mood_timeline_data_error", "story_id": self.story_id, "character_name": character_name})
+            return []
         except Exception as e:
             log_error_with_context(e, {"operation": "get_character_mood_timeline", "story_id": self.story_id, "character_name": character_name})
             return []
@@ -419,6 +435,12 @@ class MoodAnalyzer:
             if "error" in distribution:
                 return "error"
             return f"active ({distribution['total_scenes_with_moods']} scenes with mood data)"
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(e, {"operation": "get_status_data_error", "story_id": self.story_id})
+            return "error"
+        except (ValueError, TypeError) as e:
+            log_error_with_context(e, {"operation": "get_status_calculation_error", "story_id": self.story_id})
+            return "error"
         except Exception as e:
             log_error_with_context(e, {"operation": "get_status", "story_id": self.story_id})
             return "error"

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 
+# Use domain port for registry operations (hexagonal architecture compliance)
 from openchronicle.domain.ports.registry_port import IRegistryPort
 from openchronicle.shared.centralized_config import SystemConfig
 from openchronicle.shared.logging_system import log_error
@@ -27,8 +28,6 @@ from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
 
-# Use domain port for registry operations (hexagonal architecture compliance)
-from openchronicle.domain.ports.registry_port import IRegistryPort
 
 # Conditional import for legacy compatibility
 try:

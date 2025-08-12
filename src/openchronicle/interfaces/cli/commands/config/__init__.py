@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+
 from openchronicle.interfaces.cli.support.base_command import OpenChronicleCommand
 from openchronicle.interfaces.cli.support.config_manager import ConfigManager
 from openchronicle.interfaces.cli.support.output_manager import OutputManager

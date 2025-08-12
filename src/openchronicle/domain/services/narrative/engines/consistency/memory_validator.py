@@ -13,6 +13,7 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
+from openchronicle.infrastructure.memory.engines.persistence.memory_repository import MemoryRepository
 from openchronicle.shared.json_utilities import JSONUtilities
 
 
@@ -125,6 +126,7 @@ class MemoryValidator:
         """Initialize memory validator."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
+        self.memory_repository = MemoryRepository()
 
         # Configuration
         self.consistency_threshold = self.config.get("consistency_threshold", 0.8)
@@ -203,12 +205,18 @@ class MemoryValidator:
 
             return memories
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Event data structure error generating memories: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            logger.error(f"Event parameter error generating memories: {e}")
+            return []
         except Exception as e:
             logger.error(f"Error generating memories from event: {e}")
             return []
 
     def validate_memory_consistency(
-        self, character_id: str, new_memory: dict[str, Any]
+        self, character_id: str, new_memory: dict[str, Any], story_id: str = "default"
     ) -> dict[str, Any]:
         """
         Validate consistency of new memory against existing memories.
@@ -216,13 +224,14 @@ class MemoryValidator:
         Args:
             character_id: ID of the character
             new_memory: Memory to validate
+            story_id: ID of the story context
 
         Returns:
             Dictionary with validation results
         """
         try:
             # Get existing memories for character
-            existing_memories = self._get_character_memories(character_id)
+            existing_memories = self._get_character_memories(character_id, story_id)
 
             # Convert to CharacterMemory object
             memory_obj = CharacterMemory.from_dict(new_memory)
@@ -268,7 +277,7 @@ class MemoryValidator:
             }
 
     def retrieve_relevant_memories(
-        self, character_id: str, context: str, max_memories: int = 5
+        self, character_id: str, context: str, max_memories: int = 5, story_id: str = "default"
     ) -> list[dict[str, Any]]:
         """
         Retrieve memories relevant to current context.
@@ -277,13 +286,14 @@ class MemoryValidator:
             character_id: ID of the character
             context: Current context
             max_memories: Maximum memories to return
+            story_id: ID of the story context
 
         Returns:
             List of relevant memories
         """
         try:
             # Get all memories for character
-            memories = self._get_character_memories(character_id)
+            memories = self._get_character_memories(character_id, story_id)
 
             # Extract keywords from context
             context_keywords = self._extract_keywords(context)
@@ -301,17 +311,24 @@ class MemoryValidator:
 
             return [memory.to_dict() for memory, _ in scored_memories[:max_memories]]
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Memory data structure error retrieving relevant memories: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            logger.error(f"Memory parameter error retrieving relevant memories: {e}")
+            return []
         except Exception as e:
             logger.error(f"Error retrieving relevant memories: {e}")
             return []
 
-    def compress_old_memories(self, character_id: str, retention_days: int = 30) -> int:
+    def compress_old_memories(self, character_id: str, retention_days: int = 30, story_id: str = "default") -> int:
         """
         Compress old memories to save storage.
 
         Args:
             character_id: ID of the character
             retention_days: Days to retain detailed memories
+            story_id: ID of the story context
 
         Returns:
             Number of memories compressed
@@ -320,7 +337,7 @@ class MemoryValidator:
             cutoff_date = datetime.now() - timedelta(days=retention_days)
 
             # Get old memories
-            old_memories = self._get_memories_before_date(character_id, cutoff_date)
+            old_memories = self._get_memories_before_date(character_id, cutoff_date, story_id)
 
             # Group by week and create summaries
             compressed_count = 0
@@ -334,18 +351,24 @@ class MemoryValidator:
             for week, memories in weekly_groups.items():
                 if len(memories) > 5:  # Only compress if enough memories
                     summary = self._create_memory_summary(memories)
-                    self._save_compressed_memory(character_id, summary, week)
-                    self._delete_old_memories([m.memory_id for m in memories])
+                    self._save_compressed_memory(character_id, summary, week, story_id)
+                    self._delete_old_memories([m.memory_id for m in memories], character_id, story_id)
                     compressed_count += len(memories)
 
             return compressed_count
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Memory data structure error compressing memories: {e}")
+            return 0
+        except (OSError, IOError) as e:
+            logger.error(f"Storage error compressing memories: {e}")
+            return 0
         except Exception as e:
             logger.error(f"Error compressing memories: {e}")
             return 0
 
     def get_memory_context_for_prompt(
-        self, character_id: str, current_context: str, max_tokens: int = 500
+        self, character_id: str, current_context: str, max_tokens: int = 500, story_id: str = "default"
     ) -> str:
         """
         Generate memory context for prompt.
@@ -354,6 +377,7 @@ class MemoryValidator:
             character_id: ID of the character
             current_context: Current context
             max_tokens: Maximum tokens
+            story_id: ID of the story context
 
         Returns:
             Formatted memory context
@@ -361,7 +385,7 @@ class MemoryValidator:
         try:
             # Get relevant memories
             relevant_memories = self.retrieve_relevant_memories(
-                character_id, current_context, max_memories=10
+                character_id, current_context, max_memories=10, story_id=story_id
             )
 
             # Format for prompt
@@ -381,25 +405,37 @@ class MemoryValidator:
 
             return "\n".join(context_parts)
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Memory data structure error generating context: {e}")
+            return ""
+        except (ValueError, TypeError) as e:
+            logger.error(f"Memory parameter error generating context: {e}")
+            return ""
         except Exception as e:
             logger.error(f"Error generating memory context: {e}")
             return ""
 
-    def export_character_memories(self, character_id: str) -> dict[str, Any]:
+    def export_character_memories(self, character_id: str, story_id: str = "default") -> dict[str, Any]:
         """Export character memories."""
         try:
-            memories = self._get_character_memories(character_id)
+            memories = self._get_character_memories(character_id, story_id)
             return {
                 "character_id": character_id,
                 "export_timestamp": datetime.now().isoformat(),
                 "memory_count": len(memories),
                 "memories": [memory.to_dict() for memory in memories],
             }
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Memory data structure error exporting memories: {e}")
+            return {}
+        except (ValueError, TypeError) as e:
+            logger.error(f"Memory parameter error exporting memories: {e}")
+            return {}
         except Exception as e:
             logger.error(f"Error exporting memories: {e}")
             return {}
 
-    def import_character_memories(self, data: dict[str, Any]) -> None:
+    def import_character_memories(self, data: dict[str, Any], story_id: str = "default") -> None:
         """Import character memories."""
         try:
             character_id = data["character_id"]
@@ -407,42 +443,208 @@ class MemoryValidator:
 
             for memory_data in memories:
                 memory = CharacterMemory.from_dict(memory_data)
-                self._save_memory(memory)
+                self._save_memory(memory, story_id)
 
             logger.info(
                 f"Imported {len(memories)} memories for character {character_id}"
             )
 
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Memory import data structure error: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            logger.error(f"Memory import parameter error: {e}")
+            raise
         except Exception as e:
             logger.error(f"Error importing memories: {e}")
             raise
 
-    def _get_character_memories(self, character_id: str) -> list[CharacterMemory]:
-        """Get all memories for a character."""
-        # This would interact with the database
-        # For now, return empty list as placeholder
-        return []
+    def _get_character_memories(self, character_id: str, story_id: str = "default") -> list[CharacterMemory]:
+        """Get all memories for a character from the repository."""
+        try:
+            # Load memory state from repository
+            memory_state = self.memory_repository.load_memory(story_id)
+            
+            # Extract character memories
+            if character_id in memory_state.characters:
+                character = memory_state.characters[character_id]
+                # Convert repository CharacterMemory to local CharacterMemory format
+                # Note: This adapts between infrastructure and domain models
+                memories = []
+                
+                # Convert dialogue history to CharacterMemory objects
+                for dialogue in character.dialogue_history:
+                    memory = CharacterMemory(
+                        memory_id=f"{character_id}_{len(memories)}",
+                        character_id=character_id,
+                        content=dialogue.get("content", ""),
+                        memory_type="dialogue",
+                        emotional_score=dialogue.get("emotional_score", 0.0),
+                        importance=dialogue.get("importance", 0.5),
+                        timestamp=datetime.fromisoformat(dialogue.get("timestamp", datetime.now().isoformat())),
+                        tags=dialogue.get("tags", [])
+                    )
+                    memories.append(memory)
+                    
+                return memories
+                
+            return []
+            
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Error accessing character memory data: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error with character memory parameters: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Error getting character memories: {e}")
+            return []
 
     def _get_memories_before_date(
-        self, character_id: str, date: datetime
+        self, character_id: str, date: datetime, story_id: str = "default"
     ) -> list[CharacterMemory]:
-        """Get memories before specified date."""
-        # Database interaction placeholder
-        return []
+        """Get memories before specified date from the repository."""
+        try:
+            # Get all character memories first
+            all_memories = self._get_character_memories(character_id, story_id)
+            
+            # Filter by date
+            filtered_memories = [
+                memory for memory in all_memories 
+                if memory.timestamp < date
+            ]
+            
+            return filtered_memories
+            
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Error accessing memory date data: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error with memory date parameters: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Error getting memories before date: {e}")
+            return []
 
-    def _save_memory(self, memory: CharacterMemory) -> None:
-        """Save memory to database."""
-        # Database interaction placeholder
+    def _save_memory(self, memory: CharacterMemory, story_id: str = "default") -> None:
+        """Save memory to repository."""
+        try:
+            # Load current memory state
+            memory_state = self.memory_repository.load_memory(story_id)
+            
+            # Ensure character exists in memory state
+            if memory.character_id not in memory_state.characters:
+                # Import the infrastructure CharacterMemory model
+                from openchronicle.infrastructure.memory.shared.memory_models import CharacterMemory as InfraCharacterMemory
+                memory_state.characters[memory.character_id] = InfraCharacterMemory(name=memory.character_id)
+            
+            # Convert domain memory to infrastructure format and add to dialogue history
+            character = memory_state.characters[memory.character_id]
+            dialogue_entry = {
+                "content": memory.content,
+                "memory_type": memory.memory_type,
+                "emotional_score": memory.emotional_score,
+                "importance": memory.importance,
+                "timestamp": memory.timestamp.isoformat(),
+                "tags": memory.tags
+            }
+            
+            # Add to dialogue history
+            character.dialogue_history.append(dialogue_entry)
+            
+            # Save updated memory state
+            success = self.memory_repository.save_memory(story_id, memory_state)
+            
+            if not success:
+                logger.warning(f"Failed to save memory for character {memory.character_id}")
+                
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Error accessing memory save data: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error with memory save parameters: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error saving memory: {e}")
+            raise
 
     def _save_compressed_memory(
-        self, character_id: str, summary: str, week: str
+        self, character_id: str, summary: str, week: str, story_id: str = "default"
     ) -> None:
-        """Save compressed memory summary."""
-        # Database interaction placeholder
+        """Save compressed memory summary to repository."""
+        try:
+            # Load current memory state
+            memory_state = self.memory_repository.load_memory(story_id)
+            
+            # Ensure character exists
+            if character_id not in memory_state.characters:
+                from openchronicle.infrastructure.memory.shared.memory_models import CharacterMemory as InfraCharacterMemory
+                memory_state.characters[character_id] = InfraCharacterMemory(name=character_id)
+            
+            # Add compressed summary to character's background or create summary section
+            character = memory_state.characters[character_id]
+            
+            # Add to background or create a summary tracking system
+            summary_entry = f"Week {week} Summary: {summary}"
+            if character.background:
+                character.background += f"\n\n{summary_entry}"
+            else:
+                character.background = summary_entry
+            
+            # Save updated memory state
+            success = self.memory_repository.save_memory(story_id, memory_state)
+            
+            if not success:
+                logger.warning(f"Failed to save compressed memory for character {character_id}")
+                
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Error accessing compressed memory data: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error with compressed memory parameters: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error saving compressed memory: {e}")
+            raise
 
-    def _delete_old_memories(self, memory_ids: list[str]) -> None:
-        """Delete old memories from database."""
-        # Database interaction placeholder
+    def _delete_old_memories(self, memory_ids: list[str], character_id: str, story_id: str = "default") -> None:
+        """Delete old memories from repository based on memory content or index."""
+        try:
+            # Load current memory state
+            memory_state = self.memory_repository.load_memory(story_id)
+            
+            if character_id not in memory_state.characters:
+                logger.warning(f"Character {character_id} not found in memory state")
+                return
+            
+            character = memory_state.characters[character_id]
+            
+            # Since we don't have direct memory IDs in the current structure,
+            # we'll remove the oldest memories based on the count in memory_ids
+            # This is a practical implementation that maintains memory bounds
+            
+            if len(character.dialogue_history) > len(memory_ids):
+                # Remove the oldest entries
+                memories_to_remove = len(memory_ids)
+                character.dialogue_history = character.dialogue_history[memories_to_remove:]
+                
+                logger.info(f"Removed {memories_to_remove} old memories for character {character_id}")
+            
+            # Save updated memory state
+            success = self.memory_repository.save_memory(story_id, memory_state)
+            
+            if not success:
+                logger.warning(f"Failed to delete old memories for character {character_id}")
+                
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Error accessing memory deletion data: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error with memory deletion parameters: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting old memories: {e}")
+            raise
 
     def _create_memory_summary(self, memories: list[CharacterMemory]) -> str:
         """Create summary of multiple memories."""

@@ -8,7 +8,10 @@ Provides a single entry point for all management operations.
 from datetime import datetime
 from typing import Any
 
-from openchronicle.shared.logging_system import log_error, log_info, log_system_event
+from openchronicle.shared.exceptions import ValidationError, ServiceError, ConfigurationError
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_info
+from openchronicle.shared.logging_system import log_system_event
 
 from .bookmark import BookmarkManager
 from .shared import ConfigValidator
@@ -40,9 +43,12 @@ class ManagementOrchestrator:
                 "management_orchestrator", "Management orchestrator initialized"
             )
 
+        except (ValidationError, ConfigurationError) as e:
+            log_error(f"Configuration error initializing ManagementOrchestrator: {e}")
+            raise ConfigurationError(f"Management orchestrator initialization failed: {e}") from e
         except Exception as e:
-            log_error(f"Failed to initialize ManagementOrchestrator: {e}")
-            raise Exception(f"Management orchestrator initialization failed: {e}")
+            log_error(f"Unexpected error initializing ManagementOrchestrator: {e}")
+            raise ServiceError(f"Management orchestrator initialization failed: {e}") from e
 
     # =====================================================================
     # TOKEN MANAGEMENT INTERFACE
@@ -276,9 +282,12 @@ class ManagementOrchestrator:
 
             return analysis
 
+        except (ValidationError, ServiceError) as e:
+            log_error(f"Service error during story content analysis: {e}")
+            return {"error": f"Analysis failed: {str(e)}"}
         except Exception as e:
-            log_error(f"Story content analysis failed: {e}")
-            return {"error": str(e)}
+            log_error(f"Unexpected error during story content analysis: {e}")
+            return {"error": f"Unexpected analysis failure: {str(e)}"}
 
     def optimize_story_navigation(self, story_id: str) -> dict[str, Any]:
         """Optimize story navigation structure."""
@@ -318,9 +327,12 @@ class ManagementOrchestrator:
 
             return optimization
 
+        except (ValidationError, ServiceError) as e:
+            log_error(f"Service error during story navigation optimization: {e}")
+            return {"error": f"Navigation optimization failed: {str(e)}"}
         except Exception as e:
-            log_error(f"Story navigation optimization failed: {e}")
-            return {"error": str(e)}
+            log_error(f"Unexpected error during story navigation optimization: {e}")
+            return {"error": f"Unexpected optimization failure: {str(e)}"}
 
     def get_management_stats(self) -> dict[str, Any]:
         """Get comprehensive management system statistics."""
@@ -355,9 +367,12 @@ class ManagementOrchestrator:
                 },
             }
 
+        except (ServiceError, ValidationError) as e:
+            log_error(f"Service error collecting management stats: {e}")
+            return {"error": f"Stats collection failed: {str(e)}"}
         except Exception as e:
-            log_error(f"Management stats collection failed: {e}")
-            return {"error": str(e)}
+            log_error(f"Unexpected error collecting management stats: {e}")
+            return {"error": f"Unexpected stats failure: {str(e)}"}
 
     def _calculate_complexity_score(self, content: str, token_count: int) -> float:
         """Calculate content complexity score."""
@@ -432,9 +447,12 @@ class ManagementOrchestrator:
                 "system_config": self.config.to_dict(),
             }
 
+        except (ServiceError, ValidationError) as e:
+            log_error(f"Service error during data export: {e}")
+            raise ServiceError(f"Export failed: {e}") from e
         except Exception as e:
-            log_error(f"Data export failed: {e}")
-            raise Exception(f"Export failed: {e}")
+            log_error(f"Unexpected error during data export: {e}")
+            raise ServiceError(f"Unexpected export failure: {e}") from e
 
     def update_config(self, new_config: dict[str, Any]):
         """Update system configuration."""
@@ -450,9 +468,12 @@ class ManagementOrchestrator:
 
             log_system_event("management_orchestrator", "Configuration updated")
 
+        except (ValidationError, ConfigurationError) as e:
+            log_error(f"Configuration error during config update: {e}")
+            raise ConfigurationError(f"Config update failed: {e}") from e
         except Exception as e:
-            log_error(f"Config update failed: {e}")
-            raise Exception(f"Config update failed: {e}")
+            log_error(f"Unexpected error during config update: {e}")
+            raise ServiceError(f"Unexpected config update failure: {e}") from e
 
     def get_management_performance_metrics(self) -> dict[str, Any]:
         """Get comprehensive performance metrics for management systems."""
@@ -471,9 +492,12 @@ class ManagementOrchestrator:
                         "bookmark_types": stats.get("bookmark_types", {}),
                         "recent_activity": stats.get("recent_activity", 0),
                     }
+                except ServiceError as e:
+                    log_error(f"Service error getting bookmark stats for {story_id}: {e}")
+                    bookmark_metrics[story_id] = {"error": f"Service error: {str(e)}"}
                 except Exception as e:
-                    log_error(f"Failed to get bookmark stats for {story_id}: {e}")
-                    bookmark_metrics[story_id] = {"error": str(e)}
+                    log_error(f"Unexpected error getting bookmark stats for {story_id}: {e}")
+                    bookmark_metrics[story_id] = {"error": f"Unexpected error: {str(e)}"}
 
             # System performance
             performance_metrics = {
@@ -504,10 +528,17 @@ class ManagementOrchestrator:
             log_info("Generated management performance metrics")
             return performance_metrics
 
-        except Exception as e:
-            log_error(f"Failed to generate performance metrics: {e}")
+        except (ServiceError, ValidationError) as e:
+            log_error(f"Service error generating performance metrics: {e}")
             return {
-                "error": str(e),
+                "error": f"Service error: {str(e)}",
+                "status": "failed",
+                "timestamp": str(datetime.now()),
+            }
+        except Exception as e:
+            log_error(f"Unexpected error generating performance metrics: {e}")
+            return {
+                "error": f"Unexpected error: {str(e)}",
                 "status": "failed",
                 "timestamp": str(datetime.now()),
             }

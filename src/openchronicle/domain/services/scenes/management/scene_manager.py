@@ -13,15 +13,19 @@ This manager now uses dependency injection following hexagonal architecture prin
 from typing import Any
 from typing import Optional
 
-from openchronicle.shared.logging_system import (
-    log_error,
-    log_info,
-    log_warning,
-)  # Lightweight logging (Band-Aid removal: replace prints)
 from openchronicle.domain.errors.persistence_errors import RollbackSceneError
 
 # Import domain interfaces (following dependency inversion principle)
 from openchronicle.domain.ports.persistence_port import IPersistencePort
+from openchronicle.shared.logging_system import (
+    log_error,
+)  # Lightweight logging (Band-Aid removal: replace prints)
+from openchronicle.shared.logging_system import (
+    log_info,
+)  # Lightweight logging (Band-Aid removal: replace prints)
+from openchronicle.shared.logging_system import (
+    log_warning,
+)  # Lightweight logging (Band-Aid removal: replace prints)
 
 from ..persistence.scene_repository import SceneRepository
 

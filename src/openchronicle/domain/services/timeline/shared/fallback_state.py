@@ -8,11 +8,10 @@ import json
 from datetime import UTC
 from datetime import datetime
 from typing import Any
-
-
+from typing import Optional
 
 from openchronicle.domain.ports.persistence_port import IPersistencePort
-from typing import Optional
+
 
 class FallbackStateManager:
     """Minimal fallback state manager."""

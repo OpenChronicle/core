@@ -205,6 +205,9 @@ class OpenChronicleCommand(ABC):
         try:
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
+        except (OSError, IOError, PermissionError) as e:
+            self.output.error(f"File system error reading {path}: {e}")
+            raise
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in {path}: {e}")
         except Exception as e:
@@ -231,6 +234,12 @@ class OpenChronicleCommand(ABC):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent, ensure_ascii=False)
+        except (json.JSONEncodeError, TypeError) as e:
+            self.output.error(f"JSON encoding error writing to {path}: {e}")
+            raise
+        except OSError as e:
+            self.output.error(f"File system error writing to {path}: {e}")
+            raise
         except Exception as e:
             self.output.error(f"Error writing JSON to {path}: {e}")
             raise
@@ -318,7 +327,9 @@ class ModelCommand(OpenChronicleCommand):
         """Lazy-load the model manager."""
         if self._model_manager is None:
             try:
-                from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
+                from openchronicle.domain.models.model_orchestrator import (
+                    ModelOrchestrator,
+                )
                 self._model_manager = ModelOrchestrator()
             except (RuntimeError, ValueError, KeyError, ImportError, TypeError) as e:
                 self.output.error(f"Cannot initialize model manager: {e}")
@@ -338,9 +349,15 @@ class StoryCommand(OpenChronicleCommand):
         """Lazy-load the story manager."""
         if self._story_manager is None:
             try:
-                from openchronicle.domain.services.narrative.narrative_orchestrator import NarrativeOrchestrator
-                from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
-                from openchronicle.domain.services.timeline.timeline_orchestrator import TimelineOrchestrator
+                from openchronicle.domain.services.narrative.narrative_orchestrator import (
+                    NarrativeOrchestrator,
+                )
+                from openchronicle.domain.services.scenes.scene_orchestrator import (
+                    SceneOrchestrator,
+                )
+                from openchronicle.domain.services.timeline.timeline_orchestrator import (
+                    TimelineOrchestrator,
+                )
                 # Provide a concrete story manager dict for CLI features that expect narrative interfaces
                 self._story_manager = {
                     "narrative": NarrativeOrchestrator(),

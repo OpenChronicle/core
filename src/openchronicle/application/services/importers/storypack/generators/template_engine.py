@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
     ImportContext,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     ITemplateEngine,
 )
+
+
 """
 OpenChronicle Template Engine
 
@@ -16,9 +20,6 @@ from typing import Any
 
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
-
-
-
 
 
 class TemplateEngine(ITemplateEngine):
@@ -67,8 +68,14 @@ class TemplateEngine(ITemplateEngine):
                         templates[template_name] = template_data
                         self.logger.info(f"Loaded template: {template_name}")
 
+                except (OSError, IOError, PermissionError) as e:
+                    self.logger.error(f"File system error loading template {template_file}: {e}")
+                    continue
+                except (json.JSONDecodeError, ValueError) as e:
+                    self.logger.error(f"JSON format error in template {template_file}: {e}")
+                    continue
                 except Exception as e:
-                    self.logger.error(f"Failed to load template {template_file}: {e}")
+                    self.logger.error(f"Unexpected error loading template {template_file}: {e}")
                     continue
 
             # Cache loaded templates
@@ -85,8 +92,10 @@ class TemplateEngine(ITemplateEngine):
                 },
             )
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error accessing templates directory {templates_dir}: {e}")
         except Exception as e:
-            self.logger.error(f"Failed to load templates from {templates_dir}: {e}")
+            self.logger.error(f"Unexpected error loading templates from {templates_dir}: {e}")
 
         return templates
 
@@ -169,8 +178,11 @@ class TemplateEngine(ITemplateEngine):
 
             return customized_data
 
+        except (KeyError, ValueError, TypeError) as e:
+            self.logger.error(f"Template processing error for {template_name}: {e}")
+            return template_data  # Return unprocessed template as fallback
         except Exception as e:
-            self.logger.error(f"Failed to process template {template_name}: {e}")
+            self.logger.error(f"Unexpected error processing template {template_name}: {e}")
             return template_data  # Return unprocessed template as fallback
 
     def _load_single_template(self, template_file: Path) -> dict[str, Any] | None:

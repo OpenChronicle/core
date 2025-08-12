@@ -125,6 +125,12 @@ class MoodAnalyzer:
 
             return max_similarity
 
+        except AttributeError as e:
+            logger.error(f"Invalid dialogue data structure for similarity detection: {e}")
+            return 0.0
+        except ValueError as e:
+            logger.error(f"Text processing error in dialogue similarity: {e}")
+            return 0.0
         except Exception as e:
             logger.error(f"Error detecting dialogue similarity: {e}")
             return 0.0
@@ -194,6 +200,12 @@ class MoodAnalyzer:
 
             return [pattern for pattern in detected_patterns]
 
+        except AttributeError as e:
+            logger.error(f"Character data structure error in loop detection: {e}")
+            return []
+        except ValueError as e:
+            logger.error(f"Invalid pattern data in emotional loop detection: {e}")
+            return []
         except Exception as e:
             logger.error(f"Error detecting emotional loops: {e}")
             return []
@@ -313,6 +325,12 @@ class MoodAnalyzer:
 
             return "\n".join(prompt_parts)
 
+        except AttributeError as e:
+            logger.error(f"Loop data structure error in anti-loop prompt generation: {e}")
+            return "[Error: Invalid loop data structure]"
+        except ValueError as e:
+            logger.error(f"Text formatting error in anti-loop prompt: {e}")
+            return "[Error: Text formatting issue]"
         except Exception as e:
             logger.error(f"Error generating anti-loop prompt: {e}")
             return "[Error generating anti-loop guidance]"

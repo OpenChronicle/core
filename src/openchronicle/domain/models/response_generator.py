@@ -16,11 +16,11 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
+from openchronicle.shared.error_handling import OpenChronicleError
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
-from openchronicle.shared.error_handling import OpenChronicleError
 
 
 logger = logging.getLogger(__name__)

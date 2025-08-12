@@ -11,6 +11,7 @@ from openchronicle.domain.ports.context_port import IContextPort
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_warning
 
+
 # Safe import of infrastructure component
 try:
     from openchronicle.infrastructure.content.context import ContextOrchestrator

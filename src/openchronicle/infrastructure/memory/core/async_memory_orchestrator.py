@@ -11,6 +11,12 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
+from ....shared.exceptions import (
+    CacheError,
+    CacheConnectionError,
+    InfrastructureError,
+    MemoryError as MemorySystemError,  # Avoid conflict with built-in MemoryError
+)
 from .character import CharacterManager
 from .character import MoodTracker
 from .character import VoiceManager
@@ -71,8 +77,12 @@ class AsyncMemoryOrchestrator:
 
             return result
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error loading memory for story {story_id}: {e}")
+            return self._get_default_memory()
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error loading memory for story {story_id}: {e}")
             return self._get_default_memory()
 
     def _get_default_memory(self) -> dict[str, Any]:
@@ -114,8 +124,12 @@ class AsyncMemoryOrchestrator:
 
             return result
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error saving memory for story {story_id}: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error  
+            self.logger.error(f"Unexpected error saving memory for story {story_id}: {e}")
             return False
 
     async def update_character_memory(
@@ -135,8 +149,12 @@ class AsyncMemoryOrchestrator:
 
             return success
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error updating character {character_name} memory: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error updating character {character_name} memory: {e}")
             return False
 
     async def get_character_memory_snapshot(
@@ -169,8 +187,12 @@ class AsyncMemoryOrchestrator:
 
             return character_memory
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error getting character {character_name} snapshot: {e}")
+            return None
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error getting character {character_name} snapshot: {e}")
             return None
 
     async def update_world_state(self, story_id: str, updates: dict[str, Any]) -> bool:
@@ -195,8 +217,12 @@ class AsyncMemoryOrchestrator:
 
             return success
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error updating world state: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error updating world state: {e}")
             return False
 
     async def archive_memory_snapshot(
@@ -214,8 +240,12 @@ class AsyncMemoryOrchestrator:
 
             return success
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error creating memory snapshot: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error creating memory snapshot: {e}")
             return False
 
     async def refresh_memory_after_rollback(
@@ -235,8 +265,12 @@ class AsyncMemoryOrchestrator:
 
             return success
 
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error restoring memory snapshot: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error restoring memory snapshot: {e}")
             return False
 
     # ===== PERFORMANCE MONITORING =====
@@ -268,8 +302,12 @@ class AsyncMemoryOrchestrator:
                 memory["flags"] = {}
             memory["flags"][flag_name] = flag_data or True
             return await self.repository.save_memory(story_id, memory)
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error adding memory flag: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error adding memory flag: {e}")
             return False
 
     async def remove_memory_flag(self, story_id: str, flag_name: str) -> bool:
@@ -280,8 +318,12 @@ class AsyncMemoryOrchestrator:
                 del memory["flags"][flag_name]
                 return await self.repository.save_memory(story_id, memory)
             return True
-        except Exception as e:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
             self.logger.error(f"Error removing memory flag: {e}")
+            return False
+        except Exception as e:
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.error(f"Unexpected error removing memory flag: {e}")
             return False
 
     async def has_memory_flag(self, story_id: str, flag_name: str) -> bool:
@@ -289,7 +331,13 @@ class AsyncMemoryOrchestrator:
         try:
             memory = await self.repository.load_memory(story_id)
             return "flags" in memory and flag_name in memory["flags"]
-        except Exception:
+        except (CacheError, CacheConnectionError, InfrastructureError) as e:
+            return False
+        except (AttributeError, KeyError) as e:
+            # Data structure error in memory format
+            return False
+        except Exception as e:
+            # Unexpected error - silently return False for flag check
             return False
 
     async def add_recent_event(

@@ -8,8 +8,8 @@ This implementation is only ~30 lines of provider-specific logic.
 Following OpenChronicle naming convention: openai_adapter.py
 """
 
-from typing import Any
 import asyncio
+from typing import Any
 
 from ..adapter_exceptions import AdapterResponseError
 from ..api_adapter_base import BaseAPIAdapter

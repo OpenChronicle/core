@@ -9,7 +9,8 @@ Streamlined version that coordinates specialized engines for better separation o
 
 import logging
 from datetime import datetime
-from typing import Any, Tuple
+from typing import Any
+from typing import Tuple
 
 from .core.character_base import CharacterBehaviorProvider
 from .core.character_base import CharacterEngineBase
@@ -19,9 +20,8 @@ from .core.character_base import CharacterValidationProvider
 from .core.character_data import CharacterData
 from .core.character_data import CharacterStats
 from .core.character_data import CharacterStatType
-
-from .engines.character_management_engine import CharacterManagementEngine
 from .engines.character_behavior_engine import CharacterBehaviorEngine
+from .engines.character_management_engine import CharacterManagementEngine
 from .engines.character_stats_engine import CharacterStatsEngine
 from .engines.character_validation_engine import CharacterValidationEngine
 
@@ -77,8 +77,12 @@ class CharacterOrchestrator(CharacterEventHandler):
         """Load the default character management components."""
         try:
             # Import and register components
-            from .specialized.consistency_validation_engine import ConsistencyValidationEngine
-            from .specialized.interaction_dynamics_engine import InteractionDynamicsEngine
+            from .specialized.consistency_validation_engine import (
+                ConsistencyValidationEngine,
+            )
+            from .specialized.interaction_dynamics_engine import (
+                InteractionDynamicsEngine,
+            )
             from .specialized.presentation_style_engine import PresentationStyleEngine
             from .specialized.stats_behavior_engine import StatsBehaviorEngine
 

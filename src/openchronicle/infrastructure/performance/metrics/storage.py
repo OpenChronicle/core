@@ -13,17 +13,15 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
+from openchronicle.domain.ports.performance_interface_port import (
+    IPerformanceInterfacePort,
+)
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
-from openchronicle.domain.ports.performance_interface_port import IPerformanceInterfacePort
 from ..interfaces.performance_interfaces import IMetricsStorage
-from ..interfaces.performance_interfaces import PerformanceMetrics
 from ..interfaces.performance_interfaces import MetricsQuery
-
-
-
-
+from ..interfaces.performance_interfaces import PerformanceMetrics
 
 
 class MetricsStorage(IMetricsStorage):
@@ -50,8 +48,16 @@ class MetricsStorage(IMetricsStorage):
                 "Storage initialized",
                 {"storage_path": str(self.storage_path)},
             )
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during storage initialization
+            self.logger.error(f"Database error initializing storage: {e}")
+            raise
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during storage initialization
+            self.logger.error(f"File system error initializing storage: {e}")
+            raise
         except Exception as e:
-            self.logger.error(f"Failed to initialize storage: {e}")
+            self.logger.error(f"Unexpected error initializing storage: {e}")
             raise
 
     async def store_metrics(self, metrics: PerformanceMetrics):
@@ -324,8 +330,16 @@ class MetricsStorage(IMetricsStorage):
 
             return deleted_count
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during metrics cleanup
+            self.logger.error(f"Database error during metrics cleanup: {e}")
+            return 0
+        except (OSError, IOError) as e:
+            # Handle file system errors during database operations
+            self.logger.error(f"File system error during metrics cleanup: {e}")
+            return 0
         except Exception as e:
-            self.logger.error(f"Failed to cleanup old metrics: {e}")
+            self.logger.error(f"Unexpected error during metrics cleanup: {e}")
             return 0
 
     async def get_storage_stats(self) -> dict[str, Any]:

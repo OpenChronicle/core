@@ -5,8 +5,10 @@ Enhanced metrics collection for distributed caching operations.
 Extracted from distributed_cache.py for better modularity.
 """
 
-from datetime import datetime, UTC
+from datetime import UTC
+from datetime import datetime
 from typing import Any
+
 from .redis_cache import CacheMetrics
 
 

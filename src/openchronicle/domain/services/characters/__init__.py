@@ -36,13 +36,13 @@ __all__ = [
 ]
 
 # Core infrastructure imports
+from .character_orchestrator import CharacterOrchestrator
 from .core.character_base import CharacterEngineBase
 from .core.character_data import CharacterBehaviorType
 from .core.character_data import CharacterData
 from .core.character_data import CharacterInteractionType
 from .core.character_data import CharacterRelationType
 from .core.character_data import CharacterStatType
-from .character_orchestrator import CharacterOrchestrator
 from .core.character_storage import CharacterStorage
 from .specialized.consistency_validation_engine import ConsistencyValidationEngine
 from .specialized.interaction_dynamics_engine import InteractionDynamicsEngine

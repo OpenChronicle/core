@@ -8,8 +8,10 @@ Extracted from distributed_cache.py for better modularity.
 import asyncio
 import logging
 import time
-from datetime import datetime, UTC
+from datetime import UTC
+from datetime import datetime
 from typing import TYPE_CHECKING
+
 
 if TYPE_CHECKING:
     from ...cache_orchestrator import DistributedMultiTierCache
@@ -91,6 +93,12 @@ class CacheWarmingManager:
 
             return True
 
+        except (AttributeError, KeyError) as e:
+            self.logger.error(f"Data structure error during cache warming for {character_name}: {e}")
+            return False
+        except (ConnectionError, TimeoutError) as e:
+            self.logger.error(f"Network error during cache warming for {character_name}: {e}")
+            return False
         except Exception as e:
             self.logger.error(f"Cache warming failed for {character_name}: {e}")
             return False
@@ -117,6 +125,12 @@ class CacheWarmingManager:
                 await self.cache_manager.set(cache_key, snapshot_data)
                 results[story_id] = True
 
+            except (AttributeError, KeyError) as e:
+                self.logger.error(f"Data structure error warming memory snapshot for {story_id}: {e}")
+                results[story_id] = False
+            except (ConnectionError, TimeoutError) as e:
+                self.logger.error(f"Network error warming memory snapshot for {story_id}: {e}")
+                results[story_id] = False
             except Exception as e:
                 self.logger.error(f"Failed to warm memory snapshot for {story_id}: {e}")
                 results[story_id] = False

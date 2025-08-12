@@ -17,6 +17,7 @@ from .narrative_operation_router import NarrativeOperation
 from .narrative_operation_router import NarrativeOperationRouter
 from .narrative_state_manager import NarrativeStateManager
 
+
 __all__ = [
     "NarrativeCharacterIntegration",
     "NarrativeMechanicsHandler",

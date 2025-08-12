@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import sqlite3
 from threading import RLock
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 from .persistence_port import IPersistencePort
 

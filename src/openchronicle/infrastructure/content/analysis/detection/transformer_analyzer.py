@@ -123,6 +123,15 @@ class TransformerAnalyzer(DetectionComponent):
                                 max_length=512,
                                 top_k=1,  # Only return top prediction
                             )
+                        except ImportError as model_error:
+                            log_error(f"Model library dependencies missing for {model_name}: {model_error}")
+                            continue
+                        except OSError as model_error:
+                            log_error(f"Model file access error for {model_name}: {model_error}")
+                            continue
+                        except (ConnectionError, TimeoutError) as model_error:
+                            log_error(f"Network error downloading model {model_name}: {model_error}")
+                            continue
                         except Exception as model_error:
                             error_msg = str(model_error).lower()
                             if any(
@@ -199,6 +208,18 @@ class TransformerAnalyzer(DetectionComponent):
 
             log_info("Transformer classifiers initialized successfully")
 
+        except ImportError as e:
+            log_error(f"Transformer library dependencies missing: {e}")
+            self.transformers_available = False
+            log_info("Transformer analysis disabled due to missing dependencies")
+        except OSError as e:
+            log_error(f"Model file access error during initialization: {e}")
+            self.transformers_available = False
+            log_info("Transformer analysis disabled due to file access issues")
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error during model initialization: {e}")
+            self.transformers_available = False
+            log_info("Transformer analysis disabled due to network issues")
         except Exception as e:
             # Enhanced error handling for Issue #4: SSL/Network Connectivity
             error_msg = str(e).lower()
@@ -343,6 +364,15 @@ class TransformerAnalyzer(DetectionComponent):
                 f"Emotion: {analysis['emotions'].get('primary_emotion', 'unknown')}",
             )
 
+        except ImportError as e:
+            log_error(f"Transformer library not available for analysis: {e}")
+            analysis["transformer_error"] = "Library not available"
+        except OSError as e:
+            log_error(f"Model file access error during analysis: {e}")
+            analysis["transformer_error"] = "Model access error"
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error during transformer analysis: {e}")
+            analysis["transformer_error"] = "Network error"
         except Exception as e:
             log_error(f"Transformer analysis failed: {e}")
             analysis["transformer_error"] = str(e)

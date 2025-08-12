@@ -11,10 +11,11 @@ Components:
 - character_validation_engine.py - Validation and consistency
 """
 
-from .character_management_engine import CharacterManagementEngine
 from .character_behavior_engine import CharacterBehaviorEngine
+from .character_management_engine import CharacterManagementEngine
 from .character_stats_engine import CharacterStatsEngine
 from .character_validation_engine import CharacterValidationEngine
+
 
 __all__ = [
     "CharacterBehaviorEngine",

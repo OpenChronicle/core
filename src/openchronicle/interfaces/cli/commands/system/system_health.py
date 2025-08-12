@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+
 from openchronicle.interfaces.cli.support.base_command import SystemCommand
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
 
@@ -91,6 +92,18 @@ class SystemHealthCommand(SystemCommand):
                     "status": "pass" if config_files else "warning",
                 }
 
+            except (OSError, IOError, PermissionError) as e:
+                health_results["checks"]["file_system_error"] = {
+                    "status": "error",
+                    "error": str(e),
+                }
+                issues_found.append(f"File system error in comprehensive check: {e}")
+            except json.JSONDecodeError as e:
+                health_results["checks"]["json_error"] = {
+                    "status": "error",
+                    "error": str(e),
+                }
+                issues_found.append(f"JSON processing error in comprehensive check: {e}")
             except Exception as e:
                 health_results["checks"]["comprehensive_error"] = {
                     "status": "error",

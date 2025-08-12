@@ -10,11 +10,9 @@ Author: OpenChronicle Development Team
 import random
 from typing import Any
 
-from openchronicle.shared.logging_system import (
-    get_logger,
-    log_error_with_context,
-    log_system_event,
-)
+from openchronicle.shared.logging_system import get_logger
+from openchronicle.shared.logging_system import log_error_with_context
+from openchronicle.shared.logging_system import log_system_event
 
 from ...shared.narrative_exceptions import NarrativeSystemError
 from .mechanics_models import DiceRoll
@@ -123,6 +121,41 @@ class DiceEngine:
 
             return dice_roll
 
+        except ValueError as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_dice",
+                    "dice_type": getattr(dice_type, "value", str(dice_type)),
+                    "count": count,
+                    "modifier": modifier,
+                    "advantage": advantage,
+                    "disadvantage": disadvantage,
+                },
+            )
+            raise NarrativeSystemError(f"Invalid dice parameters: {e!s}")
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_dice_data_error",
+                    "dice_type": getattr(dice_type, "value", str(dice_type)),
+                    "count": count,
+                    "modifier": modifier,
+                },
+            )
+            raise NarrativeSystemError(f"Dice configuration error: {e}")
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_dice_data_error",
+                    "dice_type": getattr(dice_type, "value", str(dice_type)),
+                    "count": count,
+                    "modifier": modifier,
+                },
+            )
+            raise NarrativeSystemError(f"Dice data structure error: {e}")
         except Exception as e:
             log_error_with_context(
                 e,
@@ -180,6 +213,24 @@ class DiceEngine:
             count, dice_type, modifier = self._parse_dice_string(dice_string)
             return self.roll_dice(dice_type, count, modifier)
 
+        except ValueError as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_multiple",
+                    "dice_string": dice_string,
+                },
+            )
+            raise NarrativeSystemError(f"Invalid dice notation format: {dice_string}")
+        except (AttributeError, KeyError) as e:
+            log_error_with_context(
+                e,
+                {
+                    "operation": "roll_multiple_data_error",
+                    "dice_string": dice_string,
+                },
+            )
+            raise NarrativeSystemError(f"Dice notation parsing error: {dice_string}")
         except Exception as e:
             log_error_with_context(
                 e,

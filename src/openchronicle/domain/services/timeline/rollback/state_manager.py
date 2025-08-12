@@ -12,14 +12,10 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-from openchronicle.domain.ports.persistence_inmemory import (
-    InMemorySqlitePersistence,
-)
-from openchronicle.domain.ports.persistence_port import IPersistencePort
 from openchronicle.domain.ports.memory_port import IMemoryPort
-from openchronicle.domain.services.scenes.scene_orchestrator import (
-    SceneOrchestrator,
-)
+from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
+from openchronicle.domain.ports.persistence_port import IPersistencePort
+from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_warning
@@ -298,8 +294,11 @@ class StateManager:
                 "capture_time": datetime.now(UTC).isoformat(),
             }
 
+        except (ValueError, KeyError, TypeError) as e:
+            log_warning(f"Invalid state data creating snapshot: {e}")
+            snapshot["error"] = str(e)
         except Exception as e:
-            log_warning(f"Failed to create complete state snapshot: {e}")
+            log_warning(f"Unexpected error creating complete state snapshot: {e}")
             snapshot["error"] = str(e)
 
         return snapshot
@@ -383,5 +382,11 @@ class StateManager:
             rollback_time = datetime.fromisoformat(timestamp_iso.replace("Z", "+00:00"))
             age_delta = datetime.now(UTC) - rollback_time.replace(tzinfo=UTC)
             return age_delta.total_seconds() / 3600
+        except (ValueError, TypeError) as e:
+            log_warning(f"Invalid timestamp format: {timestamp_iso}, error: {e}")
+            return 0.0
+        except (AttributeError, OSError) as e:
+            log_warning(f"Datetime processing error: {e}")
+            return 0.0
         except Exception:
             return 0.0

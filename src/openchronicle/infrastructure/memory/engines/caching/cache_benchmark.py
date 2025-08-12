@@ -322,8 +322,11 @@ class CachePerformanceBenchmark:
                 "cache_hit_rate": f"{results['cache_metrics']['overall_hit_rate'] * 100:.1f}%",
             }
 
+        except (KeyError, ValueError, TypeError) as e:
+            self.logger.error(f"Data processing error in benchmark: {e}")
+            results["error"] = str(e)
         except Exception as e:
-            self.logger.error(f"Benchmark error: {e}")
+            self.logger.error(f"Unexpected benchmark error: {e}")
             results["error"] = str(e)
 
         finally:
@@ -377,8 +380,11 @@ class CacheMonitor:
 
                 await asyncio.sleep(interval_seconds)
 
+            except (asyncio.CancelledError, asyncio.TimeoutError) as e:
+                self.logger.warning(f"Async operation interrupted during monitoring: {e}")
+                await asyncio.sleep(interval_seconds)
             except Exception as e:
-                self.logger.error(f"Monitoring error: {e}")
+                self.logger.error(f"Unexpected monitoring error: {e}")
                 await asyncio.sleep(interval_seconds)
 
     def stop_monitoring(self):

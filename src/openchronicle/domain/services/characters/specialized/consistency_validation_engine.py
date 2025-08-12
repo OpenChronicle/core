@@ -101,6 +101,14 @@ class ConsistencyValidationEngine(CharacterEngineBase, CharacterValidationProvid
 
                     self.logger.info(f"Loaded consistency data for {char_name}")
 
+                except (KeyError, AttributeError) as e:
+                    self.logger.error(
+                        f"Character data structure error loading consistency data for {char_name}: {e}"
+                    )
+                except (ValueError, TypeError) as e:
+                    self.logger.error(
+                        f"Character data validation error for {char_name}: {e}"
+                    )
                 except Exception as e:
                     self.logger.error(
                         f"Failed to load character consistency data for {char_name}: {e}"
@@ -386,6 +394,14 @@ class ConsistencyValidationEngine(CharacterEngineBase, CharacterValidationProvid
 
             self.logger.info(f"Imported consistency data for character {character_id}")
 
+        except (KeyError, AttributeError) as e:
+            self.logger.error(
+                f"Character data structure error importing consistency data for {character_id}: {e}"
+            )
+        except (ValueError, TypeError) as e:
+            self.logger.error(
+                f"Character data validation error importing consistency data for {character_id}: {e}"
+            )
         except Exception as e:
             self.logger.error(
                 f"Failed to import consistency data for {character_id}: {e}"

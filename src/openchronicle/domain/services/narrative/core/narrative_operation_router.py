@@ -88,8 +88,17 @@ class NarrativeOperationRouter:
 
             return operation
 
+        except (ValueError, KeyError) as e:
+            log_error(f"Invalid operation data for {operation_type}: {e}")
+
+            return NarrativeOperation(
+                operation_type=operation_type,
+                success=False,
+                result=str(e),
+                metrics={"processing_time": time.time() - start_time},
+            )
         except Exception as e:
-            log_error(f"Error processing narrative operation {operation_type}: {e}")
+            log_error(f"Unexpected error processing narrative operation {operation_type}: {e}")
 
             return NarrativeOperation(
                 operation_type=operation_type,

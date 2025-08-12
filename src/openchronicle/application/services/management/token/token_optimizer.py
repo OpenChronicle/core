@@ -7,12 +7,9 @@ Handles token optimization, model selection, and context trimming.
 
 from typing import Any
 
-from openchronicle.shared.logging_system import (
-    log_error,
-    log_info,
-    log_warning,
-)
-
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_info
+from openchronicle.shared.logging_system import log_warning
 
 from .tokenizer_manager import TokenizerManager
 
@@ -112,7 +109,11 @@ class ModelSelector:
         # Find models with higher limits
         try:
             models = self.model_manager.list_model_configs()
-        except Exception:
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Model configuration access error in token optimization: {e}")
+            return None
+        except Exception as e:
+            log_warning(f"Model manager error in token optimization: {e}")
             return None
 
         better_models = []
@@ -319,6 +320,12 @@ class TruncationDetector:
         try:
             # This would need to be passed in or accessed differently
             max_tokens = 4096  # Default fallback
+        except (AttributeError, KeyError) as e:
+            # Configuration access error
+            max_tokens = 4096
+        except (ValueError, TypeError) as e:
+            # Parameter processing error
+            max_tokens = 4096
         except Exception:
             max_tokens = 4096
 

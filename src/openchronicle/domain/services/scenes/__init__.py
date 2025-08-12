@@ -13,5 +13,6 @@ Replaces the legacy monolithic scene_logger.py with clean modular architecture.
 # Import only the orchestrator here to keep package import side-effect free
 from .scene_orchestrator import SceneOrchestrator
 
+
 # Explicit exports
 __all__ = ["SceneOrchestrator"]

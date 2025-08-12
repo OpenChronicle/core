@@ -7,7 +7,8 @@ Replaces manual dependency wiring in orchestrator __init__ methods.
 Part of Phase 2, Week 5-6: Dependency Injection Framework
 """
 
-from typing import Any, List
+from typing import Any
+from typing import List
 
 # Import the DI container and interfaces
 from .dependency_injection import DIContainer
@@ -163,9 +164,7 @@ class ServiceConfigurator:
         log_info("Configuring model management services")
 
         try:
-            from openchronicle.domain.models.model_orchestrator import (
-                ModelOrchestrator,
-            )
+            from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 
             # Create wrapper that implements interface
             class ModelOrchestratorAdapter(IModelOrchestrator):

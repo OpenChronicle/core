@@ -8,6 +8,7 @@ Extracted from distributed_cache.py for better modularity.
 import logging
 from typing import Any
 
+
 try:
     import redis
     from redis.cluster import RedisCluster
@@ -17,7 +18,9 @@ except ImportError:
     RedisCluster = None
     REDIS_AVAILABLE = False
 
-from .config import DistributedCacheConfig, ClusterNode, PartitionConfig
+from .config import ClusterNode
+from .config import DistributedCacheConfig
+from .config import PartitionConfig
 
 
 class CachePartitioner:

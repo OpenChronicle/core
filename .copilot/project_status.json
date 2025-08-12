@@ -25,7 +25,8 @@
   "links": {
     "plan": "docs/DEVELOPMENT_PLAN.md",
     "architecture": "docs/ARCHITECTURE.md",
-    "status": ".copilot/project_status.json"
+    "status": ".copilot/project_status.json",
+    "code_quality": ".copilot/code_quality_tracking.md"
   },
   "notes": "Authoritative status lives here. Unit + stress test suites passing locally as of 2025-08-11. Timeline services DI complete; bookmarks wired via in-memory persistence.",
   "checks": {

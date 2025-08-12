@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 from openchronicle.domain.services.narrative import NarrativeOrchestrator
 from openchronicle.domain.services.narrative.response.context_analyzer import (
     ContextAnalyzer as NarrativeContextAnalyzer,

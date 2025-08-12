@@ -55,8 +55,16 @@ class MigrationManager:
 
             return success
 
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during JSON migration
+            print(f"File system error during JSON migration: {e}")
+            return False
+        except sqlite3.Error as e:
+            # Handle database errors during migration operations
+            print(f"Database error during JSON migration: {e}")
+            return False
         except Exception as e:
-            print(f"Error during JSON migration: {e}")
+            print(f"Unexpected error during JSON migration: {e}")
             return False
 
     def cleanup_json_files(self, story_id: str) -> bool:
@@ -85,13 +93,20 @@ class MigrationManager:
                             os.rename(filepath, backup_path)
                         else:
                             os.remove(filepath)
+                    except (OSError, IOError, PermissionError) as e:
+                        # Handle file operation errors during cleanup
+                        print(f"File system error cleaning up {filepath}: {e}")
                     except Exception as e:
-                        print(f"Warning: Could not clean up {filepath}: {e}")
+                        print(f"Unexpected error cleaning up {filepath}: {e}")
 
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during JSON cleanup operations
+            print(f"File system error cleaning up JSON files: {e}")
+            return False
         except Exception as e:
-            print(f"Error cleaning up JSON files: {e}")
+            print(f"Unexpected error cleaning up JSON files: {e}")
             return False
 
     def _migrate_scenes(self, story_id: str, story_dir: str) -> bool:
@@ -161,8 +176,20 @@ class MigrationManager:
                 conn.commit()
                 return True
 
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during scene migration
+            print(f"File system error migrating scenes: {e}")
+            return False
+        except (json.JSONDecodeError, ValueError) as e:
+            # Handle JSON parsing errors during scene migration
+            print(f"JSON parsing error migrating scenes: {e}")
+            return False
+        except sqlite3.Error as e:
+            # Handle database errors during scene migration
+            print(f"Database error migrating scenes: {e}")
+            return False
         except Exception as e:
-            print(f"Error migrating scenes: {e}")
+            print(f"Unexpected error migrating scenes: {e}")
             return False
 
     def _migrate_characters(self, story_id: str, story_dir: str) -> bool:
@@ -231,8 +258,20 @@ class MigrationManager:
                 conn.commit()
                 return True
 
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during character migration
+            print(f"File system error migrating characters: {e}")
+            return False
+        except (json.JSONDecodeError, ValueError) as e:
+            # Handle JSON parsing errors during character migration
+            print(f"JSON parsing error migrating characters: {e}")
+            return False
+        except sqlite3.Error as e:
+            # Handle database errors during character migration
+            print(f"Database error migrating characters: {e}")
+            return False
         except Exception as e:
-            print(f"Error migrating characters: {e}")
+            print(f"Unexpected error migrating characters: {e}")
             return False
 
     def _migrate_memory(self, story_id: str, story_dir: str) -> bool:
@@ -300,8 +339,20 @@ class MigrationManager:
                 conn.commit()
                 return True
 
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during memory migration
+            print(f"File system error migrating memory: {e}")
+            return False
+        except (json.JSONDecodeError, ValueError) as e:
+            # Handle JSON parsing errors during memory migration
+            print(f"JSON parsing error migrating memory: {e}")
+            return False
+        except sqlite3.Error as e:
+            # Handle database errors during memory migration
+            print(f"Database error migrating memory: {e}")
+            return False
         except Exception as e:
-            print(f"Error migrating memory: {e}")
+            print(f"Unexpected error migrating memory: {e}")
             return False
 
     def _migrate_bookmarks(self, story_id: str, story_dir: str) -> bool:
@@ -356,6 +407,15 @@ class MigrationManager:
                 conn.commit()
                 return True
 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error migrating bookmarks: {e}")
+            return False
+        except json.JSONDecodeError as e:
+            print(f"JSON processing error migrating bookmarks: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            print(f"Data validation error migrating bookmarks: {e}")
+            return False
         except Exception as e:
             print(f"Error migrating bookmarks: {e}")
             return False

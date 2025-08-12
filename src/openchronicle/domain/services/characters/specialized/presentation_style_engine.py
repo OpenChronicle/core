@@ -104,6 +104,14 @@ class PresentationStyleEngine(CharacterEngineBase):
                     styles[char_name] = char_data
                     self.logger.info(f"Loaded style data for {char_name}")
 
+                except (KeyError, AttributeError) as e:
+                    self.logger.error(
+                        f"Character style data structure error for {char_name}: {e}"
+                    )
+                except (ValueError, TypeError) as e:
+                    self.logger.error(
+                        f"Character style data validation error for {char_name}: {e}"
+                    )
                 except Exception as e:
                     self.logger.error(
                         f"Failed to load character style data for {char_name}: {e}"
@@ -324,6 +332,14 @@ class PresentationStyleEngine(CharacterEngineBase):
 
             self.logger.info(f"Imported presentation data for character {character_id}")
 
+        except (KeyError, AttributeError) as e:
+            self.logger.error(
+                f"Character presentation data structure error for {character_id}: {e}"
+            )
+        except (ValueError, TypeError) as e:
+            self.logger.error(
+                f"Character presentation data validation error for {character_id}: {e}"
+            )
         except Exception as e:
             self.logger.error(
                 f"Failed to import presentation data for {character_id}: {e}"

@@ -5,6 +5,7 @@ and sentinel return values. Breaking change embraced per project philosophy.
 """
 from __future__ import annotations
 
+
 class PersistenceError(RuntimeError):
     """Base error for persistence layer operations."""
 

@@ -436,6 +436,14 @@ class InteractionDynamicsEngine(CharacterEngineBase, CharacterStateProvider):
 
             self.logger.info(f"Imported interaction data for character {character_id}")
 
+        except (KeyError, AttributeError) as e:
+            self.logger.error(
+                f"Character interaction data structure error for {character_id}: {e}"
+            )
+        except (ValueError, TypeError) as e:
+            self.logger.error(
+                f"Character interaction data validation error for {character_id}: {e}"
+            )
         except Exception as e:
             self.logger.error(
                 f"Failed to import interaction data for {character_id}: {e}"

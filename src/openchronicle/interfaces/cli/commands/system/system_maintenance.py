@@ -4,12 +4,14 @@ System maintenance commands for OpenChronicle CLI.
 Provides maintenance operations including cleanup, optimization, and backup capabilities.
 """
 
+import json
 import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import typer
+
 from openchronicle.interfaces.cli.support.base_command import SystemCommand
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
 
@@ -63,6 +65,10 @@ class SystemMaintenanceCommand(SystemCommand):
                     maintenance_results["tasks_skipped"].append(
                         "cleanup_logs: logs directory not found"
                     )
+            except (OSError, IOError, PermissionError) as e:
+                maintenance_results["errors"].append(f"cleanup_logs file system error: {e}")
+            except (ValueError, TypeError) as e:
+                maintenance_results["errors"].append(f"cleanup_logs parameter error: {e}")
             except Exception as e:
                 maintenance_results["errors"].append(f"cleanup_logs error: {e}")
 
@@ -82,6 +88,10 @@ class SystemMaintenanceCommand(SystemCommand):
                         "databases_found": [str(f) for f in db_files],
                     }
                 )
+            except (OSError, IOError, PermissionError) as e:
+                maintenance_results["errors"].append(f"optimize_db file system error: {e}")
+            except (ValueError, TypeError) as e:
+                maintenance_results["errors"].append(f"optimize_db parameter error: {e}")
             except Exception as e:
                 maintenance_results["errors"].append(f"optimize_db error: {e}")
 
@@ -109,6 +119,12 @@ class SystemMaintenanceCommand(SystemCommand):
                         "config_files": [f.name for f in config_files],
                     }
                 )
+            except (OSError, IOError, PermissionError) as e:
+                maintenance_results["errors"].append(f"backup_config file system error: {e}")
+            except json.JSONDecodeError as e:
+                maintenance_results["errors"].append(f"backup_config JSON error: {e}")
+            except (ValueError, TypeError) as e:
+                maintenance_results["errors"].append(f"backup_config parameter error: {e}")
             except Exception as e:
                 maintenance_results["errors"].append(f"backup_config error: {e}")
 

@@ -340,6 +340,11 @@ class BookmarkManager:
                             f"Failed to update bookmark {bookmark_id}"
                         )
 
+                except (AttributeError, KeyError) as e:
+                    results["failed"] += 1
+                    results["errors"].append(
+                        f"Data structure error updating bookmark {bookmark_id}: {e}"
+                    )
                 except Exception as e:
                     results["failed"] += 1
                     results["errors"].append(
@@ -353,6 +358,14 @@ class BookmarkManager:
 
             return results
 
+        except OSError as e:
+            # File system or database connectivity error
+            log_error(f"Storage error in bulk update: {e}")
+            raise BookmarkManagerException(f"Storage error in bulk update: {e}")
+        except (AttributeError, KeyError) as e:
+            # Data structure error
+            log_error(f"Data structure error in bulk update: {e}")
+            raise BookmarkManagerException(f"Data structure error in bulk update: {e}")
         except Exception as e:
             log_error(f"Bulk update failed: {e}")
             raise BookmarkManagerException(f"Bulk update failed: {e}")
@@ -365,6 +378,9 @@ class BookmarkManager:
             log_system_event("bookmark_cleanup", "Orphaned bookmark cleanup requested")
             return 0
 
+        except (AttributeError, KeyError) as e:
+            log_error(f"Data structure error in bookmark cleanup: {e}")
+            return 0
         except Exception as e:
             log_error(f"Bookmark cleanup failed: {e}")
             return 0

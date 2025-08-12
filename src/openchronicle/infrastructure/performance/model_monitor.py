@@ -85,6 +85,14 @@ class PerformanceMonitor:
                     "Performance monitoring disabled - utilities not available",
                 )
                 self.monitoring_enabled = False
+        except ImportError as e:
+            log_error(f"Performance monitoring imports not available: {e}")
+            self.performance_monitor = None
+            self.monitoring_enabled = False
+        except (OSError, IOError) as e:
+            log_error(f"Performance monitoring file system error: {e}")
+            self.performance_monitor = None
+            self.monitoring_enabled = False
         except Exception as e:
             log_error(f"Failed to initialize performance monitoring: {e}")
             self.performance_monitor = None
@@ -401,6 +409,12 @@ class PerformanceMonitor:
 
             return optimizations
 
+        except (KeyError, AttributeError) as e:
+            log_error(f"Performance optimization data structure error: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            log_error(f"Performance optimization parameter error: {e}")
+            return []
         except Exception as e:
             log_error(f"Failed to apply automatic optimizations: {e}")
             return []

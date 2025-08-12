@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from openchronicle.shared.exceptions import ServiceError, ValidationError, InfrastructureError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
@@ -119,8 +120,11 @@ class StorypackOrchestrator:
                 log_info("✓ AI capabilities initialized")
             else:
                 log_warning("⚠ AI capabilities limited or unavailable")
+        except (ServiceError, InfrastructureError) as e:
+            log_error(f"Service/infrastructure error during AI processor initialization: {e}")
+            self._ai_initialized = False
         except Exception as e:
-            log_error(f"AI processor initialization failed: {e}")
+            log_error(f"Unexpected error during AI processor initialization: {e}")
             self._ai_initialized = False
 
         # Load templates (optional)
@@ -134,8 +138,11 @@ class StorypackOrchestrator:
                     log_info(f"✓ Loaded {len(self._available_templates)} templates")
                 else:
                     log_warning("⚠ No templates found")
+            except (ServiceError, InfrastructureError) as e:
+                log_error(f"Service/infrastructure error during template loading: {e}")
+                self._templates_loaded = False
             except Exception as e:
-                log_error(f"Template loading failed: {e}")
+                log_error(f"Unexpected error during template loading: {e}")
                 self._templates_loaded = False
 
         log_system_event(
@@ -291,9 +298,15 @@ class StorypackOrchestrator:
             else:
                 log_error("✗ Storypack import completed with issues")
 
+        except (ServiceError, ValidationError) as e:
+            log_error(f"Service/validation error during storypack import: {e}")
+            result.errors.append(f"Import service error: {e!s}")
+            result.success = False
+            result.processing_time = time.time() - start_time
+            result.created_at = datetime.now().isoformat()
         except Exception as e:
-            log_error(f"Storypack import failed: {e}")
-            result.errors.append(f"Import process failed: {e!s}")
+            log_error(f"Unexpected error during storypack import: {e}")
+            result.errors.append(f"Unexpected import failure: {e!s}")
             result.success = False
             result.processing_time = time.time() - start_time
             result.created_at = datetime.now().isoformat()
@@ -355,10 +368,14 @@ class StorypackOrchestrator:
 
             log_info(f"✓ Scan completed: {len(candidates)} candidates found")
 
-        except Exception as e:
-            log_error(f"Import directory scan failed: {e}")
+        except (ServiceError, InfrastructureError) as e:
+            log_error(f"Service/infrastructure error during import directory scan: {e}")
             scan_result["status"] = "scan_error"
-            scan_result["error"] = str(e)
+            scan_result["error"] = f"Service error: {str(e)}"
+        except Exception as e:
+            log_error(f"Unexpected error during import directory scan: {e}")
+            scan_result["status"] = "scan_error"
+            scan_result["error"] = f"Unexpected error: {str(e)}"
 
         return scan_result
 
@@ -434,17 +451,25 @@ class StorypackOrchestrator:
                                 content, content_file.path, context
                             )
                             file_result["ai_analysis"] = ai_analysis
+                        except (ServiceError, ValidationError) as e:
+                            log_warning(
+                                f"Service/validation error during AI analysis for {content_file.path}: {e}"
+                            )
+                            file_result["ai_analysis"] = {"error": f"Service error: {str(e)}"}
                         except Exception as e:
                             log_warning(
-                                f"AI analysis failed for {content_file.path}: {e}"
+                                f"Unexpected error during AI analysis for {content_file.path}: {e}"
                             )
-                            file_result["ai_analysis"] = {"error": str(e)}
+                            file_result["ai_analysis"] = {"error": f"Unexpected error: {str(e)}"}
 
                     category_results.append(file_result)
                     processed_content["total_processed"] += 1
 
+                except (ServiceError, ValidationError) as e:
+                    log_error(f"Service/validation error processing file {content_file.path}: {e}")
+                    continue
                 except Exception as e:
-                    log_error(f"Failed to process file {content_file.path}: {e}")
+                    log_error(f"Unexpected error processing file {content_file.path}: {e}")
                     continue
 
             processed_content["files_by_category"][category] = category_results

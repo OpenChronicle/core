@@ -14,17 +14,15 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-from openchronicle.domain.ports.performance_interface_port import IPerformanceInterfacePort
-from ..interfaces.performance_interfaces import IBottleneckAnalyzer
-from ..interfaces.performance_interfaces import PerformanceMetrics
-from ..interfaces.performance_interfaces import BottleneckReport
-
+from openchronicle.domain.ports.performance_interface_port import (
+    IPerformanceInterfacePort,
+)
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
-
-
-
+from ..interfaces.performance_interfaces import BottleneckReport
+from ..interfaces.performance_interfaces import IBottleneckAnalyzer
+from ..interfaces.performance_interfaces import PerformanceMetrics
 
 
 @dataclass
@@ -176,6 +174,12 @@ class BottleneckAnalyzer(IBottleneckAnalyzer):
 
             return slow_operations
 
+        except (KeyError, AttributeError) as e:
+            self.logger.error(f"Performance metrics data structure error: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            self.logger.error(f"Performance analysis parameter error: {e}")
+            return []
         except Exception as e:
             self.logger.error(f"Failed to identify slow operations: {e}")
             return []

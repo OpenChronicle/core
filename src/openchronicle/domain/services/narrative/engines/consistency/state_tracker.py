@@ -73,6 +73,10 @@ class StateTracker:
             # Update development tracking
             self._track_character_development(character_id, memory)
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Character state data structure error: {e}")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Character state parameter error: {e}")
         except Exception as e:
             logger.error(f"Error updating character state: {e}")
 
@@ -186,6 +190,10 @@ class StateTracker:
             elif event_type == "consistency_check":
                 self._record_consistency_event(event_data)
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Narrative event data structure error: {e}")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Narrative event parameter error: {e}")
         except Exception as e:
             logger.error(f"Error tracking narrative event: {e}")
 

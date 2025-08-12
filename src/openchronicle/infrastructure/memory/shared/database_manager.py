@@ -98,8 +98,16 @@ class DatabaseManager:
             conn.commit()
             logger.info("Memory management database tables created successfully")
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during table creation
+            logger.error(f"Database error creating memory tables: {e}")
+            raise
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors for database file operations
+            logger.error(f"File system error creating memory tables: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error creating memory tables: {e}")
+            logger.error(f"Unexpected error creating memory tables: {e}")
             raise
 
     def get_connection(self) -> sqlite3.Connection:
@@ -147,8 +155,16 @@ class DatabaseManager:
 
             return results
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during query execution
+            logger.error(f"Database error executing query: {e}")
+            raise
+        except (TypeError, ValueError) as e:
+            # Handle parameter binding errors for query execution
+            logger.error(f"Parameter error executing query: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error executing query: {e}")
+            logger.error(f"Unexpected error executing query: {e}")
             raise
 
     def execute_update(self, query: str, params: tuple = ()) -> int:
@@ -170,8 +186,16 @@ class DatabaseManager:
 
             return cursor.rowcount
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during update operations
+            logger.error(f"Database error executing update: {e}")
+            raise
+        except (TypeError, ValueError) as e:
+            # Handle parameter binding errors for update operations
+            logger.error(f"Parameter error executing update: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error executing update: {e}")
+            logger.error(f"Unexpected error executing update: {e}")
             raise
 
     def execute_batch(self, query: str, params_list: list[tuple]) -> int:
@@ -193,8 +217,16 @@ class DatabaseManager:
 
             return cursor.rowcount
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during batch operations
+            logger.error(f"Database error executing batch: {e}")
+            raise
+        except (TypeError, ValueError) as e:
+            # Handle parameter binding errors for batch operations
+            logger.error(f"Parameter error executing batch: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error executing batch: {e}")
+            logger.error(f"Unexpected error executing batch: {e}")
             raise
 
     def get_memory_entries(

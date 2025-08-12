@@ -39,6 +39,15 @@ class ContentClassifier(DetectionComponent):
             transformer_analysis = self.transformer_analyzer.detect_content_type(
                 content
             )
+        except ImportError as e:
+            log_error(f"Transformer library not available for content classification: {e}")
+            transformer_analysis = {}
+        except OSError as e:
+            log_error(f"Model file access error in content classification: {e}")
+            transformer_analysis = {}
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error downloading model for content classification: {e}")
+            transformer_analysis = {}
         except Exception as e:
             log_error(f"Transformer analysis failed in detect_content_type: {e}")
             transformer_analysis = {}

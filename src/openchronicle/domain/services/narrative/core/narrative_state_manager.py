@@ -8,10 +8,10 @@ Author: OpenChronicle Development Team
 """
 
 import json
-from pathlib import Path
 from dataclasses import asdict
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from openchronicle.shared.logging_system import log_error
@@ -95,8 +95,11 @@ class NarrativeStateManager:
 
             return True
 
+        except (AttributeError, TypeError, ValueError) as e:
+            log_error(f"Invalid narrative state data for {story_id}: {e}")
+            return False
         except Exception as e:
-            log_error(f"Error updating narrative state for {story_id}: {e}")
+            log_error(f"Unexpected error updating narrative state for {story_id}: {e}")
             return False
 
     def get_character_narrative_context(
@@ -141,9 +144,14 @@ class NarrativeStateManager:
 
             return True
 
+        except (AttributeError, TypeError, KeyError) as e:
+            log_error(
+                f"Invalid character narrative data for {character_id} in {story_id}: {e}"
+            )
+            return False
         except Exception as e:
             log_error(
-                f"Error updating character narrative state for {character_id} in {story_id}: {e}"
+                f"Unexpected error updating character narrative state for {character_id} in {story_id}: {e}"
             )
             return False
 
@@ -165,8 +173,14 @@ class NarrativeStateManager:
 
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error saving narrative states: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            log_error(f"JSON serialization error saving narrative states: {e}")
+            return False
         except Exception as e:
-            log_error(f"Error saving narrative states: {e}")
+            log_error(f"Unexpected error saving narrative states: {e}")
             return False
 
     def load_states(self) -> bool:
@@ -191,6 +205,15 @@ class NarrativeStateManager:
 
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File access error loading narrative states: {e}")
+            return False
+        except json.JSONDecodeError as e:
+            log_error(f"JSON decode error loading narrative states: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            log_error(f"Data validation error loading narrative states: {e}")
+            return False
         except Exception as e:
             log_error(f"Error loading narrative states: {e}")
             return False
@@ -229,6 +252,12 @@ class NarrativeStateManager:
 
             return removed_count
 
+        except (AttributeError, KeyError) as e:
+            log_error(f"Data structure error cleaning up narrative states: {e}")
+            return 0
+        except (ValueError, TypeError) as e:
+            log_error(f"Date processing error cleaning up narrative states: {e}")
+            return 0
         except Exception as e:
             log_error(f"Error cleaning up narrative states: {e}")
             return 0

@@ -2,8 +2,13 @@
 Performance interface port for domain layer operations.
 Abstract interfaces for performance operations without dependency violations.
 """
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List, Union
+from abc import ABC
+from abc import abstractmethod
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 
 class IPerformanceInterfacePort(ABC):

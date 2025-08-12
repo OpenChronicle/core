@@ -10,8 +10,8 @@ Phase 2 Week 11-12: Interface Segregation & Architecture Cleanup
 import asyncio
 from datetime import UTC
 from datetime import datetime
-from typing import Any
 from typing import TYPE_CHECKING
+from typing import Any
 
 from openchronicle.shared.dependency_injection import get_container
 from openchronicle.shared.error_handling import ErrorCategory
@@ -24,6 +24,7 @@ from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_warning
 from openchronicle.shared.security_decorators import SecurityThreatLevel
 from openchronicle.shared.security_decorators import secure_operation
+
 
 if TYPE_CHECKING:
     from openchronicle.domain.ports.registry_port import IRegistryPort
@@ -307,6 +308,39 @@ class ModelLifecycleManager(IModelLifecycleManager):
                 metadata=health_info,
             )
 
+        except (AttributeError, KeyError) as e:
+            return AdapterStatus(
+                name=adapter_name,
+                is_available=False,
+                is_healthy=False,
+                last_health_check=datetime.now(UTC),
+                error_count=1,
+                success_count=0,
+                average_response_time=0.0,
+                metadata={"error": f"Adapter data structure error: {e}"},
+            )
+        except (ConnectionError, TimeoutError) as e:
+            return AdapterStatus(
+                name=adapter_name,
+                is_available=False,
+                is_healthy=False,
+                last_health_check=datetime.now(UTC),
+                error_count=1,
+                success_count=0,
+                average_response_time=0.0,
+                metadata={"error": f"Adapter connectivity error: {e}"},
+            )
+        except (AttributeError, KeyError) as e:
+            return AdapterStatus(
+                name=adapter_name,
+                is_available=False,
+                is_healthy=False,
+                last_health_check=datetime.now(UTC),
+                error_count=1,
+                success_count=0,
+                average_response_time=0.0,
+                metadata={"error": f"Data structure error: {e}"},
+            )
         except Exception as e:
             return AdapterStatus(
                 name=adapter_name,

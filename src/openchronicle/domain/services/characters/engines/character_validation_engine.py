@@ -9,7 +9,8 @@ Author: OpenChronicle Development Team
 
 import logging
 from datetime import datetime
-from typing import Any, Tuple
+from typing import Any
+from typing import Tuple
 
 from ..core.character_base import CharacterValidationProvider
 from ..core.character_data import CharacterData
@@ -103,6 +104,14 @@ class CharacterValidationEngine:
                         validation_result["issues"].append(
                             f"{provider.__class__.__name__}: {provider_error}"
                         )
+                except (AttributeError, KeyError) as e:
+                    logger.error(f"Validation provider data structure error in {provider.__class__.__name__}: {e}")
+                    if self.strict_validation:
+                        validation_result["issues"].append(f"Validation provider data error: {e}")
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Validation provider parameter error in {provider.__class__.__name__}: {e}")
+                    if self.strict_validation:
+                        validation_result["issues"].append(f"Validation provider parameter error: {e}")
                 except Exception as e:
                     logger.error(f"Error in validation provider {provider.__class__.__name__}: {e}")
                     if self.strict_validation:
@@ -170,6 +179,14 @@ class CharacterValidationEngine:
                         )
                         if not valid:
                             return False, error
+                    except (AttributeError, KeyError) as e:
+                        logger.error(f"Action validation provider data structure error: {e}")
+                        if self.strict_validation:
+                            return False, f"Validation provider data error: {e}"
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"Action validation provider parameter error: {e}")
+                        if self.strict_validation:
+                            return False, f"Validation provider parameter error: {e}"
                     except Exception as e:
                         logger.error(f"Error in action validation provider: {e}")
                         if self.strict_validation:
@@ -177,6 +194,12 @@ class CharacterValidationEngine:
 
             return True, ""
 
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Character action data structure error: {e}")
+            return False, f"Action validation data error: {e}"
+        except (ValueError, TypeError) as e:
+            logger.error(f"Character action parameter error: {e}")
+            return False, f"Action validation parameter error: {e}"
         except Exception as e:
             logger.error(f"Error validating character action: {e}")
             return False, f"Action validation error: {e}"

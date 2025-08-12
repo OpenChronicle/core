@@ -7,8 +7,8 @@ Original Ollama adapter was ~100 lines, now reduced to ~40 lines.
 Following OpenChronicle naming convention: ollama_adapter.py
 """
 
-from typing import Any
 import asyncio
+from typing import Any
 
 from ..adapter_exceptions import AdapterConnectionError
 from ..adapter_exceptions import AdapterResponseError
@@ -89,6 +89,12 @@ class OllamaAdapter(LocalModelAdapter):
                 self.get_provider_name(), f"Malformed response: {e}"
             )
         except Exception as e:
+            # Check for network/connection errors in exception message
+            msg = str(e).lower()
+            if any(term in msg for term in ["connection", "network", "timeout", "unreachable"]):
+                raise AdapterConnectionError(
+                    self.get_provider_name(), f"Network error: {e}"
+                )
             raise AdapterResponseError(
                 self.get_provider_name(), f"Ollama request failed: {e}"
             )

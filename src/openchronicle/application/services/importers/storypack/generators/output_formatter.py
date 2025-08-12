@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
     ImportContext,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     ImportResult,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     IOutputFormatter,
 )
+
+
 """
 OpenChronicle Output Formatter
 
@@ -16,12 +22,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from openchronicle.shared.exceptions import ServiceError, ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
-
-
-
-
 
 
 class OutputFormatter(IOutputFormatter):
@@ -62,9 +65,12 @@ class OutputFormatter(IOutputFormatter):
             self.logger.warning(f"Unknown format type: {format_type}, using summary")
             return self._format_summary(result)
 
+        except (ServiceError, ValidationError) as e:
+            self.logger.error(f"Service/validation error formatting import result: {e}")
+            return f"Service error formatting result: {e}"
         except Exception as e:
-            self.logger.error(f"Failed to format import result: {e}")
-            return f"Error formatting result: {e}"
+            self.logger.error(f"Unexpected error formatting import result: {e}")
+            return f"Unexpected error formatting result: {e}"
 
     def generate_report(
         self, result: ImportResult, report_type: str = "standard"
@@ -91,8 +97,11 @@ class OutputFormatter(IOutputFormatter):
             self.logger.warning(f"Unknown report type: {report_type}, using standard")
             return self._enhance_standard_report(base_report, result)
 
+        except (ServiceError, ValidationError) as e:
+            self.logger.error(f"Service/validation error generating report: {e}")
+            return self._create_error_report(e, result)
         except Exception as e:
-            self.logger.error(f"Failed to generate report: {e}")
+            self.logger.error(f"Unexpected error generating report: {e}")
             return self._create_error_report(e, result)
 
     def save_report(
@@ -121,8 +130,11 @@ class OutputFormatter(IOutputFormatter):
             self.logger.error(f"Unsupported format type: {format_type}")
             return False
 
+        except (ServiceError, ValidationError) as e:
+            self.logger.error(f"Service/validation error saving report to {output_path}: {e}")
+            return False
         except Exception as e:
-            self.logger.error(f"Failed to save report to {output_path}: {e}")
+            self.logger.error(f"Unexpected error saving report to {output_path}: {e}")
             return False
 
     def format_import_summary(self, result: ImportResult) -> str:
@@ -487,8 +499,11 @@ class OutputFormatter(IOutputFormatter):
             )
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error saving JSON report: {e}")
+            return False
         except Exception as e:
-            self.logger.error(f"Failed to save JSON report: {e}")
+            self.logger.error(f"Unexpected error saving JSON report: {e}")
             return False
 
     def _save_text_report(self, report: dict[str, Any], output_path: Path) -> bool:
@@ -504,6 +519,9 @@ class OutputFormatter(IOutputFormatter):
             )
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error saving text report: {e}")
+            return False
         except Exception as e:
             self.logger.error(f"Failed to save text report: {e}")
             return False
@@ -523,6 +541,9 @@ class OutputFormatter(IOutputFormatter):
             )
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error saving HTML report: {e}")
+            return False
         except Exception as e:
             self.logger.error(f"Failed to save HTML report: {e}")
             return False

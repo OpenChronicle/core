@@ -6,6 +6,7 @@ Handles bookmark CRUD operations and data management.
 """
 
 import json
+import sqlite3
 import sys
 from datetime import datetime
 from typing import Any
@@ -184,8 +185,11 @@ class BookmarkDataManager:
 
             return self._row_to_bookmark_record(rows[0])
 
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_warning(f"Database error getting bookmark {bookmark_id}: {e}")
+            return None
         except Exception as e:
-            log_warning(f"Failed to get bookmark {bookmark_id}: {e}")
+            log_warning(f"Unexpected error getting bookmark {bookmark_id}: {e}")
             return None
 
     def list_bookmarks(
@@ -219,8 +223,11 @@ class BookmarkDataManager:
             rows = self.execute_query(self.story_id, query, params)
             return [self._row_to_bookmark_record(row) for row in rows]
 
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_warning(f"Database error listing bookmarks: {e}")
+            return []
         except Exception as e:
-            log_warning(f"Failed to list bookmarks: {e}")
+            log_warning(f"Unexpected error listing bookmarks: {e}")
             return []
 
     def update_bookmark(
@@ -279,6 +286,9 @@ class BookmarkDataManager:
 
             return success
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error updating bookmark {bookmark_id}: {e}")
+            return False
         except Exception as e:
             log_warning(f"Failed to update bookmark {bookmark_id}: {e}")
             return False
@@ -300,6 +310,9 @@ class BookmarkDataManager:
 
             return success
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error deleting bookmark {bookmark_id}: {e}")
+            return False
         except Exception as e:
             log_warning(f"Failed to delete bookmark {bookmark_id}: {e}")
             return False
@@ -323,6 +336,9 @@ class BookmarkDataManager:
 
             return rowcount
 
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            log_warning(f"Database error deleting bookmarks for scene {scene_id}: {e}")
+            return 0
         except Exception as e:
             log_warning(f"Failed to delete bookmarks for scene {scene_id}: {e}")
             return 0
@@ -366,6 +382,9 @@ class BookmarkDataManager:
                 for row in rows
             ]
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error getting bookmarks with scenes: {e}")
+            return []
         except Exception as e:
             log_warning(f"Failed to get bookmarks with scenes: {e}")
             return []

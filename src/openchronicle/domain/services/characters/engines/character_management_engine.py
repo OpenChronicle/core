@@ -99,8 +99,11 @@ class CharacterManagementEngine(CharacterEventHandler):
                 logger.error(f"Failed to store character {character_id}")
                 return None
 
+        except (ValueError, TypeError, KeyError) as e:
+            logger.error(f"Invalid character data during creation: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Error creating character: {e}")
+            logger.error(f"Unexpected error creating character: {e}")
             return None
 
     def get_character(self, character_id: str) -> CharacterData | None:
@@ -121,6 +124,12 @@ class CharacterManagementEngine(CharacterEventHandler):
                 logger.debug(f"Character {character_id} not found")
             return character
 
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Character data structure error retrieving {character_id}: {e}")
+            return None
+        except (ValueError, TypeError) as e:
+            logger.error(f"Character parameter error retrieving {character_id}: {e}")
+            return None
         except Exception as e:
             logger.error(f"Error retrieving character {character_id}: {e}")
             return None
@@ -152,6 +161,12 @@ class CharacterManagementEngine(CharacterEventHandler):
 
             return success
 
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Character data structure error deleting {character_id}: {e}")
+            return False
+        except (OSError, IOError) as e:
+            logger.error(f"Storage error deleting character {character_id}: {e}")
+            return False
         except Exception as e:
             logger.error(f"Error deleting character {character_id}: {e}")
             return False
@@ -160,6 +175,12 @@ class CharacterManagementEngine(CharacterEventHandler):
         """Get list of all character IDs."""
         try:
             return self.storage.list_characters()
+        except (OSError, IOError) as e:
+            logger.error(f"Storage error listing characters: {e}")
+            return []
+        except (AttributeError, KeyError) as e:
+            logger.error(f"Character data structure error listing characters: {e}")
+            return []
         except Exception as e:
             logger.error(f"Error listing characters: {e}")
             return []
@@ -250,6 +271,12 @@ class CharacterManagementEngine(CharacterEventHandler):
 
             return success
 
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Character data structure error updating {character_id} state: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            logger.error(f"Character state validation error for {character_id}: {e}")
+            return False
         except Exception as e:
             logger.error(f"Error updating character {character_id} state: {e}")
             return False

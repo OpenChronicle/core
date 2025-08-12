@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
     ContentFile,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     ImportContext,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     IStorypackBuilder,
 )
+
+
 """
 OpenChronicle Storypack Builder
 
@@ -18,12 +24,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from openchronicle.shared.exceptions import ServiceError, InfrastructureError, ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
-
-
-
-
 
 
 class StorypackBuilder(IStorypackBuilder):
@@ -85,11 +88,16 @@ class StorypackBuilder(IStorypackBuilder):
 
             return storypack_path
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(
+                f"File system error creating storypack structure at {storypack_path}: {e}"
+            )
+            raise InfrastructureError(f"Failed to create storypack structure: {e}")
         except Exception as e:
             self.logger.error(
-                f"Failed to create storypack structure at {storypack_path}: {e}"
+                f"Unexpected error creating storypack structure at {storypack_path}: {e}"
             )
-            raise
+            raise ServiceError(f"Unexpected storypack creation failure: {e}")
 
     def generate_metadata_file(
         self, context: ImportContext, content_summary: dict[str, Any]
@@ -155,9 +163,15 @@ class StorypackBuilder(IStorypackBuilder):
                 },
             )
 
-        except Exception as e:
-            self.logger.error(f"Failed to generate metadata file: {e}")
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error generating metadata file: {e}")
+            raise InfrastructureError(f"Failed to write metadata file: {e}")
+        except (ValidationError, ServiceError) as e:
+            self.logger.error(f"Service/validation error generating metadata file: {e}")
             raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error generating metadata file: {e}")
+            raise ServiceError(f"Unexpected metadata generation failure: {e}")
 
         return metadata
 
@@ -204,9 +218,14 @@ class StorypackBuilder(IStorypackBuilder):
 
                     organized_files[category].append(target_file_path)
 
+                except (OSError, IOError, PermissionError) as e:
+                    self.logger.error(
+                        f"File system error organizing file {content_file.path}: {e}"
+                    )
+                    continue
                 except Exception as e:
                     self.logger.error(
-                        f"Failed to organize file {content_file.path}: {e}"
+                        f"Unexpected error organizing file {content_file.path}: {e}"
                     )
                     continue
 
@@ -237,9 +256,13 @@ class StorypackBuilder(IStorypackBuilder):
         try:
             with open(readme_path, "w", encoding="utf-8") as f:
                 f.write(readme_content)
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.warning(
+                f"File system error creating directory README for {category}: {e}"
+            )
         except Exception as e:
             self.logger.warning(
-                f"Failed to create directory README for {category}: {e}"
+                f"Unexpected error creating directory README for {category}: {e}"
             )
 
     def _create_main_readme(self, storypack_path: Path, context: ImportContext) -> None:
@@ -282,8 +305,10 @@ Original file formats and content have been preserved during import.
         try:
             with open(readme_path, "w", encoding="utf-8") as f:
                 f.write(readme_content)
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.warning(f"File system error creating main README: {e}")
         except Exception as e:
-            self.logger.warning(f"Failed to create main README: {e}")
+            self.logger.warning(f"Unexpected error creating main README: {e}")
 
     def _get_directory_readme_content(self, category: str) -> str:
         """Get README content for specific content directories."""
@@ -451,18 +476,40 @@ Narrative files can include:
             with open(target_path, "w", encoding="utf-8") as f:
                 json.dump(processed_content, f, indent=2, ensure_ascii=False)
 
-        except Exception as e:
-            # If processing fails, fall back to direct copy
+        except (OSError, IOError, PermissionError) as e:
+            # If processing fails due to file system issues, fall back to direct copy
             self.logger.warning(
-                f"Content processing failed for {source_path}, copying directly: {e}"
+                f"File system error during content processing for {source_path}, copying directly: {e}"
             )
             try:
                 shutil.copy2(source_path, target_path)
+            except (OSError, IOError, PermissionError) as copy_error:
+                self.logger.error(
+                    f"File system error copying {source_path} to {target_path}: {copy_error}"
+                )
+                raise InfrastructureError(f"Failed to copy file: {copy_error}")
             except Exception as copy_error:
                 self.logger.error(
-                    f"Failed to copy {source_path} to {target_path}: {copy_error}"
+                    f"Unexpected error copying {source_path} to {target_path}: {copy_error}"
                 )
-                raise
+                raise ServiceError(f"Unexpected file copy failure: {copy_error}")
+        except Exception as e:
+            # If processing fails for other reasons, fall back to direct copy
+            self.logger.warning(
+                f"Unexpected error during content processing for {source_path}, copying directly: {e}"
+            )
+            try:
+                shutil.copy2(source_path, target_path)
+            except (OSError, IOError, PermissionError) as copy_error:
+                self.logger.error(
+                    f"File system error copying {source_path} to {target_path}: {copy_error}"
+                )
+                raise InfrastructureError(f"Failed to copy file: {copy_error}")
+            except Exception as copy_error:
+                self.logger.error(
+                    f"Unexpected error copying {source_path} to {target_path}: {copy_error}"
+                )
+                raise ServiceError(f"Unexpected file copy failure: {copy_error}")
 
     def _convert_to_json_format(
         self, content: str, source_path: Path

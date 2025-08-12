@@ -6,6 +6,7 @@ Extracted from distributed_cache.py for better modularity.
 """
 
 from dataclasses import dataclass
+
 from ..redis_cache import CacheConfig
 
 

@@ -13,6 +13,10 @@ The interface layer is responsible for:
 - External integrations
 """
 
+from openchronicle.shared.exceptions import InfrastructureError, ServiceError
+from ..shared.logging_system import log_error
+from ..shared.logging_system import log_info
+from ..shared.logging_system import log_system_event
 from .api import app as api_app
 from .api import run_dev_server as run_api_server
 from .cli import cli
@@ -20,7 +24,6 @@ from .events import create_event_app
 from .events import run_event_server
 from .web import create_web_app
 from .web import run_web_server
-from ..shared.logging_system import log_info, log_error, log_system_event
 
 
 __all__ = [
@@ -210,10 +213,18 @@ async def check_all_interfaces():
 
         await infrastructure.shutdown()
 
+    except (InfrastructureError, ServiceError) as e:
+        health_status["interface_layer"] = "unhealthy"
+        health_status["components"]["infrastructure"] = "service_error"
+        health_status["details"]["error"] = f"Infrastructure/service error: {str(e)}"
+    except (AttributeError, KeyError) as e:
+        health_status["interface_layer"] = "unhealthy"
+        health_status["components"]["infrastructure"] = "data_structure_error"
+        health_status["details"]["error"] = f"Data structure error: {str(e)}"
     except Exception as e:
         health_status["interface_layer"] = "unhealthy"
-        health_status["components"]["infrastructure"] = "error"
-        health_status["details"]["error"] = str(e)
+        health_status["components"]["infrastructure"] = "unexpected_error"
+        health_status["details"]["error"] = f"Unexpected error: {str(e)}"
 
     return health_status
 

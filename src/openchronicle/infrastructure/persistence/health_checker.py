@@ -13,10 +13,11 @@ from typing import Any
 
 import aiosqlite
 
-from .connection import ConnectionManager
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_warning
+
+from .connection import ConnectionManager
 
 
 class DatabaseHealthChecker:
@@ -101,7 +102,14 @@ class DatabaseHealthChecker:
 
             return health_report
 
-        except Exception as e:
+        except (OSError, IOError, PermissionError) as e:
+            # Handle file system errors during database health check
+            log_error(f"File system error during database health check: {e!s}")
+            health_report["overall_status"] = "error"
+            health_report["error"] = f"File system error: {str(e)}"
+            return health_report
+        except (sqlite3.Error, Exception) as e:
+            # Handle database and other errors during health check
             log_error(f"Database health check failed: {e!s}")
             health_report["overall_status"] = "error"
             health_report["error"] = str(e)
@@ -216,10 +224,19 @@ class DatabaseHealthChecker:
             except sqlite3.OperationalError as e:
                 result["status"] = "corrupt"
                 result["issues"].append(f"Database corruption detected: {e!s}")
+            except sqlite3.Error as e:
+                result["status"] = "error"
+                result["issues"].append(f"Database error: {e!s}")
+            except (OSError, IOError) as e:
+                result["status"] = "error"
+                result["issues"].append(f"File system error: {e!s}")
             except Exception as e:
                 result["status"] = "error"
                 result["issues"].append(f"Connection failed: {e!s}")
 
+        except (OSError, IOError) as e:
+            result["status"] = "error"
+            result["issues"].append(f"Database file access error: {e!s}")
         except Exception as e:
             result["status"] = "error"
             result["issues"].append(f"Health check failed: {e!s}")
@@ -281,9 +298,17 @@ class DatabaseHealthChecker:
                         f"Orphaned FTS table: {fts_table} (missing base table {base_table})"
                     )
 
+        except sqlite3.Error as e:
+            # Handle SQLite-specific errors during schema validation
+            schema_result["valid"] = False
+            schema_result["issues"].append(f"Database error during schema validation: {e!s}")
+        except (OSError, IOError) as e:
+            # Handle file system errors during database operations
+            schema_result["valid"] = False
+            schema_result["issues"].append(f"File system error during schema validation: {e!s}")
         except Exception as e:
             schema_result["valid"] = False
-            schema_result["issues"].append(f"Schema validation failed: {e!s}")
+            schema_result["issues"].append(f"Unexpected error during schema validation: {e!s}")
 
         return schema_result
 

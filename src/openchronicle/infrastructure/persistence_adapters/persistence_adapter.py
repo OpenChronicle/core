@@ -73,6 +73,12 @@ class PersistenceAdapter(IPersistencePort):
             result = _execute_update(story_id, query, params)
             # Return True if any rows were affected or operation succeeded
             return result is not None and result >= 0
+        except (OSError, IOError) as e:
+            print(f"Database file system error: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            print(f"Database parameter error: {e}")
+            return False
         except Exception as e:
             print(f"Database update error: {e}")
             return False
@@ -90,6 +96,12 @@ class PersistenceAdapter(IPersistencePort):
         try:
             _init_database(story_id)
             return True
+        except (OSError, IOError, PermissionError) as e:
+            print(f"Database file system error: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            print(f"Database parameter error: {e}")
+            return False
         except Exception as e:
             print(f"Database initialization error: {e}")
             return False
@@ -123,6 +135,15 @@ class PersistenceAdapter(IPersistencePort):
             shutil.copy2(db_path, backup_path)
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"Database backup file system error: {e}")
+            return False
+        except (ImportError, ModuleNotFoundError) as e:
+            print(f"Database backup module error: {e}")
+            return False
+        except (AttributeError, ValueError) as e:
+            print(f"Database backup path error: {e}")
+            return False
         except Exception as e:
             print(f"Database backup error: {e}")
             return False
@@ -157,6 +178,12 @@ class PersistenceAdapter(IPersistencePort):
             shutil.copy2(backup_path, db_path)
             return True
 
+        except (OSError, IOError, PermissionError) as e:
+            print(f"File system error restoring database: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            print(f"Path validation error restoring database: {e}")
+            return False
         except Exception as e:
             print(f"Database restore error: {e}")
             return False

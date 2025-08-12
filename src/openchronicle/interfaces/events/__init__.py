@@ -18,6 +18,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
+
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
@@ -140,6 +141,10 @@ class ConnectionManager:
                 self.connection_metadata[client_id]["events_sent"] += 1
 
             return True
+        except (json.JSONEncodeError, TypeError) as e:
+            print(f"JSON encoding error sending to client {client_id}: {e}")
+            self.disconnect(client_id)
+            return False
         except Exception as e:
             print(f"Error sending to client {client_id}: {e}")
             self.disconnect(client_id)
@@ -213,6 +218,10 @@ class EventBus:
                         await callback(event)
                     else:
                         callback(event)
+                except asyncio.CancelledError:
+                    print(f"Event subscriber cancelled for {event.type}")
+                except (ConnectionError, TimeoutError) as e:
+                    print(f"Network error in event subscriber: {e}")
                 except Exception as e:
                     print(f"Error in event subscriber: {e}")
 
@@ -308,6 +317,19 @@ class BackgroundTaskManager:
                     await self._execute_task(task_id)
             except asyncio.CancelledError:
                 break
+            except (ConnectionError, TimeoutError) as e:
+                await self.event_bus.publish(
+                    Event(
+                        id=str(uuid.uuid4()),
+                        type=EventType.ERROR,
+                        timestamp=datetime.now(),
+                        data={
+                            "error": f"Network error in periodic task {task_id}: {e!s}",
+                            "task_id": task_id,
+                        },
+                    )
+                )
+                await asyncio.sleep(30)  # Back off on network errors
             except Exception as e:
                 await self.event_bus.publish(
                     Event(
@@ -331,6 +353,18 @@ class BackgroundTaskManager:
             await task_info["function"]()
             task_info["last_run"] = datetime.now()
             task_info["run_count"] += 1
+        except (ConnectionError, TimeoutError) as e:
+            await self.event_bus.publish(
+                Event(
+                    id=str(uuid.uuid4()),
+                    type=EventType.ERROR,
+                    timestamp=datetime.now(),
+                    data={
+                        "error": f"Network error in task execution: {e!s}",
+                        "task_id": task_id,
+                    },
+                )
+            )
         except Exception as e:
             await self.event_bus.publish(
                 Event(
@@ -386,6 +420,18 @@ class BackgroundTaskManager:
                     type=EventType.SYSTEM_STATUS,
                     timestamp=datetime.now(),
                     data={"action": "health_check", "health": health_status},
+                )
+            )
+        except (ConnectionError, TimeoutError) as e:
+            await self.event_bus.publish(
+                Event(
+                    id=str(uuid.uuid4()),
+                    type=EventType.ERROR,
+                    timestamp=datetime.now(),
+                    data={
+                        "error": f"Network error during health check: {e!s}",
+                        "action": "health_check",
+                    },
                 )
             )
         except Exception as e:
@@ -536,6 +582,9 @@ def create_event_app() -> FastAPI:
                         )
 
                 except WebSocketDisconnect:
+                    break
+                except (ConnectionError, TimeoutError) as e:
+                    print(f"Network error for client {actual_client_id}: {e}")
                     break
                 except Exception as e:
                     print(f"WebSocket error for client {actual_client_id}: {e}")

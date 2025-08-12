@@ -11,7 +11,6 @@ from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
 
-
 from ..shared import ConfigValidator
 from ..shared import TokenManagerConfig
 from ..shared import TokenManagerException

@@ -10,10 +10,8 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
+from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
 from openchronicle.domain.ports.persistence_port import IPersistencePort
-from openchronicle.domain.ports.persistence_inmemory import (
-    InMemorySqlitePersistence,
-)
 
 
 class NavigationManager:

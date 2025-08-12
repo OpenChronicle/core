@@ -12,11 +12,20 @@ from datetime import datetime
 from pathlib import Path
 
 import aiofiles
+
 from openchronicle.domain import Character
 from openchronicle.domain import Scene
 from openchronicle.domain import Story
 from openchronicle.domain import StoryStatus
 from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.exceptions import (
+    DatabaseError,
+    DatabaseConnectionError,
+    InfrastructureError,
+    ValidationError,
+    PersistenceError,
+    OpenChronicleError,
+)
 
 
 class FileSystemStoryRepository:
@@ -48,7 +57,16 @@ class FileSystemStoryRepository:
                 await f.write(json.dumps(story_data, indent=2, ensure_ascii=False))
 
             return True
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error saving story {story.id}: {e}")
+            return False
+        except (ValidationError, PersistenceError) as e:
+            log_error(f"Data error saving story {story.id}: {e}")
+            return False
         except Exception as e:
+            # Unexpected error during story save
+            log_error(f"Unexpected error saving story {story.id}: {e}")
+            return False
             log_error(f"Error saving story {story.id}: {e}")
             return False
 
@@ -80,8 +98,15 @@ class FileSystemStoryRepository:
                     else None
                 ),
             )
+        except (OSError, IOError, FileNotFoundError) as e:
+            log_error(f"File system error loading story {story_id}: {e}")
+            return None
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            log_error(f"Data format error loading story {story_id}: {e}")
+            return None
         except Exception as e:
-            log_error(f"Error loading story {story_id}: {e}")
+            # Unexpected error during story load
+            log_error(f"Unexpected error loading story {story_id}: {e}")
             return None
 
     async def delete(self, story_id: str) -> bool:
@@ -91,8 +116,12 @@ class FileSystemStoryRepository:
             if story_file.exists():
                 story_file.unlink()
             return True
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error deleting story {story_id}: {e}")
+            return False
         except Exception as e:
-            log_error(f"Error deleting story {story_id}: {e}")
+            # Unexpected error during story deletion
+            log_error(f"Unexpected error deleting story {story_id}: {e}")
             return False
 
     async def list_all(self, limit: int = 50, offset: int = 0) -> list[Story]:
@@ -109,8 +138,14 @@ class FileSystemStoryRepository:
                     stories.append(story)
 
             return stories
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error listing stories: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            log_error(f"JSON parsing error in story files: {e}")
+            return []
         except Exception as e:
-            log_error(f"Error listing stories: {e}")
+            log_error(f"Unexpected error listing stories: {e}")
             return []
 
 
@@ -149,8 +184,11 @@ class FileSystemCharacterRepository:
                 await f.write(json.dumps(char_data, indent=2, ensure_ascii=False))
 
             return True
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error saving character {character.id}: {e}")
+            return False
         except Exception as e:
-            log_error(f"Error saving character {character.id}: {e}")
+            log_error(f"Unexpected error saving character {character.id}: {e}")
             return False
 
     async def get_by_id(self, character_id: str) -> Character | None:
@@ -187,8 +225,16 @@ class FileSystemCharacterRepository:
                     else None
                 ),
             )
+        except FileNotFoundError:
+            return None
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error loading character {character_id}: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            log_error(f"JSON parsing error loading character {character_id}: {e}")
+            return None
         except Exception as e:
-            log_error(f"Error loading character {character_id}: {e}")
+            log_error(f"Unexpected error loading character {character_id}: {e}")
             return None
 
     async def get_by_story(self, story_id: str) -> list[Character]:
@@ -201,8 +247,14 @@ class FileSystemCharacterRepository:
                     characters.append(character)
 
             return sorted(characters, key=lambda c: c.created_at or datetime.min)
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error getting characters for story {story_id}: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            log_error(f"JSON parsing error in character files for story {story_id}: {e}")
+            return []
         except Exception as e:
-            log_error(f"Error getting characters for story {story_id}: {e}")
+            log_error(f"Unexpected error getting characters for story {story_id}: {e}")
             return []
 
 
@@ -238,8 +290,11 @@ class FileSystemSceneRepository:
                 await f.write(json.dumps(scene_data, indent=2, ensure_ascii=False))
 
             return True
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error saving scene {scene.id}: {e}")
+            return False
         except Exception as e:
-            log_error(f"Error saving scene {scene.id}: {e}")
+            log_error(f"Unexpected error saving scene {scene.id}: {e}")
             return False
 
     async def get_by_id(self, scene_id: str) -> Scene | None:
@@ -271,8 +326,16 @@ class FileSystemSceneRepository:
                     else None
                 ),
             )
+        except FileNotFoundError:
+            return None
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error loading scene {scene_id}: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            log_error(f"JSON parsing error loading scene {scene_id}: {e}")
+            return None
         except Exception as e:
-            log_error(f"Error loading scene {scene_id}: {e}")
+            log_error(f"Unexpected error loading scene {scene_id}: {e}")
             return None
 
     async def get_by_story(
@@ -291,8 +354,14 @@ class FileSystemSceneRepository:
             story_scenes.sort(key=lambda s: s.created_at or datetime.min)
 
             return story_scenes[offset : offset + limit]
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error getting scenes for story {story_id}: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            log_error(f"JSON parsing error in scene files for story {story_id}: {e}")
+            return []
         except Exception as e:
-            log_error(f"Error getting scenes for story {story_id}: {e}")
+            log_error(f"Unexpected error getting scenes for story {story_id}: {e}")
             return []
 
 
@@ -329,8 +398,12 @@ class SQLiteStoryRepository:
                 conn.commit()
             finally:
                 conn.close()
-        except sqlite3.Error as e:
-            log_error(f"SQLite initialization failed: {e}")
+        except (sqlite3.Error, DatabaseError) as e:
+            log_error(f"Database error during SQLite initialization: {e}")
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File system error during SQLite initialization: {e}")
+        except Exception as e:
+            log_error(f"Unexpected error during SQLite initialization: {e}")
 
 
 # Export all repository implementations

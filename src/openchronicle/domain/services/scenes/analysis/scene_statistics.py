@@ -11,8 +11,10 @@ Provides comprehensive statistics and analytics for scenes:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Optional
 
 from openchronicle.domain.ports.persistence_port import IPersistencePort
 from openchronicle.shared.logging_system import log_error_with_context

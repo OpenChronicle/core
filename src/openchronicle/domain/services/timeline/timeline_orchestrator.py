@@ -16,14 +16,14 @@ Features:
 from datetime import UTC
 from datetime import datetime
 from typing import Any
+
+from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
+from openchronicle.shared.error_handling import OpenChronicleError
+from openchronicle.shared.error_handling import TimelineError
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
-from openchronicle.shared.error_handling import OpenChronicleError, TimelineError
-from openchronicle.domain.ports.persistence_inmemory import (
-    InMemorySqlitePersistence,
-)
 
 
 class TimelineConfiguration:
@@ -113,8 +113,8 @@ class TimelineOrchestrator:
         """Lazy load timeline management component."""
         if self._timeline_manager is None:
             try:
-                from .timeline.timeline_manager import TimelineManager
                 from .shared.bookmark_manager import SimpleBookmarkManager
+                from .timeline.timeline_manager import TimelineManager
 
                 bookmark_mgr = SimpleBookmarkManager(self._persistence)
                 self._timeline_manager = TimelineManager(

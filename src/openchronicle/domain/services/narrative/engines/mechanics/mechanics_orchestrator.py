@@ -9,11 +9,10 @@ Author: OpenChronicle Development Team
 
 from datetime import datetime
 from typing import Any
-from openchronicle.shared.logging_system import (
-    get_logger,
-    log_error_with_context,
-    log_system_event,
-)
+
+from openchronicle.shared.logging_system import get_logger
+from openchronicle.shared.logging_system import log_error_with_context
+from openchronicle.shared.logging_system import log_system_event
 
 from .dice_engine import DiceEngine
 from .mechanics_models import CharacterPerformance

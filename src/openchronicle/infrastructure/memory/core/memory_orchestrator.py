@@ -5,10 +5,12 @@ The main orchestrator that integrates all memory management components,
 providing a unified interface to replace the monolithic memory_manager.py.
 """
 
-from openchronicle.shared.logging_system import get_logger, log_error_with_context
 from datetime import UTC
 from datetime import datetime
 from typing import Any
+
+from openchronicle.shared.logging_system import get_logger
+from openchronicle.shared.logging_system import log_error_with_context
 
 from ..engines.character.character_manager import CharacterManager
 from ..engines.character.mood_tracker import MoodTracker
@@ -122,7 +124,10 @@ class MemoryOrchestrator:
         try:
             if isinstance(value, self._AsyncCompatResult):
                 return value._value
-        except Exception:
+        except (AttributeError, TypeError) as e:
+            # Data structure error in wrapper object
+            pass
+        except Exception as e:
             pass
         return value
 
@@ -775,6 +780,9 @@ class MemoryOrchestrator:
                     # Convert MemoryState to dict if applicable
                     if hasattr(memory, "to_dict"):
                         memory = memory.to_dict()
+                except (AttributeError, TypeError):
+                    # Serialization error
+                    pass
                 except Exception:
                     pass
                 return {"success": True, "memory": memory}

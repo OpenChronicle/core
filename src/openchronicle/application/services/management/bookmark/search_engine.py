@@ -108,6 +108,9 @@ class BookmarkSearchEngine:
 
             return results
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error in bookmark search: {e}")
+            return []
         except Exception as e:
             log_warning(f"Bookmark search failed: {e}")
             return []
@@ -165,6 +168,9 @@ class BookmarkSearchEngine:
 
             return results
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error in metadata search: {e}")
+            return []
         except Exception as e:
             log_warning(f"Metadata search failed: {e}")
             return []
@@ -222,6 +228,9 @@ class BookmarkSearchEngine:
 
             return results
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error in content search: {e}")
+            return []
         except Exception as e:
             log_warning(f"Content search failed: {e}")
             return []
@@ -282,6 +291,9 @@ class BookmarkSearchEngine:
 
             return similar_bookmarks
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error in similar bookmark search: {e}")
+            return []
         except Exception as e:
             log_warning(f"Similar bookmark search failed: {e}")
             return []
@@ -337,6 +349,9 @@ class BookmarkSearchEngine:
 
             return suggestions[:10]  # Return top 10 suggestions
 
+        except (AttributeError, KeyError) as e:
+            log_warning(f"Data structure error in bookmark suggestions: {e}")
+            return []
         except Exception as e:
             log_warning(f"Bookmark suggestions failed: {e}")
             return []

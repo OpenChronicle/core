@@ -10,6 +10,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
+
 from openchronicle.interfaces.cli.support.base_command import StoryCommand
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
 
@@ -453,32 +454,19 @@ def import_storypack(
     from rich.progress import Progress
     from rich.progress import SpinnerColumn
     from rich.progress import TextColumn
+
     from openchronicle.application.services.importers.storypack import AIProcessor
-    from openchronicle.application.services.importers.storypack import (
-        ContentClassifier,
-    )
+    from openchronicle.application.services.importers.storypack import ContentClassifier
     from openchronicle.application.services.importers.storypack import ContentParser
-    from openchronicle.application.services.importers.storypack import (
-        MetadataExtractor,
-    )
-    from openchronicle.application.services.importers.storypack import (
-        OutputFormatter,
-    )
-    from openchronicle.application.services.importers.storypack import (
-        StorypackBuilder,
-    )
+    from openchronicle.application.services.importers.storypack import MetadataExtractor
+    from openchronicle.application.services.importers.storypack import OutputFormatter
+    from openchronicle.application.services.importers.storypack import StorypackBuilder
     from openchronicle.application.services.importers.storypack import (
         StorypackOrchestrator,
     )
-    from openchronicle.application.services.importers.storypack import (
-        StructureAnalyzer,
-    )
-    from openchronicle.application.services.importers.storypack import (
-        TemplateEngine,
-    )
-    from openchronicle.application.services.importers.storypack import (
-        ValidationEngine,
-    )
+    from openchronicle.application.services.importers.storypack import StructureAnalyzer
+    from openchronicle.application.services.importers.storypack import TemplateEngine
+    from openchronicle.application.services.importers.storypack import ValidationEngine
 
     console = Console()
 
@@ -593,6 +581,9 @@ def import_storypack(
                                 console.print(
                                     f"   📊 {attr.replace('_', ' ').title()}: [blue]{value}[/blue]"
                                 )
+                except (AttributeError, KeyError):
+                    # Attribute access or data structure error
+                    pass
                 except Exception:
                     # If we can't get statistics, just continue
                     pass

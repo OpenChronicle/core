@@ -7,8 +7,8 @@ Shows consistency across different API providers.
 Following OpenChronicle naming convention: anthropic_adapter.py
 """
 
-from typing import Any
 import asyncio
+from typing import Any
 
 from ..adapter_exceptions import AdapterResponseError
 from ..api_adapter_base import BaseAPIAdapter

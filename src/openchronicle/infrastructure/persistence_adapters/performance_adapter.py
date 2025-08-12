@@ -53,6 +53,10 @@ class PerformanceAdapter(IPerformancePort):
         if self.monitor:
             try:
                 self.monitor.start_monitoring(model_name, operation, session_id)
+            except (AttributeError, KeyError) as e:
+                print(f"Monitoring configuration error: {e}")
+            except (ConnectionError, TimeoutError) as e:
+                print(f"Monitoring connection error: {e}")
             except Exception as e:
                 print(f"Error starting monitoring: {e}")
 
@@ -91,6 +95,10 @@ class PerformanceAdapter(IPerformancePort):
         if self.monitor:
             try:
                 metrics.update(self.monitor.end_monitoring(session_id, success, error))
+            except (AttributeError, KeyError) as e:
+                print(f"Monitoring data access error: {e}")
+            except (ConnectionError, TimeoutError) as e:
+                print(f"Monitoring connection error: {e}")
             except Exception as e:
                 print(f"Error ending monitoring: {e}")
 
@@ -149,6 +157,15 @@ class PerformanceAdapter(IPerformancePort):
         if self.monitor:
             try:
                 return self.monitor.record_usage(model_name, tokens_used, cost)
+            except (ValueError, TypeError) as e:
+                print(f"Usage recording parameter error: {e}")
+                return False
+            except (AttributeError, KeyError) as e:
+                print(f"Monitoring data access error: {e}")
+                return False
+            except (ConnectionError, TimeoutError) as e:
+                print(f"Monitoring connection error: {e}")
+                return False
             except Exception as e:
                 print(f"Error recording usage: {e}")
                 return False

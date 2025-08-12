@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 from openchronicle.application.services.importers.storypack.interfaces import (
     ContentFile,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
     IStructureAnalyzer,
 )
+
+
 """
 OpenChronicle Structure Analyzer
 
@@ -15,9 +19,6 @@ from typing import Any
 
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
-
-
-
 
 
 class StructureAnalyzer(IStructureAnalyzer):
@@ -117,8 +118,12 @@ class StructureAnalyzer(IStructureAnalyzer):
                 },
             )
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.error(f"File system error analyzing directory structure {source_path}: {e}")
+            analysis["status"] = "error"
+            analysis["error"] = str(e)
         except Exception as e:
-            self.logger.error(f"Error analyzing directory structure {source_path}: {e}")
+            self.logger.error(f"Unexpected error analyzing directory structure {source_path}: {e}")
             analysis["status"] = "error"
             analysis["error"] = str(e)
 
@@ -191,8 +196,14 @@ class StructureAnalyzer(IStructureAnalyzer):
                     and file_path.suffix.lower() in supported_extensions
                 ):
                     found_files.append(file_path)
+        except (OSError, IOError, PermissionError) as e:
+            issues.append(f"File system error scanning directory: {e}")
+            return False, issues
+        except (AttributeError, KeyError) as e:
+            issues.append(f"Data structure error scanning directory: {e}")
+            return False, issues
         except Exception as e:
-            issues.append(f"Error scanning directory: {e}")
+            issues.append(f"Unexpected error scanning directory: {e}")
             return False, issues
 
         if not found_files:
@@ -224,7 +235,10 @@ class StructureAnalyzer(IStructureAnalyzer):
                 size = file_path.stat().st_size
                 if size > 10 * 1024 * 1024:  # 10MB
                     large_files.append((file_path.name, size // (1024 * 1024)))
-            except Exception:
+            except (OSError, IOError) as e:
+                # File system error accessing file
+                pass
+            except Exception as e:
                 pass
 
         if large_files:
@@ -278,6 +292,9 @@ class StructureAnalyzer(IStructureAnalyzer):
                 if analysis["recognized_type"]:
                     break
 
+        except (OSError, IOError, PermissionError) as e:
+            self.logger.warning(f"File system error analyzing subdirectory {subdir_path}: {e}")
+            analysis["error"] = str(e)
         except Exception as e:
             self.logger.warning(f"Error analyzing subdirectory {subdir_path}: {e}")
             analysis["error"] = str(e)

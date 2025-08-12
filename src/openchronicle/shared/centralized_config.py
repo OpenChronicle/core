@@ -12,7 +12,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
 from .logging_system import log_error
 from .logging_system import log_info
 from .logging_system import log_system_event

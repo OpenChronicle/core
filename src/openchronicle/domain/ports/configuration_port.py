@@ -2,8 +2,11 @@
 Configuration port for domain layer.
 Abstract interface for configuration management without infrastructure dependencies.
 """
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from abc import ABC
+from abc import abstractmethod
+from typing import Any
+from typing import Dict
+from typing import Optional
 
 
 class IConfigurationPort(ABC):
