@@ -11,6 +11,7 @@ from abc import ABC
 from datetime import datetime
 from typing import Any
 from typing import Protocol
+from typing import TYPE_CHECKING
 
 from openchronicle.domain import Character
 from openchronicle.domain import CharacterAnalyzer
@@ -20,6 +21,9 @@ from openchronicle.domain import NarrativeContext
 from openchronicle.domain import Scene
 from openchronicle.domain import Story
 from openchronicle.domain import StoryGenerator
+
+if TYPE_CHECKING:
+    from openchronicle.domain.ports.model_management_port import IModelManagementPort
 
 from ..commands import CommandResult
 from ..commands import CreateCharacterCommand
@@ -93,7 +97,7 @@ class MemoryManager(Protocol):
 
 
 class ModelManager(Protocol):
-    """Model management interface."""
+    """Model management interface - DEPRECATED: Use IModelManagementPort from domain.ports instead."""
 
     async def generate_response(
         self, context: NarrativeContext, model_preference: str | None = None
@@ -293,7 +297,7 @@ class NarrativeOrchestrator(BaseOrchestrator):
         character_repo: CharacterRepository,
         scene_repo: SceneRepository,
         memory_manager: MemoryManager,
-        model_manager: ModelManager,
+        model_management_port: "IModelManagementPort",
         story_generator: StoryGenerator,
         character_analyzer: CharacterAnalyzer,
     ):
@@ -302,7 +306,7 @@ class NarrativeOrchestrator(BaseOrchestrator):
         self.character_repo = character_repo
         self.scene_repo = scene_repo
         self.memory_manager = memory_manager
-        self.model_manager = model_manager
+        self.model_management_port = model_management_port
         self.story_generator = story_generator
         self.character_analyzer = character_analyzer
 
@@ -343,7 +347,7 @@ class NarrativeOrchestrator(BaseOrchestrator):
                 )
 
             # Get AI response
-            model_response = await self.model_manager.generate_response(
+            model_response = await self.model_management_port.generate_response(
                 context, command.model_preference
             )
 

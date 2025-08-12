@@ -12,13 +12,13 @@ from typing import Any
 
 from openchronicle.shared.json_utilities import JSONUtilities
 
-from ..shared.memory_models import CharacterMemory
-from ..shared.memory_models import MemoryFlag
-from ..shared.memory_models import MemoryMetadata
-from ..shared.memory_models import MemoryState
-from ..shared.memory_models import MoodEntry
-from ..shared.memory_models import RecentEvent
-from ..shared.memory_models import VoiceProfile
+from ...shared.memory_models import CharacterMemory
+from ...shared.memory_models import MemoryFlag
+from ...shared.memory_models import MemoryMetadata
+from ...shared.memory_models import MemoryState
+from ...shared.memory_models import MoodEntry
+from ...shared.memory_models import RecentEvent
+from ...shared.memory_models import VoiceProfile
 
 
 @dataclass

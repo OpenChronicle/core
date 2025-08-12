@@ -4,7 +4,7 @@
 Write-Output "Checking hexagonal architecture compliance..."
 
 # Domain layer should not import from application/infrastructure
-$DOMAIN_VIOLATIONS = Select-String -Path "src\openchronicle\domain\**\*.py" -Pattern "from src\.openchronicle\.application|from src\.openchronicle\.infrastructure" -Recurse 2>$null
+$DOMAIN_VIOLATIONS = Get-ChildItem -Path "src\openchronicle\domain\**\*.py" -Recurse -ErrorAction SilentlyContinue | Select-String -Pattern "from src\.openchronicle\.application|from src\.openchronicle\.infrastructure" -ErrorAction SilentlyContinue
 
 if ($DOMAIN_VIOLATIONS) {
     Write-Output "DOMAIN LAYER VIOLATION: Domain importing from outer layers!"

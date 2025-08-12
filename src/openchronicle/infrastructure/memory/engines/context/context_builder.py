@@ -8,8 +8,8 @@ Handles context formatting, prompt generation, and narrative consistency.
 from dataclasses import dataclass
 
 from ..character.character_manager import CharacterManager
-from ..shared.memory_models import CharacterMemory
-from ..shared.memory_models import MemorySnapshot
+from ...shared.memory_models import CharacterMemory
+from ...shared.memory_models import MemorySnapshot
 
 
 @dataclass

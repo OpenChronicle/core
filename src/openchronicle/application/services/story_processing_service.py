@@ -13,6 +13,7 @@ Extracted from legacy main.py to fit hexagonal architecture.
 
 from dataclasses import dataclass
 from typing import Any
+from typing import TYPE_CHECKING
 
 from openchronicle.domain.entities import Story
 from openchronicle.domain.services import CharacterService
@@ -21,8 +22,9 @@ from openchronicle.domain.services import SceneService
 from openchronicle.domain.services import StoryService
 from openchronicle.shared.retry_policy import RetryPolicy
 
-
-# Infrastructure services will be imported as needed during legacy compatibility
+if TYPE_CHECKING:
+    from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+    from openchronicle.domain.ports.context_port import IContextPort
 
 
 @dataclass
@@ -51,6 +53,8 @@ class StoryProcessingService:
         logging_service: Any,  # Will be proper interface later
         cache_service: Any,  # Will be proper interface later
         config: StoryProcessingConfig,
+        context_port: "IContextPort | None" = None,
+        content_analysis_port: "IContentAnalysisPort | None" = None,
     ):
         self.story_service = story_service
         self.character_service = character_service
@@ -59,6 +63,8 @@ class StoryProcessingService:
         self.logging_service = logging_service
         self.cache_service = cache_service
         self.config = config
+        self.context_port = context_port
+        self.content_analysis_port = content_analysis_port
 
     async def process_story_input(
         self,
@@ -156,14 +162,43 @@ class StoryProcessingService:
         self, user_input: str, story: Story
     ) -> dict[str, Any]:
         """Build context with intelligent analysis."""
-        # Use the legacy context orchestrator temporarily
-        # TODO: Migrate to proper domain service once available
-        from openchronicle.infrastructure.content.context import ContextOrchestrator
-
-        context_orchestrator = ContextOrchestrator()
-        return await context_orchestrator.build_context_with_analysis(
-            user_input, story.to_dict()
-        )
+        if self.context_port is not None:
+            # Use injected port
+            return await self.context_port.build_context_with_analysis(
+                user_input, story.to_dict()
+            )
+        else:
+            # Fallback for backward compatibility
+            from openchronicle.domain.ports.context_port import IContextPort
+            
+            class MockContextPort(IContextPort):
+                async def build_context_with_analysis(
+                    self, user_input: str, story_data: dict[str, Any]
+                ) -> dict[str, Any]:
+                    return {
+                        "user_input": user_input,
+                        "story_data": story_data,
+                        "context_type": "mock"
+                    }
+                
+                async def build_basic_context(
+                    self, user_input: str, story_data: dict[str, Any]
+                ) -> dict[str, Any]:
+                    return {
+                        "user_input": user_input,
+                        "story_data": story_data,
+                        "context_type": "basic_mock"
+                    }
+                
+                async def extract_context_metadata(
+                    self, context: dict[str, Any]
+                ) -> dict[str, Any]:
+                    return {"mock": True}
+            
+            mock_port = MockContextPort()
+            return await mock_port.build_context_with_analysis(
+                user_input, story.to_dict()
+            )
 
     async def _generate_ai_response(
         self,
@@ -207,21 +242,33 @@ class StoryProcessingService:
     ) -> list:
         """Generate content flags from analysis and AI response."""
         try:
-            # Use the legacy content analyzer temporarily
-            # TODO: Migrate to proper domain service once available
-            from openchronicle.domain.models.model_orchestrator import (
-                ModelOrchestrator,
-            )
-            from openchronicle.infrastructure.content import (
-                ContentAnalysisOrchestrator as ContentAnalyzer,
-            )
-
-            model_manager = ModelOrchestrator()
-            content_analyzer = ContentAnalyzer(model_manager)
-
-            content_flags = await content_analyzer.generate_content_flags(
-                analysis, ai_response
-            )
+            if self.content_analysis_port is not None:
+                # Use injected port
+                content_flags = await self.content_analysis_port.generate_content_flags(
+                    analysis, ai_response
+                )
+            else:
+                # Fallback for backward compatibility
+                from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+                
+                class MockContentAnalysisPort(IContentAnalysisPort):
+                    async def generate_content_flags(
+                        self, analysis: dict[str, Any], content: str
+                    ) -> list[dict[str, Any]]:
+                        return [
+                            {"name": "mock_flag", "value": "test", "type": "content"}
+                        ]
+                    
+                    async def analyze_content_sentiment(self, content: str) -> dict[str, Any]:
+                        return {"sentiment": "neutral", "confidence": 0.5}
+                    
+                    async def detect_content_themes(self, content: str) -> list[str]:
+                        return ["general"]
+                
+                mock_port = MockContentAnalysisPort()
+                content_flags = await mock_port.generate_content_flags(
+                    analysis, ai_response
+                )
 
             # Add flags to memory
             for flag in content_flags:

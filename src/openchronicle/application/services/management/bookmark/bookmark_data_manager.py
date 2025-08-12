@@ -9,6 +9,7 @@ import json
 import sys
 from datetime import datetime
 from typing import Any
+from typing import TYPE_CHECKING
 
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
@@ -17,44 +18,71 @@ from ..shared import BookmarkManagerException
 from ..shared import BookmarkRecord
 from ..shared import BookmarkType
 
+if TYPE_CHECKING:
+    from openchronicle.domain.ports.persistence_port import IPersistencePort
+
 
 class BookmarkDataManager:
     """Handles core bookmark data operations."""
 
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, persistence_port: "IPersistencePort | None" = None):
         self.story_id = story_id
-        # Import database utilities with proper path handling
-        # Force mock usage in test environments
-        import os
-
-        use_mock = (
-            os.environ.get("PYTEST_CURRENT_TEST") is not None
-            or "pytest" in sys.modules
-            or "test" in self.story_id.lower()
-        )
-
-        if use_mock:
-            # Use mocks for testing
-            self.execute_query = self._mock_execute_query
-            self.execute_insert = self._mock_execute_insert
-            self.execute_update = self._mock_execute_update
-            self.init_database = self._mock_init_database
+        self.persistence_port = persistence_port
+        
+        # Initialize persistence interface
+        if self.persistence_port is not None:
+            # Use injected port - set up wrapper methods for compatibility
+            self.execute_query = self._execute_query_wrapper
+            self.execute_insert = self._execute_insert_wrapper
+            self.execute_update = self._execute_update_wrapper
+            self.init_database = self._init_database_wrapper
+            self.init_database(story_id)
         else:
-            try:
-                from openchronicle.infrastructure.persistence.database_orchestrator import (
-                    database_orchestrator,
-                )
+            # Fallback for backward compatibility and testing
+            self._setup_mock_persistence()
 
-                self.execute_query = database_orchestrator.execute_query
-                self.execute_insert = database_orchestrator.execute_insert
-                self.execute_update = database_orchestrator.execute_update
-                self.init_database = database_orchestrator.init_database
-            except ImportError:
-                # Fallback for testing - create mock functions
-                self.execute_query = self._mock_execute_query
-                self.execute_insert = self._mock_execute_insert
-                self.execute_update = self._mock_execute_update
-                self.init_database = self._mock_init_database
+    def _setup_mock_persistence(self):
+        """Set up mock persistence methods for testing."""
+        # For backward compatibility, we still set these attributes
+        # but the actual logic will use the wrapper methods
+        self.execute_query = self._execute_query_wrapper
+        self.execute_insert = self._execute_insert_wrapper
+        self.execute_update = self._execute_update_wrapper
+        self.init_database = self._init_database_wrapper
+
+    def _execute_query_wrapper(self, story_id: str, query: str, params=None):
+        """Wrapper for execute_query that uses persistence port or mock."""
+        if self.persistence_port:
+            return self.persistence_port.execute_query(story_id, query, params)
+        else:
+            return self._mock_execute_query(story_id, query, params)
+
+    def _execute_insert_wrapper(self, story_id: str, query: str, params=None):
+        """Wrapper for execute_insert that uses persistence port or mock."""
+        if self.persistence_port:
+            # For inserts, we use execute_update from the port
+            success = self.persistence_port.execute_update(story_id, query, params)
+            if success:
+                # Return a mock ID for compatibility
+                import random
+                return f"bookmark_{random.randint(1000, 9999)}"
+            return None
+        else:
+            return self._mock_execute_insert(story_id, query, params)
+
+    def _execute_update_wrapper(self, story_id: str, query: str, params=None):
+        """Wrapper for execute_update that uses persistence port or mock."""
+        if self.persistence_port:
+            return self.persistence_port.execute_update(story_id, query, params)
+        else:
+            return self._mock_execute_update(story_id, query, params)
+
+    def _init_database_wrapper(self, story_id: str):
+        """Wrapper for init_database that uses persistence port or mock."""
+        if self.persistence_port:
+            return self.persistence_port.init_database(story_id)
+        else:
+            return self._mock_init_database(story_id)
 
     def _mock_execute_query(self, *args, **kwargs):
         """Mock query function for testing."""

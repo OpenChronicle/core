@@ -8,7 +8,7 @@ Handles scene transitions, context continuity, and narrative consistency.
 from dataclasses import dataclass
 from typing import Any
 
-from ..shared.memory_models import MemorySnapshot
+from ...shared.memory_models import MemorySnapshot
 from .context_builder import ContextBuilder
 from .context_builder import ContextConfiguration
 from .world_state_manager import WorldStateManager

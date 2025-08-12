@@ -1,10 +1,16 @@
 """
-Registry adapter implementing domain ports.
-Infrastructure implementation of registry operations.
+Registry Adapter - Infrastructure Implementation
+
+Implements the registry port interface using the concrete registry manager.
+This adapter sits in the infrastructure layer and implements the domain port.
 """
-from typing import Dict, Any, Optional, List
+
+from typing import Any
+from typing import Optional
+
 from openchronicle.domain.ports.registry_port import IRegistryPort
-from openchronicle.shared.logging_system import log_error, log_warning
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_warning
 
 # Safe import of infrastructure component
 try:
@@ -14,44 +20,90 @@ except ImportError:
 
 
 class RegistryAdapter(IRegistryPort):
-    """Infrastructure adapter for registry operations."""
+    """
+    Infrastructure adapter that implements the registry port interface.
     
-    def __init__(self, config_path: Optional[str] = None):
-        """Initialize registry adapter."""
+    This adapter bridges the domain port interface with the concrete
+    infrastructure implementation (RegistryManager).
+    """
+
+    def __init__(self, models_dir: str = "config/models/", settings_file: str = "config/registry_settings.json"):
+        """
+        Initialize the registry adapter.
+        
+        Args:
+            models_dir: Directory containing model configurations
+            settings_file: Path to registry settings file
+        """
         if RegistryManager is None:
             raise RuntimeError("RegistryManager not available. Check infrastructure.registry imports.")
         
-        self.registry_manager = RegistryManager(
-            config_path=config_path,
-            auto_discover=True
+        self._manager = RegistryManager(
+            models_dir=models_dir,
+            settings_file=settings_file
         )
-    
-    async def discover_models(self) -> List[Dict[str, Any]]:
-        """Discover available models."""
+
+    def get_provider_config(self, provider_name: str) -> Optional[dict[str, Any]]:
+        """Get configuration for a specific provider."""
         try:
-            # Call the registry manager's discovery method
-            return await self.registry_manager.discover_models()
+            return self._manager.get_provider_config(provider_name)
         except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
-            # Graceful fallback with logging
-            log_warning(f"discover_models failed: {e}")
-            return []
-    
-    async def get_model_config(self, model_name: str) -> Optional[Dict[str, Any]]:
-        """Get configuration for a specific model."""
-        try:
-            return await self.registry_manager.get_model_config(model_name)
-        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
-            log_warning(f"get_model_config failed for '{model_name}': {e}")
+            log_warning(f"get_provider_config failed for '{provider_name}': {e}")
             return None
-    
-    async def register_model(self, model_config: Dict[str, Any]) -> bool:
-        """Register a new model configuration."""
+
+    def list_providers(self) -> list[str]:
+        """List all available providers."""
         try:
-            return await self.registry_manager.register_model(model_config)
+            return self._manager.list_providers()
         except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
-            log_error(f"register_model failed for config '{model_config.get('name', '<unknown>')}': {e}")
+            log_warning(f"list_providers failed: {e}")
+            return []
+
+    def validate_config(self, provider_name: str, config: dict[str, Any]) -> bool:
+        """
+        Validate provider configuration.
+        
+        Args:
+            provider_name: Name of the provider
+            config: Configuration to validate
+            
+        Returns:
+            True if valid
+            
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        try:
+            # Basic validation for required fields
+            required_fields = ["name", "type"]
+            missing_fields = [field for field in required_fields if field not in config]
+            if missing_fields:
+                raise ValueError(f"Missing required fields: {missing_fields}")
+            return True
+        except (ValueError, TypeError) as e:
+            log_error(f"validate_config failed for '{provider_name}': {e}")
+            raise
+
+    def register_provider(self, provider_name: str, config: dict[str, Any]) -> bool:
+        """Register a new provider."""
+        try:
+            return self._manager.register_provider(provider_name, config)
+        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
+            log_error(f"register_provider failed for '{provider_name}': {e}")
             return False
-    
-    def get_registry_manager(self):
-        """Get underlying registry manager (for migration compatibility)."""
-        return self.registry_manager
+
+    def update_provider_config(self, provider_name: str, config: dict[str, Any]) -> bool:
+        """Update provider configuration."""
+        try:
+            return self._manager.update_provider_config(provider_name, config)
+        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
+            log_error(f"update_provider_config failed for '{provider_name}': {e}")
+            return False
+
+    def discover_providers(self) -> dict[str, list[dict[str, Any]]]:
+        """Discover all providers and their configurations."""
+        try:
+            return self._manager.discover_providers()
+        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
+            log_warning(f"discover_providers failed: {e}")
+            return {}

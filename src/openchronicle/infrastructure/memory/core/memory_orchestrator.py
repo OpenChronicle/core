@@ -10,18 +10,18 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
-from .character import CharacterManager
-from .character import MoodTracker
-from .character import VoiceManager
-from .context import ContextBuilder
-from .context import SceneContextManager
-from .context import WorldStateManager
-from .persistence import MemoryRepository
-from .persistence import MemorySerializer
-from .persistence import SnapshotManager
-from .shared import CharacterMemory
-from .shared import MemorySnapshot
-from .shared.memory_models import MemoryState
+from ..engines.character.character_manager import CharacterManager
+from ..engines.character.mood_tracker import MoodTracker
+from ..engines.character.voice_manager import VoiceManager
+from ..engines.context.context_builder import ContextBuilder
+from ..engines.context.scene_context_manager import SceneContextManager
+from ..engines.context.world_state_manager import WorldStateManager
+from ..engines.persistence.memory_repository import MemoryRepository
+from ..engines.persistence.memory_serializer import MemorySerializer
+from ..engines.persistence.snapshot_manager import SnapshotManager
+from ..shared.memory_models import CharacterMemory
+from ..shared.memory_models import MemorySnapshot
+from ..shared.memory_models import MemoryState
 
 
 class MemoryOrchestrator:

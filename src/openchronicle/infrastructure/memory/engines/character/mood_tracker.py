@@ -12,8 +12,8 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-from ..shared.memory_models import CharacterMemory
-from ..shared.memory_models import MoodEntry
+from ...shared.memory_models import CharacterMemory
+from ...shared.memory_models import MoodEntry
 
 
 @dataclass

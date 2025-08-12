@@ -20,9 +20,6 @@ Architecture:
 - Hexagonal Architecture: Domain isolated from infrastructure via ports/adapters
 """
 
-# VIOLATION FIXED: Use dependency injection instead of direct infrastructure imports
-# from openchronicle.infrastructure.performance.model_monitor import PerformanceMonitor
-
 from .configuration_manager import ConfigurationManager
 from .lifecycle_manager import LifecycleManager
 from .model_orchestrator import ModelOrchestrator
@@ -33,7 +30,6 @@ __all__ = [
     "ConfigurationManager",
     "LifecycleManager",
     "ModelOrchestrator",
-    "PerformanceMonitor",
     "ResponseGenerator",
 ]
 

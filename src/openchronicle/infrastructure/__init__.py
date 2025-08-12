@@ -30,7 +30,7 @@ from .adapters import AnthropicAdapter
 from .adapters import BaseModelAdapter
 from .adapters import MockModelAdapter
 from .adapters import ModelConfig
-from .adapters import ModelManagerImpl
+from .adapters import ModelManagementAdapter
 from .adapters import OllamaAdapter
 from .adapters import OpenAIAdapter
 from .adapters import create_adapter
@@ -159,7 +159,7 @@ class InfrastructureContainer:
     def get_model_manager(self):
         """Get model manager instance."""
         if self._model_manager is None:
-            self._model_manager = ModelManagerImpl()
+            self._model_manager = ModelManagementAdapter()
 
             # Register adapters from configuration
             for name, adapter_config in self.config.model_configs.items():
@@ -297,7 +297,7 @@ __all__ = [
     "OpenAIAdapter",
     "AnthropicAdapter",
     "OllamaAdapter",
-    "ModelManagerImpl",
+    "ModelManagementAdapter",
     "create_adapter",
     # Memory
     "MemoryOrchestrator",

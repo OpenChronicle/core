@@ -11,10 +11,10 @@ from datetime import datetime
 from typing import Any
 
 from ..persistence import MemoryRepository
-from ..shared.memory_models import MAX_MOOD_HISTORY
-from ..shared.memory_models import CharacterMemory
-from ..shared.memory_models import MoodEntry
-from ..shared.memory_models import VoiceProfile
+from ...shared.memory_models import MAX_MOOD_HISTORY
+from ...shared.memory_models import CharacterMemory
+from ...shared.memory_models import MoodEntry
+from ...shared.memory_models import VoiceProfile
 
 
 @dataclass

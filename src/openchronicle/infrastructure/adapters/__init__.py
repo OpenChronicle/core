@@ -2,8 +2,8 @@
 Infrastructure layer LLM adapters for OpenChronicle.
 
 This module provides concrete implementations for interacting with various
-Large Language Model providers. These adapters implement the ModelManager
-interface defined in the application layer.
+Large Language Model providers. These adapters implement the model management
+port interface defined in the domain layer.
 """
 
 import asyncio
@@ -14,7 +14,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from openchronicle.application.orchestrators import ModelManager
+from openchronicle.domain.ports.model_management_port import IModelManagementPort
 from openchronicle.domain import ModelResponse
 from openchronicle.domain import NarrativeContext
 
@@ -276,13 +276,13 @@ class OllamaAdapter(BaseModelAdapter):
             raise
 
 
-class ModelManagerImpl(ModelManager):
-    """Implementation of the ModelManager interface."""
+class ModelManagementAdapter(IModelManagementPort):
+    """Implementation of the model management port interface."""
 
     def __init__(self):
         self.adapters: dict[str, BaseModelAdapter] = {}
         self.fallback_chains: dict[str, list[str]] = {}
-        self.logger = logging.getLogger("ModelManager")
+        self.logger = logging.getLogger("ModelManagementAdapter")
 
     def register_adapter(self, name: str, adapter: BaseModelAdapter):
         """Register a model adapter."""
@@ -454,7 +454,7 @@ __all__ = [
     "BaseModelAdapter",
     "MockModelAdapter",
     "ModelConfig",
-    "ModelManagerImpl",
+    "ModelManagementAdapter",
     "OllamaAdapter",
     "OpenAIAdapter",
     "create_adapter",

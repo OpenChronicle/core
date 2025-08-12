@@ -18,7 +18,7 @@ from openchronicle.infrastructure.persistence.database_orchestrator import (
 )
 from openchronicle.shared.json_utilities import JSONUtilities
 
-from ..shared.memory_models import MemoryState
+from ...shared.memory_models import MemoryState
 
 
 class MemoryRepository:
@@ -327,10 +327,10 @@ class MemoryRepository:
 
     def _deserialize_memory(self, data: dict[str, Any]) -> MemoryState:
         """Convert dictionary to MemoryState."""
-        from ..shared.memory_models import MemoryFlag
-        from ..shared.memory_models import MemoryMetadata
-        from ..shared.memory_models import MemoryState
-        from ..shared.memory_models import RecentEvent
+        from ...shared.memory_models import MemoryFlag
+        from ...shared.memory_models import MemoryMetadata
+        from ...shared.memory_models import MemoryState
+        from ...shared.memory_models import RecentEvent
 
         memory = MemoryState()
 
@@ -419,9 +419,9 @@ class MemoryRepository:
 
     def _deserialize_character(self, name: str, data: dict[str, Any]):
         """Deserialize character from dictionary."""
-        from ..shared.memory_models import CharacterMemory
-        from ..shared.memory_models import MoodEntry
-        from ..shared.memory_models import VoiceProfile
+        from ...shared.memory_models import CharacterMemory
+        from ...shared.memory_models import MoodEntry
+        from ...shared.memory_models import VoiceProfile
 
         # Mood history
         mood_history = []

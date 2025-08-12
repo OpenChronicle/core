@@ -8,7 +8,7 @@ Extracted from archive_memory_snapshot and refresh_memory_after_rollback functio
 from dataclasses import dataclass
 from typing import Any
 
-from ..shared.memory_models import MemoryState
+from ...shared.memory_models import MemoryState
 from .memory_repository import MemoryRepository
 
 

@@ -11,6 +11,7 @@ import asyncio
 from datetime import UTC
 from datetime import datetime
 from typing import Any
+from typing import TYPE_CHECKING
 
 from openchronicle.shared.dependency_injection import get_container
 from openchronicle.shared.error_handling import ErrorCategory
@@ -23,6 +24,9 @@ from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_warning
 from openchronicle.shared.security_decorators import SecurityThreatLevel
 from openchronicle.shared.security_decorators import secure_operation
+
+if TYPE_CHECKING:
+    from openchronicle.domain.ports.registry_port import IRegistryPort
 
 from .model_interfaces import AdapterStatus
 from .model_interfaces import IModelConfigurationManager
@@ -395,7 +399,14 @@ class ModelOrchestrator(IModelOrchestrator):
     while maintaining clean separation of concerns using SOLID principles.
     """
 
-    def __init__(self, config: dict[str, Any] | None = None):
+    def __init__(self, config: dict[str, Any] | None = None, registry_port: "IRegistryPort | None" = None):
+        """
+        Initialize the model orchestrator.
+        
+        Args:
+            config: Optional configuration dictionary
+            registry_port: Optional registry port implementation (for dependency injection)
+        """
         self._init_config = config or {}  # Store init config separately
         self.adapters = {}
 
@@ -405,43 +416,11 @@ class ModelOrchestrator(IModelOrchestrator):
         # Register and resolve configuration manager with fallback for tests
         from .configuration_manager import ConfigurationManager
         
-        # Try to get registry from infrastructure, fallback to mock for tests
-        try:
-            from openchronicle.infrastructure.registry.registry_manager import RegistryManager
-            # Create a working registry implementation
-            registry_manager = RegistryManager(
-                models_dir="config/models/",
-                settings_file="config/registry_settings.json"
-            )
-            
-            # Create adapter using the manager
-            from openchronicle.domain.ports.registry_port import IRegistryPort
-            
-            class RegistryPortAdapter(IRegistryPort):
-                def __init__(self, manager):
-                    self.manager = manager
-                    
-                def get_provider_config(self, provider_name: str):
-                    return self.manager.get_provider_config(provider_name)
-                def list_providers(self):
-                    return self.manager.list_providers()
-                def validate_config(self, provider_name: str, config: dict):
-                    # Basic validation for required fields
-                    required_fields = ["name", "type"]
-                    missing_fields = [field for field in required_fields if field not in config]
-                    if missing_fields:
-                        raise ValueError(f"Missing required fields: {missing_fields}")
-                    return True
-                def register_provider(self, provider_name: str, config: dict):
-                    return self.manager.register_provider(provider_name, config)
-                def update_provider_config(self, provider_name: str, config: dict):
-                    return self.manager.update_provider_config(provider_name, config)
-                def discover_providers(self) -> dict[str, list[dict[str, Any]]]:
-                    return self.manager.discover_providers()
-            
-            registry_port = RegistryPortAdapter(registry_manager)
-        except (ImportError, RuntimeError, OSError):
-            # Fallback for tests - create a mock registry
+        # Use provided registry port or create default fallback
+        if registry_port is not None:
+            self.registry_port = registry_port
+        else:
+            # Fallback for backward compatibility and tests
             from openchronicle.domain.ports.registry_port import IRegistryPort
             
             class MockRegistryPort(IRegistryPort):
@@ -455,16 +434,12 @@ class ModelOrchestrator(IModelOrchestrator):
                     return True
                 def update_provider_config(self, provider_name: str, config: dict):
                     return True
-                def get_model_config(self, model_name: str):
-                    return {"name": model_name, "provider": "mock"}
-                def register_model(self, model_config: dict):
-                    return True
                 def discover_providers(self) -> dict[str, list[dict[str, Any]]]:
                     return {"mock_provider": [{"name": "mock_model", "type": "text"}]}
             
-            registry_port = MockRegistryPort()
+            self.registry_port = MockRegistryPort()
 
-        config_manager = ConfigurationManager(registry_port=registry_port)
+        config_manager = ConfigurationManager(registry_port=self.registry_port)
 
         # Register and resolve performance monitor
         # VIOLATION FIXED: Use dependency injection instead

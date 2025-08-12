@@ -7,6 +7,7 @@ Handles chapter structure, timeline navigation, and story organization.
 
 import json
 from typing import Any
+from typing import TYPE_CHECKING
 
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
@@ -14,20 +15,26 @@ from openchronicle.shared.logging_system import log_warning
 from ..shared import BookmarkManagerException
 from ..shared import BookmarkType
 
+if TYPE_CHECKING:
+    from openchronicle.domain.ports.persistence_port import IPersistencePort
+
 
 class NavigationManager:
     """Manages story navigation, chapters, and timeline structure."""
 
-    def __init__(self, story_id: str):
+    def __init__(self, story_id: str, persistence_port: "IPersistencePort | None" = None):
         self.story_id = story_id
-        # Import database utilities with fallback
-        try:
-            from openchronicle.infrastructure.persistence import execute_query
-
-            self.execute_query = execute_query
-        except ImportError:
-            # Fallback for testing
+        self.persistence_port = persistence_port
+        
+        # Set up execution method for compatibility
+        if self.persistence_port:
+            self.execute_query = self._execute_query_wrapper
+        else:
             self.execute_query = self._mock_execute_query
+
+    def _execute_query_wrapper(self, story_id: str, query: str, params=None):
+        """Wrapper for execute_query that uses persistence port."""
+        return self.persistence_port.execute_query(story_id, query, params)
 
     def _mock_execute_query(self, *args, **kwargs):
         """Mock query function for testing."""
