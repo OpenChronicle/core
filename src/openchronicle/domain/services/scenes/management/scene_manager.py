@@ -13,6 +13,13 @@ This manager now uses dependency injection following hexagonal architecture prin
 from typing import Any
 from typing import Optional
 
+from openchronicle.shared.logging_system import (
+    log_error,
+    log_info,
+    log_warning,
+)  # Lightweight logging (Band-Aid removal: replace prints)
+from openchronicle.domain.errors.persistence_errors import RollbackSceneError
+
 # Import domain interfaces (following dependency inversion principle)
 from openchronicle.domain.ports.persistence_port import IPersistencePort
 
@@ -62,7 +69,10 @@ class SceneManager:
             # First, verify the target scene exists
             target_scene = self.repository.load_scene(scene_id)
             if not target_scene:
-                print(f"Target scene {scene_id} not found")
+                log_warning(
+                    f"Target scene {scene_id} not found",
+                    context_tags=["scene","rollback","not_found"],
+                )
                 return False
 
             # Get the timestamp of the target scene
@@ -81,7 +91,10 @@ class SceneManager:
             )
 
             if not scenes_to_remove:
-                print(f"No scenes to rollback after {scene_id}")
+                log_info(
+                    f"No scenes to rollback after {scene_id}",
+                    context_tags=["scene","rollback","no_op"],
+                )
                 return True  # Nothing to rollback, but operation successful
 
             # Backup scenes before deletion (optional - could be enhanced)
@@ -101,14 +114,18 @@ class SceneManager:
                 [target_timestamp, self.story_id],
             )
 
-            print(
-                f"Rollback successful: removed {len(scenes_to_remove)} scenes after {scene_id}"
+            log_info(
+                f"Rollback successful: removed {len(scenes_to_remove)} scenes after {scene_id}",
+                context_tags=["scene","rollback","success"],
             )
             return True
 
-        except Exception as e:
-            print(f"Error rolling back to scene {scene_id}: {e}")
-            return False
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:  # narrowed
+            log_error(
+                f"Error rolling back to scene {scene_id}: {e}",
+                context_tags=["scene","rollback","error"],
+            )
+            raise RollbackSceneError(str(e)) from e
 
     def get_rollback_preview(self, scene_id: str) -> dict[str, Any]:
         """
@@ -159,7 +176,7 @@ class SceneManager:
                 "warning": f"This will permanently delete {len(scenes_to_remove)} scenes created after the target scene.",
             }
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
             return {"error": f"Error previewing rollback: {e}"}
 
     def validate_scene_integrity(self) -> dict[str, Any]:
@@ -253,7 +270,7 @@ class SceneManager:
                 "status": "healthy" if not issues else "issues_detected",
             }
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
             return {"error": f"Error validating scene integrity: {e}"}
 
     def compact_scene_data(self) -> dict[str, Any]:
@@ -282,7 +299,7 @@ class SceneManager:
                 "recommendation": "Scene data is already efficiently stored",
             }
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
             return {"error": f"Error analyzing scene data for compaction: {e}"}
 
     def get_scene_dependencies(self, scene_id: str) -> dict[str, Any]:
@@ -320,7 +337,7 @@ class SceneManager:
                 """,
                     [scene_id],
                 )
-            except:
+            except (RuntimeError, ValueError, KeyError, TypeError):
                 bookmark_references = []  # Table might not exist
 
             return {
@@ -343,7 +360,7 @@ class SceneManager:
                 or len(bookmark_references) > 0,
             }
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
             return {"error": f"Error checking scene dependencies: {e}"}
 
     def get_status(self) -> str:
@@ -361,5 +378,5 @@ class SceneManager:
             if integrity["issues_found"] > 0:
                 return f"warning ({integrity['issues_found']} issues detected)"
             return f"healthy ({integrity['total_scenes']} scenes)"
-        except Exception:
+        except (RuntimeError, ValueError, KeyError, TypeError):
             return "error"

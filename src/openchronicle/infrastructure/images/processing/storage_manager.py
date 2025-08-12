@@ -41,14 +41,14 @@ class ImageStorageManager:
             "custom_prefix": "img",
         }
 
-        # Create images directory
-        self.images_path.mkdir(exist_ok=True)
+        # Create images directory (with parents)
+        self.images_path.mkdir(parents=True, exist_ok=True)
 
         # Initialize subdirectories
         self._create_subdirectories()
 
         # Load existing metadata
-        self.metadata: dict[str, ImageMetadata] = self._load_metadata()
+        self.metadata = self._load_metadata()
 
     def _create_subdirectories(self):
         """Create organized subdirectories for different image types"""
@@ -56,7 +56,7 @@ class ImageStorageManager:
 
         for subdir in subdirs:
             subdir_path = self.images_path / subdir
-            subdir_path.mkdir(exist_ok=True)
+            subdir_path.mkdir(parents=True, exist_ok=True)
 
     def _load_metadata(self) -> dict[str, ImageMetadata]:
         """Load image metadata from JSON file"""
@@ -68,18 +68,19 @@ class ImageStorageManager:
             with open(self.metadata_file, encoding="utf-8") as f:
                 data = json.load(f)
 
-            metadata = {}
+            metadata: dict[str, ImageMetadata] = {}
             for image_id, meta_dict in data.items():
                 try:
                     metadata[image_id] = ImageMetadata.from_dict(meta_dict)
-                except Exception as e:
-                    logger.warning(f"Failed to load metadata for image {image_id}: {e}")
+                except (ValueError, TypeError, KeyError) as e:
+                    logger.warning(
+                        f"Failed to load metadata for image {image_id}: {e}"
+                    )
                     continue
 
             logger.info(f"Loaded metadata for {len(metadata)} images")
             return metadata
-
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
             logger.error(f"Failed to load image metadata: {e}")
             return {}
 
@@ -87,7 +88,7 @@ class ImageStorageManager:
         """Save image metadata to JSON file"""
         try:
             # Convert metadata to dictionary format
-            data = {}
+            data: dict[str, Any] = {}
             for image_id, metadata in self.metadata.items():
                 data[image_id] = metadata.to_dict()
 
@@ -99,8 +100,7 @@ class ImageStorageManager:
             # Atomic replace
             temp_file.replace(self.metadata_file)
             logger.debug(f"Saved metadata for {len(data)} images")
-
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.error(f"Failed to save image metadata: {e}")
             raise ImageValidationError(f"Could not save metadata: {e}")
 
@@ -249,13 +249,12 @@ class ImageStorageManager:
 
             logger.info(f"Stored image {image_id} at {file_path}")
             return metadata
-
-        except Exception as e:
+        except (OSError, ImageValidationError, ValueError, TypeError) as e:
             # Cleanup on failure
             if os.path.exists(file_path):
                 try:
                     os.remove(file_path)
-                except:
+                except OSError:
                     pass
 
             logger.error(f"Failed to store image {image_id}: {e}")
@@ -302,8 +301,7 @@ class ImageStorageManager:
 
             logger.info(f"Deleted image {image_id}")
             return True
-
-        except Exception as e:
+        except (OSError, KeyError) as e:
             logger.error(f"Failed to delete image {image_id}: {e}")
             return False
 
@@ -368,7 +366,7 @@ class ImageStorageManager:
                             file_path.unlink()
                             orphaned_count += 1
                             logger.info(f"Removed orphaned file: {file_path}")
-                        except Exception as e:
+                        except OSError as e:
                             logger.error(
                                 f"Failed to remove orphaned file {file_path}: {e}"
                             )

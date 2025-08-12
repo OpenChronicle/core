@@ -14,7 +14,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.version:
-        print(__version__)
+        from rich.console import Console
+        Console().print(__version__)
         return 0
 
     # Run modern CLI app directly when no simple flag used

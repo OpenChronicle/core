@@ -8,6 +8,7 @@ Following OpenChronicle naming convention: anthropic_adapter.py
 """
 
 from typing import Any
+import asyncio
 
 from ..adapter_exceptions import AdapterResponseError
 from ..api_adapter_base import BaseAPIAdapter
@@ -51,15 +52,20 @@ class AnthropicAdapter(BaseAPIAdapter):
 
             return content.strip()
 
+        except (asyncio.TimeoutError, TimeoutError):
+            from ..adapter_exceptions import AdapterTimeoutError
+
+            raise AdapterTimeoutError(self.get_provider_name(), self.timeout)
+        except (KeyError, AttributeError, ValueError, TypeError) as e:
+            raise AdapterResponseError(
+                self.get_provider_name(), f"Malformed response: {e}"
+            )
         except Exception as e:
-            if "rate limit" in str(e).lower():
+            msg = str(e).lower()
+            if "429" in msg or "rate limit" in msg:
                 from ..adapter_exceptions import AdapterRateLimitError
 
                 raise AdapterRateLimitError(self.get_provider_name())
-            if "timeout" in str(e).lower():
-                from ..adapter_exceptions import AdapterTimeoutError
-
-                raise AdapterTimeoutError(self.get_provider_name(), self.timeout)
             raise AdapterResponseError(
                 self.get_provider_name(), f"Anthropic API request failed: {e}"
             )

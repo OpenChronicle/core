@@ -342,7 +342,7 @@ class SearchUtilities:
             return self._execute_simple_search(
                 story_id, table, columns, filters, options, db_ops
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
             logger.error(f"Search execution failed: {e}")
             return []
 

@@ -20,7 +20,10 @@ try:
 
     INTERACTIVE_AVAILABLE = True
 except ImportError as e:
-    print(f"Warning: Interactive story commands not available: {e}")
+    console = Console()
+    console.print(
+        f"[yellow]Warning: Interactive story commands not available:[/yellow] {e}"
+    )
     # Create a minimal fallback interactive app
     interactive_app = typer.Typer()
 
@@ -32,7 +35,6 @@ except ImportError as e:
         console.print("   This may be due to missing core dependencies")
         console.print("   Please check your installation")
 
-    INTERACTIVE_AVAILABLE = False
     INTERACTIVE_AVAILABLE = False
 
 # Create the story command group
@@ -243,7 +245,7 @@ def list_stories(
         else:
             output_manager.warning("No stories found")
 
-    except Exception as e:
+    except (RuntimeError, ValueError, KeyError, OSError, ImportError, TypeError) as e:
         OutputManager().error(f"Error listing stories: {e}")
 
 
@@ -283,7 +285,7 @@ def create_story(
                 style="green",
             )
 
-    except Exception as e:
+    except (RuntimeError, ValueError, KeyError, OSError, ImportError, TypeError) as e:
         OutputManager().error(f"Error creating story: {e}")
 
 
@@ -330,7 +332,7 @@ def load_story(
                 summary_data, title="Story Summary", headers=["property", "value"]
             )
 
-    except Exception as e:
+    except (RuntimeError, ValueError, KeyError, OSError, ImportError, TypeError) as e:
         OutputManager().error(f"Error loading story: {e}")
 
 
@@ -388,7 +390,7 @@ def generate_content(
                 headers=["scene_id", "title", "characters", "model"],
             )
 
-    except Exception as e:
+    except (RuntimeError, ValueError, KeyError, OSError, ImportError, TypeError) as e:
         OutputManager().error(f"Error generating content: {e}")
 
 

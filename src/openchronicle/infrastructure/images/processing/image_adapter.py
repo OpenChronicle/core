@@ -17,6 +17,7 @@ from typing import Any
 
 import httpx
 from PIL import Image
+from PIL import UnidentifiedImageError
 
 from ..shared.image_models import ImageGenerationRequest
 from ..shared.image_models import ImageGenerationResult
@@ -107,7 +108,16 @@ class OpenAIImageAdapter(ImageAdapter):
             )
 
         try:
-            import openai
+            try:
+                import openai
+            except ImportError as e:
+                generation_time = time.time() - start_time
+                logger.error(f"OpenAI SDK not available: {e}")
+                return ImageGenerationResult(
+                    success=False,
+                    error_message="OpenAI SDK not installed",
+                    generation_time=generation_time,
+                )
 
             client = openai.AsyncOpenAI(api_key=self.api_key)
 
@@ -121,10 +131,23 @@ class OpenAIImageAdapter(ImageAdapter):
 
             # Download the image
             image_url = response.data[0].url
-            async with httpx.AsyncClient(timeout=self.timeout) as http_client:
-                image_response = await http_client.get(image_url)
-                image_response.raise_for_status()
-                image_data = image_response.content
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as http_client:
+                    image_response = await http_client.get(image_url)
+                    image_response.raise_for_status()
+                    image_data = image_response.content
+            except httpx.HTTPStatusError as e:
+                generation_time = time.time() - start_time
+                logger.error(f"OpenAI image fetch HTTP error: {e}")
+                return ImageGenerationResult(
+                    success=False, error_message=str(e), generation_time=generation_time
+                )
+            except (httpx.RequestError, httpx.TimeoutException) as e:
+                generation_time = time.time() - start_time
+                logger.error(f"OpenAI image fetch network error: {e}")
+                return ImageGenerationResult(
+                    success=False, error_message=str(e), generation_time=generation_time
+                )
 
             generation_time = time.time() - start_time
 
@@ -149,6 +172,12 @@ class OpenAIImageAdapter(ImageAdapter):
                 },
             )
 
+        except (KeyError, ValueError) as e:
+            generation_time = time.time() - start_time
+            logger.error(f"OpenAI response parse error: {e}")
+            return ImageGenerationResult(
+                success=False, error_message=str(e), generation_time=generation_time
+            )
         except Exception as e:
             generation_time = time.time() - start_time
             logger.error(f"OpenAI image generation failed: {e}")
@@ -244,9 +273,21 @@ class StabilityImageAdapter(ImageAdapter):
                 metadata={"model": self.model, "cfg_scale": 7, "steps": 30},
             )
 
-        except Exception as e:
+        except httpx.HTTPStatusError as e:
             generation_time = time.time() - start_time
-            logger.error(f"Stability AI image generation failed: {e}")
+            logger.error(f"Stability API HTTP error: {e}")
+            return ImageGenerationResult(
+                success=False, error_message=str(e), generation_time=generation_time
+            )
+        except (httpx.RequestError, httpx.TimeoutException) as e:
+            generation_time = time.time() - start_time
+            logger.error(f"Stability API network error: {e}")
+            return ImageGenerationResult(
+                success=False, error_message=str(e), generation_time=generation_time
+            )
+        except (KeyError, ValueError) as e:
+            generation_time = time.time() - start_time
+            logger.error(f"Stability API response parse error: {e}")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
@@ -293,7 +334,8 @@ class MockImageAdapter(ImageAdapter):
                 # Try to use a nice font, fall back to default
                 try:
                     font = ImageFont.truetype("arial.ttf", 20)
-                except:
+                except (OSError, ValueError):
+                    # Fallback to default bitmap font if truetype is unavailable
                     font = ImageFont.load_default()
 
                 # Add text
@@ -332,7 +374,7 @@ class MockImageAdapter(ImageAdapter):
                 metadata={"type": "placeholder", "dimensions": f"{width}x{height}"},
             )
 
-        except Exception as e:
+        except (ValueError, OSError, UnidentifiedImageError) as e:
             generation_time = time.time() - start_time
             logger.error(f"Mock image generation failed: {e}")
             return ImageGenerationResult(

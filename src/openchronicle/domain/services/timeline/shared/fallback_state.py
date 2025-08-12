@@ -27,13 +27,13 @@ class FallbackStateManager:
     ) -> dict[str, Any]:
         """Create basic rollback point with limited functionality."""
         try:
-            await self.persistence_port.init_database(self.story_id)
+            self.persistence_port.init_database(self.story_id)
 
             rollback_id = (
                 f"fallback_{scene_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             )
 
-            await self.persistence_port.execute_update(
+            self.persistence_port.execute_update(
                 self.story_id,
                 """
                 INSERT OR REPLACE INTO rollback_points
@@ -57,7 +57,7 @@ class FallbackStateManager:
                 "fallback_mode": True,
                 "limited_functionality": True,
             }
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {
                 "error": f"Fallback rollback creation failed: {e}",
                 "fallback_mode": True,
@@ -66,31 +66,35 @@ class FallbackStateManager:
     async def list_rollback_points(self) -> list[dict[str, Any]]:
         """List basic rollback points."""
         try:
-            await self.persistence_port.init_database(self.story_id)
+            self.persistence_port.init_database(self.story_id)
 
-            rows = await self.persistence_port.execute_query(
+            rows = self.persistence_port.execute_query(
                 self.story_id,
                 """
                 SELECT rollback_id, scene_id, timestamp, description
-                FROM rollback_points ORDER BY timestamp DESC LIMIT 10
+                FROM rollback_points
+                WHERE story_id = ?
+                ORDER BY timestamp DESC
+                LIMIT 10
             """,
+                (self.story_id,),
             )
 
             rollback_points = []
             for row in rows:
                 rollback_points.append(
                     {
-                        "id": row[0],
-                        "scene_id": row[1],
-                        "timestamp": row[2],
-                        "description": row[3],
+                        "id": row.get("rollback_id") if hasattr(row, "get") else None,
+                        "scene_id": row.get("scene_id") if hasattr(row, "get") else None,
+                        "timestamp": row.get("timestamp") if hasattr(row, "get") else None,
+                        "description": row.get("description") if hasattr(row, "get") else None,
                         "fallback_mode": True,
                     }
                 )
 
             return rollback_points
 
-        except Exception:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return []
 
     async def rollback_to_point(self, rollback_id: str) -> dict[str, Any]:

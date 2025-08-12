@@ -162,7 +162,7 @@ def get_version() -> str:
         from . import __version__  # type: ignore
 
         return __version__  # type: ignore[name-defined]
-    except Exception:  # Broad except: fallback for early import edge cases
+    except (ImportError, AttributeError):  # Fallback for early import edge cases
         return "development"
 
 
@@ -256,7 +256,7 @@ async def initialize_core(config_path: str | None = None) -> bool:
         )
         return False
 
-    except Exception as e:
+    except (OpenChronicleError, RuntimeError, ImportError, OSError, ValueError) as e:
         log_error(f"Core initialization failed: {e}")
         return False
 

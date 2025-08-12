@@ -8,6 +8,7 @@ Following OpenChronicle naming convention: ollama_adapter.py
 """
 
 from typing import Any
+import asyncio
 
 from ..adapter_exceptions import AdapterConnectionError
 from ..adapter_exceptions import AdapterResponseError
@@ -39,7 +40,7 @@ class OllamaAdapter(LocalModelAdapter):
                     f"Ollama connection failed: HTTP {response.status_code}",
                 )
             return client
-        except Exception as e:
+        except httpx.RequestError as e:
             await client.aclose()
             raise AdapterConnectionError(
                 self.get_provider_name(), f"Failed to connect to Ollama: {e}"
@@ -78,13 +79,16 @@ class OllamaAdapter(LocalModelAdapter):
 
             return content
 
-        except Exception as e:
-            if "timeout" in str(e).lower():
-                from ..adapter_exceptions import AdapterTimeoutError
+        except asyncio.TimeoutError:
+            from ..adapter_exceptions import AdapterTimeoutError
 
-                raise AdapterTimeoutError(self.get_provider_name(), self.timeout)
-            if isinstance(e, (AdapterResponseError, AdapterConnectionError)):
-                raise
+            raise AdapterTimeoutError(self.get_provider_name(), self.timeout)
+        except ValueError as e:
+            # JSON parsing error
+            raise AdapterResponseError(
+                self.get_provider_name(), f"Malformed response: {e}"
+            )
+        except Exception as e:
             raise AdapterResponseError(
                 self.get_provider_name(), f"Ollama request failed: {e}"
             )

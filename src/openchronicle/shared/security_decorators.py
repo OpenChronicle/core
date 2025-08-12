@@ -289,7 +289,7 @@ def security_monitored(threat_level: SecurityThreatLevel = SecurityThreatLevel.L
 
                 return result
 
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, TypeError, PermissionError) as e:
                 # Record security event for failed operations
                 security_manager.monitor.record_security_violation(
                     SecurityViolationType.AUTHORIZATION,

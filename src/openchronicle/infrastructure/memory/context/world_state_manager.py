@@ -97,26 +97,16 @@ class WorldStateManager:
             WorldStateUpdate record
         """
         try:
-            # Validate updates
             validated_updates = self._validate_world_state_updates(
                 updates, memory.world_state
             )
-
-            # Apply updates to memory
             memory.world_state.update(validated_updates)
-
-            # Create update record
             update_record = WorldStateUpdate(
                 updates=validated_updates, source=source, description=description
             )
-
-            # Log significant state changes
             self._log_world_state_changes(validated_updates, source)
-
             return update_record
-
-        except Exception:
-            # Return empty update on error
+        except (TypeError, ValueError, KeyError, AttributeError):
             return WorldStateUpdate(updates={}, description="Update failed")
 
     def add_world_event(
@@ -163,8 +153,7 @@ class WorldStateManager:
 
             return event
 
-        except Exception:
-            # Return minimal event on error
+        except (TypeError, ValueError, KeyError, AttributeError):
             return WorldEvent(
                 description=event_description,
                 event_type="error",
@@ -209,8 +198,7 @@ class WorldStateManager:
 
             return flag
 
-        except Exception:
-            # Return minimal flag on error
+        except (TypeError, ValueError, KeyError, AttributeError):
             return MemoryFlag(
                 name=flag_name, flag_type="error", timestamp=datetime.now(UTC)
             )
@@ -222,7 +210,7 @@ class WorldStateManager:
             memory.flags = [f for f in memory.flags if f.get("name") != flag_name]
             return len(memory.flags) < original_count
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return False
 
     def has_memory_flag(self, memory: MemorySnapshot, flag_name: str) -> bool:
@@ -233,7 +221,7 @@ class WorldStateManager:
 
             return any(f.get("name") == flag_name for f in memory.flags)
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return False
 
     def get_active_flags(
@@ -251,7 +239,7 @@ class WorldStateManager:
 
             return flags
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return []
 
     def query_events(
@@ -290,7 +278,7 @@ class WorldStateManager:
 
             return events
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return []
 
     def analyze_world_state(self, memory: MemorySnapshot) -> WorldStateAnalysis:
@@ -325,7 +313,7 @@ class WorldStateManager:
                 completeness_score=completeness,
             )
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return WorldStateAnalysis(
                 total_state_items=0,
                 categories_present=[],
@@ -352,7 +340,7 @@ class WorldStateManager:
             # Return all world state
             return dict(world_state)
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return {}
 
     def _validate_world_state_updates(
@@ -402,8 +390,8 @@ class WorldStateManager:
             ):
                 memory.world_state["threat_level"] = "low"
 
-        except Exception:
-            # Fail silently - implications are optional
+        except (TypeError, ValueError, KeyError, AttributeError):
+            # Optional implication enrichment failed
             pass
 
     def _cleanup_expired_flags(self, memory: MemorySnapshot):
@@ -421,8 +409,7 @@ class WorldStateManager:
                         )
                         if current_time < expires_at:
                             active_flags.append(flag_data)
-                    except:
-                        # Keep flags with invalid expiration dates
+                    except (ValueError, TypeError):
                         active_flags.append(flag_data)
                 else:
                     # Keep flags without expiration
@@ -430,8 +417,8 @@ class WorldStateManager:
 
             memory.flags = active_flags
 
-        except Exception:
-            # Fail silently - cleanup is optional
+        except (TypeError, ValueError, KeyError, AttributeError):
+            # Optional cleanup failed
             pass
 
     def _detect_world_state_inconsistencies(
@@ -467,8 +454,8 @@ class WorldStateManager:
                 if "winter" in season and "hot" in weather:
                     inconsistencies.append("Hot weather in winter is inconsistent")
 
-        except Exception:
-            # Fail silently - consistency checking is optional
+        except (TypeError, ValueError, KeyError, AttributeError):
+            # Optional consistency check failed
             pass
 
         return inconsistencies

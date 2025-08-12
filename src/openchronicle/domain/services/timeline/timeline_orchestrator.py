@@ -20,6 +20,7 @@ from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
+from openchronicle.shared.error_handling import OpenChronicleError, TimelineError
 from openchronicle.domain.ports.persistence_inmemory import (
     InMemorySqlitePersistence,
 )
@@ -208,7 +209,14 @@ class TimelineOrchestrator:
 
             return timeline_data
 
-        except Exception as e:
+        except (
+            OpenChronicleError,
+            TimelineError,
+            ValueError,
+            KeyError,
+            RuntimeError,
+            TypeError,
+        ) as e:
             self.metrics.record_operation("timeline_build", False)
             log_error(f"Timeline build failed for {self.story_id}: {e}")
 
@@ -245,7 +253,14 @@ class TimelineOrchestrator:
 
             return rollback_data
 
-        except Exception as e:
+        except (
+            OpenChronicleError,
+            TimelineError,
+            ValueError,
+            KeyError,
+            RuntimeError,
+            TypeError,
+        ) as e:
             self.metrics.record_operation("rollback", False)
             log_error(f"Rollback point creation failed for scene {scene_id}: {e}")
             raise
@@ -261,7 +276,14 @@ class TimelineOrchestrator:
             state_manager = self._get_state_manager()
             return await state_manager.list_rollback_points()
 
-        except Exception as e:
+        except (
+            OpenChronicleError,
+            TimelineError,
+            ValueError,
+            KeyError,
+            RuntimeError,
+            TypeError,
+        ) as e:
             log_error(f"Failed to list rollback points for {self.story_id}: {e}")
             return []
 
@@ -285,7 +307,14 @@ class TimelineOrchestrator:
 
             return restoration_result
 
-        except Exception as e:
+        except (
+            OpenChronicleError,
+            TimelineError,
+            ValueError,
+            KeyError,
+            RuntimeError,
+            TypeError,
+        ) as e:
             self.metrics.record_operation("rollback", False)
             log_error(f"Rollback to {rollback_id} failed: {e}")
             raise
@@ -310,7 +339,14 @@ class TimelineOrchestrator:
 
             return result
 
-        except Exception as e:
+        except (
+            OpenChronicleError,
+            TimelineError,
+            ValueError,
+            KeyError,
+            RuntimeError,
+            TypeError,
+        ) as e:
             self.metrics.record_operation("navigation", False)
             log_error(f"Timeline navigation failed: {e}")
             raise

@@ -69,7 +69,7 @@ class WorldEvent:
         timestamp_str = data.get("timestamp", "")
         try:
             timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-        except:
+        except (ValueError, TypeError):
             timestamp = datetime.now(UTC)
 
         return cls(
@@ -151,7 +151,7 @@ class CharacterMemory:
                 if isinstance(ts_val, str):
                     try:
                         ts = datetime.fromisoformat(ts_val.replace("Z", "+00:00"))
-                    except Exception:
+                    except (ValueError, TypeError, AttributeError):
                         ts = datetime.now(UTC)
                 elif isinstance(ts_val, datetime):
                     ts = ts_val

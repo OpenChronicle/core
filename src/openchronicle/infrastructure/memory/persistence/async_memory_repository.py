@@ -7,6 +7,8 @@ Provides non-blocking memory persistence with caching and performance optimizati
 
 import asyncio
 import logging
+import sqlite3
+import json
 from datetime import UTC
 from datetime import datetime
 from functools import lru_cache
@@ -103,12 +105,11 @@ class AsyncMemoryRepository:
 
             return memory_state
 
-        except Exception as e:
-            print(f"Error loading memory: {e}")
-            import traceback
-
-            traceback.print_exc()
-            # Return default memory structure if loading fails
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            logger.error(
+                f"Failed to load memory for story {story_id}: {e}",
+                exc_info=False,
+            )
             return self._get_default_memory()
 
     async def save_memory(self, story_id: str, memory: dict[str, Any]) -> bool:
@@ -156,11 +157,11 @@ class AsyncMemoryRepository:
 
             return success
 
-        except Exception as e:
-            print(f"Error saving memory: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            logger.error(
+                f"Failed to save memory for story {story_id}: {e}",
+                exc_info=False,
+            )
             return False
 
     @lru_cache(maxsize=512)
@@ -211,7 +212,11 @@ class AsyncMemoryRepository:
 
             return character_memory
 
-        except Exception:
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            logger.warning(
+                f"Character memory load failed for {character_name} in {story_id}: {e}",
+                exc_info=False,
+            )
             return None
 
     async def update_character_memory(
@@ -264,8 +269,11 @@ class AsyncMemoryRepository:
 
                 return success
 
-            except Exception as e:
-                logger.error(f"Error updating character memory: {e}")
+            except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+                logger.error(
+                    f"Error updating character memory {character_name} for {story_id}: {e}",
+                    exc_info=False,
+                )
                 return False
 
     async def load_world_state(self, story_id: str) -> dict[str, Any]:
@@ -300,7 +308,11 @@ class AsyncMemoryRepository:
 
             return world_state
 
-        except Exception:
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
+            logger.warning(
+                f"Failed to load world state for {story_id}: {e}",
+                exc_info=False,
+            )
             return {}
 
     async def save_world_state(
@@ -332,8 +344,11 @@ class AsyncMemoryRepository:
 
             return success
 
-        except Exception as e:
-            logger.error(f"Error saving world state: {e}")
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            logger.error(
+                f"Error saving world state for {story_id}: {e}",
+                exc_info=False,
+            )
             return False
 
     async def create_memory_snapshot(self, story_id: str, scene_id: str) -> bool:
@@ -359,7 +374,11 @@ class AsyncMemoryRepository:
 
             return success
 
-        except Exception:
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
+            logger.error(
+                f"Failed to create memory snapshot for story {story_id} scene {scene_id}: {e}",
+                exc_info=False,
+            )
             return False
 
     async def restore_memory_snapshot(self, story_id: str, scene_id: str) -> bool:
@@ -390,7 +409,11 @@ class AsyncMemoryRepository:
 
             return success
 
-        except Exception:
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+            logger.error(
+                f"Failed to restore memory snapshot for story {story_id} scene {scene_id}: {e}",
+                exc_info=False,
+            )
             return False
 
     def get_cache_stats(self) -> dict[str, Any]:

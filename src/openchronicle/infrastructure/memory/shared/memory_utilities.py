@@ -57,8 +57,11 @@ class MemoryUtilities:
 
             return json.dumps(data, default=str, ensure_ascii=False, indent=None)
 
-        except Exception as e:
-            logger.error(f"Error serializing memory data: {e}")
+        except (TypeError, ValueError) as e:
+            logger.error(f"Error serializing memory data (type/value): {e}")
+            return "{}"
+        except json.JSONDecodeError as e:  # unlikely during dumps
+            logger.error(f"JSON encode error: {e}")
             return "{}"
 
     @staticmethod
@@ -78,8 +81,11 @@ class MemoryUtilities:
 
             return json.loads(data)
 
-        except Exception as e:
-            logger.error(f"Error deserializing memory data: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return {}
+        except (TypeError, ValueError) as e:
+            logger.error(f"Error deserializing memory data (type/value): {e}")
             return {}
 
     @staticmethod
@@ -190,7 +196,7 @@ class MemoryUtilities:
                     age_hours = (datetime.now() - mem_time).total_seconds() / 3600
                     recency_boost = max(0, 1 - (age_hours / 168))  # Decay over a week
                     relevance += recency_boost * 0.2
-                except Exception:
+                except (ValueError, TypeError):
                     pass
 
             return relevance
@@ -388,7 +394,7 @@ class MemoryUtilities:
                     mem_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                     if mem_time >= recent_cutoff:
                         recent_memories += 1
-                except Exception:
+                except (ValueError, TypeError):
                     pass
 
             # Collect importance scores
@@ -440,7 +446,7 @@ class MemoryUtilities:
             try:
                 dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 time_str = dt.strftime("%Y-%m-%d %H:%M")
-            except Exception:
+            except (ValueError, TypeError):
                 time_str = timestamp[:16]  # Fallback
 
         # Truncate content if needed

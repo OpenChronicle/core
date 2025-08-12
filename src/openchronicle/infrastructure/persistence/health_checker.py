@@ -335,8 +335,12 @@ class DatabaseHealthChecker:
                     count_result = await cursor.fetchone()
                     table_counts[table_name] = count_result[0] if count_result else 0
                     await cursor.close()
-                except:
-                    table_counts[table_name] = -1  # Error counting
+                except (sqlite3.Error, aiosqlite.Error, ValueError) as e:
+                    # Record error counting rows without breaking overall health check
+                    table_counts[table_name] = -1
+                    log_warning(
+                        f"Failed to count rows for table '{table_name}': {e!s}",
+                    )
 
             details["table_counts"] = table_counts
 

@@ -738,8 +738,7 @@ class SecurityManager:
                 )
 
             return result
-
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Security validation error: {e}",
                 context_tags={"security": "validation_error", "user": context.user_id},

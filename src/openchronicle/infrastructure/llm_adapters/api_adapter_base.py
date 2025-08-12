@@ -53,24 +53,13 @@ def get_api_key_with_fallback(
     Returns:
         API key string or None if not found
     """
-    # Import keystore dynamically to avoid import errors
-    # utilities.api_key_manager module doesn't exist - using fallback behavior
-    get_api_key = None
-
+    # Keystore disabled for now – single-source via config/env only
     # Priority 1: Check configuration for direct API key
     if config.get("api_key"):
         log_info(f"API key found in configuration for {provider}")
         return config["api_key"]
 
-    # Priority 2: Check keystore if available
-    if get_api_key:
-        try:
-            keystore_key = get_api_key(provider)
-            if keystore_key:
-                log_info(f"API key found in keystore for {provider}")
-                return keystore_key
-        except Exception as e:
-            log_error(f"Failed to retrieve API key from keystore for {provider}: {e}")
+    # Priority 2: (reserved for keystore) — intentionally disabled
 
     # Priority 3: Check environment variable
     env_key = os.getenv(env_var)
@@ -150,7 +139,10 @@ class BaseAPIAdapter(ABC):
                 f"{self.get_provider_name()} adapter initialized successfully",
             )
 
-        except Exception as e:
+        except AdapterConfigurationError:
+            # Preserve precise configuration failures
+            raise
+        except (ValueError, TypeError, OSError) as e:
             log_error(f"Failed to initialize {self.get_provider_name()} adapter: {e}")
             raise AdapterInitializationError(f"Adapter initialization failed: {e}")
 
@@ -176,7 +168,7 @@ class BaseAPIAdapter(ABC):
             try:
                 self.client = await self._create_client()
                 log_info(f"Created {self.get_provider_name()} client")
-            except Exception as e:
+            except (ImportError, ValueError, TypeError, OSError) as e:
                 log_error(f"Failed to create {self.get_provider_name()} client: {e}")
                 raise AdapterConnectionError(f"Client creation failed: {e}")
 
@@ -235,7 +227,15 @@ class BaseAPIAdapter(ABC):
 
             return response
 
-        except Exception as e:
+        except (
+            AdapterConnectionError,
+            AdapterConfigurationError,
+            AdapterInitializationError,
+            ValueError,
+            TimeoutError,
+            OSError,
+            RuntimeError,
+        ) as e:
             execution_time = (datetime.now(UTC) - start_time).total_seconds()
 
             log_model_interaction(
@@ -287,7 +287,7 @@ class LocalModelAdapter(BaseAPIAdapter):
                 f"{self.get_provider_name()} local adapter initialized successfully",
             )
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError) as e:
             log_error(
                 f"Failed to initialize {self.get_provider_name()} local adapter: {e}"
             )

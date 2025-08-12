@@ -73,7 +73,7 @@ class NavigationManager:
 
             return history
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             from openchronicle.shared.logging_system import log_system_event
 
             log_system_event("error", f"Navigation history retrieval failed: {e}")
@@ -133,7 +133,7 @@ class NavigationManager:
             # Sort by relevance score
             return sorted(results, key=lambda x: x["relevance_score"], reverse=True)
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             from openchronicle.shared.logging_system import log_system_event
 
             log_system_event("error", f"Scene search failed: {e}")
@@ -214,7 +214,7 @@ class NavigationManager:
                 "total_context": len(context_scenes),
             }
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             from openchronicle.shared.logging_system import log_system_event
 
             log_system_event("error", f"Scene context retrieval failed: {e}")
@@ -253,7 +253,7 @@ class NavigationManager:
 
             return True
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             from openchronicle.shared.logging_system import log_system_event
 
             log_system_event("error", f"Navigation tracking failed: {e}")
@@ -307,7 +307,7 @@ class NavigationManager:
                 "statistics_timestamp": datetime.now(UTC).isoformat(),
             }
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             from openchronicle.shared.logging_system import log_system_event
 
             log_system_event("error", f"Navigation statistics failed: {e}")
@@ -325,7 +325,7 @@ class NavigationManager:
             if navigation_type == "search":
                 return await self._navigate_search(kwargs.get("search_criteria", {}))
             return {"error": f"Unknown navigation type: {navigation_type}"}
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {"error": f"Navigation failed: {e!s}"}
 
     async def build_navigation_structure(
@@ -372,7 +372,7 @@ class NavigationManager:
 
             return navigation_structure
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {
                 "total_entries": 0,
                 "scene_entries": 0,
@@ -425,7 +425,7 @@ class NavigationManager:
                 }
             return {"error": "No next scene found"}
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {"error": f"Next navigation failed: {e!s}"}
 
     async def _navigate_previous(self, current_scene_id: str | None) -> dict[str, Any]:
@@ -471,7 +471,7 @@ class NavigationManager:
                 }
             return {"error": "No previous scene found"}
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {"error": f"Previous navigation failed: {e!s}"}
 
     async def _navigate_jump_to(self, target_scene_id: str) -> dict[str, Any]:
@@ -496,7 +496,7 @@ class NavigationManager:
                 }
             return {"error": f"Scene {target_scene_id} not found"}
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {"error": f"Jump navigation failed: {e!s}"}
 
     async def _navigate_search(self, search_criteria: dict[str, Any]) -> dict[str, Any]:
@@ -517,7 +517,7 @@ class NavigationManager:
                 }
             return {"error": "No scenes found matching search criteria"}
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return {"error": f"Search navigation failed: {e!s}"}
 
     def _format_display_time(self, timestamp: str) -> str:
@@ -525,7 +525,7 @@ class NavigationManager:
         try:
             dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
             return dt.strftime("%Y-%m-%d %H:%M")
-        except:
+        except (ValueError, TypeError, AttributeError):
             return timestamp
 
     def _calculate_relevance_score(
@@ -552,7 +552,7 @@ class NavigationManager:
                 return score
             days_old = (datetime.now(UTC) - dt).days
             score += max(0, 2.0 - (days_old * 0.1))
-        except:
+        except (ValueError, TypeError, AttributeError):
             pass
 
         return score

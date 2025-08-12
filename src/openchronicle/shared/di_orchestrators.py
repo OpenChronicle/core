@@ -66,7 +66,7 @@ class DIEnabledOrchestrator(ABC):
             from .service_configuration import configure_openchronicle_services
 
             configure_openchronicle_services(self.container)
-        except Exception as e:
+        except (ImportError, RuntimeError, ValueError, KeyError, TypeError) as e:
             log_error(f"Failed to auto-configure services: {e}")
 
     def _initialize_dependencies(self):
@@ -302,21 +302,21 @@ orchestrator = create_di_scene_orchestrator(story_id)  # Dependencies injected
 
 if __name__ == "__main__":
     # Test DI-enabled orchestrators
-    print("Testing DI-enabled orchestrators...")
+    log_info("Testing DI-enabled orchestrators...")
 
     # Test model orchestrator
     model_orch = create_di_model_orchestrator()
-    print(f"Model orchestrator created: {model_orch.__class__.__name__}")
+    log_info(f"Model orchestrator created: {model_orch.__class__.__name__}")
 
     # Test memory orchestrator
     memory_orch = create_di_memory_orchestrator()
-    print(f"Memory orchestrator created: {memory_orch.__class__.__name__}")
+    log_info(f"Memory orchestrator created: {memory_orch.__class__.__name__}")
 
     # Show migration examples
     migration = OrchestratorMigration()
     examples = migration.migrate_orchestrator_creation()
 
-    print("\nMigration Examples:")
+    log_info("Migration Examples:")
     for name, example in examples.items():
-        print(f"\n{name}:")
-        print(example)
+        log_info(f"{name}:")
+        log_info(example)

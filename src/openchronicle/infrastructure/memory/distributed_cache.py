@@ -20,6 +20,7 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any, Callable
 import sys as _sys
+from openchronicle.shared.retry_policy import RetryPolicy
 
 
 try:
@@ -515,10 +516,15 @@ class DistributedMultiTierCache(MultiTierCache):
         """Start background monitoring task."""
 
         async def monitor():
+            policy = RetryPolicy(max_attempts=3, base_delay=0.5, retry_exceptions=(Exception,))  # TODO: narrow
             while True:
                 try:
                     await asyncio.sleep(self.config.metrics_collection_interval)
-                    await self._collect_metrics()
+                    try:
+                        await policy.run(lambda: self._collect_metrics())
+                    except Exception as e:
+                        # Final failure after retries; logged inside _collect_metrics as well
+                        self.logger.error(f"Monitoring collection failed after retries: {e}")
                 except asyncio.CancelledError:
                     break
                 except Exception as e:

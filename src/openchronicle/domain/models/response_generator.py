@@ -20,6 +20,7 @@ from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
+from openchronicle.shared.error_handling import OpenChronicleError
 
 
 logger = logging.getLogger(__name__)
@@ -204,7 +205,15 @@ class ResponseGenerator:
                 )
                 return response
 
-            except Exception as e:
+            except (
+                OpenChronicleError,
+                RuntimeError,
+                ValueError,
+                KeyError,
+                TimeoutError,
+                OSError,
+                ConnectionError,
+            ) as e:
                 log_error(f"Adapter {attempt_adapter} failed: {e}")
                 log_system_event(
                     "fallback_chain_failure", f"Adapter {attempt_adapter} failed: {e}"

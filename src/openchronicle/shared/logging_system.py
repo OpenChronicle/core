@@ -336,7 +336,7 @@ class OpenChronicleLogger:
         try:
             with open(file_path, encoding="utf-8") as f:
                 return sum(1 for line in f)
-        except Exception:
+        except (OSError, UnicodeDecodeError, ValueError):
             return 0
 
     def cleanup_old_logs(self, max_age_days: int = 30) -> int:
@@ -511,6 +511,7 @@ if __name__ == "__main__":
     logger.log_system_event("startup", "System started successfully")
 
     # Show statistics
+    from rich.console import Console
     stats = logger.get_log_statistics()
-    print("Log Statistics:")
-    print(json.dumps(stats, indent=2))
+    Console().print("Log Statistics:")
+    Console().print_json(data=stats)

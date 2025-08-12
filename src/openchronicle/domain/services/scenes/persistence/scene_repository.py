@@ -12,6 +12,15 @@ This repository now uses dependency injection following hexagonal architecture p
 import json
 from typing import Optional
 
+from openchronicle.shared.logging_system import log_error, log_info  # Replace prints with structured logging
+from openchronicle.domain.errors.persistence_errors import (
+    SaveSceneError,
+    LoadSceneError,
+    ListScenesError,
+    CountScenesError,
+    DeleteSceneError,
+)
+
 # Import domain interfaces (following dependency inversion principle)
 from openchronicle.domain.ports.persistence_port import IPersistencePort
 
@@ -89,10 +98,12 @@ class SceneRepository:
 
             return bool(success)
 
-        except Exception as e:
-            # Add logging system when available
-            print(f"Error saving scene {scene_data.scene_id}: {e}")
-            return False
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            log_error(
+                f"Error saving scene {scene_data.scene_id}: {e}",
+                context_tags=["scene","repository","save","error"],
+            )
+            raise SaveSceneError(str(e)) from e
 
     def load_scene(self, scene_id: str) -> SceneData | None:
         """
@@ -122,9 +133,12 @@ class SceneRepository:
             row = rows[0]
             return self._row_to_scene_data(row)
 
-        except Exception as e:
-            print(f"Error loading scene {scene_id}: {e}")
-            return None
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            log_error(
+                f"Error loading scene {scene_id}: {e}",
+                context_tags=["scene","repository","load","error"],
+            )
+            raise LoadSceneError(str(e)) from e
 
     def list_scenes(
         self,
@@ -169,9 +183,12 @@ class SceneRepository:
 
             return [self._row_to_scene_data(row) for row in rows]
 
-        except Exception as e:
-            print(f"Error listing scenes: {e}")
-            return []
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            log_error(
+                f"Error listing scenes: {e}",
+                context_tags=["scene","repository","list","error"],
+            )
+            raise ListScenesError(str(e)) from e
 
     def count_scenes(self, scene_filter: SceneFilter | None = None) -> int:
         """
@@ -197,9 +214,12 @@ class SceneRepository:
             rows = self.persistence.execute_query(self.story_id, base_query, params)
             return rows[0]["count"] if rows else 0
 
-        except Exception as e:
-            print(f"Error counting scenes: {e}")
-            return 0
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            log_error(
+                f"Error counting scenes: {e}",
+                context_tags=["scene","repository","count","error"],
+            )
+            raise CountScenesError(str(e)) from e
 
     def delete_scene(self, scene_id: str) -> bool:
         """
@@ -222,8 +242,11 @@ class SceneRepository:
 
             return True
 
-        except Exception as e:
-            print(f"Error deleting scene {scene_id}: {e}")
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            log_error(
+                f"Error deleting scene {scene_id}: {e}",
+                context_tags=["scene","repository","delete","error"],
+            )
             return False
 
     def update_scene_label(self, scene_id: str, scene_label: str) -> bool:
@@ -248,8 +271,11 @@ class SceneRepository:
 
             return True
 
-        except Exception as e:
-            print(f"Error updating scene label for {scene_id}: {e}")
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            log_error(
+                f"Error updating scene label for {scene_id}: {e}",
+                context_tags=["scene","repository","update_label","error"],
+            )
             return False
 
     def _row_to_scene_data(self, row) -> SceneData:
@@ -302,5 +328,7 @@ class SceneRepository:
         try:
             count = self.count_scenes()
             return f"active ({count} scenes)"
-        except Exception:
+        except CountScenesError:
+            return "error"
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return "error"

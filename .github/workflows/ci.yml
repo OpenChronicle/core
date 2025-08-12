@@ -61,6 +61,16 @@ jobs:
           fi
           echo "✅ Import structure validation complete"
 
+      - name: Install architecture tools (import-linter)
+        run: |
+          python -m pip install --upgrade pip
+          pip install import-linter
+
+      - name: "🧱 Import Linter contracts"
+        run: |
+          echo "🧱 Enforcing import layer contracts..."
+          lint-imports --config importlinter.ini
+
   # 🔬 ENHANCED QUALITY GATES
   quality-gates:
     name: "🔬 Quality Gates"
@@ -78,6 +88,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ruff black mypy bandit safety vulture
+          pip install import-linter
+
+      - name: Install project (dev) for smoke test
+        run: |
+          pip install -e ".[dev]"
+
+      - name: "🧪 Workflow smoke (interactive cycle)"
+        run: |
+          pytest -q tests/workflows/test_interactive_storytelling_workflow.py::TestInteractiveStorytellingWorkflow::test_complete_interactive_cycle --no-cov -q
+
+      - name: "🧱 Import Linter (redundant guard)"
+        run: |
+          lint-imports --config importlinter.ini
+
+      - name: "🚦 Exception hygiene (no new broad excepts)"
+        run: |
+          echo "🔎 Checking exception hygiene for new broad/bare excepts..."
+          python scripts/check_exception_hygiene.py --mode check-new --baseline scripts/exception_hygiene_baseline.txt
 
       - name: "🎨 Code formatting (Black)"
         run: |

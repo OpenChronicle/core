@@ -154,8 +154,8 @@ class CentralizedConfigManager:
         # Load or create default configuration
         self.config = self._load_or_create_config()
 
-        # Auto-create storage directories on startup
-        self._ensure_storage_directories()
+    # NOTE: Directory provisioning deferred to explicit call to avoid side-effects at import/instantiation.
+    # Call self.provision_storage() explicitly where startup bootstrapping occurs.
 
         log_system_event(
             "config_manager_initialized",
@@ -163,8 +163,8 @@ class CentralizedConfigManager:
             {"config_path": str(self.config_path)},
         )
 
-    def _ensure_storage_directories(self):
-        """Ensure all storage directories exist, creating them if necessary."""
+    def provision_storage(self):  # formerly _ensure_storage_directories
+        """Idempotently create required storage directories (explicit lifecycle step)."""
         storage_paths = [
             self.config.storage.base_storage_path,
             self.config.storage.scene_storage_path,
@@ -173,14 +173,14 @@ class CentralizedConfigManager:
             self.config.storage.backup_storage_path,
         ]
 
-        created_paths = []
+        created_paths: list[str] = []
         for path_str in storage_paths:
             path = Path(path_str)
             if not path.exists():
                 try:
                     path.mkdir(parents=True, exist_ok=True)
                     created_paths.append(str(path))
-                except Exception as e:
+                except OSError as e:  # Narrowed from broad Exception
                     log_error(
                         f"Failed to create storage directory {path}: {e}",
                         context_tags=["config", "directory", "error"],
@@ -214,7 +214,7 @@ class CentralizedConfigManager:
                 )
                 return config
 
-            except Exception as e:
+            except (OSError, json.JSONDecodeError) as e:  # Narrowed from broad Exception
                 log_error(
                     f"Failed to load configuration: {e}",
                     context_tags=["config", "error"],
@@ -256,8 +256,7 @@ class CentralizedConfigManager:
                 {"path": str(self.config_path)},
             )
             return True
-
-        except Exception as e:
+        except (OSError, IOError) as e:  # Narrowed from broad Exception
             log_error(
                 f"Failed to save configuration: {e}", context_tags=["config", "error"]
             )
@@ -285,8 +284,7 @@ class CentralizedConfigManager:
                 context_tags=["config", "backup"],
             )
             return True
-
-        except Exception as e:
+        except (OSError, IOError) as e:  # Narrowed from broad Exception
             log_warning(
                 f"Failed to create config backup: {e}",
                 context_tags=["config", "backup", "error"],
@@ -312,8 +310,7 @@ class CentralizedConfigManager:
                     )
 
             return self.save_config()
-
-        except Exception as e:
+        except (AttributeError, OSError, IOError) as e:  # Narrowed from broad Exception
             log_error(
                 f"Failed to update config section {section}: {e}",
                 context_tags=["config", "error"],
@@ -354,7 +351,7 @@ class CentralizedConfigManager:
                         f"Auto-created missing storage directory: {path}",
                         context_tags=["config", "auto_create", "directory"],
                     )
-                except Exception as e:
+                except OSError as e:  # Narrowed from broad Exception
                     issues.append(f"Failed to create storage path: {path} - {e}")
 
             # Verify path is accessible after creation

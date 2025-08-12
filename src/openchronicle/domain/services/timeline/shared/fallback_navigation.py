@@ -6,10 +6,7 @@ Provides minimal navigation functionality when full system is unavailable.
 
 from typing import Any
 
-
-
 from openchronicle.domain.ports.persistence_port import IPersistencePort
-from typing import Optional
 
 class FallbackNavigationManager:
     """Minimal fallback navigation manager."""
@@ -24,30 +21,36 @@ class FallbackNavigationManager:
         try:
             # Infrastructure dependencies replaced with dependency injection
 
-            await self.persistence_port.init_database(self.story_id)
+            self.persistence_port.init_database(self.story_id)
 
-            rows = await self.persistence_port.execute_query(
+            rows = self.persistence_port.execute_query(
                 self.story_id,
                 """
-                SELECT scene_id, scene_title, timestamp
-                FROM scenes ORDER BY timestamp DESC LIMIT 5
-            """,
+                SELECT scene_id, scene_label AS scene_title, timestamp
+                FROM scenes
+                WHERE story_id = ?
+                ORDER BY timestamp DESC
+                LIMIT 5
+                """,
+                (self.story_id,),
             )
 
             history = []
             for row in rows:
+                title = (row.get("scene_title") if hasattr(row, "get") else None) or "Untitled Scene"
+                ts = row.get("timestamp") if hasattr(row, "get") else None
                 history.append(
                     {
-                        "scene_id": row[0],
-                        "title": row[1] or "Untitled Scene",
-                        "timestamp": row[2],
+                        "scene_id": row.get("scene_id") if hasattr(row, "get") else None,
+                        "title": title,
+                        "timestamp": ts,
                         "fallback_mode": True,
                     }
                 )
 
             return history
 
-        except Exception:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return []
 
     async def find_scene_by_criteria(self, **kwargs) -> list[dict[str, Any]]:

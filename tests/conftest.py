@@ -258,6 +258,35 @@ def get_mock_image_adapter():
     return mock_adapter
 
 
+# -----------------------------------------------------------------------------
+# ENVIRONMENT ISOLATION
+# -----------------------------------------------------------------------------
+@pytest.fixture()
+def isolated_env() -> Iterator[dict[str, str]]:
+    """Provide an isolated copy of os.environ for the test.
+
+    Any modifications are rolled back after the test. Returns a mutable dict
+    proxy you can edit (applies to process env in real time) while capturing
+    the original for restoration.
+    """
+    original = dict(os.environ)
+    try:
+        yield os.environ
+    finally:
+        keys_to_remove = set(os.environ.keys()) - set(original.keys())
+        for k in keys_to_remove:
+            os.environ.pop(k, None)
+        for k, v in original.items():
+            if os.environ.get(k) != v:
+                os.environ[k] = v
+        # Remove any keys changed to empty that weren't originally empty
+        for k, v in list(os.environ.items()):
+            if k not in original:
+                continue
+            if original[k] != v and v == "":
+                os.environ[k] = original[k]
+
+
 # Enhanced mock adapters (imported normally)
 from tests.fixtures.mock_adapters import MockDatabaseManager  # noqa: E402
 from tests.fixtures.mock_adapters import MockModelOrchestrator  # noqa: E402

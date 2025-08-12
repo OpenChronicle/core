@@ -71,10 +71,10 @@ class OpenChronicleCommand(ABC):
 
         if missing_files:
             # Be less strict during development - just warn instead of exit
-            print(
-                f"Warning: Some OpenChronicle files not found: {', '.join(missing_files)}"
+            self.console.print(
+                f"[yellow]Warning:[/yellow] Some OpenChronicle files not found: {', '.join(missing_files)}"
             )
-            print(f"Current directory: {current_dir}")
+            self.console.print(f"Current directory: {current_dir}")
             # Don't exit, just continue - this allows CLI to work during development
 
     @abstractmethod
@@ -320,7 +320,7 @@ class ModelCommand(OpenChronicleCommand):
             try:
                 from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
                 self._model_manager = ModelOrchestrator()
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, ImportError, TypeError) as e:
                 self.output.error(f"Cannot initialize model manager: {e}")
                 raise
         return self._model_manager
@@ -347,7 +347,7 @@ class StoryCommand(OpenChronicleCommand):
                     "scenes": SceneOrchestrator,
                     "timeline": TimelineOrchestrator,
                 }
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError, ImportError, TypeError) as e:
                 self.output.error(f"Cannot initialize story manager: {e}")
                 raise
         return self._story_manager

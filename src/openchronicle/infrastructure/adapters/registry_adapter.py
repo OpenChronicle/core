@@ -4,6 +4,7 @@ Infrastructure implementation of registry operations.
 """
 from typing import Dict, Any, Optional, List
 from openchronicle.domain.ports.registry_port import IRegistryPort
+from openchronicle.shared.logging_system import log_error, log_warning
 
 # Safe import of infrastructure component
 try:
@@ -30,22 +31,25 @@ class RegistryAdapter(IRegistryPort):
         try:
             # Call the registry manager's discovery method
             return await self.registry_manager.discover_models()
-        except Exception as e:
-            # Graceful fallback
+        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
+            # Graceful fallback with logging
+            log_warning(f"discover_models failed: {e}")
             return []
     
     async def get_model_config(self, model_name: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific model."""
         try:
             return await self.registry_manager.get_model_config(model_name)
-        except Exception:
+        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
+            log_warning(f"get_model_config failed for '{model_name}': {e}")
             return None
     
     async def register_model(self, model_config: Dict[str, Any]) -> bool:
         """Register a new model configuration."""
         try:
             return await self.registry_manager.register_model(model_config)
-        except Exception:
+        except (RuntimeError, AttributeError, OSError, ValueError, KeyError, TypeError) as e:
+            log_error(f"register_model failed for config '{model_config.get('name', '<unknown>')}': {e}")
             return False
     
     def get_registry_manager(self):

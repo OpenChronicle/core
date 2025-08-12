@@ -41,7 +41,7 @@ class ConfigShowCommand(OpenChronicleCommand):
                 config_data["system_config"] = system_config
             except FileNotFoundError:
                 config_data["system_config"] = {"error": "system_config.json not found"}
-            except Exception as e:
+            except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
                 config_data["system_config"] = {"error": str(e)}
 
             # Model registry configuration
@@ -54,7 +54,7 @@ class ConfigShowCommand(OpenChronicleCommand):
                 config_data["registry_config"] = {
                     "error": "registry_settings.json not found"
                 }
-            except Exception as e:
+            except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
                 config_data["registry_config"] = {"error": str(e)}
 
         # CLI configuration
@@ -133,7 +133,7 @@ class ConfigSetCommand(OpenChronicleCommand):
                     "status": "updated",
                 }
 
-            except Exception as e:
+            except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
                 raise ValueError(f"Error updating system config: {e}")
 
         else:
@@ -174,14 +174,14 @@ class ConfigExportCommand(OpenChronicleCommand):
                 export_data["system_config"] = self.config.get_openchronicle_config(
                     "system_config.json"
                 )
-            except Exception:
+            except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError):
                 export_data["system_config"] = None
 
             try:
                 export_data["registry_config"] = self.config.get_openchronicle_config(
                     "registry_settings.json"
                 )
-            except Exception:
+            except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError):
                 export_data["registry_config"] = None
 
         # Ensure export directory exists
@@ -257,7 +257,7 @@ class ConfigImportCommand(OpenChronicleCommand):
                             "system_config.json", import_data["system_config"]
                         )
                     results["imported_sections"].append("system_config")
-                except Exception as e:
+                except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
                     results["errors"] = results.get("errors", [])
                     results["errors"].append(f"System config import error: {e}")
 
@@ -276,7 +276,7 @@ class ConfigImportCommand(OpenChronicleCommand):
                             "registry_settings.json", import_data["registry_config"]
                         )
                     results["imported_sections"].append("registry_config")
-                except Exception as e:
+                except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
                     results["errors"] = results.get("errors", [])
                     results["errors"].append(f"Registry config import error: {e}")
 
@@ -359,7 +359,7 @@ def show_config(
                 # Plain format
                 output_manager.tree(config_data, title="Configuration")
 
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
         OutputManager().error(f"Error showing configuration: {e}")
 
 
@@ -415,7 +415,7 @@ def set_config(
             )
             output_manager.info(f"Type: {result['type']}, Status: {result['status']}")
 
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
         OutputManager().error(f"Error setting configuration: {e}")
 
 
@@ -477,7 +477,7 @@ def export_config(
                 style="green",
             )
 
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
         OutputManager().error(f"Error exporting configuration: {e}")
 
 
@@ -568,7 +568,7 @@ def import_config(
                 for error in result["errors"]:
                     output_manager.error(error)
 
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
         OutputManager().error(f"Error importing configuration: {e}")
 
 
@@ -625,7 +625,7 @@ def reset_config(
                 f"Invalid config type: {config_type}. Use 'cli', 'preferences', or 'all'"
             )
 
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
         OutputManager().error(f"Error resetting configuration: {e}")
 
 

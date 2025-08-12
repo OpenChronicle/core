@@ -17,6 +17,12 @@ from typing import Any
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_warning
+from openchronicle.domain.errors.persistence_errors import (
+    SaveSceneError,
+    LoadSceneError,
+    ListScenesError,
+    RollbackSceneError,
+)
 
 from .analysis.mood_analyzer import MoodAnalyzer
 from .analysis.statistics_engine import StatisticsEngine
@@ -181,7 +187,11 @@ class SceneOrchestrator:
             )
 
             # Save through repository
-            success = self.repository.save_scene(scene_data)
+            try:
+                success = self.repository.save_scene(scene_data)
+            except SaveSceneError as e:
+                log_error(f"SaveSceneError: {e}")
+                return ""
 
             if success:
                 self._update_operation_metrics()
@@ -190,7 +200,7 @@ class SceneOrchestrator:
             log_error(f"Failed to save scene {scene_id}")
             return ""
 
-        except Exception as e:
+        except (ValueError, TypeError, RuntimeError, KeyError) as e:
             log_error(f"Error saving scene: {e}")
             return ""
 
@@ -234,7 +244,7 @@ class SceneOrchestrator:
             )
 
             return bool(scene_id)
-        except Exception as e:
+        except (ValueError, TypeError, RuntimeError, KeyError) as e:
             log_error(f"Error logging scene fragment: {e}")
             return False
 
@@ -286,7 +296,7 @@ class SceneOrchestrator:
                     # Use memory port interface instead of direct call
                     if hasattr(memory_port, "track_saved_scene"):
                         memory_port.track_saved_scene(scene_id, scene_data)
-            except Exception:
+            except (RuntimeError, ValueError, KeyError, AttributeError, TypeError):
                 pass  # Ignore errors for backward compatibility
 
         return scene_id
@@ -298,8 +308,11 @@ class SceneOrchestrator:
             if scene_data:
                 return self.serializer.serialize_scene_for_output(scene_data)
             return None
-        except Exception as e:
-            log_error(f"Error loading scene {scene_id}: {e}")
+        except LoadSceneError as e:
+            log_error(f"LoadSceneError for {scene_id}: {e}")
+            return None
+        except (ValueError, TypeError, RuntimeError, KeyError) as e:
+            log_error(f"Unexpected error loading scene {scene_id}: {e}")
             return None
 
     def list_scenes(self, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
@@ -309,8 +322,11 @@ class SceneOrchestrator:
             return [
                 self.serializer.serialize_scene_for_output(scene) for scene in scenes
             ]
-        except Exception as e:
-            log_error(f"Error listing scenes: {e}")
+        except ListScenesError as e:
+            log_error(f"ListScenesError: {e}")
+            return []
+        except (ValueError, TypeError, RuntimeError, KeyError) as e:
+            log_error(f"Unexpected error listing scenes: {e}")
             return []
 
     # ===== SCENE ANALYSIS OPERATIONS =====
@@ -359,7 +375,11 @@ class SceneOrchestrator:
 
     def rollback_to_scene(self, scene_id: str) -> bool:
         """Rollback to specific scene."""
-        return self.scene_manager.rollback_to_scene(scene_id)
+        try:
+            return self.scene_manager.rollback_to_scene(scene_id)
+        except RollbackSceneError as e:
+            log_error(f"RollbackSceneError: {e}")
+            return False
 
     # ===== ORCHESTRATOR STATUS =====
 

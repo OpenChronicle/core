@@ -27,14 +27,18 @@ class FallbackTimelineManager:
         """Build minimal timeline with basic scene data."""
         try:
             # Basic scene data via injected persistence port
-            await self.persistence_port.init_database(self.story_id)
+            self.persistence_port.init_database(self.story_id)
 
-            scenes = await self.persistence_port.execute_query(
+            scenes = self.persistence_port.execute_query(
                 self.story_id,
                 """
                 SELECT scene_id, timestamp, input, output
-                FROM scenes ORDER BY timestamp ASC LIMIT 100
+                FROM scenes
+                WHERE story_id = ?
+                ORDER BY timestamp ASC
+                LIMIT 100
             """,
+                (self.story_id,),
             )
 
             timeline_entries = []
@@ -42,10 +46,10 @@ class FallbackTimelineManager:
                 timeline_entries.append(
                     {
                         "type": "scene",
-                        "scene_id": scene[0],
-                        "timestamp": scene[1],
-                        "input": scene[2][:200] if scene[2] else "",  # Truncated
-                        "output": scene[3][:200] if scene[3] else "",  # Truncated
+                        "scene_id": scene.get("scene_id") if hasattr(scene, "get") else None,
+                        "timestamp": scene.get("timestamp") if hasattr(scene, "get") else None,
+                        "input": (scene.get("input")[:200] if hasattr(scene, "get") and scene.get("input") else ""),
+                        "output": (scene.get("output")[:200] if hasattr(scene, "get") and scene.get("output") else ""),
                         "fallback_mode": True,
                     }
                 )
@@ -63,7 +67,7 @@ class FallbackTimelineManager:
                 },
             }
 
-        except Exception:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return {
                 "entries": [],
                 "summary_stats": {"scene_count": 0, "error": True},

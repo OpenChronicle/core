@@ -7,7 +7,7 @@ Replaces manual dependency wiring in orchestrator __init__ methods.
 Part of Phase 2, Week 5-6: Dependency Injection Framework
 """
 
-from typing import Any
+from typing import Any, List
 
 # Import the DI container and interfaces
 from .dependency_injection import DIContainer
@@ -393,8 +393,7 @@ if __name__ == "__main__":
 
     configurator = ServiceConfigurator(container)
     summary = configurator.get_registration_summary()
-
-    print("Service Configuration Summary:")
-    print(f"Total services: {summary['total_services']}")
-    print(f"Registered services: {summary['registered_services']}")
-    print(f"Container registrations: {summary['container_registrations']}")
+    log_info("Service Configuration Summary:")
+    log_info(f"Total services: {summary['total_services']}")
+    log_info(f"Registered services: {summary['registered_services']}")
+    log_info(f"Container registrations: {summary['container_registrations']}")

@@ -138,10 +138,13 @@ class SceneSerializer:
                     model_name=scene_dict.get("model_name"),
                 )
                 scenes.append(scene_data)
-            except Exception as e:
+            except (KeyError, TypeError, ValueError) as e:
                 # Log error but continue processing other scenes
-                print(
-                    f"Error deserializing scene {scene_dict.get('scene_id', 'unknown')}: {e}"
+                from openchronicle.shared.logging_system import log_error
+
+                log_error(
+                    f"Error deserializing scene {scene_dict.get('scene_id', 'unknown')}: {e}",
+                    context_tags=["scene","serializer","deserialize","error"],
                 )
                 continue
 

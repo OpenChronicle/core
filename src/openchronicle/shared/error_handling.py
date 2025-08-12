@@ -31,6 +31,17 @@ from .logging_system import log_warning
 
 T = TypeVar("T")
 
+# Centralized list of exceptions considered recoverable at framework level
+RECOVERABLE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    OSError,
+    asyncio.TimeoutError,
+    ValueError,
+    RuntimeError,
+    KeyError,
+    TypeError,
+    ConnectionError,
+)
+
 
 class ErrorSeverity(Enum):
     """Error severity levels for consistent classification."""
@@ -303,7 +314,7 @@ class RetryStrategy(ErrorRecoveryStrategy):
                         if k != "_original_func"
                     },
                 )
-            except Exception as retry_error:
+            except RECOVERABLE_EXCEPTIONS as retry_error:
                 if attempt == self.max_retries - 1:
                     raise OpenChronicleError(
                         f"All retry attempts failed. Last error: {retry_error}",
@@ -337,7 +348,7 @@ class ErrorRecoveryManager:
             if await strategy.can_recover(error):
                 try:
                     return await strategy.recover(error, original_args, original_kwargs)
-                except Exception as recovery_error:
+                except RECOVERABLE_EXCEPTIONS as recovery_error:
                     log_error(
                         f"Recovery strategy {type(strategy).__name__} failed: {recovery_error}"
                     )
@@ -412,14 +423,14 @@ def with_error_handling(
                         return await temp_manager.attempt_recovery(
                             oc_error, args, kwargs
                         )
-                    except Exception:
+                    except RECOVERABLE_EXCEPTIONS:
                         pass  # Fall through to fallback
 
                 if fallback_result is not None:
                     return fallback_result
                 raise
 
-            except Exception as error:
+            except RECOVERABLE_EXCEPTIONS as error:
                 # Convert to structured OpenChronicle error
                 oc_error = OpenChronicleError(
                     message=f"Unexpected error in {operation_context.operation}: {error!s}",
@@ -459,7 +470,7 @@ def with_error_handling(
                         return await temp_manager.attempt_recovery(
                             oc_error, args, kwargs
                         )
-                    except Exception:
+                    except RECOVERABLE_EXCEPTIONS:
                         pass  # Fall through to fallback
 
                 if fallback_result is not None:
@@ -490,7 +501,7 @@ def with_error_handling(
                     return fallback_result
                 raise
 
-            except Exception as error:
+            except RECOVERABLE_EXCEPTIONS as error:
                 oc_error = OpenChronicleError(
                     message=f"Unexpected error in {operation_context.operation}: {error!s}",
                     category=error_category or ErrorCategory.INTEGRATION,

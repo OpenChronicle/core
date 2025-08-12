@@ -114,8 +114,7 @@ class AdapterFactory:
                 logger.info(
                     f"Found configurations for providers without adapter implementations: {list(missing_adapters)}"
                 )
-
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.warning(f"Error discovering providers: {e}")
 
     def register_adapter(
@@ -148,7 +147,7 @@ class AdapterFactory:
                     config_name = config.get("config_name", f"{provider_name}_default")
                     all_configs.append(config_name)
             return all_configs
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.warning(f"Error getting configurations: {e}")
             return []
 
@@ -164,7 +163,7 @@ class AdapterFactory:
         """
         try:
             return self.registry.get_provider_models(provider)
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.warning(f"Could not get models for provider {provider}: {e}")
             return []
 
@@ -242,8 +241,7 @@ class AdapterFactory:
 
             logger.info(f"Created {provider} adapter from config: {config_name}")
             return adapter
-
-        except Exception as e:
+        except (AdapterNotFoundError, AdapterInitializationError, ValueError, TypeError) as e:
             logger.error(f"Failed to create adapter from config '{config_name}': {e}")
             raise AdapterInitializationError(f"Adapter creation failed: {e}")
 
@@ -275,8 +273,7 @@ class AdapterFactory:
 
             logger.info(f"Created default {provider} adapter")
             return adapter
-
-        except Exception as e:
+        except (KeyError, AdapterNotFoundError, AdapterInitializationError, ValueError, TypeError) as e:
             logger.error(f"Failed to create adapter for provider '{provider}': {e}")
             raise AdapterInitializationError(f"Adapter creation failed: {e}")
 
@@ -297,7 +294,7 @@ class AdapterFactory:
         """Get adapter information including configuration requirements."""
         try:
             return self.registry.get_model_config(config_name)
-        except Exception:
+        except (OSError, ValueError, TypeError):
             return None
 
     def get_fallback_chain(self, provider: str) -> list[str]:
@@ -306,7 +303,7 @@ class AdapterFactory:
             # For now, return simple fallback to just the provider
             # This could be enhanced later with actual fallback configuration
             return [provider] if provider in self.providers else []
-        except Exception:
+        except (OSError, ValueError, TypeError):
             return []
 
     def add_runtime_config(self, config_name: str, config: dict[str, Any]) -> bool:
@@ -316,7 +313,7 @@ class AdapterFactory:
             if success:
                 logger.info(f"Added runtime configuration: {config_name}")
             return success
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to add runtime config '{config_name}': {e}")
             return False
 
@@ -327,7 +324,7 @@ class AdapterFactory:
             if success:
                 logger.info(f"Removed runtime configuration: {config_name}")
             return success
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to remove runtime config '{config_name}': {e}")
             return False
 

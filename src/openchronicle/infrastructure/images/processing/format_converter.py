@@ -6,6 +6,7 @@ Provides format standardization and optimization for generated images.
 """
 
 import base64
+import binascii
 import io
 import logging
 from enum import Enum
@@ -13,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image
+from PIL import UnidentifiedImageError
 
 from ..shared.image_models import ImageSize
 from ..shared.validation_utils import ImageValidationError
@@ -77,7 +79,7 @@ class ImageFormatConverter:
                 if format_name in ["PNG", "JPEG", "WEBP", "GIF"]:
                     return ImageFormat(format_name)
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.warning(f"Could not detect image format: {e}")
 
         return None
@@ -123,7 +125,7 @@ class ImageFormatConverter:
                 img.save(output, **save_kwargs)
                 return output.getvalue()
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.error(f"Format conversion failed: {e}")
             raise ImageValidationError(
                 f"Could not convert to {target_format.value}: {e}"
@@ -162,7 +164,7 @@ class ImageFormatConverter:
                 img.save(output, format="PNG")
                 return output.getvalue()
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.error(f"Image resize failed: {e}")
             raise ImageValidationError(f"Could not resize image: {e}")
 
@@ -185,7 +187,8 @@ class ImageFormatConverter:
                     )
                     if len(optimized) / 1024 <= max_size_kb:
                         return optimized
-                except:
+                except (ImageValidationError, OSError, ValueError, UnidentifiedImageError):
+                    # Continue trying other strategies
                     pass
 
                 # Try JPEG
@@ -195,7 +198,8 @@ class ImageFormatConverter:
                     )
                     if len(optimized) / 1024 <= max_size_kb:
                         return optimized
-                except:
+                except (ImageValidationError, OSError, ValueError, UnidentifiedImageError):
+                    # Continue trying other strategies
                     pass
 
             # If still too large, try reducing dimensions
@@ -225,7 +229,7 @@ class ImageFormatConverter:
             )
             return self.convert_format(image_data, ImageFormat.WEBP, ImageQuality.LOW)
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.error(f"Image optimization failed: {e}")
             return image_data  # Return original if optimization fails
 
@@ -243,7 +247,7 @@ class ImageFormatConverter:
                 img.save(output, format="WEBP", quality=80)
                 return output.getvalue()
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.error(f"Thumbnail creation failed: {e}")
             raise ImageValidationError(f"Could not create thumbnail: {e}")
 
@@ -274,7 +278,7 @@ class ImageFormatConverter:
                     try:
                         font_size = max(12, min(img.width, img.height) // 40)
                         font = ImageFont.truetype("arial.ttf", font_size)
-                    except:
+                    except (OSError, ValueError):
                         font = ImageFont.load_default()
 
                     # Calculate text position
@@ -322,7 +326,7 @@ class ImageFormatConverter:
                 img.save(output, format="PNG")
                 return output.getvalue()
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.error(f"Watermark addition failed: {e}")
             return image_data  # Return original if watermarking fails
 
@@ -342,7 +346,7 @@ class ImageFormatConverter:
                     "file_size_kb": len(image_data) / 1024,
                     "aspect_ratio": img.width / img.height if img.height > 0 else 0,
                 }
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.error(f"Could not get image info: {e}")
             return {"error": str(e)}
 
@@ -365,7 +369,7 @@ class ImageFormatConverter:
 
                 return True, None
 
-        except Exception as e:
+        except (OSError, ValueError, UnidentifiedImageError) as e:
             return False, f"Invalid image data: {e}"
 
     def to_base64(self, image_data: bytes) -> str:
@@ -376,7 +380,7 @@ class ImageFormatConverter:
         """Convert base64 string to image data"""
         try:
             return base64.b64decode(base64_string)
-        except Exception as e:
+        except (binascii.Error, ValueError) as e:
             raise ImageValidationError(f"Invalid base64 image data: {e}")
 
     def batch_convert(
@@ -424,7 +428,7 @@ class ImageFormatConverter:
                     }
                 )
 
-            except Exception as e:
+            except (OSError, ImageValidationError, ValueError) as e:
                 results["failed"].append({"file": file_path, "error": str(e)})
 
             results["total_processed"] += 1

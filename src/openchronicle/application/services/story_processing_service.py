@@ -19,6 +19,7 @@ from openchronicle.domain.services import CharacterService
 from openchronicle.domain.services import MemoryService
 from openchronicle.domain.services import SceneService
 from openchronicle.domain.services import StoryService
+from openchronicle.shared.retry_policy import RetryPolicy
 
 
 # Infrastructure services will be imported as needed during legacy compatibility
@@ -173,16 +174,15 @@ class StoryProcessingService:
         temperature: float,
     ) -> str:
         """Generate AI response using specified adapter and parameters."""
-        try:
-            # Use the legacy model orchestrator temporarily
-            # TODO: Migrate to proper infrastructure adapter once available
-            from openchronicle.domain.models.model_orchestrator import (
-                ModelOrchestrator,
-            )
+        from openchronicle.domain.models.model_orchestrator import (
+            ModelOrchestrator,
+        )
 
-            model_manager = ModelOrchestrator()
+        model_manager = ModelOrchestrator()
+        policy = RetryPolicy(max_attempts=3, base_delay=0.4, retry_exceptions=(Exception,))  # TODO: narrow exception types
 
-            ai_response = await model_manager.generate_response(
+        async def _attempt():
+            return await model_manager.generate_response(
                 full_context,
                 adapter_name=adapter_name,
                 story_id=story_id,
@@ -190,15 +190,17 @@ class StoryProcessingService:
                 temperature=temperature,
             )
 
+        try:
+            ai_response = await policy.run(_attempt)
             await self.logging_service.log_info(
                 f"Generated AI response: {ai_response[:100]}..."
             )
             return ai_response
-
-        except Exception as e:
-            error_msg = f"AI generation failed: {e}"
-            await self.logging_service.log_error(error_msg)
-            return f"[Error generating response: {e}]"
+        except Exception as e:  # Final failure after retries
+            await self.logging_service.log_error(
+                f"AI generation failed after retries: {e}"
+            )
+            return f"[Error generating response after retries: {e}]"
 
     async def _generate_content_flags(
         self, story_id: str, analysis: dict[str, Any], ai_response: str

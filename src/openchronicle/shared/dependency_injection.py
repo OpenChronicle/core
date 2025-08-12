@@ -285,7 +285,8 @@ if __name__ == "__main__":
 
     class ConsoleLogger(ILogger):
         def log(self, message: str):
-            print(f"LOG: {message}")
+            from rich.console import Console
+            Console().print(f"LOG: {message}")
 
     class Service:
         def __init__(self):
@@ -300,6 +301,7 @@ if __name__ == "__main__":
     logger.log("DI Container working!")
 
     service = container.resolve(Service)
-    print(f"Service created: {service}")
-
-    print("Registrations:", container.get_registrations())
+    from rich.console import Console
+    console = Console()
+    console.print(f"Service created: {service}")
+    console.print(f"Registrations: {container.get_registrations()}")

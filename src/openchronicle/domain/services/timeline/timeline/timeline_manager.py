@@ -22,6 +22,8 @@ from openchronicle.domain.ports.persistence_inmemory import (
 
 # Bookmark management interface (to be injected, not directly imported)
 from typing import Protocol
+from openchronicle.shared.error_handling import OpenChronicleError
+from openchronicle.shared.logging_system import log_warning
 
 
 class IBookmarkManager(Protocol):
@@ -124,9 +126,11 @@ class TimelineManager:
                             "bookmark_data": bookmark,
                         }
                     )
-            except Exception:
+            except (OpenChronicleError, RuntimeError, ValueError, KeyError, AttributeError, TypeError) as e:
                 # Bookmark system optional; continue without it
-                pass
+                log_warning(
+                    f"Bookmark retrieval failed for story {self.story_id}: {e}. Proceeding without bookmarks."
+                )
 
         # Sort by timestamp
         timeline_entries.sort(key=lambda x: x.get("timestamp", ""))
@@ -315,5 +319,5 @@ class TimelineManager:
             return default
         try:
             return json.loads(raw)
-        except Exception:
+        except (json.JSONDecodeError, ValueError, TypeError):
             return default

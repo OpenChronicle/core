@@ -8,6 +8,10 @@ Consolidates all database access patterns from the original memory_manager.py.
 from datetime import UTC
 from datetime import datetime
 from typing import Any
+import json
+import sqlite3
+
+from openchronicle.shared.logging_system import log_error, log_warning, log_info
 
 from openchronicle.infrastructure.persistence.database_orchestrator import (
     database_orchestrator,
@@ -49,8 +53,11 @@ class MemoryRepository:
 
             return self._deserialize_memory(memory_data)
 
-        except Exception:
-            # Return default memory structure if loading fails
+        except (sqlite3.Error, TypeError, ValueError, KeyError, AttributeError) as e:
+            log_error(
+                f"Failed to load memory for story {story_id}: {e}",
+                context_tags=["memory", "load", "error"],
+            )
             return MemoryState()
 
     def save_memory(self, story_id: str, memory: MemoryState | dict[str, Any]) -> bool:
@@ -101,7 +108,11 @@ class MemoryRepository:
 
             return True
 
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError, KeyError, AttributeError) as e:
+            log_error(
+                f"Failed to save memory for story {story_id}: {e}",
+                context_tags=["memory", "save", "error"],
+            )
             return False
 
     def load_memory_section(self, story_id: str, section: str) -> dict[str, Any]:
@@ -122,7 +133,11 @@ class MemoryRepository:
                 return self.json_util.safe_loads(rows[0]["value"]) or {}
             return {}
 
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError) as e:
+            log_error(
+                f"Failed to load memory section {section} for story {story_id}: {e}",
+                context_tags=["memory", "section", "error"],
+            )
             return {}
 
     def update_memory_section(
@@ -149,7 +164,11 @@ class MemoryRepository:
             )
             return True
 
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError) as e:
+            log_error(
+                f"Failed to update memory section {section} for story {story_id}: {e}",
+                context_tags=["memory", "update", "error"],
+            )
             return False
 
     def create_snapshot(self, story_id: str, scene_id: str, memory: MemoryState) -> str:
@@ -179,7 +198,11 @@ class MemoryRepository:
 
             return snapshot_id
 
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError) as e:
+            log_error(
+                f"Failed to create snapshot for story {story_id} scene {scene_id}: {e}",
+                context_tags=["memory", "snapshot", "error"],
+            )
             return ""
 
     def restore_from_snapshot(self, story_id: str, scene_id: str) -> MemoryState | None:
@@ -205,7 +228,11 @@ class MemoryRepository:
 
             return None
 
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError) as e:
+            log_error(
+                f"Failed to restore snapshot for story {story_id} scene {scene_id}: {e}",
+                context_tags=["memory", "snapshot", "error"],
+            )
             return None
 
     def get_snapshot_metadata(self, story_id: str) -> list[dict[str, Any]]:
@@ -228,7 +255,11 @@ class MemoryRepository:
                 for row in rows
             ]
 
-        except Exception:
+        except (sqlite3.Error, TypeError, ValueError) as e:
+            log_error(
+                f"Failed to load snapshot metadata for story {story_id}: {e}",
+                context_tags=["memory", "snapshot", "error"],
+            )
             return []
 
     def _serialize_memory(self, memory: MemoryState) -> dict[str, Any]:
@@ -341,7 +372,7 @@ class MemoryRepository:
             if isinstance(last_updated, str):
                 try:
                     last_updated_dt = datetime.fromisoformat(last_updated)
-                except Exception:
+                except (ValueError, TypeError):
                     last_updated_dt = datetime.now(UTC)
             elif hasattr(last_updated, "isoformat"):
                 last_updated_dt = last_updated
@@ -445,8 +476,11 @@ class MemoryRepository:
             """,
                 (story_id, max_snapshots),
             )
-        except Exception:
-            pass  # Non-critical operation
+        except sqlite3.Error as e:
+            log_warning(
+                f"Snapshot cleanup failed for story {story_id}: {e}",
+                context_tags=["memory", "snapshot", "cleanup"],
+            )  # Non-critical
 
     def create_default_memory_structure(self) -> dict[str, Any]:
         """Create default memory structure for backward compatibility."""

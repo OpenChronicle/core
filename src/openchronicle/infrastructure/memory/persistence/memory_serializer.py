@@ -48,8 +48,8 @@ class MemorySerializer:
                 "recent_events": self._serialize_events(memory.recent_events),
                 "metadata": self._serialize_metadata(memory.metadata),
             }
-        except Exception:
-            # Return minimal valid structure on error
+        except (AttributeError, TypeError, ValueError) as e:
+            # Return minimal valid structure on serialization issues (structure or value errors)
             return {
                 "characters": {},
                 "world_state": {},
@@ -60,6 +60,7 @@ class MemorySerializer:
                     "version": "1.0",
                     "scene_count": 0,
                     "character_count": 0,
+                    "error": f"serialization_error:{type(e).__name__}",
                 },
             }
 
@@ -97,8 +98,8 @@ class MemorySerializer:
 
             return memory
 
-        except Exception:
-            # Return default memory on deserialization error
+        except (TypeError, ValueError, KeyError) as e:
+            # Return default memory on structural/data errors
             return MemoryState()
 
     def validate_memory_structure(self, memory: MemoryState) -> ValidationResult:
@@ -184,8 +185,8 @@ class MemorySerializer:
         for name, char_data in data.items():
             try:
                 characters[name] = self._deserialize_single_character(name, char_data)
-            except Exception:
-                # Create minimal character on error
+            except (TypeError, ValueError, KeyError):
+                # Create minimal character on data error
                 characters[name] = CharacterMemory(name=name)
         return characters
 
@@ -205,7 +206,7 @@ class MemorySerializer:
                         confidence=mood_data.get("confidence", 1.0),
                     )
                 )
-            except Exception:
+            except (KeyError, TypeError, ValueError):
                 # Skip invalid mood entries
                 continue
 
@@ -251,7 +252,7 @@ class MemorySerializer:
                         data=flag_data.get("data"),
                     )
                 )
-            except Exception:
+            except (KeyError, TypeError, ValueError):
                 # Skip invalid flags
                 continue
         return flags
@@ -279,7 +280,7 @@ class MemorySerializer:
                         data=event_data.get("data"),
                     )
                 )
-            except Exception:
+            except (KeyError, TypeError, ValueError):
                 # Skip invalid events
                 continue
         return events
@@ -302,7 +303,7 @@ class MemorySerializer:
                 scene_count=data.get("scene_count", 0),
                 character_count=data.get("character_count", 0),
             )
-        except Exception:
+        except (KeyError, TypeError, ValueError):
             return MemoryMetadata(last_updated=datetime.now(UTC))
 
     def _validate_and_correct_structure(self, data: dict[str, Any]) -> dict[str, Any]:

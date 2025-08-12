@@ -116,7 +116,7 @@ class ModelResponseGenerator(IModelResponseGenerator):
                 success=True,
             )
 
-        except Exception as e:
+        except (asyncio.TimeoutError, OSError, ValueError, RuntimeError, KeyError, TypeError) as e:
             # Record failure metrics
             self.performance_monitor.record_failure(
                 adapter_name, type(e).__name__, str(e)
@@ -158,7 +158,15 @@ class ModelResponseGenerator(IModelResponseGenerator):
                 return await self.generate_response(
                     prompt, adapter_name, model_params, use_fallback=False
                 )
-            except Exception as e:
+            except (
+                ModelError,
+                asyncio.TimeoutError,
+                OSError,
+                ValueError,
+                RuntimeError,
+                KeyError,
+                TypeError,
+            ) as e:
                 last_error = e
                 log_warning(f"Fallback adapter {adapter_name} failed: {e}")
                 continue
@@ -432,7 +440,7 @@ class ModelOrchestrator(IModelOrchestrator):
                     return self.manager.discover_providers()
             
             registry_port = RegistryPortAdapter(registry_manager)
-        except (ImportError, RuntimeError, Exception):
+        except (ImportError, RuntimeError, OSError):
             # Fallback for tests - create a mock registry
             from openchronicle.domain.ports.registry_port import IRegistryPort
             
@@ -526,7 +534,7 @@ class ModelOrchestrator(IModelOrchestrator):
             return await self._response_generator.generate_response(
                 enhanced_prompt, adapter_name, **kwargs
             )
-        except Exception as e:
+        except ModelError as e:
             # If adapter not available, provide mock response for tests
             if "not available" in str(e) or "Adapter" in str(e):
                 from datetime import UTC
@@ -554,7 +562,7 @@ class ModelOrchestrator(IModelOrchestrator):
         """Safe adapter initialization with error handling."""
         try:
             return await self.initialize_adapter(adapter_name)
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             log_error(f"Failed to initialize adapter {adapter_name}: {e}")
             return False
 
@@ -651,7 +659,7 @@ class ModelOrchestrator(IModelOrchestrator):
             # Initialize through the lifecycle manager
             result = await self._lifecycle_manager.initialize_all_adapters()
             return any(result.values()) if result else True
-        except Exception:
+        except (RuntimeError, OSError, ValueError):
             # Fallback to basic initialization
             return True
 
@@ -673,5 +681,12 @@ class ModelOrchestrator(IModelOrchestrator):
                 "adapter_used": response.adapter_name,
                 "metadata": response.metadata,
             }
-        except Exception as e:
+        except (
+            ModelError,
+            asyncio.TimeoutError,
+            OSError,
+            ValueError,
+            KeyError,
+            TypeError,
+        ) as e:
             return {"error": str(e), "success": False}

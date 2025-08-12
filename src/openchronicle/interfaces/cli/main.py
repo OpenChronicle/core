@@ -13,6 +13,8 @@ import typer
 from rich.console import Console
 from openchronicle.interfaces.cli.support.config_manager import ConfigManager
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
+from openchronicle.shared.logging_system import log_warning, log_error, log_info
+from openchronicle.shared.centralized_config import CentralizedConfigManager
 
 
 # Import command modules
@@ -22,21 +24,27 @@ try:
 
     commands_imported["story"] = story_app
 except ImportError as e:
-    print(f"Warning: Story commands not available: {e}")
+    log_warning(
+        f"Story commands not available: {e}", context_tags=["cli", "import", "story"]
+    )
 
 try:
     from openchronicle.interfaces.cli.commands.models import models_app
 
     commands_imported["models"] = models_app
 except ImportError as e:
-    print(f"Warning: Models commands not available: {e}")
+    log_warning(
+        f"Models commands not available: {e}", context_tags=["cli", "import", "models"]
+    )
 
 try:
     from openchronicle.interfaces.cli.commands.system import system_app
 
     commands_imported["system"] = system_app
 except ImportError as e:
-    print(f"Warning: System commands not available: {e}")
+    log_warning(
+        f"System commands not available: {e}", context_tags=["cli", "import", "system"]
+    )
 
 try:
     # Use unified config commands
@@ -44,21 +52,27 @@ try:
 
     commands_imported["config"] = config_app
 except ImportError as e:
-    print(f"Warning: Config commands not available: {e}")
+    log_warning(
+        f"Config commands not available: {e}", context_tags=["cli", "import", "config"]
+    )
 
 try:
     from openchronicle.interfaces.cli.commands.test import test_app
 
     commands_imported["test"] = test_app
 except ImportError as e:
-    print(f"Warning: Test commands not available: {e}")
+    log_warning(
+        f"Test commands not available: {e}", context_tags=["cli", "import", "test"]
+    )
 
 try:
     from openchronicle.interfaces.cli.commands.bookmarks import bookmarks_app
 
     commands_imported["bookmarks"] = bookmarks_app
 except ImportError as e:
-    print(f"Warning: Bookmarks commands not available: {e}")
+    log_warning(
+        f"Bookmarks commands not available: {e}", context_tags=["cli", "import", "bookmarks"]
+    )
 
 COMMANDS_AVAILABLE = len(commands_imported) > 0
 
@@ -147,6 +161,20 @@ def main(
     output_manager = OutputManager(format_type=format, quiet=quiet)
     config_manager = ConfigManager(config_dir=config_dir_path)
 
+    # Explicit storage provisioning (replaces previous implicit side effects in config manager)
+    try:
+        sys_config_mgr = CentralizedConfigManager()
+        sys_config_mgr.provision_storage()
+        log_info(
+            "Storage directories provisioned",
+            context_tags=["cli", "provision", "success"],
+        )
+    except (OSError, RuntimeError, ValueError) as e:
+        log_error(
+            f"Storage provisioning failed: {e}",
+            context_tags=["cli", "provision", "error"],
+        )
+
     # Store in global variables for commands to access (simple approach)
     # Commands can import these directly or we can pass them via context
 
@@ -166,8 +194,11 @@ if COMMANDS_AVAILABLE:
             app.add_typer(commands_imported["test"], name="test")
         if "bookmarks" in commands_imported:
             app.add_typer(commands_imported["bookmarks"], name="bookmarks")
-    except Exception as e:
-        print(f"Warning: Error adding command groups: {e}")
+    except (RuntimeError, ValueError, KeyError, TypeError) as e:
+        log_warning(
+            f"Error adding command groups: {e}",
+            context_tags=["cli", "commands", "error"],
+        )
 
 
 # Placeholder for command groups (will be implemented next)

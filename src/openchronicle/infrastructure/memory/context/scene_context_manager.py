@@ -129,8 +129,8 @@ class SceneContextManager:
                 context_prompt=context_prompt,
             )
 
-        except Exception:
-            # Return minimal scene context on error
+        except (TypeError, ValueError, KeyError, AttributeError):
+            # Fallback: minimal scene context
             return SceneContext(
                 scene_id=scene_id,
                 location=location or "Unknown",
@@ -164,7 +164,7 @@ class SceneContextManager:
                 continuity_notes=continuity_notes,
             )
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return SceneTransition(
                 from_scene=from_context.scene_id,
                 to_scene=to_context.scene_id,
@@ -211,7 +211,7 @@ class SceneContextManager:
                 recommendations=recommendations,
             )
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return ContextContinuity(
                 character_consistency=0.5,
                 world_state_consistency=0.5,
@@ -263,7 +263,7 @@ class SceneContextManager:
 
             return "\n".join(prompt_parts)
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return f"Scene: {scene_context.scene_id} at {scene_context.location}\n[Error generating scene prompt]"
 
     def update_scene_with_outcomes(
@@ -319,7 +319,7 @@ class SceneContextManager:
 
             return updates
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return {}
 
     def _generate_time_context(self, memory: MemorySnapshot) -> str:
@@ -373,7 +373,7 @@ class SceneContextManager:
                 return "somber"
             return "neutral"
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return "neutral"
 
     def _create_scene_context_config(
@@ -503,7 +503,7 @@ class SceneContextManager:
 
             return consistency_score
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return 0.5
 
     def _check_world_state_consistency(
@@ -538,7 +538,7 @@ class SceneContextManager:
 
             return max(0.0, 1.0 - (inconsistencies / total_checks))
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return 0.5
 
     def _check_narrative_flow(
@@ -559,7 +559,7 @@ class SceneContextManager:
 
             return max(0.0, flow_score)
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return 0.5
 
     def _analyze_continuity_issues(
@@ -630,5 +630,5 @@ class SceneContextManager:
             # Default: assume reasonable
             return True
 
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError):
             return True  # Assume reasonable if we can't determine
