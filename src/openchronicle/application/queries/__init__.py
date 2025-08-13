@@ -7,6 +7,7 @@ a clean interface for retrieving domain objects.
 """
 
 from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -16,6 +17,11 @@ from openchronicle.domain import StoryStatus
 
 class Query(ABC):
     """Base class for all queries."""
+
+    @abstractmethod
+    def validate(self) -> bool:
+        """Validate query parameters. Override in subclasses."""
+        return True
 
 
 class QueryResult:

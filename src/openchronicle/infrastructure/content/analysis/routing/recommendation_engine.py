@@ -49,7 +49,7 @@ class RecommendationEngine(RoutingComponent):
         # Use existing routing logic
         result = self.route_request(context.get("analysis", {}), context)
         recommendations = result.get("recommendations", {})
-        
+
         # Return primary recommendation or default
         if recommendations and "primary_recommendation" in recommendations:
             return recommendations["primary_recommendation"]
@@ -188,11 +188,11 @@ class RecommendationEngine(RoutingComponent):
                     }
                 )
 
-            return suggestions
-
         except Exception as e:
             log_error(f"Error generating model management suggestions: {e}")
             return {"actions": [], "priority": "low", "error": str(e)}
+        else:
+            return suggestions
 
     def _get_working_models(self, content_type: str) -> list[str]:
         """Get list of working models for content type."""

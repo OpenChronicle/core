@@ -53,8 +53,6 @@ class MigrationManager:
             if not self._migrate_bookmarks(story_id, story_dir):
                 success = False
 
-            return success
-
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors during JSON migration
             print(f"File system error during JSON migration: {e}")
@@ -64,8 +62,11 @@ class MigrationManager:
             print(f"Database error during JSON migration: {e}")
             return False
         except Exception as e:
+            # Handle any other unexpected errors during migration
             print(f"Unexpected error during JSON migration: {e}")
             return False
+        else:
+            return success
 
     def cleanup_json_files(self, story_id: str) -> bool:
         """Clean up JSON files after successful migration."""
@@ -99,14 +100,15 @@ class MigrationManager:
                     except Exception as e:
                         print(f"Unexpected error cleaning up {filepath}: {e}")
 
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors during JSON cleanup operations
             print(f"File system error cleaning up JSON files: {e}")
             return False
         except Exception as e:
             print(f"Unexpected error cleaning up JSON files: {e}")
+            return False
+        else:
+            return True
             return False
 
     def _migrate_scenes(self, story_id: str, story_dir: str) -> bool:

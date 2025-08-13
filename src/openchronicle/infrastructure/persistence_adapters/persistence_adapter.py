@@ -72,7 +72,6 @@ class PersistenceAdapter(IPersistencePort):
         try:
             result = _execute_update(story_id, query, params)
             # Return True if any rows were affected or operation succeeded
-            return result is not None and result >= 0
         except (OSError, IOError) as e:
             print(f"Database file system error: {e}")
             return False
@@ -82,6 +81,8 @@ class PersistenceAdapter(IPersistencePort):
         except Exception as e:
             print(f"Database update error: {e}")
             return False
+        else:
+            return result is not None and result >= 0
 
     def init_database(self, story_id: str) -> bool:
         """
@@ -95,7 +96,6 @@ class PersistenceAdapter(IPersistencePort):
         """
         try:
             _init_database(story_id)
-            return True
         except (OSError, IOError, PermissionError) as e:
             print(f"Database file system error: {e}")
             return False
@@ -105,6 +105,8 @@ class PersistenceAdapter(IPersistencePort):
         except Exception as e:
             print(f"Database initialization error: {e}")
             return False
+        else:
+            return True
 
     def backup_database(self, story_id: str, backup_name: str) -> bool:
         """
@@ -133,8 +135,6 @@ class PersistenceAdapter(IPersistencePort):
 
             # Copy database file
             shutil.copy2(db_path, backup_path)
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             print(f"Database backup file system error: {e}")
             return False
@@ -147,6 +147,8 @@ class PersistenceAdapter(IPersistencePort):
         except Exception as e:
             print(f"Database backup error: {e}")
             return False
+        else:
+            return True
 
     def restore_database(self, story_id: str, backup_name: str) -> bool:
         """
@@ -176,8 +178,6 @@ class PersistenceAdapter(IPersistencePort):
 
             # Restore database file
             shutil.copy2(backup_path, db_path)
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             print(f"File system error restoring database: {e}")
             return False
@@ -187,3 +187,5 @@ class PersistenceAdapter(IPersistencePort):
         except Exception as e:
             print(f"Database restore error: {e}")
             return False
+        else:
+            return True

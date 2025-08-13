@@ -21,7 +21,9 @@ from pydantic import Field
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
-from openchronicle.shared.exceptions import ValidationError, ServiceError, ConfigurationError
+from openchronicle.shared.exceptions import ConfigurationError
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 
 
 # ================================
@@ -265,32 +267,27 @@ async def create_story(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid story data: {e!s}",
-        )
+        ) from e
     except (ServiceError, ConfigurationError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error creating story: {e!s}",
-        )
+        ) from e
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid story data: {e!s}",
-        )
+        ) from e
     except (AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error creating story: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error creating story: {e!s}",
-        )
+        ) from e
 
 
 @app.get("/api/v1/stories/{story_id}", response_model=StoryResponse)
@@ -321,36 +318,26 @@ async def get_story(
 
     except HTTPException:
         raise
-    except (ValueError, KeyError) as e:
+    except (ValueError, AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid story ID: {e!s}",
-        )
+        ) from e
     except ServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error retrieving story: {e!s}",
-        )
+        ) from e
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid story ID: {e!s}",
-        )
-    except (AttributeError, KeyError) as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Data structure error retrieving story: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error retrieving story: {e!s}",
-        )
+        ) from e
 
 
 @app.put("/api/v1/stories/{story_id}", response_model=StoryResponse)

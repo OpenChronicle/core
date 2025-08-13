@@ -58,7 +58,7 @@ class CachePerformanceBenchmark:
 
         # Benchmark original (non-cached) operations
         original_times = []
-        for i in range(num_operations):
+        for _i in range(num_operations):
             start_time = time.time()
             character = (
                 self.original_orchestrator.character_manager.get_character_memory(
@@ -76,7 +76,7 @@ class CachePerformanceBenchmark:
             self.story_id, character_name
         )
 
-        for i in range(num_operations):
+        for _i in range(num_operations):
             start_time = time.time()
             character = await self.cached_orchestrator.cached_character_manager.get_character_memory(
                 self.story_id, character_name
@@ -137,7 +137,7 @@ class CachePerformanceBenchmark:
                 {"content": f"Test memory content {i}", "importance": i % 5},
             )  # Benchmark original operations
         original_times = []
-        for i in range(num_operations):
+        for _i in range(num_operations):
             start_time = time.time()
             snapshot = self.original_orchestrator.load_current_memory(self.story_id)
             end_time = time.time()
@@ -149,7 +149,7 @@ class CachePerformanceBenchmark:
         # Warm-up cache
         await self.cached_orchestrator.get_memory_snapshot(self.story_id)
 
-        for i in range(num_operations):
+        for _i in range(num_operations):
             start_time = time.time()
             snapshot = await self.cached_orchestrator.get_memory_snapshot(self.story_id)
             end_time = time.time()
@@ -323,10 +323,10 @@ class CachePerformanceBenchmark:
             }
 
         except (KeyError, ValueError, TypeError) as e:
-            self.logger.error(f"Data processing error in benchmark: {e}")
+            self.logger.exception("Data processing error in benchmark")
             results["error"] = str(e)
         except Exception as e:
-            self.logger.error(f"Unexpected benchmark error: {e}")
+            self.logger.exception("Unexpected benchmark error")
             results["error"] = str(e)
 
         finally:
@@ -342,7 +342,7 @@ class CachePerformanceBenchmark:
         try:
             await self.cached_orchestrator.close()
         except Exception as e:
-            self.logger.error(f"Cleanup error: {e}")
+            self.logger.exception("Cleanup error")
 
 
 class CacheMonitor:
@@ -384,7 +384,7 @@ class CacheMonitor:
                 self.logger.warning(f"Async operation interrupted during monitoring: {e}")
                 await asyncio.sleep(interval_seconds)
             except Exception as e:
-                self.logger.error(f"Unexpected monitoring error: {e}")
+                self.logger.exception("Unexpected monitoring error")
                 await asyncio.sleep(interval_seconds)
 
     def stop_monitoring(self):

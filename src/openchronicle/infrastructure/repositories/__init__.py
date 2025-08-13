@@ -17,15 +17,13 @@ from openchronicle.domain import Character
 from openchronicle.domain import Scene
 from openchronicle.domain import Story
 from openchronicle.domain import StoryStatus
+from openchronicle.shared.exceptions import DatabaseConnectionError
+from openchronicle.shared.exceptions import DatabaseError
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import OpenChronicleError
+from openchronicle.shared.exceptions import PersistenceError
+from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import log_error
-from openchronicle.shared.exceptions import (
-    DatabaseError,
-    DatabaseConnectionError,
-    InfrastructureError,
-    ValidationError,
-    PersistenceError,
-    OpenChronicleError,
-)
 
 
 class FileSystemStoryRepository:
@@ -56,7 +54,6 @@ class FileSystemStoryRepository:
             async with aiofiles.open(story_file, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(story_data, indent=2, ensure_ascii=False))
 
-            return True
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving story {story.id}: {e}")
             return False
@@ -65,6 +62,10 @@ class FileSystemStoryRepository:
             return False
         except Exception as e:
             # Unexpected error during story save
+            log_error(f"Unexpected error saving story {story.id}: {e}")
+            return False
+        else:
+            return True
             log_error(f"Unexpected error saving story {story.id}: {e}")
             return False
             log_error(f"Error saving story {story.id}: {e}")
@@ -115,13 +116,15 @@ class FileSystemStoryRepository:
             story_file = self.storage_path / f"{story_id}.json"
             if story_file.exists():
                 story_file.unlink()
-            return True
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error deleting story {story_id}: {e}")
             return False
         except Exception as e:
             # Unexpected error during story deletion
             log_error(f"Unexpected error deleting story {story_id}: {e}")
+            return False
+        else:
+            return True
             return False
 
     async def list_all(self, limit: int = 50, offset: int = 0) -> list[Story]:
@@ -137,16 +140,15 @@ class FileSystemStoryRepository:
                 if story:
                     stories.append(story)
 
-            return stories
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error listing stories: {e}")
             return []
-        except json.JSONDecodeError as e:
-            log_error(f"JSON parsing error in story files: {e}")
-            return []
         except Exception as e:
+            # Unexpected error during story listing
             log_error(f"Unexpected error listing stories: {e}")
             return []
+        else:
+            return stories
 
 
 class FileSystemCharacterRepository:
@@ -183,13 +185,18 @@ class FileSystemCharacterRepository:
             async with aiofiles.open(char_file, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(char_data, indent=2, ensure_ascii=False))
 
-            return True
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving character {character.id}: {e}")
             return False
+        except (ValidationError, PersistenceError) as e:
+            log_error(f"Data error saving character {character.id}: {e}")
+            return False
         except Exception as e:
+            # Unexpected error during character save
             log_error(f"Unexpected error saving character {character.id}: {e}")
             return False
+        else:
+            return True
 
     async def get_by_id(self, character_id: str) -> Character | None:
         """Get a character by ID."""
@@ -289,13 +296,14 @@ class FileSystemSceneRepository:
             async with aiofiles.open(scene_file, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(scene_data, indent=2, ensure_ascii=False))
 
-            return True
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving scene {scene.id}: {e}")
             return False
         except Exception as e:
             log_error(f"Unexpected error saving scene {scene.id}: {e}")
             return False
+        else:
+            return True
 
     async def get_by_id(self, scene_id: str) -> Scene | None:
         """Get a scene by ID."""

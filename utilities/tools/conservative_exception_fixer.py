@@ -117,10 +117,10 @@ class ConservativeExceptionFixer:
                 file_path.write_text(new_content, encoding='utf-8')
                 changes.append(f"File updated: {file_path}")
             
-            return modified, changes
-            
         except Exception as e:
             return False, [f"Error processing {file_path}: {e}"]
+        else:
+            return modified, changes
 
 
 def scan_for_simple_patterns(path: pathlib.Path) -> List[Tuple[int, str]]:

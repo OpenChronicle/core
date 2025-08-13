@@ -7,7 +7,7 @@ diagnostics, maintenance, and configuration management.
 This module coordinates all system-related CLI commands:
 - System information and diagnostics
 - Health monitoring and checks
-- Maintenance operations  
+- Maintenance operations
 - Database management
 - Performance monitoring
 """

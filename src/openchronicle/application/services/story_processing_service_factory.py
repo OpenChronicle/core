@@ -22,7 +22,7 @@ from openchronicle.domain.services import StoryService
 class StoryProcessingServiceFactory:
     """
     Factory for creating StoryProcessingService instances with proper dependency injection.
-    
+
     This factory handles the wiring of infrastructure dependencies to application services,
     maintaining clean hexagonal architecture boundaries.
     """
@@ -39,7 +39,7 @@ class StoryProcessingServiceFactory:
     ) -> StoryProcessingService:
         """
         Create a StoryProcessingService for production use.
-        
+
         Args:
             story_service: Story domain service
             character_service: Character domain service
@@ -48,7 +48,7 @@ class StoryProcessingServiceFactory:
             logging_service: Logging service
             cache_service: Cache service
             config: Optional configuration
-            
+
         Returns:
             Configured StoryProcessingService with production adapters
         """
@@ -59,14 +59,14 @@ class StoryProcessingServiceFactory:
             ContentAnalysisAdapter,
         )
         from openchronicle.infrastructure.adapters.context_adapter import ContextAdapter
-        
+
         # Create production adapters
         context_port = ContextAdapter()
-        
+
         # Create model orchestrator for content analysis
         model_orchestrator = ModelOrchestratorFactory.create_production_orchestrator()
         content_analysis_port = ContentAnalysisAdapter(model_orchestrator)
-        
+
         return StoryProcessingService(
             story_service=story_service,
             character_service=character_service,
@@ -91,7 +91,7 @@ class StoryProcessingServiceFactory:
     ) -> StoryProcessingService:
         """
         Create a StoryProcessingService for testing.
-        
+
         Args:
             story_service: Story domain service
             character_service: Character domain service
@@ -100,7 +100,7 @@ class StoryProcessingServiceFactory:
             logging_service: Logging service
             cache_service: Cache service
             config: Optional configuration
-            
+
         Returns:
             Configured StoryProcessingService with mock adapters
         """

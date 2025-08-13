@@ -23,7 +23,7 @@ except ImportError:
 class RegistryAdapter(IRegistryPort):
     """
     Infrastructure adapter that implements the registry port interface.
-    
+
     This adapter bridges the domain port interface with the concrete
     infrastructure implementation (RegistryManager).
     """
@@ -31,14 +31,14 @@ class RegistryAdapter(IRegistryPort):
     def __init__(self, models_dir: str = "config/models/", settings_file: str = "config/registry_settings.json"):
         """
         Initialize the registry adapter.
-        
+
         Args:
             models_dir: Directory containing model configurations
             settings_file: Path to registry settings file
         """
         if RegistryManager is None:
             raise RuntimeError("RegistryManager not available. Check infrastructure.registry imports.")
-        
+
         self._manager = RegistryManager(
             models_dir=models_dir,
             settings_file=settings_file
@@ -63,14 +63,14 @@ class RegistryAdapter(IRegistryPort):
     def validate_config(self, provider_name: str, config: dict[str, Any]) -> bool:
         """
         Validate provider configuration.
-        
+
         Args:
             provider_name: Name of the provider
             config: Configuration to validate
-            
+
         Returns:
             True if valid
-            
+
         Raises:
             ValueError: If configuration is invalid
         """
@@ -80,10 +80,11 @@ class RegistryAdapter(IRegistryPort):
             missing_fields = [field for field in required_fields if field not in config]
             if missing_fields:
                 raise ValueError(f"Missing required fields: {missing_fields}")
-            return True
         except (ValueError, TypeError) as e:
             log_error(f"validate_config failed for '{provider_name}': {e}")
             raise
+        else:
+            return True
 
     def register_provider(self, provider_name: str, config: dict[str, Any]) -> bool:
         """Register a new provider."""

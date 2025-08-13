@@ -105,7 +105,7 @@ class AdapterFactory:
             config_providers = set()
             providers_data = self.registry.discover_providers()
 
-            for provider_name, configs in providers_data.items():
+            for provider_name, _configs in providers_data.items():
                 config_providers.add(provider_name)
 
             # Log providers without adapter implementations
@@ -128,7 +128,7 @@ class AdapterFactory:
             adapter_class: Adapter class implementing BaseAPIAdapter
         """
         if not issubclass(adapter_class, BaseAPIAdapter):
-            raise ValueError("Adapter class must inherit from BaseAPIAdapter")
+            raise TypeError("Adapter class must inherit from BaseAPIAdapter")
 
         self.providers[provider] = adapter_class
         logger.info(f"Registered custom adapter for provider: {provider}")
@@ -146,10 +146,11 @@ class AdapterFactory:
                 for config in configs:
                     config_name = config.get("config_name", f"{provider_name}_default")
                     all_configs.append(config_name)
-            return all_configs
         except (OSError, ValueError, TypeError) as e:
             logger.warning(f"Error getting configurations: {e}")
             return []
+        else:
+            return all_configs
 
     def get_provider_models(self, provider: str) -> list[dict[str, Any]]:
         """
@@ -240,10 +241,11 @@ class AdapterFactory:
             adapter = adapter_class(config_name, final_config)
 
             logger.info(f"Created {provider} adapter from config: {config_name}")
-            return adapter
         except (AdapterNotFoundError, AdapterInitializationError, ValueError, TypeError) as e:
-            logger.error(f"Failed to create adapter from config '{config_name}': {e}")
-            raise AdapterInitializationError(f"Adapter creation failed: {e}")
+            logger.exception(f"Failed to create adapter from config '{config_name}'")
+            raise AdapterInitializationError(f"Adapter creation failed: {e}") from e
+        else:
+            return adapter
 
     def _create_adapter_from_provider(
         self, provider: str, custom_config: dict[str, Any] | None = None
@@ -272,10 +274,11 @@ class AdapterFactory:
             adapter = adapter_class(f"default_{provider}", config)
 
             logger.info(f"Created default {provider} adapter")
-            return adapter
         except (KeyError, AdapterNotFoundError, AdapterInitializationError, ValueError, TypeError) as e:
-            logger.error(f"Failed to create adapter for provider '{provider}': {e}")
-            raise AdapterInitializationError(f"Adapter creation failed: {e}")
+            logger.exception(f"Failed to create adapter for provider '{provider}'")
+            raise AdapterInitializationError(f"Adapter creation failed: {e}") from e
+        else:
+            return adapter
 
     def has_provider(self, provider_name: str) -> bool:
         """Check if a provider is available."""
@@ -312,10 +315,11 @@ class AdapterFactory:
             success = self.registry.add_model_config(config_name, config)
             if success:
                 logger.info(f"Added runtime configuration: {config_name}")
-            return success
         except (OSError, ValueError, TypeError) as e:
-            logger.error(f"Failed to add runtime config '{config_name}': {e}")
+            logger.exception(f"Failed to add runtime config '{config_name}'")
             return False
+        else:
+            return success
 
     def remove_runtime_config(self, config_name: str) -> bool:
         """Remove a configuration at runtime."""
@@ -323,10 +327,11 @@ class AdapterFactory:
             success = self.registry.remove_model_config(config_name)
             if success:
                 logger.info(f"Removed runtime configuration: {config_name}")
-            return success
         except (OSError, ValueError, TypeError) as e:
-            logger.error(f"Failed to remove runtime config '{config_name}': {e}")
+            logger.exception(f"Failed to remove runtime config '{config_name}'")
             return False
+        else:
+            return success
 
     def refresh_configurations(self) -> dict[str, Any]:
         """Refresh configurations from disk."""

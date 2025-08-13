@@ -8,6 +8,7 @@ Part of Phase 2, Week 5-6: Dependency Injection Framework
 """
 
 from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any
 from typing import TypeVar
@@ -19,7 +20,17 @@ from .logging_system import log_error
 from .logging_system import log_info
 
 # Import utilities
-from .service_interfaces import *
+from .service_interfaces import ICharacterManager
+from .service_interfaces import IConfigurationManager
+from .service_interfaces import IContentAnalyzer
+from .service_interfaces import IContextBuilder
+from .service_interfaces import IContextOrchestrator
+from .service_interfaces import ILogger
+from .service_interfaces import IMechanicsOrchestrator
+from .service_interfaces import IMemoryOrchestrator
+from .service_interfaces import IModelOrchestrator
+from .service_interfaces import INarrativeOrchestrator
+from .service_interfaces import ISceneOrchestrator
 
 
 T = TypeVar("T")
@@ -69,8 +80,9 @@ class DIEnabledOrchestrator(ABC):
         except (ImportError, RuntimeError, ValueError, KeyError, TypeError) as e:
             log_error(f"Failed to auto-configure services: {e}")
 
+    @abstractmethod
     def _initialize_dependencies(self):
-        """Initialize dependencies through DI. Override in derived classes."""
+        """Initialize dependencies through DI. Must be implemented by subclasses."""
 
     def resolve(self, interface: type[T]) -> T:
         """Resolve a service from the DI container."""

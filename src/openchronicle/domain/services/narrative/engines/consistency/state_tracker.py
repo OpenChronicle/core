@@ -74,11 +74,11 @@ class StateTracker:
             self._track_character_development(character_id, memory)
 
         except (AttributeError, KeyError) as e:
-            logger.error(f"Character state data structure error: {e}")
+            logger.exception("Character state data structure error")
         except (ValueError, TypeError) as e:
-            logger.error(f"Character state parameter error: {e}")
+            logger.exception("Character state parameter error")
         except Exception as e:
-            logger.error(f"Error updating character state: {e}")
+            logger.exception("Error updating character state")
 
     def get_character_memory_summary(self, character_id: str) -> dict[str, Any]:
         """
@@ -139,7 +139,7 @@ class StateTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error getting memory summary: {e}")
+            logger.exception("Error getting memory summary")
             return {}
 
     def get_consistency_metrics(
@@ -165,11 +165,11 @@ class StateTracker:
 
             # Calculate system-wide metrics
             all_metrics["system_summary"] = self._calculate_system_consistency_metrics()
-            return all_metrics
-
         except Exception as e:
-            logger.error(f"Error getting consistency metrics: {e}")
+            logger.exception("Error getting consistency metrics")
             return {}
+        else:
+            return all_metrics
 
     def track_narrative_event(
         self, event_type: str, event_data: dict[str, Any]
@@ -191,11 +191,11 @@ class StateTracker:
                 self._record_consistency_event(event_data)
 
         except (AttributeError, KeyError) as e:
-            logger.error(f"Narrative event data structure error: {e}")
+            logger.exception("Narrative event data structure error")
         except (ValueError, TypeError) as e:
-            logger.error(f"Narrative event parameter error: {e}")
+            logger.exception("Narrative event parameter error")
         except Exception as e:
-            logger.error(f"Error tracking narrative event: {e}")
+            logger.exception("Error tracking narrative event")
 
     def _update_emotional_state(
         self, character_id: str, emotional_score: float

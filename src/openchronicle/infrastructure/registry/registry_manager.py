@@ -102,9 +102,6 @@ class RegistryManager:
                 self.global_settings = self._create_default_global_settings()
                 self._save_global_settings()
                 log_info(f"Created default global settings at {self.settings_file}")
-
-            return self.global_settings
-
         except (OSError, json.JSONDecodeError) as e:
             # IO or JSON decode issues: recreate defaults
             log_error(
@@ -120,6 +117,8 @@ class RegistryManager:
                 context_tags=["registry", "settings", "error"],
             )
             self.global_settings = self._create_default_global_settings()
+            return self.global_settings
+        else:
             return self.global_settings
 
     def _create_default_global_settings(self) -> dict[str, Any]:
@@ -200,15 +199,14 @@ class RegistryManager:
             import shutil
 
             shutil.copy2(self.settings_file, backup_path)
-
-            return backup_path
-
         except (OSError, shutil.Error) as e:
             log_warning(
                 f"Failed to create settings backup (IO error): {e}",
                 context_tags=["registry", "backup", "error"],
             )
             return None
+        else:
+            return backup_path
 
     def discover_providers(self) -> dict[str, list[dict[str, Any]]]:
         """
@@ -276,14 +274,14 @@ class RegistryManager:
                 f"Discovered {len(discovered_providers)} providers with {total_models} model configurations",
             )
 
-            return discovered_providers
-
         except OSError as e:
             log_error(
                 f"Failed to discover providers (filesystem error): {e}",
                 context_tags=["registry", "discovery", "error"],
             )
             return {}
+        else:
+            return discovered_providers
 
     def _load_model_config(self, config_file: Path) -> dict[str, Any] | None:
         """
@@ -303,8 +301,6 @@ class RegistryManager:
             if not self._validate_model_config(config, config_file):
                 return None
 
-            return config
-
         except json.JSONDecodeError as e:
             log_error(
                 f"Invalid JSON in {config_file}: {e}",
@@ -317,6 +313,8 @@ class RegistryManager:
                 context_tags=["registry", "config", "error"],
             )
             return None
+        else:
+            return config
 
     def _validate_model_config(self, config: dict[str, Any], config_file: Path) -> bool:
         """
@@ -333,8 +331,6 @@ class RegistryManager:
             # Use pydantic schema validation for comprehensive validation
             validated_config = validate_provider_config(config)
             log_info(f"Config {config_file} passed schema validation")
-            return True
-
         except SchemaValidationError as e:
             log_error(
                 f"Config {config_file} failed schema validation: {e}",
@@ -347,6 +343,8 @@ class RegistryManager:
                 context_tags=["registry", "validation", "error"],
             )
             return False
+        else:
+            return True
 
     def get_provider_models(self, provider_name: str) -> list[dict[str, Any]]:
         """
@@ -433,14 +431,14 @@ class RegistryManager:
             log_system_event(
                 "model_config_added", f"Added model configuration: {config_name}"
             )
-            return True
-
         except (OSError, SchemaValidationError, TypeError, ValueError) as e:
             log_error(
                 f"Failed to add model configuration {config_name}: {e}",
                 context_tags=["registry", "add", "error"],
             )
             return False
+        else:
+            return True
 
     def remove_model_config(self, config_name: str) -> bool:
         """
@@ -468,14 +466,14 @@ class RegistryManager:
             log_system_event(
                 "model_config_removed", f"Removed model configuration: {config_name}"
             )
-            return True
-
         except OSError as e:
             log_error(
                 f"Failed to remove model configuration {config_name}: {e}",
                 context_tags=["registry", "remove", "error"],
             )
             return False
+        else:
+            return True
 
     def refresh_providers(self) -> bool:
         """
@@ -487,13 +485,14 @@ class RegistryManager:
         try:
             log_info("Refreshing provider discovery...")
             self.discover_providers()
-            return True
         except OSError as e:
             log_error(
                 f"Failed to refresh providers (filesystem error): {e}",
                 context_tags=["registry", "refresh", "error"],
             )
             return False
+        else:
+            return True
 
     def get_fallback_chain(self, provider_name: str) -> list[str]:
         """
@@ -527,13 +526,14 @@ class RegistryManager:
                     if provider not in fallback_chain:
                         fallback_chain.append(provider)
 
-            return fallback_chain
-
         except (KeyError, AttributeError) as e:
             log_error(
                 f"Failed to get fallback chain for {provider_name}: {e}",
                 context_tags=["registry", "fallback", "error"],
             )
+            return [provider_name]
+        else:
+            return fallback_chain
             return [provider_name]
 
     def get_status(self) -> str:
@@ -571,8 +571,6 @@ class RegistryManager:
             # Validate using pydantic schema
             validated_registry = self.validator.validate_registry_file(registry_file)
             log_info(f"Registry validation successful: {registry_file}")
-            return True
-
         except SchemaValidationError as e:
             log_error(
                 f"Registry validation failed: {e}",
@@ -585,6 +583,8 @@ class RegistryManager:
                 context_tags=["registry", "validation", "error"],
             )
             return False
+        else:
+            return True
 
     def create_backup(self, file_path: str | Path) -> Path | None:
         """
@@ -598,13 +598,14 @@ class RegistryManager:
         """
         try:
             backup_path = self.validator.create_backup(file_path)
-            return backup_path
         except (OSError, shutil.Error) as e:
             log_error(
                 f"Failed to create backup: {e}",
                 context_tags=["registry", "backup", "error"],
             )
             return None
+        else:
+            return backup_path
 
     def safe_save_config(self, config_name: str, config: dict[str, Any]) -> bool:
         """
@@ -631,8 +632,6 @@ class RegistryManager:
             self.refresh_providers()
 
             log_info(f"Configuration saved successfully: {config_file}")
-            return True
-
         except SchemaValidationError as e:
             log_error(
                 f"Configuration validation failed: {e}",
@@ -645,6 +644,8 @@ class RegistryManager:
                 context_tags=["registry", "save", "error"],
             )
             return False
+        else:
+            return True
 
     @property
     def models_dir_path(self) -> str:

@@ -249,8 +249,6 @@ class SceneRepository:
                 (scene_id, self.story_id),
             )
 
-            return True
-
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error deleting scene {scene_id}: {e}",
@@ -259,6 +257,8 @@ class SceneRepository:
                 context_tags=["scene","repository","delete","error"],
             )
             return False
+        else:
+            return True
 
     def update_scene_label(self, scene_id: str, scene_label: str) -> bool:
         """
@@ -280,8 +280,6 @@ class SceneRepository:
                 (scene_label, scene_id, self.story_id),
             )
 
-            return True
-
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Error updating scene label for {scene_id}: {e}",
@@ -290,6 +288,8 @@ class SceneRepository:
                 context_tags=["scene","repository","update_label","error"],
             )
             return False
+        else:
+            return True
 
     def _row_to_scene_data(self, row) -> SceneData:
         """
@@ -340,8 +340,9 @@ class SceneRepository:
         """
         try:
             count = self.count_scenes()
-            return f"active ({count} scenes)"
         except CountScenesError:
             return "error"
         except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return "error"
+        else:
+            return f"active ({count} scenes)"

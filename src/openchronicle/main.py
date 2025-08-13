@@ -5,10 +5,10 @@ Professional API for OpenChronicle's core narrative AI engine.
 This module provides programmatic access to all core orchestrators and services.
 
 For CLI usage, use: python main.py [commands]
-For API usage: from openchronicle.main import ModelOrchestrator, MemoryOrchestrator, etc.
+For API usage: from openchronicle.main import ModelOrchestrator, MemoryOrchestrator
 
 Architecture:
-    - Domain Layer: Business models and services (narrative, characters, scenes, timeline)
+    - Domain Layer: Business models and services (narrative, characters, scenes)
     - Application Layer: Application services and orchestrators (management)
     - Infrastructure Layer: Technical components (adapters, persistence, memory)
     - Interface Layer: CLI, API, web interfaces (separate from this module)
@@ -159,10 +159,10 @@ def get_version() -> str:
     try:
         # Single-level relative import was incorrect previously (".." escaped package)
         from . import __version__  # type: ignore
-
-        return __version__  # type: ignore[name-defined]
     except (ImportError, AttributeError):  # Fallback for early import edge cases
         return "development"
+    else:
+        return __version__  # type: ignore[name-defined]
 
 
 def get_available_orchestrators() -> dict[str, bool]:
@@ -247,13 +247,16 @@ async def initialize_core(config_path: str | None = None) -> bool:
         if status.availability_percentage >= 50:
             log_system_event(
                 "system",
-                f"Core initialization successful - {status.availability_percentage:.1f}% availability",
+                f"Core initialization successful - "
+                f"{status.availability_percentage:.1f}% availability",
             )
             return True
-        log_error(
-            f"Core initialization failed - only {status.availability_percentage:.1f}% availability"
-        )
-        return False
+        else:
+            log_error(
+                f"Core initialization failed - only "
+                f"{status.availability_percentage:.1f}% availability"
+            )
+            return False
 
     except (OpenChronicleError, RuntimeError, ImportError, OSError, ValueError) as e:
         log_error(f"Core initialization failed: {e}")

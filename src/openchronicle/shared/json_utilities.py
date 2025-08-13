@@ -57,8 +57,8 @@ class JSONUtilities:
             if pretty:
                 return json.dumps(data, indent=2, ensure_ascii=ensure_ascii)
             return json.dumps(data, ensure_ascii=ensure_ascii)
-        except (TypeError, ValueError) as e:
-            logger.error(f"JSON serialization failed: {e}")
+        except (TypeError, ValueError):
+            logger.exception("JSON serialization failed")
             return (
                 "{}"
                 if isinstance(data, dict)
@@ -88,8 +88,8 @@ class JSONUtilities:
         try:
             with open(file_path, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error(f"Failed to load JSON file {file_path}: {e}")
+        except (json.JSONDecodeError, OSError):
+            logger.exception("Failed to load JSON file")
             return fallback if fallback is not None else {}
 
     @staticmethod
@@ -124,10 +124,11 @@ class JSONUtilities:
                     json.dump(data, f, indent=2, ensure_ascii=ensure_ascii)
                 else:
                     json.dump(data, f, ensure_ascii=ensure_ascii)
-            return True
-        except (TypeError, ValueError, OSError) as e:
-            logger.error(f"Failed to save JSON file {file_path}: {e}")
+        except (TypeError, ValueError, OSError):
+            logger.exception("Failed to save JSON file")
             return False
+        else:
+            return True
 
     @staticmethod
     def merge_objects(

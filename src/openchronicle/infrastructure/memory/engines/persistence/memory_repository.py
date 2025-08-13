@@ -106,15 +106,14 @@ class MemoryRepository:
                             datetime.now(UTC).isoformat(),
                         ),
                     )
-
-            return True
-
         except (sqlite3.Error, TypeError, ValueError, KeyError, AttributeError) as e:
             log_error(
                 f"Failed to save memory for story {story_id}: {e}",
                 context_tags=["memory", "save", "error"],
             )
             return False
+        else:
+            return True
 
     def load_memory_section(self, story_id: str, section: str) -> dict[str, Any]:
         """Load specific memory section efficiently."""
@@ -132,13 +131,13 @@ class MemoryRepository:
 
             if rows:
                 return self.json_util.safe_loads(rows[0]["value"]) or {}
-            return {}
-
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
                 f"Failed to load memory section {section} for story {story_id}: {e}",
                 context_tags=["memory", "section", "error"],
             )
+            return {}
+        else:
             return {}
 
     def update_memory_section(
@@ -163,14 +162,14 @@ class MemoryRepository:
                     datetime.now(UTC).isoformat(),
                 ),
             )
-            return True
-
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
                 f"Failed to update memory section {section} for story {story_id}: {e}",
                 context_tags=["memory", "update", "error"],
             )
             return False
+        else:
+            return True
 
     def create_snapshot(self, story_id: str, scene_id: str, memory: MemoryState) -> str:
         """Create memory snapshot linked to scene."""
@@ -197,14 +196,14 @@ class MemoryRepository:
             # Keep only last 50 snapshots to prevent database bloat
             self._cleanup_old_snapshots(story_id)
 
-            return snapshot_id
-
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
                 f"Failed to create snapshot for story {story_id} scene {scene_id}: {e}",
                 context_tags=["memory", "snapshot", "error"],
             )
             return ""
+        else:
+            return snapshot_id
 
     def restore_from_snapshot(self, story_id: str, scene_id: str) -> MemoryState | None:
         """Restore memory from specific snapshot."""
@@ -225,9 +224,11 @@ class MemoryRepository:
             if rows:
                 snapshot_data = self.json_util.safe_loads(rows[0]["value"])
                 if snapshot_data:
-                    return self._deserialize_memory(snapshot_data)
-
-            return None
+                    result = self._deserialize_memory(snapshot_data)
+                else:
+                    result = None
+            else:
+                result = None
 
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
@@ -235,6 +236,8 @@ class MemoryRepository:
                 context_tags=["memory", "snapshot", "error"],
             )
             return None
+        else:
+            return result
 
     def get_snapshot_metadata(self, story_id: str) -> list[dict[str, Any]]:
         """Get metadata for all snapshots."""

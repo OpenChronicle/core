@@ -309,16 +309,16 @@ class StatsBehaviorEngine(
                 self.character_data[character_id] = stats
                 self.logger.info(f"Imported stats data for character {character_id}")
             except (KeyError, AttributeError) as e:
-                self.logger.error(
-                    f"Character stats data structure error for {character_id}: {e}"
+                self.logger.exception(
+                    "Character stats data structure error for"
                 )
             except (ValueError, TypeError) as e:
-                self.logger.error(
-                    f"Character stats data validation error for {character_id}: {e}"
+                self.logger.exception(
+                    "Character stats data validation error for"
                 )
             except Exception as e:
-                self.logger.error(
-                    f"Failed to import stats data for {character_id}: {e}"
+                self.logger.exception(
+                    "Failed to import stats data for"
                 )
 
     # =============================================================================

@@ -105,12 +105,11 @@ class EmotionalOrchestrator:
 
             if stability_analysis.get("stability_score", 1.0) < 0.5:
                 result["warning"] = "Low emotional stability detected"
-
-            return result
-
         except Exception as e:
-            logger.error(f"Error tracking emotional state: {e}")
+            logger.exception("Error tracking emotional state")
             return {"error": str(e), "timestamp": datetime.now().isoformat()}
+        else:
+            return result
 
     def is_behavior_on_cooldown(self, character_id: str, behavior: str) -> bool:
         """
@@ -210,7 +209,7 @@ class EmotionalOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"Error getting emotional context: {e}")
+            logger.exception("Error getting emotional context")
             return {"error": str(e)}
 
     def generate_anti_loop_prompt(
@@ -268,7 +267,7 @@ class EmotionalOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing emotional stability: {e}")
+            logger.exception("Error analyzing emotional stability")
             return {"error": str(e)}
 
     def reset_character_emotional_state(self, character_id: str) -> dict[str, Any]:
@@ -296,7 +295,7 @@ class EmotionalOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"Error resetting emotional state: {e}")
+            logger.exception("Error resetting emotional state")
             return {"error": str(e)}
 
     def export_emotional_data(self, character_id: str) -> dict[str, Any]:
@@ -321,7 +320,7 @@ class EmotionalOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"Error exporting emotional data: {e}")
+            logger.exception("Error exporting emotional data")
             return {"error": str(e)}
 
     def import_emotional_data(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -357,7 +356,7 @@ class EmotionalOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"Error importing emotional data: {e}")
+            logger.exception("Error importing emotional data")
             return {"error": str(e)}
 
     def _generate_stability_recommendations(

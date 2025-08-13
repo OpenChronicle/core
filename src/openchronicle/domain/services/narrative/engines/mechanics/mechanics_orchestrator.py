@@ -163,8 +163,6 @@ class MechanicsOrchestrator:
                 f"Resolved {request.resolution_type.value} for {request.character_id}: {outcome.value}",
             )
 
-            return result
-
         except Exception as e:
             self.error_count += 1
             log_error_with_context(
@@ -178,6 +176,8 @@ class MechanicsOrchestrator:
             )
 
             return MechanicsResult(request=request, success=False, error_message=str(e))
+        else:
+            return result
 
     async def create_narrative_branches(
         self,

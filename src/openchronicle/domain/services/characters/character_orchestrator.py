@@ -106,7 +106,7 @@ class CharacterOrchestrator(CharacterEventHandler):
             logger.info("Default character components loaded successfully")
 
         except Exception as e:
-            logger.error(f"Failed to load default components: {e}")
+            logger.exception("Failed to load default components")
             # Don't raise - continue with basic functionality
 
     def register_component(
@@ -159,7 +159,7 @@ class CharacterOrchestrator(CharacterEventHandler):
     # =============================================================================
 
     async def create_character(
-        self, 
+        self,
         story_id: str | None = None,
         character_name: str | None = None,
         character_data: dict[str, Any] | None = None,
@@ -170,22 +170,22 @@ class CharacterOrchestrator(CharacterEventHandler):
         # Adapt test interface to our internal interface
         if character_data is None:
             character_data = {}
-        
+
         # Handle different parameter formats
         if character_name and "name" not in character_data:
             character_data["name"] = character_name
-            
+
         if story_id and "story_id" not in character_data:
             character_data["story_id"] = story_id
-            
+
         # Add any additional kwargs to character_data
         character_data.update(kwargs)
-        
+
         # Generate character_id if not provided
         if "character_id" not in character_data:
             import uuid
             character_data["character_id"] = str(uuid.uuid4())
-        
+
         return self._create_character_sync(character_data, validate)
 
     async def update_character_state(
@@ -195,7 +195,7 @@ class CharacterOrchestrator(CharacterEventHandler):
         return self._update_character_state_sync(character_id, state_updates)
 
     async def update_character_development(
-        self, 
+        self,
         character_id: str | None = None,
         character_name: str | None = None,
         story_id: str | None = None,
@@ -207,19 +207,19 @@ class CharacterOrchestrator(CharacterEventHandler):
         if not character_id and character_name:
             # For now, just use character_name as fallback since we don't have a lookup mechanism
             character_id = character_name.replace(" ", "_").lower()
-        
+
         if not character_id:
             logger.error("No character_id or character_name provided for character development update")
             return False
-            
+
         # Combine all update data
         updates = development_data or {}
         updates.update(kwargs)
-        
+
         # Add story context if provided
         if story_id:
             updates["story_id"] = story_id
-            
+
         # Update through character state
         return self._update_character_state_sync(character_id, updates)
 
@@ -235,19 +235,19 @@ class CharacterOrchestrator(CharacterEventHandler):
         # Find character_id if not provided
         if not character_id and character_name:
             character_id = character_name.replace(" ", "_").lower()
-        
+
         # Combine relationship data
         rel_data = relationship_data or {}
         rel_data.update(kwargs)
-        
+
         # Add story context if provided
         if story_id:
             rel_data["story_id"] = story_id
-            
+
         # Add character_id to relationship data
         if character_id:
             rel_data["character_id"] = character_id
-            
+
         return self.manage_character_relationship(rel_data)
 
     # =============================================================================
@@ -263,14 +263,14 @@ class CharacterOrchestrator(CharacterEventHandler):
             character_id = character_data.get("character_id", "")
             name = character_data.get("name", "")
             description = character_data.get("description", "")
-            
+
             # Create basic character data structure
             character = CharacterData(
                 character_id=character_id,
                 name=name,
                 description=description,
             )
-            
+
             # Handle additional fields like traits, personality, etc.
             if "traits" in character_data:
                 # Store traits in the description for now
@@ -280,11 +280,11 @@ class CharacterOrchestrator(CharacterEventHandler):
                     character.description = f"{description}\nTraits: {json.dumps(traits)}"
                 else:
                     character.description = f"{description}\nTraits: {traits}"
-            
+
             return self.management_engine._create_character_sync({"character_data": character}, validate)
-            
+
         except Exception as e:
-            logger.error(f"Failed to create character: {e}")
+            logger.exception("Failed to create character")
             return None
 
     def get_character(self, character_id: str) -> CharacterData | None:
@@ -308,14 +308,14 @@ class CharacterOrchestrator(CharacterEventHandler):
         # Find character_id if not provided
         if not character_id and character_name:
             character_id = character_name.replace(" ", "_").lower()
-        
+
         if not character_id:
             return {}
-            
+
         character = self.get_character(character_id)
         if not character:
             return {}
-            
+
         # Convert CharacterData to dict for test compatibility
         return {
             "character_id": character.character_id,
@@ -333,8 +333,8 @@ class CharacterOrchestrator(CharacterEventHandler):
         }
 
     async def get_character_relationships(
-        self, 
-        character_id: str | None = None, 
+        self,
+        character_id: str | None = None,
         character_name: str | None = None,
         story_id: str | None = None
     ) -> dict[str, Any]:
@@ -342,14 +342,14 @@ class CharacterOrchestrator(CharacterEventHandler):
         # Find character_id if not provided
         if not character_id and character_name:
             character_id = character_name.replace(" ", "_").lower()
-        
+
         if not character_id:
             return {}
-            
+
         character = self.get_character(character_id)
         if not character:
             return {}
-            
+
         return {
             "relationships": character.relationships,
             "character_id": character_id,
@@ -409,7 +409,7 @@ class CharacterOrchestrator(CharacterEventHandler):
             self.management_engine.storage.update_character_component(
                 character_id, "stats", character.stats
             )
-            
+
             self.emit_event(
                 "character_stat_updated",
                 {
@@ -462,7 +462,7 @@ class CharacterOrchestrator(CharacterEventHandler):
         character = self.get_character(character_id)
         if not character:
             return {"valid": False, "error": f"Character {character_id} not found"}
-        
+
         return self.validation_engine.validate_character_consistency(character, context)
 
     def validate_character_action(
@@ -472,7 +472,7 @@ class CharacterOrchestrator(CharacterEventHandler):
         character = self.get_character(character_id)
         if not character:
             return False, f"Character {character_id} not found"
-        
+
         return self.validation_engine.validate_character_action(character, action_data)
 
     # =============================================================================
@@ -510,7 +510,7 @@ class CharacterOrchestrator(CharacterEventHandler):
                         character_id, relationship_data
                     )
             except Exception as e:
-                logger.error(f"Error managing relationship via interactions component: {e}")
+                logger.exception("Error managing relationship via interactions component")
 
         # Fallback: basic relationship update
         self.emit_event(

@@ -58,7 +58,7 @@ class ImageConfigManager:
                 logger.info(f"Loaded model registry from {config_path}")
                 return self._model_registry
         except (OSError, IOError, PermissionError) as e:
-            logger.error(f"File system error loading model registry: {e}")
+            logger.exception("File system error loading model registry")
             logger.warning("Falling back to mock configuration")
             self._model_registry = {
                 "default_image_model": "mock_image",
@@ -66,7 +66,7 @@ class ImageConfigManager:
             }
             return self._model_registry
         except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error loading model registry: {e}")
+            logger.exception("JSON decode error loading model registry")
             logger.warning("Falling back to mock configuration")
             self._model_registry = {
                 "default_image_model": "mock_image",
@@ -74,7 +74,7 @@ class ImageConfigManager:
             }
             return self._model_registry
         except Exception as e:
-            logger.error(f"Failed to load model registry: {e}")
+            logger.exception("Failed to load model registry")
             logger.warning("Falling back to mock configuration")
             self._model_registry = {
                 "default_image_model": "mock_image",

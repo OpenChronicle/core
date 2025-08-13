@@ -28,17 +28,15 @@ except ImportError:
 
 # Import exception types for proper handling
 try:
-    from openchronicle.shared.exceptions import (
-        DatabaseError,
-        DatabaseConnectionError,
-        ModelError,
-        ModelConnectionError,
-        ValidationError,
-        InfrastructureError,
-        OpenChronicleError,
-        CacheError,
-        CacheConnectionError,
-    )
+    from openchronicle.shared.exceptions import CacheConnectionError
+    from openchronicle.shared.exceptions import CacheError
+    from openchronicle.shared.exceptions import DatabaseConnectionError
+    from openchronicle.shared.exceptions import DatabaseError
+    from openchronicle.shared.exceptions import InfrastructureError
+    from openchronicle.shared.exceptions import ModelConnectionError
+    from openchronicle.shared.exceptions import ModelError
+    from openchronicle.shared.exceptions import OpenChronicleError
+    from openchronicle.shared.exceptions import ValidationError
 except ImportError:
     # Fallback exception types if not available
     class OpenChronicleError(Exception):
@@ -209,17 +207,16 @@ class InteractiveStorySession:
                 )
                 return validation_result.sanitized_value or ""
 
-            return validation_result.sanitized_value or raw_input
-
         except KeyboardInterrupt:
             raise
         except ValidationError as e:
             log_error(f"Input validation failed: {e}")
-            self.output_manager.error("Invalid input format")
             return ""
-        except (AttributeError, ValueError) as e:
-            log_error(f"Error processing user input: {e}")
+        except Exception as e:
+            log_error(f"Unexpected error in input validation: {e}")
             return ""
+        else:
+            return validation_result.sanitized_value or raw_input
 
     async def build_context_with_analysis(self, user_input: str, story):
         """Build context with analysis for the input."""
@@ -677,11 +674,11 @@ def start_interactive_session(
 
     except (ValidationError, ModelError, DatabaseError, InfrastructureError) as e:
         OutputManager().error(f"Error starting interactive session: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except Exception as e:
         # Unexpected error during command initialization
         OutputManager().error(f"Unexpected interactive session error: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 if __name__ == "__main__":

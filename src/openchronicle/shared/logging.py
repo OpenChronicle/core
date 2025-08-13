@@ -1,5 +1,9 @@
 """
-Centralized logging configuration for OpenChronicle.
+Centralized logging configuratio            "format": (
+                '{"timestamp": "%(asctime)s", "name": "%(name)s", '
+                '"level": "%(levelname)s", "correlation_id": "%(correlation_id)s", '
+                '"message": "%(message)s"}'
+            ), for OpenChronicle.
 
 This module provides a standardized logging setup using Python's built-in
 logging module with structured configuration and correlation ID support.
@@ -21,15 +25,25 @@ LOGGING_CONFIG: dict[str, Any] = {
     "disable_existing_loggers": False,
     "formatters": {
         "standard": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(correlation_id)s - %(message)s",
+            "format": (
+                "%(asctime)s - %(name)s - %(levelname)s - "
+                "%(correlation_id)s - %(message)s"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "detailed": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(correlation_id)s - %(funcName)s:%(lineno)d - %(message)s",
+            "format": (
+                "%(asctime)s - %(name)s - %(levelname)s - %(correlation_id)s - "
+                "%(funcName)s:%(lineno)d - %(message)s"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "json": {
-            "format": '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "correlation_id": "%(correlation_id)s", "message": "%(message)s"}',
+            "format": (
+                '{"timestamp": "%(asctime)s", "logger": "%(name)s", '
+                '"level": "%(levelname)s", "correlation_id": "%(correlation_id)s", '
+                '"message": "%(message)s"}'
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },

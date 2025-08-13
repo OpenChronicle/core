@@ -82,10 +82,11 @@ class ContentRouter:
                 provider_config = self.registry_manager.get_provider_config(provider)
                 if provider_config:
                     capabilities[provider] = provider_config.get("capabilities", {})
-            return capabilities
         except Exception as e:
             log_error(f"Failed to load provider capabilities: {e}")
             return {}
+        else:
+            return capabilities
 
     def _load_performance_profiles(self) -> dict[str, Any]:
         """Load performance profiles from registry."""
@@ -97,10 +98,11 @@ class ContentRouter:
                 )
                 if performance_limits:
                     profiles[provider] = performance_limits
-            return profiles
         except Exception as e:
             log_error(f"Failed to load performance profiles: {e}")
             return {}
+        else:
+            return profiles
 
     def _get_default_routing_rules(self) -> dict[str, Any]:
         """Default routing rules as fallback."""

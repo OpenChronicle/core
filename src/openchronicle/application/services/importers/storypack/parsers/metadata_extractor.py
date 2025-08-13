@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IMetadataExtractor,
-)
-
-
 """
 OpenChronicle Metadata Extractor
 
@@ -16,7 +11,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from openchronicle.shared.exceptions import ServiceError, ValidationError
+from openchronicle.application.services.importers.storypack.interfaces import (
+    IMetadataExtractor,
+)
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 
 
@@ -141,14 +140,14 @@ class MetadataExtractor(IMetadataExtractor):
                 "relative_path": str(file_path),
             }
 
-            return metadata
-
         except (ValidationError, ServiceError) as e:
             self.logger.warning(f"Service/validation error extracting file metadata for {file_path}: {e}")
             return {"filename": file_path.name, "error": f"Service error: {str(e)}"}
         except Exception as e:
             self.logger.warning(f"Unexpected error extracting file metadata for {file_path}: {e}")
             return {"filename": file_path.name, "error": f"Unexpected error: {str(e)}"}
+        else:
+            return metadata
 
     def _analyze_content_stats(self, content: str) -> dict[str, Any]:
         """Analyze basic content statistics."""

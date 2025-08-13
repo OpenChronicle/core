@@ -24,11 +24,11 @@ class CharacterBehaviorEngine:
         """Initialize character behavior engine."""
         self.config = config or {}
         self.behavior_providers: list[CharacterBehaviorProvider] = []
-        
+
         # Configuration
         self.adaptive_behavior = self.config.get("adaptive_behavior", True)
         self.context_memory_size = self.config.get("context_memory_size", 10)
-        
+
         logger.info("Character behavior engine initialized")
 
     def register_behavior_provider(self, provider: CharacterBehaviorProvider) -> None:
@@ -63,16 +63,16 @@ class CharacterBehaviorEngine:
                 context.update(provider_context)
                 logger.debug(f"Added context from {provider.__class__.__name__}")
             except (AttributeError, KeyError) as e:
-                logger.error(
-                    f"Provider data structure error in {provider.__class__.__name__}: {e}"
+                logger.exception(
+                    f"Provider data structure error in {provider.__class__.__name__}"
                 )
             except (ValueError, TypeError) as e:
-                logger.error(
-                    f"Provider parameter error in {provider.__class__.__name__}: {e}"
+                logger.exception(
+                    f"Provider parameter error in {provider.__class__.__name__}"
                 )
             except Exception as e:
-                logger.error(
-                    f"Error getting behavior context from {provider.__class__.__name__}: {e}"
+                logger.exception(
+                    f"Error getting behavior context from {provider.__class__.__name__}"
                 )
 
         return context
@@ -96,16 +96,16 @@ class CharacterBehaviorEngine:
                 modifiers.update(provider_modifiers)
                 logger.debug(f"Added modifiers from {provider.__class__.__name__}")
             except (AttributeError, KeyError) as e:
-                logger.error(
-                    f"Provider data structure error in {provider.__class__.__name__}: {e}"
+                logger.exception(
+                    f"Provider data structure error in {provider.__class__.__name__}"
                 )
             except (ValueError, TypeError) as e:
-                logger.error(
-                    f"Provider parameter error in {provider.__class__.__name__}: {e}"
+                logger.exception(
+                    f"Provider parameter error in {provider.__class__.__name__}"
                 )
             except Exception as e:
-                logger.error(
-                    f"Error getting response modifiers from {provider.__class__.__name__}: {e}"
+                logger.exception(
+                    f"Error getting response modifiers from {provider.__class__.__name__}"
                 )
 
         return modifiers
@@ -152,95 +152,95 @@ class CharacterBehaviorEngine:
                 result["adaptations"].extend(scene_adaptations)
 
             logger.info(f"Adapted character {character_id} style: {adaptation_type}")
-            return result
-
         except Exception as e:
-            logger.error(f"Error adapting character {character_id} style: {e}")
+            logger.exception(f"Error adapting character {character_id} style")
             return {
                 "character_id": character_id,
                 "success": False,
                 "error": str(e),
                 "timestamp": datetime.now().isoformat(),
             }
+        else:
+            return result
 
     def _adapt_dialogue_style(self, character_id: str, context: dict[str, Any]) -> list[str]:
         """Adapt dialogue style based on context."""
         adaptations = []
-        
+
         mood = context.get("mood", "neutral")
         formality = context.get("formality_level", "moderate")
-        
+
         if mood == "angry":
             adaptations.append("Applied aggressive dialogue patterns")
         elif mood == "sad":
             adaptations.append("Applied melancholic dialogue patterns")
         elif mood == "happy":
             adaptations.append("Applied upbeat dialogue patterns")
-            
+
         if formality == "formal":
             adaptations.append("Increased dialogue formality")
         elif formality == "casual":
             adaptations.append("Decreased dialogue formality")
-            
+
         return adaptations
 
     def _adapt_emotional_tone(self, character_id: str, context: dict[str, Any]) -> list[str]:
         """Adapt emotional tone based on context."""
         adaptations = []
-        
+
         emotional_state = context.get("emotional_state", {})
         intensity = emotional_state.get("intensity", 0.5)
-        
+
         if intensity > 0.7:
             adaptations.append("Increased emotional intensity")
         elif intensity < 0.3:
             adaptations.append("Decreased emotional intensity")
-            
+
         dominant_emotion = emotional_state.get("dominant_emotion", "neutral")
         adaptations.append(f"Adapted to {dominant_emotion} emotional tone")
-        
+
         return adaptations
 
     def _adapt_interaction_style(self, character_id: str, context: dict[str, Any]) -> list[str]:
         """Adapt interaction style based on context."""
         adaptations = []
-        
+
         relationship_type = context.get("relationship_type", "neutral")
         social_context = context.get("social_context", "normal")
-        
+
         if relationship_type == "romantic":
             adaptations.append("Applied romantic interaction patterns")
         elif relationship_type == "adversarial":
             adaptations.append("Applied defensive interaction patterns")
         elif relationship_type == "friendly":
             adaptations.append("Applied warm interaction patterns")
-            
+
         if social_context == "public":
             adaptations.append("Adapted for public interaction")
         elif social_context == "private":
             adaptations.append("Adapted for private interaction")
-            
+
         return adaptations
 
     def _adapt_to_scene(self, character_id: str, scene_data: dict[str, Any]) -> list[str]:
         """Adapt character to specific scene context."""
         adaptations = []
-        
+
         scene_type = scene_data.get("type", "general")
         atmosphere = scene_data.get("atmosphere", "neutral")
-        
+
         if scene_type == "combat":
             adaptations.append("Adapted for combat scenario")
         elif scene_type == "social":
             adaptations.append("Adapted for social scenario")
         elif scene_type == "exploration":
             adaptations.append("Adapted for exploration scenario")
-            
+
         if atmosphere == "tense":
             adaptations.append("Adjusted for tense atmosphere")
         elif atmosphere == "relaxed":
             adaptations.append("Adjusted for relaxed atmosphere")
-            
+
         return adaptations
 
     def get_behavioral_analysis(self, character_id: str, analysis_type: str = "general") -> dict[str, Any]:
@@ -274,16 +274,16 @@ class CharacterBehaviorEngine:
                 analysis["behavior_patterns"] = ["General behavioral analysis performed"]
 
             logger.info(f"Generated behavioral analysis for {character_id}: {analysis_type}")
-            return analysis
-
         except Exception as e:
-            logger.error(f"Error generating behavioral analysis for {character_id}: {e}")
+            logger.exception("Error generating behavioral analysis for")
             return {
                 "character_id": character_id,
                 "analysis_type": analysis_type,
                 "error": str(e),
                 "timestamp": datetime.now().isoformat(),
             }
+        else:
+            return analysis
 
     def _analyze_personality_patterns(self, character_id: str) -> dict[str, Any]:
         """Analyze personality patterns for character."""

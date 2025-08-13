@@ -13,7 +13,9 @@ The interface layer is responsible for:
 - External integrations
 """
 
-from openchronicle.shared.exceptions import InfrastructureError, ServiceError
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import ServiceError
+
 from ..shared.logging_system import log_error
 from ..shared.logging_system import log_info
 from ..shared.logging_system import log_system_event
@@ -97,7 +99,7 @@ def run_all_servers(
     log_info("API Server starting", context_tags=["interfaces","api"], host=host, port=api_port)
     log_info("Web Interface starting", context_tags=["interfaces","web"], host=host, port=web_port)
     log_info("Event Server starting", context_tags=["interfaces","events"], host=host, port=event_port)
-    log_info("CLI available via 'openchronicle' command", context_tags=["interfaces","cli"]) 
+    log_info("CLI available via 'openchronicle' command", context_tags=["interfaces","cli"])
 
     # Start processes
     processes = []
@@ -128,7 +130,7 @@ def run_all_servers(
 
         for process in processes:
             process.join()
-        log_info("All servers stopped", context_tags=["interfaces"]) 
+        log_info("All servers stopped", context_tags=["interfaces"])
 
 
 # ================================

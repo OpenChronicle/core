@@ -372,19 +372,20 @@ class RegistryValidator:
             registry = ModelRegistrySchema(**config_data)
             registry.validate_complete()
             self.logger.info("Registry validation successful")
-            return registry
         except (ValueError, TypeError) as e:
             error_msg = f"Registry validation parameter error: {e}"
-            self.logger.error(error_msg)
+            self.logger.exception(error_msg)
             raise SchemaValidationError(error_msg) from e
         except (AttributeError, KeyError) as e:
             error_msg = f"Registry validation data structure error: {e}"
-            self.logger.error(error_msg)
+            self.logger.exception(error_msg)
             raise SchemaValidationError(error_msg) from e
         except Exception as e:
             error_msg = f"Registry validation failed: {e}"
-            self.logger.error(error_msg)
+            self.logger.exception(error_msg)
             raise SchemaValidationError(error_msg) from e
+        else:
+            return registry
 
     def validate_provider(self, config_data: dict[str, Any]) -> ProviderConfig:
         """
@@ -402,19 +403,20 @@ class RegistryValidator:
         try:
             provider = ProviderConfig(**config_data)
             self.logger.info(f"Provider '{provider.provider}' validation successful")
-            return provider
         except (ValueError, TypeError) as e:
             error_msg = f"Provider validation parameter error: {e}"
-            self.logger.error(error_msg)
+            self.logger.exception(error_msg)
             raise SchemaValidationError(error_msg) from e
         except (AttributeError, KeyError) as e:
             error_msg = f"Provider validation data structure error: {e}"
-            self.logger.error(error_msg)
+            self.logger.exception(error_msg)
             raise SchemaValidationError(error_msg) from e
         except Exception as e:
             error_msg = f"Provider validation failed: {e}"
-            self.logger.error(error_msg)
+            self.logger.exception(error_msg)
             raise SchemaValidationError(error_msg) from e
+        else:
+            return provider
 
     def validate_registry_file(self, file_path: str | Path) -> ModelRegistrySchema:
         """
@@ -434,9 +436,11 @@ class RegistryValidator:
                 config_data = json.load(f)
             return self.validate_registry(config_data)
         except FileNotFoundError:
-            raise SchemaValidationError(f"Registry file not found: {file_path}")
+            raise SchemaValidationError(
+                f"Registry file not found: {file_path}"
+            ) from None
         except json.JSONDecodeError as e:
-            raise SchemaValidationError(f"Invalid JSON in registry file: {e}")
+            raise SchemaValidationError(f"Invalid JSON in registry file: {e}") from e
 
     def validate_provider_file(self, file_path: str | Path) -> ProviderConfig:
         """
@@ -456,9 +460,11 @@ class RegistryValidator:
                 config_data = json.load(f)
             return self.validate_provider(config_data)
         except FileNotFoundError:
-            raise SchemaValidationError(f"Provider file not found: {file_path}")
+            raise SchemaValidationError(
+                f"Provider file not found: {file_path}"
+            ) from None
         except json.JSONDecodeError as e:
-            raise SchemaValidationError(f"Invalid JSON in provider file: {e}")
+            raise SchemaValidationError(f"Invalid JSON in provider file: {e}") from e
 
     def create_backup(self, file_path: str | Path) -> Path:
         """

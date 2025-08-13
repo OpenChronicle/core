@@ -203,7 +203,6 @@ class ResponseGenerator:
                     f"Successfully generated response using {attempt_adapter} "
                     f"(fallback position {chain.index(attempt_adapter)})",
                 )
-                return response
 
             except (
                 OpenChronicleError,
@@ -218,6 +217,8 @@ class ResponseGenerator:
                 log_system_event(
                     "fallback_chain_failure", f"Adapter {attempt_adapter} failed: {e}"
                 )
+            else:
+                return response
                 continue
 
         # All adapters in chain failed

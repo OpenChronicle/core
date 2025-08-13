@@ -1,7 +1,8 @@
 """
 System maintenance commands for OpenChronicle CLI.
 
-Provides maintenance operations including cleanup, optimization, and backup capabilities.
+Provides maintenance operations including cleanup, optimization,
+and backup capabilities.
 """
 
 import json
@@ -66,9 +67,13 @@ class SystemMaintenanceCommand(SystemCommand):
                         "cleanup_logs: logs directory not found"
                     )
             except (OSError, IOError, PermissionError) as e:
-                maintenance_results["errors"].append(f"cleanup_logs file system error: {e}")
+                maintenance_results["errors"].append(
+                    f"cleanup_logs file system error: {e}"
+                )
             except (ValueError, TypeError) as e:
-                maintenance_results["errors"].append(f"cleanup_logs parameter error: {e}")
+                maintenance_results["errors"].append(
+                    f"cleanup_logs parameter error: {e}"
+                )
             except Exception as e:
                 maintenance_results["errors"].append(f"cleanup_logs error: {e}")
 
@@ -89,9 +94,13 @@ class SystemMaintenanceCommand(SystemCommand):
                     }
                 )
             except (OSError, IOError, PermissionError) as e:
-                maintenance_results["errors"].append(f"optimize_db file system error: {e}")
+                maintenance_results["errors"].append(
+                    f"optimize_db file system error: {e}"
+                )
             except (ValueError, TypeError) as e:
-                maintenance_results["errors"].append(f"optimize_db parameter error: {e}")
+                maintenance_results["errors"].append(
+                    f"optimize_db parameter error: {e}"
+                )
             except Exception as e:
                 maintenance_results["errors"].append(f"optimize_db error: {e}")
 
@@ -108,7 +117,9 @@ class SystemMaintenanceCommand(SystemCommand):
                 if not dry_run and config_files:
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     for config_file in config_files:
-                        backup_file = backup_dir / f"{config_file.stem}_{timestamp}.json"
+                        backup_file = (
+                            backup_dir / f"{config_file.stem}_{timestamp}.json"
+                        )
                         shutil.copy2(config_file, backup_file)
 
                 maintenance_results["tasks_performed"].append(
@@ -120,11 +131,15 @@ class SystemMaintenanceCommand(SystemCommand):
                     }
                 )
             except (OSError, IOError, PermissionError) as e:
-                maintenance_results["errors"].append(f"backup_config file system error: {e}")
+                maintenance_results["errors"].append(
+                    f"backup_config file system error: {e}"
+                )
             except json.JSONDecodeError as e:
                 maintenance_results["errors"].append(f"backup_config JSON error: {e}")
             except (ValueError, TypeError) as e:
-                maintenance_results["errors"].append(f"backup_config parameter error: {e}")
+                maintenance_results["errors"].append(
+                    f"backup_config parameter error: {e}"
+                )
             except Exception as e:
                 maintenance_results["errors"].append(f"backup_config error: {e}")
 
@@ -167,7 +182,9 @@ def system_maintenance(
 
         if not any([cleanup_logs, optimize_db, backup_config]):
             output_manager = OutputManager()
-            output_manager.info("No maintenance tasks specified. Use --help to see options.")
+            output_manager.info(
+                "No maintenance tasks specified. Use --help to see options."
+            )
             return
 
         command = SystemMaintenanceCommand()
@@ -179,18 +196,23 @@ def system_maintenance(
         )
 
         output_manager = OutputManager()
-        
+
         if dry_run:
             output_manager.info("🔍 DRY RUN - No changes will be made")
 
         # Display results
         if results["tasks_performed"]:
-            output_manager.success(f"✅ Completed {len(results['tasks_performed'])} maintenance task(s)")
+            output_manager.success(
+                f"✅ Completed {len(results['tasks_performed'])} "
+                f"maintenance task(s)"
+            )
             for task in results["tasks_performed"]:
                 output_manager.info(f"  • {task['task']}: {_format_task_result(task)}")
 
         if results["tasks_skipped"]:
-            output_manager.warning(f"⚠️  Skipped {len(results['tasks_skipped'])} task(s)")
+            output_manager.warning(
+                f"⚠️  Skipped {len(results['tasks_skipped'])} task(s)"
+            )
             for skipped in results["tasks_skipped"]:
                 output_manager.info(f"  • {skipped}")
 
@@ -203,7 +225,7 @@ def system_maintenance(
     except Exception as e:
         output_manager = OutputManager()
         output_manager.error(f"Maintenance operation failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def storage_cleanup(
@@ -235,7 +257,7 @@ def storage_cleanup(
     """Clean up temporary files, logs, and caches."""
     try:
         output_manager = OutputManager()
-        
+
         cleanup_targets = []
         if target == "all":
             cleanup_targets = ["logs", "cache", "temp"]
@@ -246,25 +268,33 @@ def storage_cleanup(
         total_size_freed = 0
 
         for cleanup_target in cleanup_targets:
-            removed_count, size_freed = _cleanup_target(cleanup_target, age_days, dry_run, force)
+            removed_count, size_freed = _cleanup_target(
+                cleanup_target, age_days, dry_run, force
+            )
             total_removed += removed_count
             total_size_freed += size_freed
 
         if dry_run:
-            output_manager.info(f"🔍 DRY RUN: Would remove {total_removed} files ({_format_size(total_size_freed)})")
+            output_manager.info(
+                f"🔍 DRY RUN: Would remove {total_removed} files "
+                f"({_format_size(total_size_freed)})"
+            )
         else:
-            output_manager.success(f"✅ Cleanup complete: Removed {total_removed} files ({_format_size(total_size_freed)})")
+            output_manager.success(
+                f"✅ Cleanup complete: Removed {total_removed} files "
+                f"({_format_size(total_size_freed)})"
+            )
 
     except Exception as e:
         output_manager = OutputManager()
         output_manager.error(f"Storage cleanup failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def _format_task_result(task: dict[str, Any]) -> str:
     """Format task result for display."""
     task_name = task.get("task", "unknown")
-    
+
     if task_name == "cleanup_logs":
         return f"Removed {task.get('files_removed', 0)} old log files"
     elif task_name == "optimize_databases":
@@ -275,7 +305,9 @@ def _format_task_result(task: dict[str, Any]) -> str:
         return str(task)
 
 
-def _cleanup_target(target: str, age_days: int, dry_run: bool, force: bool) -> tuple[int, int]:
+def _cleanup_target(
+    target: str, age_days: int, dry_run: bool, force: bool
+) -> tuple[int, int]:
     """Clean up a specific target directory."""
     target_paths = {
         "logs": [Path.cwd() / "logs"],

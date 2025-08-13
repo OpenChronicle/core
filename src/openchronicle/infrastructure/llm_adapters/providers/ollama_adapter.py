@@ -39,12 +39,13 @@ class OllamaAdapter(LocalModelAdapter):
                     self.get_provider_name(),
                     f"Ollama connection failed: HTTP {response.status_code}",
                 )
-            return client
         except httpx.RequestError as e:
             await client.aclose()
             raise AdapterConnectionError(
                 self.get_provider_name(), f"Failed to connect to Ollama: {e}"
-            )
+            ) from e
+        else:
+            return client
 
     async def generate_response(self, prompt: str, **kwargs) -> str:
         """Generate response using Ollama API."""
@@ -77,24 +78,24 @@ class OllamaAdapter(LocalModelAdapter):
                     self.get_provider_name(), "Empty response received from Ollama"
                 )
 
-            return content
-
         except asyncio.TimeoutError:
             from ..adapter_exceptions import AdapterTimeoutError
 
-            raise AdapterTimeoutError(self.get_provider_name(), self.timeout)
+            raise AdapterTimeoutError(self.get_provider_name(), self.timeout) from None
         except ValueError as e:
             # JSON parsing error
             raise AdapterResponseError(
                 self.get_provider_name(), f"Malformed response: {e}"
-            )
+            ) from e
         except Exception as e:
             # Check for network/connection errors in exception message
             msg = str(e).lower()
             if any(term in msg for term in ["connection", "network", "timeout", "unreachable"]):
                 raise AdapterConnectionError(
                     self.get_provider_name(), f"Network error: {e}"
-                )
+                ) from e
             raise AdapterResponseError(
                 self.get_provider_name(), f"Ollama request failed: {e}"
-            )
+            ) from e
+        else:
+            return content

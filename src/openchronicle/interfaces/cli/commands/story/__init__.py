@@ -154,11 +154,11 @@ class StoryLoadCommand(StoryCommand):
             self.output.info(f"Scenes: {len(story_data.get('scenes', []))}")
             self.output.info(f"Characters: {len(story_data.get('characters', []))}")
 
-            return story_data
-
         except Exception as e:
             self.output.error(f"Error loading story: {e}")
             return {}
+        else:
+            return story_data
 
 
 class StoryGenerateCommand(StoryCommand):
@@ -601,12 +601,12 @@ def import_storypack(
 
         except KeyboardInterrupt:
             console.print("\n⏸️  [yellow]Import cancelled by user[/yellow]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         except Exception as e:
             console.print(f"❌ [red]Import error: {e}[/red]")
             if verbose:
                 console.print_exception()
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     # Run the async import
     asyncio.run(run_import())

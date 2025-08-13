@@ -252,19 +252,20 @@ class MultiTierCache:
                         value = json.loads(redis_value)
                         if self.local_cache is not None:
                             self.local_cache[key] = value
-                        return value
                     except json.JSONDecodeError:
-                        self.logger.error(
-                            f"Failed to deserialize Redis value for key: {key}"
+                        self.logger.exception(
+                            "Failed to deserialize Redis value for key"
                         )
+                    else:
+                        return value
                 else:
                     self.metrics.record_miss("redis")
             except (ConnectionError, TimeoutError) as e:
-                self.logger.error(f"Redis network error for key {key}: {e}")
+                self.logger.exception("Redis network error for key")
             except (AttributeError, KeyError) as e:
-                self.logger.error(f"Redis data structure error for key {key}: {e}")
+                self.logger.exception("Redis data structure error for key")
             except Exception as e:
-                self.logger.error(f"Redis error for key {key}: {e}")
+                self.logger.exception("Redis error for key")
 
         # Tier 3: Fallback function (usually database)
         if fallback_func:
@@ -303,7 +304,7 @@ class MultiTierCache:
             try:
                 self.local_cache[key] = value
             except Exception as e:
-                self.logger.error(f"Local cache error for key {key}: {e}")
+                self.logger.exception("Local cache error for key")
                 success = False
 
         # Store in Redis
@@ -314,13 +315,13 @@ class MultiTierCache:
                 await redis_client.setex(key, ttl, serialized)
                 self.logger.debug(f"Cached in Redis: {key} (TTL: {ttl}s)")
             except (ConnectionError, TimeoutError) as e:
-                self.logger.error(f"Redis network error caching key {key}: {e}")
+                self.logger.exception("Redis network error caching key")
                 success = False
             except (TypeError, ValueError) as e:
-                self.logger.error(f"JSON serialization error for key {key}: {e}")
+                self.logger.exception("JSON serialization error for key")
                 success = False
             except Exception as e:
-                self.logger.error(f"Redis cache error for key {key}: {e}")
+                self.logger.exception("Redis cache error for key")
                 success = False
 
         return success
@@ -340,7 +341,7 @@ class MultiTierCache:
                 await redis_client.delete(key)
                 self.logger.debug(f"Deleted from Redis: {key}")
             except Exception as e:
-                self.logger.error(f"Redis delete error for key {key}: {e}")
+                self.logger.exception("Redis delete error for key")
                 success = False
 
         return success
@@ -364,7 +365,7 @@ class MultiTierCache:
                         f"Invalidated {deleted} keys matching pattern: {pattern}"
                     )
             except Exception as e:
-                self.logger.error(f"Redis pattern invalidation error: {e}")
+                self.logger.exception("Redis pattern invalidation error")
 
         return deleted
 

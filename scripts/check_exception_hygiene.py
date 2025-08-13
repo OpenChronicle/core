@@ -3,6 +3,7 @@ import re
 import sys
 from pathlib import Path
 
+
 BROAD_PATTERNS = [
     re.compile(r"except\s+Exception\s*:"),
     re.compile(r"except\s*:"),
@@ -73,8 +74,8 @@ def main() -> int:
         type=str,
         choices=["hard", "baseline-create", "check-new"],
         default="hard",
-        help="hard = fail on any violations; baseline-create = write current to baseline; check-new = fail only on new vs baseline",
-    )
+        help="hard = fail on any violations; baseline-create = write current"
+            "to baseline; check-new = fail only on new vs baseline",    )
     args = parser.parse_args()
 
     violations, details = find_violations()

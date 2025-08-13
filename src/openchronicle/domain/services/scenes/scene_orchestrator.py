@@ -230,7 +230,6 @@ class SceneOrchestrator:
                 scene_id=scene_id,
                 context_tags=["save_scene"],
             )
-            return ""
 
         except (ValueError, TypeError, RuntimeError, KeyError) as e:
             log_error(
@@ -238,6 +237,8 @@ class SceneOrchestrator:
                 story_id=self.story_id,
                 context_tags=["save_scene"],
             )
+            return ""
+        else:
             return ""
 
     async def log_scene_fragment(self, story_id: str, fragment: dict[str, Any]) -> bool:
@@ -349,7 +350,6 @@ class SceneOrchestrator:
             scene_data = self.repository.load_scene(scene_id)
             if scene_data:
                 return self.serializer.serialize_scene_for_output(scene_data)
-            return None
         except LoadSceneError as e:
             log_error(
                 f"LoadSceneError: {e}",
@@ -365,6 +365,8 @@ class SceneOrchestrator:
                 scene_id=scene_id,
                 context_tags=["load_scene"],
             )
+            return None
+        else:
             return None
 
     def list_scenes(self, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:

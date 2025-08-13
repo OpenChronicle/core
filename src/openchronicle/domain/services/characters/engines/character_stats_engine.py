@@ -24,14 +24,14 @@ class CharacterStatsEngine:
     def __init__(self, config: dict | None = None):
         """Initialize character stats engine."""
         self.config = config or {}
-        
+
         # Configuration
         self.stat_validation_enabled = self.config.get("stat_validation_enabled", True)
         self.auto_calculate_modifiers = self.config.get("auto_calculate_modifiers", True)
         self.stat_cap_enabled = self.config.get("stat_cap_enabled", True)
         self.min_stat_value = self.config.get("min_stat_value", 1)
         self.max_stat_value = self.config.get("max_stat_value", 20)
-        
+
         logger.info("Character stats engine initialized")
 
     def get_character_stats(self, character: CharacterData) -> CharacterStats | None:
@@ -47,7 +47,7 @@ class CharacterStatsEngine:
         if not character or not character.stats:
             logger.debug(f"No stats available for character {getattr(character, 'character_id', 'unknown')}")
             return None
-        
+
         return character.stats
 
     def update_character_stat(
@@ -73,7 +73,7 @@ class CharacterStatsEngine:
         """
         try:
             if not character or not character.stats:
-                logger.error(f"No character or stats available for update")
+                logger.error("No character or stats available for update")
                 return False
 
             # Validate new value if enabled
@@ -94,14 +94,15 @@ class CharacterStatsEngine:
             logger.info(
                 f"Updated {stat_type.value} to {new_value} for character {character.character_id}: {reason}"
             )
-            return True
 
         except (ValueError, TypeError, AttributeError) as e:
-            logger.error(f"Invalid data or parameters updating character stat: {e}")
+            logger.exception("Invalid data or parameters updating character stat")
             return False
         except Exception as e:
-            logger.error(f"Unexpected error updating character stat: {e}")
+            logger.exception("Unexpected error updating character stat")
             return False
+        else:
+            return True
 
     def get_effective_stat(
         self, character: CharacterData, stat_type: CharacterStatType
@@ -119,23 +120,25 @@ class CharacterStatsEngine:
         try:
             stats = self.get_character_stats(character)
             if not stats:
-                return None
+                result = None
+            else:
+                base_value = stats.get_effective_stat(stat_type)
 
-            base_value = stats.get_effective_stat(stat_type)
-            
-            # Apply additional modifiers if auto-calculation is enabled
-            if self.auto_calculate_modifiers:
-                modifier = self._calculate_additional_modifiers(character, stat_type)
-                return base_value + modifier if base_value is not None else None
-                
-            return base_value
+                # Apply additional modifiers if auto-calculation is enabled
+                if self.auto_calculate_modifiers:
+                    modifier = self._calculate_additional_modifiers(character, stat_type)
+                    result = base_value + modifier if base_value is not None else None
+                else:
+                    result = base_value
 
         except (ValueError, TypeError, AttributeError) as e:
-            logger.error(f"Invalid data calculating effective stat {stat_type.value}: {e}")
+            logger.exception(f"Invalid data calculating effective stat {stat_type.value}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error getting effective stat {stat_type.value}: {e}")
+            logger.exception(f"Unexpected error getting effective stat {stat_type.value}")
             return None
+        else:
+            return result
 
     def calculate_stat_modifier(self, stat_value: int) -> int:
         """
@@ -160,7 +163,7 @@ class CharacterStatsEngine:
             Dictionary of stat modifiers
         """
         modifiers = {}
-        
+
         if not character or not character.stats:
             return modifiers
 
@@ -209,7 +212,7 @@ class CharacterStatsEngine:
         # Check for temporary effects (could be stored in metadata)
         temp_effects = character.metadata.get("temporary_effects", {})
         stat_effects = temp_effects.get(stat_type.value, [])
-        
+
         for effect in stat_effects:
             if isinstance(effect, dict):
                 modifier += effect.get("modifier", 0)
@@ -295,11 +298,11 @@ class CharacterStatsEngine:
                 f"{roll}+{modifier}={total} vs DC{difficulty_class} ({'SUCCESS' if success else 'FAILURE'})"
             )
 
-            return result
-
         except Exception as e:
-            logger.error(f"Error performing stat check: {e}")
+            logger.exception("Error performing stat check")
             return {"success": False, "error": str(e)}
+        else:
+            return result
 
     def get_stat_summary(self, character: CharacterData) -> dict[str, Any]:
         """
@@ -313,34 +316,34 @@ class CharacterStatsEngine:
         """
         try:
             if not character or not character.stats:
-                return {"character_id": getattr(character, 'character_id', 'unknown'), "has_stats": False}
+                summary = {"character_id": getattr(character, 'character_id', 'unknown'), "has_stats": False}
+            else:
+                summary = {
+                    "character_id": character.character_id,
+                    "has_stats": True,
+                    "stats": {},
+                    "modifiers": {},
+                    "total_stat_points": 0,
+                }
 
-            summary = {
-                "character_id": character.character_id,
-                "has_stats": True,
-                "stats": {},
-                "modifiers": {},
-                "total_stat_points": 0,
-            }
+                # Get all stats and modifiers
+                for stat_type in CharacterStatType:
+                    effective_value = self.get_effective_stat(character, stat_type)
+                    if effective_value is not None:
+                        modifier = self.calculate_stat_modifier(effective_value)
+                        summary["stats"][stat_type.value] = effective_value
+                        summary["modifiers"][stat_type.value] = modifier
+                        summary["total_stat_points"] += effective_value
 
-            # Get all stats and modifiers
-            for stat_type in CharacterStatType:
-                effective_value = self.get_effective_stat(character, stat_type)
-                if effective_value is not None:
-                    modifier = self.calculate_stat_modifier(effective_value)
-                    summary["stats"][stat_type.value] = effective_value
-                    summary["modifiers"][stat_type.value] = modifier
-                    summary["total_stat_points"] += effective_value
-
-            # Calculate average stat
-            if summary["stats"]:
-                summary["average_stat"] = summary["total_stat_points"] / len(summary["stats"])
-
-            return summary
+                # Calculate average stat
+                if summary["stats"]:
+                    summary["average_stat"] = summary["total_stat_points"] / len(summary["stats"])
 
         except Exception as e:
-            logger.error(f"Error getting stat summary: {e}")
+            logger.exception("Error getting stat summary")
             return {"character_id": getattr(character, 'character_id', 'unknown'), "error": str(e)}
+        else:
+            return summary
 
     def get_stats_status(self) -> dict[str, Any]:
         """Get stats engine status."""

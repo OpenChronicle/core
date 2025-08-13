@@ -107,7 +107,7 @@ def system_info(
                 output = yaml.dump(info, default_flow_style=False)
             except ImportError:
                 output_manager.error("YAML output requires PyYAML package")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
         else:  # table format
             output = output_manager.format_system_info(info)
 
@@ -119,7 +119,7 @@ def system_info(
 
     except Exception as e:
         output_manager.error(f"Failed to get system information: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def system_diagnostics(
@@ -160,13 +160,13 @@ def system_diagnostics(
 
     except Exception as e:
         output_manager.error(f"Diagnostic check failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def _run_system_checks() -> dict[str, Any]:
     """Run basic system health checks."""
     checks = {}
-    
+
     # Memory check
     memory = psutil.virtual_memory()
     checks["memory"] = {
@@ -174,7 +174,7 @@ def _run_system_checks() -> dict[str, Any]:
         "usage_percent": memory.percent,
         "available_gb": round(memory.available / (1024**3), 2),
     }
-    
+
     # Disk space check
     disk = psutil.disk_usage("/" if platform.system() != "Windows" else "C:\\")
     checks["disk"] = {
@@ -182,7 +182,7 @@ def _run_system_checks() -> dict[str, Any]:
         "usage_percent": disk.percent,
         "free_gb": round(disk.free / (1024**3), 2),
     }
-    
+
     # CPU check
     cpu_percent = psutil.cpu_percent(interval=1)
     checks["cpu"] = {
@@ -190,14 +190,14 @@ def _run_system_checks() -> dict[str, Any]:
         "usage_percent": cpu_percent,
         "core_count": psutil.cpu_count(),
     }
-    
+
     return checks
 
 
 def _run_openchronicle_checks() -> dict[str, Any]:
     """Run OpenChronicle-specific health checks."""
     checks = {}
-    
+
     # Configuration check
     config_path = Path.home() / ".openchronicle"
     checks["configuration"] = {
@@ -205,7 +205,7 @@ def _run_openchronicle_checks() -> dict[str, Any]:
         "config_directory_exists": config_path.exists(),
         "config_files": list(config_path.glob("*.json")) if config_path.exists() else [],
     }
-    
+
     # Dependencies check
     required_packages = ["typer", "rich", "psutil"]
     missing_packages = []
@@ -214,13 +214,13 @@ def _run_openchronicle_checks() -> dict[str, Any]:
             __import__(package)
         except ImportError:
             missing_packages.append(package)
-    
+
     checks["dependencies"] = {
         "status": "healthy" if not missing_packages else "critical",
         "missing_packages": missing_packages,
         "checked_packages": required_packages,
     }
-    
+
     return checks
 
 

@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ContentFile,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ImportContext,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IStorypackBuilder,
-)
-
-
 """
 OpenChronicle Storypack Builder
 
@@ -24,7 +13,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from openchronicle.shared.exceptions import ServiceError, InfrastructureError, ValidationError
+from openchronicle.application.services.importers.storypack.interfaces import (
+    ContentFile,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
+    ImportContext,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
+    IStorypackBuilder,
+)
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
@@ -86,18 +86,18 @@ class StorypackBuilder(IStorypackBuilder):
                 },
             )
 
-            return storypack_path
-
         except (OSError, IOError, PermissionError) as e:
-            self.logger.error(
-                f"File system error creating storypack structure at {storypack_path}: {e}"
+            self.logger.exception(
+                "File system error creating storypack structure at"
             )
-            raise InfrastructureError(f"Failed to create storypack structure: {e}")
+            raise InfrastructureError(f"Failed to create storypack structure: {e}") from e
         except Exception as e:
-            self.logger.error(
-                f"Unexpected error creating storypack structure at {storypack_path}: {e}"
+            self.logger.exception(
+                "Unexpected error creating storypack structure at"
             )
-            raise ServiceError(f"Unexpected storypack creation failure: {e}")
+            raise ServiceError(f"Unexpected storypack creation failure: {e}") from e
+        else:
+            return storypack_path
 
     def generate_metadata_file(
         self, context: ImportContext, content_summary: dict[str, Any]
@@ -164,13 +164,13 @@ class StorypackBuilder(IStorypackBuilder):
             )
 
         except (OSError, IOError, PermissionError) as e:
-            self.logger.error(f"File system error generating metadata file: {e}")
+            self.logger.exception("File system error generating metadata file")
             raise InfrastructureError(f"Failed to write metadata file: {e}")
         except (ValidationError, ServiceError) as e:
-            self.logger.error(f"Service/validation error generating metadata file: {e}")
+            self.logger.exception("Service/validation error generating metadata file")
             raise
         except Exception as e:
-            self.logger.error(f"Unexpected error generating metadata file: {e}")
+            self.logger.exception("Unexpected error generating metadata file")
             raise ServiceError(f"Unexpected metadata generation failure: {e}")
 
         return metadata
@@ -219,13 +219,13 @@ class StorypackBuilder(IStorypackBuilder):
                     organized_files[category].append(target_file_path)
 
                 except (OSError, IOError, PermissionError) as e:
-                    self.logger.error(
-                        f"File system error organizing file {content_file.path}: {e}"
+                    self.logger.exception(
+                        f"File system error organizing file {content_file.path}"
                     )
                     continue
                 except Exception as e:
-                    self.logger.error(
-                        f"Unexpected error organizing file {content_file.path}: {e}"
+                    self.logger.exception(
+                        f"Unexpected error organizing file {content_file.path}"
                     )
                     continue
 
@@ -484,13 +484,13 @@ Narrative files can include:
             try:
                 shutil.copy2(source_path, target_path)
             except (OSError, IOError, PermissionError) as copy_error:
-                self.logger.error(
-                    f"File system error copying {source_path} to {target_path}: {copy_error}"
+                self.logger.exception(
+                    f"File system error copying {source_path} to"
                 )
                 raise InfrastructureError(f"Failed to copy file: {copy_error}")
             except Exception as copy_error:
-                self.logger.error(
-                    f"Unexpected error copying {source_path} to {target_path}: {copy_error}"
+                self.logger.exception(
+                    f"Unexpected error copying {source_path} to"
                 )
                 raise ServiceError(f"Unexpected file copy failure: {copy_error}")
         except Exception as e:
@@ -501,13 +501,13 @@ Narrative files can include:
             try:
                 shutil.copy2(source_path, target_path)
             except (OSError, IOError, PermissionError) as copy_error:
-                self.logger.error(
-                    f"File system error copying {source_path} to {target_path}: {copy_error}"
+                self.logger.exception(
+                    f"File system error copying {source_path} to"
                 )
                 raise InfrastructureError(f"Failed to copy file: {copy_error}")
             except Exception as copy_error:
-                self.logger.error(
-                    f"Unexpected error copying {source_path} to {target_path}: {copy_error}"
+                self.logger.exception(
+                    f"Unexpected error copying {source_path} to"
                 )
                 raise ServiceError(f"Unexpected file copy failure: {copy_error}")
 

@@ -90,18 +90,17 @@ class CacheWarmingManager:
             # Simple moving average
             new_avg = (current_avg + warming_time) / 2
             self.cache_manager.metrics.warming_metrics["avg_time_ms"] = new_avg
-
-            return True
-
         except (AttributeError, KeyError) as e:
-            self.logger.error(f"Data structure error during cache warming for {character_name}: {e}")
+            self.logger.exception("Data structure error during cache warming for")
             return False
         except (ConnectionError, TimeoutError) as e:
-            self.logger.error(f"Network error during cache warming for {character_name}: {e}")
+            self.logger.exception("Network error during cache warming for")
             return False
         except Exception as e:
-            self.logger.error(f"Cache warming failed for {character_name}: {e}")
+            self.logger.exception("Cache warming failed for")
             return False
+        else:
+            return True
 
     async def warm_memory_snapshots(self, story_ids: list[str]) -> dict[str, bool]:
         """Warm cache with memory snapshots."""
@@ -126,13 +125,13 @@ class CacheWarmingManager:
                 results[story_id] = True
 
             except (AttributeError, KeyError) as e:
-                self.logger.error(f"Data structure error warming memory snapshot for {story_id}: {e}")
+                self.logger.exception("Data structure error warming memory snapshot for")
                 results[story_id] = False
             except (ConnectionError, TimeoutError) as e:
-                self.logger.error(f"Network error warming memory snapshot for {story_id}: {e}")
+                self.logger.exception("Network error warming memory snapshot for")
                 results[story_id] = False
             except Exception as e:
-                self.logger.error(f"Failed to warm memory snapshot for {story_id}: {e}")
+                self.logger.exception("Failed to warm memory snapshot for")
                 results[story_id] = False
 
         return results

@@ -127,15 +127,17 @@ class ConfigSetCommand(OpenChronicleCommand):
                 self.config.update_openchronicle_config(
                     "system_config.json", system_config
                 )
+            except (
+                OSError, json.JSONDecodeError, ValueError, KeyError, TypeError
+            ) as e:
+                raise ValueError(f"Error updating system config: {e}") from e
+            else:
                 return {
                     "type": "system",
                     "key": key,
                     "value": value,
                     "status": "updated",
                 }
-
-            except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
-                raise ValueError(f"Error updating system config: {e}")
 
         else:
             raise ValueError(

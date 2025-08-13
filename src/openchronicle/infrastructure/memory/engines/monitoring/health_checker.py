@@ -67,8 +67,6 @@ class HealthChecker:
                     total_response_time += node_time
                 except (ConnectionError, TimeoutError) as e:
                     failed_nodes.append(f"node_{node_index}: Network error - {e!s}")
-                except (ConnectionError, TimeoutError) as e:
-                    failed_nodes.append(f"node_{node_index}: Network error - {e!s}")
                 except Exception as e:
                     failed_nodes.append(f"node_{node_index}: {e!s}")
 
@@ -104,14 +102,6 @@ class HealthChecker:
                 status="unhealthy",
                 response_time_ms=(time.time() - start_time) * 1000,
                 details={"error": f"Network connectivity error: {e!s}"},
-                timestamp=datetime.now(UTC),
-            )
-        except (ConnectionError, TimeoutError) as e:
-            return HealthCheckResult(
-                name="redis_connectivity",
-                status="unhealthy",
-                response_time_ms=(time.time() - start_time) * 1000,
-                details={"error": f"Network error: {str(e)}"},
                 timestamp=datetime.now(UTC),
             )
         except Exception as e:

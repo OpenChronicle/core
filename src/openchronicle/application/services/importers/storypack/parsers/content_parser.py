@@ -168,8 +168,6 @@ class ContentParser(IContentParser):
             with open(file_path, encoding=encoding) as f:
                 content = f.read()
 
-            return content, encoding
-
         except (OSError, IOError, PermissionError) as e:
             self.logger.error(f"File system error reading file {file_path}: {e}")
             raise InfrastructureError(f"Cannot read file {file_path}: {e}")
@@ -179,6 +177,8 @@ class ContentParser(IContentParser):
         except Exception as e:
             self.logger.error(f"Unexpected error reading file {file_path}: {e}")
             raise ServiceError(f"Unexpected file read failure {file_path}: {e}")
+        else:
+            return content, encoding
 
     def validate_file_format(self, file_path: Path) -> bool:
         """
@@ -236,24 +236,27 @@ class ContentParser(IContentParser):
                     # Simple fallback encoding detection without chardet
                     try:
                         raw_data.decode("utf-8")
-                        return "utf-8"
                     except UnicodeDecodeError:
                         # Try common encodings
                         for encoding in ["latin-1", "cp1252", "ascii"]:
                             try:
                                 raw_data.decode(encoding)
-                                return encoding
                             except UnicodeDecodeError:
                                 continue
+                            else:
+                                return encoding
+                    else:
+                        return "utf-8"
 
             # Default to UTF-8 if detection fails or confidence is low
-            return "utf-8"
 
         except (OSError, IOError, PermissionError) as e:
             self.logger.warning(f"File system error during encoding detection for {file_path}: {e}")
             return "utf-8"
         except Exception as e:
             self.logger.warning(f"Unexpected error during encoding detection for {file_path}: {e}")
+            return "utf-8"
+        else:
             return "utf-8"
 
     def _validate_json_file(self, file_path: Path) -> bool:
@@ -263,7 +266,6 @@ class ContentParser(IContentParser):
 
             with open(file_path, encoding="utf-8") as f:
                 json.load(f)
-            return True
         except (OSError, IOError, PermissionError):
             return False
         except (json.JSONDecodeError, UnicodeDecodeError):
@@ -272,6 +274,8 @@ class ContentParser(IContentParser):
             return False
         except Exception:
             return False
+        else:
+            return True
 
     def _validate_text_file(self, file_path: Path) -> bool:
         """Basic validation for text files."""
@@ -289,8 +293,6 @@ class ContentParser(IContentParser):
             if b"\x00" in first_bytes:
                 return False
 
-            return True
-
         except (OSError, IOError, PermissionError):
             return False
         except UnicodeDecodeError:
@@ -299,3 +301,5 @@ class ContentParser(IContentParser):
             return False
         except Exception:
             return False
+        else:
+            return True

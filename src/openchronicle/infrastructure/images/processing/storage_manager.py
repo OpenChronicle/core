@@ -79,10 +79,11 @@ class ImageStorageManager:
                     continue
 
             logger.info(f"Loaded metadata for {len(metadata)} images")
-            return metadata
         except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
-            logger.error(f"Failed to load image metadata: {e}")
+            logger.exception("Failed to load image metadata")
             return {}
+        else:
+            return metadata
 
     def _save_metadata(self):
         """Save image metadata to JSON file"""
@@ -101,7 +102,7 @@ class ImageStorageManager:
             temp_file.replace(self.metadata_file)
             logger.debug(f"Saved metadata for {len(data)} images")
         except (OSError, TypeError, ValueError) as e:
-            logger.error(f"Failed to save image metadata: {e}")
+            logger.exception("Failed to save image metadata")
             raise ImageValidationError(f"Could not save metadata: {e}")
 
     def generate_image_id(
@@ -248,7 +249,6 @@ class ImageStorageManager:
             self._save_metadata()
 
             logger.info(f"Stored image {image_id} at {file_path}")
-            return metadata
         except (OSError, ImageValidationError, ValueError, TypeError) as e:
             # Cleanup on failure
             if os.path.exists(file_path):
@@ -257,8 +257,10 @@ class ImageStorageManager:
                 except OSError:
                     pass
 
-            logger.error(f"Failed to store image {image_id}: {e}")
+            logger.exception("Failed to store image")
             raise ImageValidationError(f"Storage failed: {e}")
+        else:
+            return metadata
 
     def get_image_metadata(self, image_id: str) -> ImageMetadata | None:
         """Get metadata for an image"""
@@ -300,10 +302,11 @@ class ImageStorageManager:
             self._save_metadata()
 
             logger.info(f"Deleted image {image_id}")
-            return True
         except (OSError, KeyError) as e:
-            logger.error(f"Failed to delete image {image_id}: {e}")
+            logger.exception("Failed to delete image")
             return False
+        else:
+            return True
 
     def get_storage_stats(self) -> dict[str, Any]:
         """Get storage statistics"""
@@ -367,8 +370,8 @@ class ImageStorageManager:
                             orphaned_count += 1
                             logger.info(f"Removed orphaned file: {file_path}")
                         except OSError as e:
-                            logger.error(
-                                f"Failed to remove orphaned file {file_path}: {e}"
+                            logger.exception(
+                                "Failed to remove orphaned file"
                             )
 
         return orphaned_count

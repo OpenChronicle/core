@@ -245,7 +245,6 @@ class ModelLifecycleManager(IModelLifecycleManager):
                 }
 
                 log_info(f"Successfully initialized adapter {adapter_name}")
-                return True
 
             except Exception as e:
                 log_warning(
@@ -260,6 +259,8 @@ class ModelLifecycleManager(IModelLifecycleManager):
                     }
                     return False
                 await asyncio.sleep(1.0 * (attempt + 1))  # Exponential backoff
+            else:
+                return True
 
         return False
 
@@ -330,17 +331,6 @@ class ModelLifecycleManager(IModelLifecycleManager):
                 average_response_time=0.0,
                 metadata={"error": f"Adapter connectivity error: {e}"},
             )
-        except (AttributeError, KeyError) as e:
-            return AdapterStatus(
-                name=adapter_name,
-                is_available=False,
-                is_healthy=False,
-                last_health_check=datetime.now(UTC),
-                error_count=1,
-                success_count=0,
-                average_response_time=0.0,
-                metadata={"error": f"Data structure error: {e}"},
-            )
         except Exception as e:
             return AdapterStatus(
                 name=adapter_name,
@@ -391,11 +381,14 @@ class ModelLifecycleManager(IModelLifecycleManager):
                     "shutdown_time": datetime.now(UTC),
                 }
                 log_info(f"Successfully shutdown adapter {adapter_name}")
-                return True
-            return False
+                success = True
+            else:
+                success = False
         except Exception as e:
             log_error(f"Failed to shutdown adapter {adapter_name}: {e}")
             return False
+        else:
+            return success
 
     async def restart_adapter(self, adapter_name: str) -> bool:
         """Restart specific adapter with health validation."""
@@ -409,11 +402,14 @@ class ModelLifecycleManager(IModelLifecycleManager):
             if success:
                 # Perform health check
                 status = await self.health_check_adapter(adapter_name)
-                return status.is_healthy
-            return False
+                result = status.is_healthy
+            else:
+                result = False
         except Exception as e:
             log_error(f"Failed to restart adapter {adapter_name}: {e}")
             return False
+        else:
+            return result
 
     def is_adapter_available(self, adapter_name: str) -> bool:
         """Check if adapter is available for use."""
@@ -436,7 +432,7 @@ class ModelOrchestrator(IModelOrchestrator):
     def __init__(self, config: dict[str, Any] | None = None, registry_port: "IRegistryPort | None" = None):
         """
         Initialize the model orchestrator.
-        
+
         Args:
             config: Optional configuration dictionary
             registry_port: Optional registry port implementation (for dependency injection)
@@ -449,14 +445,14 @@ class ModelOrchestrator(IModelOrchestrator):
 
         # Register and resolve configuration manager with fallback for tests
         from .configuration_manager import ConfigurationManager
-        
+
         # Use provided registry port or create default fallback
         if registry_port is not None:
             self.registry_port = registry_port
         else:
             # Fallback for backward compatibility and tests
             from openchronicle.domain.ports.registry_port import IRegistryPort
-            
+
             class MockRegistryPort(IRegistryPort):
                 def get_provider_config(self, provider_name: str):
                     return {"enabled": True, "models": []}
@@ -470,7 +466,7 @@ class ModelOrchestrator(IModelOrchestrator):
                     return True
                 def discover_providers(self) -> dict[str, list[dict[str, Any]]]:
                     return {"mock_provider": [{"name": "mock_model", "type": "text"}]}
-            
+
             self.registry_port = MockRegistryPort()
 
         config_manager = ConfigurationManager(registry_port=self.registry_port)
@@ -684,12 +680,6 @@ class ModelOrchestrator(IModelOrchestrator):
 
         try:
             response = await self.generate_response(prompt, adapter)
-            return {
-                "success": True,
-                "response": response.response_text,
-                "adapter_used": response.adapter_name,
-                "metadata": response.metadata,
-            }
         except (
             ModelError,
             asyncio.TimeoutError,
@@ -699,3 +689,10 @@ class ModelOrchestrator(IModelOrchestrator):
             TypeError,
         ) as e:
             return {"error": str(e), "success": False}
+        else:
+            return {
+                "success": True,
+                "response": response.response_text,
+                "adapter_used": response.adapter_name,
+                "metadata": response.metadata,
+            }

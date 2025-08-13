@@ -23,6 +23,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from openchronicle.shared.exceptions import ModelResponseError
+
 
 # TODO: Import logging system when available
 # from utilities.logging_system import log_system_event
@@ -171,7 +173,7 @@ class MockAdapter:
 
             # Check for error simulation
             if random.random() < self.config.error_rate:
-                raise Exception("Simulated API error for testing")
+                raise ModelResponseError("Simulated API error for testing")
 
             # Analyze prompt for context
             context = self._analyze_prompt(prompt, **kwargs)
@@ -208,7 +210,7 @@ class MockAdapter:
 
         except Exception as e:
             log_system_event("adapter_error", f"Mock adapter error: {e!s}")
-            raise Exception(f"Mock adapter error: {e!s}")
+            raise ModelResponseError(f"Mock adapter error: {e!s}") from e
 
     async def _simulate_processing_time(self):
         """Simulate realistic API response time."""

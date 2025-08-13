@@ -237,12 +237,12 @@ class ContextOrchestrator:
                 f"Generated context: {len(final_context)} chars, {len(components_used)} components",
             )
 
-            return final_context
-
         except Exception as e:
             log_error(f"Context generation failed: {e!s}")
             # Return minimal fallback context
             return self._create_fallback_context(user_input, story_data)
+        else:
+            return final_context
 
     async def build_simple_context(
         self, story_data: dict[str, Any], config: ContextConfiguration | None = None
@@ -343,10 +343,10 @@ class ContextOrchestrator:
                     analysis_result["content_analysis"]
                 )
 
-            return ""
-
         except Exception as e:
             log_warning(f"Content analysis context generation failed: {e!s}")
+            return ""
+        else:
             return ""
 
     async def _build_narrative_context(
@@ -367,10 +367,10 @@ class ContextOrchestrator:
                     narrative_result["narrative_context"]
                 )
 
-            return ""
-
         except Exception as e:
             log_warning(f"Narrative context generation failed: {e!s}")
+            return ""
+        else:
             return ""
 
     def _assemble_context(

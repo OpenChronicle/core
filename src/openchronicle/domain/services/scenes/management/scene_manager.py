@@ -51,7 +51,7 @@ class SceneManager:
         self.repository = repository
 
         # If no persistence port provided, this violates hexagonal architecture
-        # The caller should always provide implementations  
+        # The caller should always provide implementations
         if persistence_port is None:
             raise ValueError(
                 "SceneManager requires a persistence_port implementation. "
@@ -128,7 +128,6 @@ class SceneManager:
                 scene_id=scene_id,
                 context_tags=["scene","rollback","success"],
             )
-            return True
 
         except (RuntimeError, ValueError, KeyError, TypeError) as e:  # narrowed
             log_error(
@@ -138,6 +137,8 @@ class SceneManager:
                 context_tags=["scene","rollback","error"],
             )
             raise RollbackSceneError(str(e)) from e
+        else:
+            return True
 
     def get_rollback_preview(self, scene_id: str) -> dict[str, Any]:
         """
@@ -304,15 +305,16 @@ class SceneManager:
             )[0]["count"]
 
             # Estimate potential savings (placeholder logic)
+
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
+            return {"error": f"Error analyzing scene data for compaction: {e}"}
+        else:
             return {
                 "total_scenes": total_scenes,
                 "compaction_performed": False,
                 "note": "Scene data compaction is not yet implemented",
                 "recommendation": "Scene data is already efficiently stored",
             }
-
-        except (RuntimeError, ValueError, KeyError, TypeError) as e:
-            return {"error": f"Error analyzing scene data for compaction: {e}"}
 
     def get_scene_dependencies(self, scene_id: str) -> dict[str, Any]:
         """

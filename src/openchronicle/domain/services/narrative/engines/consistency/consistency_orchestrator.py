@@ -86,12 +86,11 @@ class ConsistencyOrchestrator:
                         f"Memory consistency conflict for character {character_id}: "
                         f"{consistency_result['conflicts']}"
                     )
-
-            return validated_memories
-
         except Exception as e:
-            logger.error(f"Error adding memory for character {character_id}: {e}")
+            logger.exception("Error adding memory for character")
             raise
+        else:
+            return validated_memories
 
     def retrieve_relevant_memories(
         self, character_id: str, context: str, max_memories: int = 5

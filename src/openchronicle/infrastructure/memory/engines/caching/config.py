@@ -67,7 +67,7 @@ class DistributedCacheConfig(CacheConfig):
             enable_local_cache,
             local_cache_size,
         )
-        
+
         self.cluster_nodes = cluster_nodes or []
         self.enable_clustering = enable_clustering
         self.partition_config = partition_config or PartitionConfig([])

@@ -226,7 +226,7 @@ class ConfigManager:
             with open(config_path, encoding="utf-8") as f:
                 return json.load(f)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in config file {config_path}: {e}")
+            raise ValueError(f"Invalid JSON in config file {config_path}: {e}") from e
 
     def update_openchronicle_config(self, config_file: str, updates: dict[str, Any]):
         """
@@ -303,7 +303,7 @@ class ConfigManager:
             with open(import_path, encoding="utf-8") as f:
                 import_data = json.load(f)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in import file: {e}")
+            raise ValueError(f"Invalid JSON in import file: {e}") from e
 
         # Extract settings
         cli_config = import_data.get("cli_config", {})

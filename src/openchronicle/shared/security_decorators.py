@@ -57,7 +57,8 @@ def secure_input(*param_names: str, validation_type: str = "user_input"):
 
                         if not result.is_valid:
                             raise ValueError(
-                                f"Security validation failed for {param_name}: {result.error_message}"
+                                f"Security validation failed for {param_name}: "
+                                f"{result.error_message}"
                             )
 
                         # Replace with sanitized value if available
@@ -230,7 +231,8 @@ def rate_limited(max_calls: int = 100, window_seconds: int = 60, per_user: bool 
                 )
 
                 raise ValueError(
-                    f"Rate limit exceeded: {max_calls} calls per {window_seconds} seconds"
+                    f"Rate limit exceeded: {max_calls} calls per "
+                    f"{window_seconds} seconds"
                 )
 
             # Record this call
@@ -286,10 +288,13 @@ def security_monitored(threat_level: SecurityThreatLevel = SecurityThreatLevel.L
                             "user": user_id,
                         },
                     )
-
-                return result
-
-            except (RuntimeError, ValueError, KeyError, TypeError, PermissionError) as e:
+            except (
+                RuntimeError,
+                ValueError,
+                KeyError,
+                TypeError,
+                PermissionError,
+            ) as e:
                 # Record security event for failed operations
                 security_manager.monitor.record_security_violation(
                     SecurityViolationType.AUTHORIZATION,
@@ -298,6 +303,8 @@ def security_monitored(threat_level: SecurityThreatLevel = SecurityThreatLevel.L
                     f"Operation failed: {e!s}",
                 )
                 raise
+            else:
+                return result
 
         return wrapper
 
@@ -368,7 +375,7 @@ def secure_operation(
         file_path_params: List of file path parameters to validate
         sql_query_params: List of SQL query parameters to validate
         require_auth: Whether to require authentication
-        rate_limit: Rate limiting configuration {'max_calls': int, 'window_seconds': int}
+        rate_limit: Rate limiting config {'max_calls': int, 'window_seconds': int}
         monitor_level: Security monitoring threat level
 
     Example:

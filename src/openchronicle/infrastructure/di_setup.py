@@ -10,17 +10,17 @@ from openchronicle.infrastructure.adapters.registry_adapter import RegistryAdapt
 
 class DIContainer:
     """Simple dependency injection container."""
-    
+
     def __init__(self):
         self._registry_port = None
         self._persistence_port = None
-    
+
     def get_registry_port(self, config_path: str = None) -> IRegistryPort:
         """Get registry port implementation."""
         if self._registry_port is None:
             self._registry_port = RegistryAdapter(config_path=config_path)
         return self._registry_port
-    
+
     def get_persistence_port(self, storage_path: str = None) -> IPersistencePort:
         """Get persistence port implementation."""
         if self._persistence_port is None:

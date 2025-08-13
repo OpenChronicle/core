@@ -160,14 +160,14 @@ class ImageValidator:
                     f"Invalid file extension: {path.suffix}. Must be one of {valid_extensions}",
                 )
 
-            return True, None
-
         except (OSError, IOError, PermissionError) as e:
             return False, f"File system error validating path: {e}"
         except (ValueError, TypeError) as e:
             return False, f"Path parameter error: {e}"
         except Exception as e:
             return False, f"Invalid file path: {e}"
+        else:
+            return True, None
 
     @staticmethod
     def validate_image_size(size: ImageSize, provider: ImageProvider) -> bool:
@@ -254,8 +254,6 @@ class ImageValidator:
                     f"Insufficient storage space: {free_mb:.1f}MB available, {required_mb}MB required",
                 )
 
-            return True, None
-
         except (OSError, IOError) as e:
             return False, f"File system error checking storage space: {e}"
         except (ValueError, TypeError) as e:
@@ -264,6 +262,8 @@ class ImageValidator:
             return False, f"Module import error checking storage space: {e}"
         except Exception as e:
             return False, f"Could not check storage space: {e}"
+        else:
+            return True, None
 
     @staticmethod
     def sanitize_filename(filename: str) -> str:

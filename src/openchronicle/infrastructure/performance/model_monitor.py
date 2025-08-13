@@ -284,10 +284,12 @@ class PerformanceMonitor:
             if os.path.exists(registry_file):
                 with open(registry_file, encoding="utf-8") as f:
                     registry = json.load(f)
-                return registry.get("performance_tuning", {})
-            return {}
         except Exception as e:
             log_error(f"Error getting performance config: {e}")
+            return {}
+        else:
+            if os.path.exists(registry_file):
+                return registry.get("performance_tuning", {})
             return {}
 
     def is_monitoring_enabled(self) -> bool:
@@ -407,8 +409,6 @@ class PerformanceMonitor:
                     optimization_result = await self._apply_optimization(recommendation)
                     optimizations.append(optimization_result)
 
-            return optimizations
-
         except (KeyError, AttributeError) as e:
             log_error(f"Performance optimization data structure error: {e}")
             return []
@@ -416,6 +416,10 @@ class PerformanceMonitor:
             log_error(f"Performance optimization parameter error: {e}")
             return []
         except Exception as e:
+            log_error(f"Unexpected error in automatic optimizations: {e}")
+            return []
+        else:
+            return optimizations
             log_error(f"Failed to apply automatic optimizations: {e}")
             return []
 

@@ -171,7 +171,7 @@ class StabilityTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error tracking emotional state: {e}")
+            logger.exception("Error tracking emotional state")
             return {"error": str(e), "state_tracked": False}
 
     def is_behavior_on_cooldown(self, character_id: str, behavior: str) -> bool:
@@ -242,7 +242,7 @@ class StabilityTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error triggering behavior cooldown: {e}")
+            logger.exception("Error triggering behavior cooldown")
             return {"error": str(e), "cooldown_triggered": False}
 
     def get_current_emotional_state(self, character_id: str) -> dict[str, Any] | None:
@@ -368,7 +368,7 @@ class StabilityTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing stability patterns: {e}")
+            logger.exception("Error analyzing stability patterns")
             return {"error": str(e)}
 
     def get_cooldown_status(self, character_id: str) -> dict[str, dict]:
@@ -480,7 +480,7 @@ class StabilityTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error resetting character state: {e}")
+            logger.exception("Error resetting character state")
             return {"error": str(e)}
 
     def export_character_data(self, character_id: str) -> dict[str, Any]:
@@ -503,7 +503,7 @@ class StabilityTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error exporting character data: {e}")
+            logger.exception("Error exporting character data")
             return {"error": str(e)}
 
     def import_character_data(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -534,7 +534,7 @@ class StabilityTracker:
             }
 
         except Exception as e:
-            logger.error(f"Error importing character data: {e}")
+            logger.exception("Error importing character data")
             return {"error": str(e)}
 
     def _update_stability_metrics(self, character_id: str) -> None:

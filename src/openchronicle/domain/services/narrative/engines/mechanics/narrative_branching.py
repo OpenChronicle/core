@@ -236,36 +236,6 @@ class NarrativeBranchingEngine:
                 },
             )
 
-            return branches
-
-        except ValueError as e:
-            log_error_with_context(
-                e,
-                context={
-                    "component": "NarrativeBranchingEngine",
-                    "phase": "create_branches:validation_error",
-                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
-                    "resolution_type": getattr(
-                        resolution_result.resolution_type, "name", str(resolution_result.resolution_type)
-                    ),
-                    "character_id": getattr(resolution_result, "character_id", None),
-                },
-            )
-            raise NarrativeSystemError(f"Invalid branch parameters: {e}")
-        except AttributeError as e:
-            log_error_with_context(
-                e,
-                context={
-                    "component": "NarrativeBranchingEngine",
-                    "phase": "create_branches:structure_error",
-                    "outcome": getattr(resolution_result.outcome, "name", str(resolution_result.outcome)),
-                    "resolution_type": getattr(
-                        resolution_result.resolution_type, "name", str(resolution_result.resolution_type)
-                    ),
-                    "character_id": getattr(resolution_result, "character_id", None),
-                },
-            )
-            raise NarrativeSystemError(f"Branch data structure error: {e}")
         except (ValueError, TypeError) as e:
             log_error_with_context(
                 e,
@@ -302,6 +272,8 @@ class NarrativeBranchingEngine:
                 },
             )
             raise NarrativeSystemError(f"Branch creation failed: {e}")
+        else:
+            return branches
 
     def _create_branch_from_template(
         self,

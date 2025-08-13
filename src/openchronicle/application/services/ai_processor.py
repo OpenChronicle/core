@@ -14,7 +14,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
 
-from openchronicle.shared.exceptions import ModelError, ServiceError
+from openchronicle.shared.exceptions import ModelError
+from openchronicle.shared.exceptions import ServiceError
 from openchronicle.shared.retry_policy import RetryPolicy
 
 
@@ -39,7 +40,7 @@ class AIProcessor:
     """
     Core AI processing service that orchestrates AI-powered operations
     across the OpenChronicle system.
-    
+
     Uses dependency injection to access model management and content analysis
     capabilities while remaining decoupled from infrastructure implementations.
     """
@@ -53,7 +54,7 @@ class AIProcessor:
         self.config = config or AIProcessingConfig()
         self.model_management_port = model_management_port
         self.content_analysis_port = content_analysis_port
-        
+
         # Set up retry policy if enabled
         if self.config.enable_retry_policy:
             self.retry_policy = RetryPolicy(
@@ -74,21 +75,21 @@ class AIProcessor:
     ) -> str:
         """
         Generate AI response using the configured model management port.
-        
+
         Args:
             prompt: The input prompt for AI generation
             story_id: Optional story context identifier
             adapter_name: Optional specific adapter to use
             max_tokens: Optional token limit override
             temperature: Optional temperature override
-            
+
         Returns:
             Generated AI response text
         """
         # Use config defaults if not specified
         tokens = max_tokens or self.config.default_max_tokens
         temp = temperature or self.config.default_temperature
-        
+
         if self.model_management_port is not None:
             # Use injected port
             async def _attempt():
@@ -99,7 +100,7 @@ class AIProcessor:
                     max_tokens=tokens,
                     temperature=temp,
                 )
-            
+
             if self.retry_policy:
                 return await self.retry_policy.run(_attempt)
             else:
@@ -109,7 +110,7 @@ class AIProcessor:
             from openchronicle.domain.ports.model_management_port import (
                 IModelManagementPort,
             )
-            
+
             class MockModelManagementPort(IModelManagementPort):
                 async def generate_response(
                     self,
@@ -120,13 +121,13 @@ class AIProcessor:
                     temperature: float | None = None,
                 ) -> str:
                     return f"[Mock AI Response for prompt: {prompt[:50]}...]"
-                
+
                 async def get_available_adapters(self) -> list[str]:
                     return ["mock_adapter"]
-                
+
                 async def validate_adapter(self, adapter_name: str) -> bool:
                     return adapter_name == "mock_adapter"
-            
+
             mock_port = MockModelManagementPort()
             return await mock_port.generate_response(
                 prompt=prompt,
@@ -143,17 +144,17 @@ class AIProcessor:
     ) -> dict[str, Any]:
         """
         Analyze content using AI-powered analysis capabilities.
-        
+
         Args:
             content: The content to analyze
             analysis_type: Type of analysis ("sentiment", "themes", "classification")
-            
+
         Returns:
             Analysis results dictionary
         """
         if not self.config.enable_content_analysis:
             return {"analysis_disabled": True}
-        
+
         if self.content_analysis_port is not None:
             # Use injected port
             if analysis_type == "sentiment":
@@ -172,21 +173,21 @@ class AIProcessor:
             from openchronicle.domain.ports.content_analysis_port import (
                 IContentAnalysisPort,
             )
-            
+
             class MockContentAnalysisPort(IContentAnalysisPort):
                 async def generate_content_flags(
                     self, analysis: dict[str, Any], content: str
                 ) -> list[dict[str, Any]]:
                     return [{"name": "mock_flag", "value": "test", "type": "content"}]
-                
+
                 async def analyze_content_sentiment(self, content: str) -> dict[str, Any]:
                     return {"sentiment": "neutral", "confidence": 0.5, "mock": True}
-                
+
                 async def detect_content_themes(self, content: str) -> list[str]:
                     return ["general", "mock"]
-            
+
             mock_port = MockContentAnalysisPort()
-            
+
             if analysis_type == "sentiment":
                 return await mock_port.analyze_content_sentiment(content)
             elif analysis_type == "themes":
@@ -205,21 +206,21 @@ class AIProcessor:
     ) -> list[dict[str, Any]]:
         """
         Generate content flags for the given content.
-        
+
         Args:
             content: Content to analyze for flags
             analysis_data: Optional pre-computed analysis data
-            
+
         Returns:
             List of content flags
         """
         if not self.config.enable_content_analysis:
             return []
-        
+
         # Use existing analysis or compute new one
         if analysis_data is None:
             analysis_data = await self.analyze_content(content)
-        
+
         if self.content_analysis_port is not None:
             return await self.content_analysis_port.generate_content_flags(
                 analysis_data, content
@@ -243,12 +244,12 @@ class AIProcessor:
     ) -> str:
         """
         Use AI to enhance or improve content.
-        
+
         Args:
             content: Content to enhance
             enhancement_type: Type of enhancement ("improve", "expand", "summarize")
             context: Optional context for enhancement
-            
+
         Returns:
             Enhanced content
         """
@@ -261,12 +262,12 @@ class AIProcessor:
             prompt = f"Summarize the following content concisely:\n\n{content}"
         else:
             prompt = f"Process the following content ({enhancement_type}):\n\n{content}"
-        
+
         # Add context if provided
         if context:
             context_str = "\n".join(f"{k}: {v}" for k, v in context.items())
             prompt = f"Context:\n{context_str}\n\n{prompt}"
-        
+
         # Generate enhanced content
         return await self.generate_response(
             prompt=prompt,
@@ -277,7 +278,7 @@ class AIProcessor:
     async def get_processing_capabilities(self) -> dict[str, Any]:
         """
         Get information about available AI processing capabilities.
-        
+
         Returns:
             Dictionary describing available capabilities
         """
@@ -287,7 +288,7 @@ class AIProcessor:
             "content_enhancement": True,
             "retry_policy": self.config.enable_retry_policy,
         }
-        
+
         if self.model_management_port is not None:
             try:
                 adapters = await self.model_management_port.get_available_adapters()
@@ -301,7 +302,7 @@ class AIProcessor:
                 capabilities["available_adapters"] = ["unknown_error"]
         else:
             capabilities["available_adapters"] = ["mock_adapter"]
-        
+
         return capabilities
 
 

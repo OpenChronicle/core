@@ -122,13 +122,6 @@ class CharacterManager:
                 updated_fields=[],
                 warnings=[f"Memory storage error: {e!s}"],
             )
-        except (AttributeError, KeyError) as e:
-            return CharacterUpdateResult(
-                success=False,
-                character_name=character_name,
-                updated_fields=[],
-                warnings=[f"Data structure error: {e!s}"],
-            )
         except Exception as e:
             return CharacterUpdateResult(
                 success=False,
@@ -198,11 +191,10 @@ class CharacterManager:
             # Add recent dialogue (last 10 entries)
             if character.dialogue_history:
                 snapshot["recent_dialogue"] = character.dialogue_history[-10:]
-
-            return snapshot
-
         except Exception:
             return {}
+        else:
+            return snapshot
 
     def update_character_mood(
         self,

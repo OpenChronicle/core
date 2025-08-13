@@ -255,8 +255,6 @@ class FileSystemCache(BaseCache):
             async with aiofiles.open(cache_file, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(entry.to_dict(), indent=2))
 
-            return value
-
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors specifically for cache file operations
             print(f"File system error reading cache file {cache_file}: {e}")
@@ -268,6 +266,8 @@ class FileSystemCache(BaseCache):
         except Exception as e:
             print(f"Unexpected error reading cache file {cache_file}: {e}")
             return None
+        else:
+            return value
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """Set key-value pair with optional TTL."""
@@ -282,8 +282,6 @@ class FileSystemCache(BaseCache):
                 async with aiofiles.open(cache_file, "w", encoding="utf-8") as f:
                     await f.write(json.dumps(entry.to_dict(), indent=2, default=str))
 
-                return True
-
             except (OSError, IOError, PermissionError) as e:
                 # Handle file system errors specifically for cache file writing
                 print(f"File system error writing cache file for key {key}: {e}")
@@ -295,6 +293,8 @@ class FileSystemCache(BaseCache):
             except Exception as e:
                 print(f"Unexpected error writing cache file for key {key}: {e}")
                 return False
+            else:
+                return True
 
     async def delete(self, key: str) -> bool:
         """Delete key."""
@@ -303,8 +303,6 @@ class FileSystemCache(BaseCache):
         try:
             if cache_file.exists():
                 cache_file.unlink()
-                return True
-            return False
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors specifically for cache file deletion
             print(f"File system error deleting cache file {cache_file}: {e}")
@@ -312,13 +310,14 @@ class FileSystemCache(BaseCache):
         except Exception as e:
             print(f"Unexpected error deleting cache file {cache_file}: {e}")
             return False
+        else:
+            return True
 
     async def clear(self) -> bool:
         """Clear all cached entries."""
         try:
             for cache_file in self.cache_dir.glob("*.cache"):
                 cache_file.unlink()
-            return True
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors specifically for cache clearing operations
             print(f"File system error clearing cache: {e}")
@@ -326,6 +325,8 @@ class FileSystemCache(BaseCache):
         except Exception as e:
             print(f"Unexpected error clearing cache: {e}")
             return False
+        else:
+            return True
 
     async def exists(self, key: str) -> bool:
         """Check if key exists and is not expired."""
@@ -346,8 +347,6 @@ class FileSystemCache(BaseCache):
                 await self.delete(key)
                 return False
 
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors during cache existence check
             print(f"File system error checking cache existence for {key}: {e}")
@@ -359,6 +358,8 @@ class FileSystemCache(BaseCache):
         except Exception as e:
             print(f"Unexpected error checking cache existence for {key}: {e}")
             return False
+        else:
+            return True
 
     async def _evict_if_needed(self):
         """Evict old files if cache is at capacity."""

@@ -135,9 +135,10 @@ class ValidationManager:
         try:
             # Test JSON serialization
             json.dumps(metadata)
-            return metadata
         except (TypeError, ValueError) as e:
             raise ManagementException(f"Metadata is not JSON-serializable: {e}")
+        else:
+            return metadata
 
     def validate_search_query(self, query: str | None) -> str | None:
         """Validate search query."""

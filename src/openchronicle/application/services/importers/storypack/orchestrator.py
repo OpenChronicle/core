@@ -11,7 +11,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from openchronicle.shared.exceptions import ServiceError, ValidationError, InfrastructureError
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info

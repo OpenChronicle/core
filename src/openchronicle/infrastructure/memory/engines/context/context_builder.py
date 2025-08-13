@@ -109,15 +109,14 @@ class ContextBuilder:
                 full_context = self._truncate_context(
                     full_context, config.max_context_length
                 )
-
-            return full_context
-
         except (AttributeError, KeyError):
             return f"{self.section_templates['header']}\n[Data structure error loading memory context]"
         except (ValueError, TypeError):
             return f"{self.section_templates['header']}\n[Template processing error loading memory context]"
         except Exception:
             return f"{self.section_templates['header']}\n[Error loading memory context]"
+        else:
+            return full_context
 
     def build_character_focused_context(
         self,
@@ -218,7 +217,7 @@ class ContextBuilder:
         else:
             # All characters with equal treatment
             context_lines.append(self.section_templates["all_characters"])
-            for char_name, char_data in characters.items():
+            for _char_name, char_data in characters.items():
                 char_context = self._format_character_context(
                     char_data, config.character_detail_level
                 )

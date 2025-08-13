@@ -188,8 +188,6 @@ class MemoryAdapter(IMemoryPort):
             with open(backup_path, "w", encoding="utf-8") as f:
                 json.dump(backup_data, f, indent=2, ensure_ascii=False)
 
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             print(f"File system error in memory backup: {e}")
             return False
@@ -198,6 +196,9 @@ class MemoryAdapter(IMemoryPort):
             return False
         except Exception as e:
             print(f"Memory backup error: {e}")
+            return False
+        else:
+            return True
             return False
 
     def restore_memories(self, story_id: str, backup_name: str) -> bool:
@@ -233,8 +234,6 @@ class MemoryAdapter(IMemoryPort):
             for char_name, memory_data in backup_data.items():
                 orchestrator.store_character_memory(char_name, memory_data)
 
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             print(f"File system error in memory restore: {e}")
             return False
@@ -242,11 +241,10 @@ class MemoryAdapter(IMemoryPort):
             print(f"JSON decode error in memory restore: {e}")
             return False
         except (ImportError, ModuleNotFoundError) as e:
-            print(f"Memory module import error: {e}")
-            return False
-        except (AttributeError, KeyError) as e:
-            print(f"Memory restore data error: {e}")
+            print(f"Import error in memory restore: {e}")
             return False
         except Exception as e:
             print(f"Memory restore error: {e}")
             return False
+        else:
+            return True

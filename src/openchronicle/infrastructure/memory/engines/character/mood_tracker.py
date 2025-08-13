@@ -104,30 +104,8 @@ class MoodTracker:
                 recent_triggers=recent_triggers,
             )
 
-        except (AttributeError, ValueError) as e:
-            # Data structure or calculation error
-            return MoodAnalysis(
-                character_name=character.name,
-                current_mood=character.current_mood,
-                dominant_mood=character.current_mood,
-                mood_stability=0.5,
-                mood_changes_today=0,
-                emotional_trend="unknown",
-                recent_triggers=[],
-            )
-        except (AttributeError, KeyError) as e:
-            # Return basic analysis on data structure error
-            return MoodAnalysis(
-                character_name=character.name,
-                current_mood=character.current_mood,
-                dominant_mood=character.current_mood,
-                mood_stability=0.5,
-                mood_changes_today=0,
-                emotional_trend="unknown",
-                recent_triggers=[],
-            )
-        except (ValueError, TypeError):
-            # Return basic analysis on calculation error
+        except (AttributeError, KeyError, ValueError, TypeError) as e:
+            # Data structure or calculation error - return basic analysis
             return MoodAnalysis(
                 character_name=character.name,
                 current_mood=character.current_mood,
@@ -171,11 +149,9 @@ class MoodTracker:
             if stability_pattern:
                 patterns.append(stability_pattern)
 
-        except (AttributeError, ValueError):
-            # Data structure or calculation error
+        except (AttributeError, KeyError, ValueError):
+            # Data structure or calculation error - return empty patterns
             pass
-        except (AttributeError, KeyError):
-            pass  # Return empty patterns on data structure error
         except Exception:
             pass  # Return empty patterns on error
 

@@ -6,7 +6,7 @@ Coordinates modular caching engines for enhanced functionality.
 
 Features:
 - Redis Cluster support
-- Cache partitioning  
+- Cache partitioning
 - Advanced monitoring
 - Cache warming
 - Modular component architecture
@@ -49,16 +49,16 @@ except ImportError:
 
 class RetryPolicy:
     """Simple retry policy for monitoring operations."""
-    
+
     def __init__(self, max_attempts: int = 3, base_delay: float = 0.5, retry_exceptions: tuple = (Exception,)):
         self.max_attempts = max_attempts
         self.base_delay = base_delay
         self.retry_exceptions = retry_exceptions
-    
+
     async def run(self, func):
         """Run function with retry policy."""
         last_exception = None
-        
+
         for attempt in range(self.max_attempts):
             try:
                 if asyncio.iscoroutinefunction(func):
@@ -70,7 +70,7 @@ class RetryPolicy:
                 if attempt < self.max_attempts - 1:
                     await asyncio.sleep(self.base_delay * (2 ** attempt))
                 continue
-        
+
         raise last_exception
 
 
@@ -116,7 +116,7 @@ class DistributedMultiTierCache(MultiTierCache):
         """Start background monitoring task."""
 
         async def monitor():
-            policy = RetryPolicy(max_attempts=3, base_delay=0.5, 
+            policy = RetryPolicy(max_attempts=3, base_delay=0.5,
                                retry_exceptions=(CacheError, CacheConnectionError))
             while True:
                 try:
@@ -125,15 +125,15 @@ class DistributedMultiTierCache(MultiTierCache):
                         await policy.run(lambda: self._collect_metrics())
                     except (CacheError, CacheConnectionError) as e:
                         # Final failure after retries; logged inside _collect_metrics as well
-                        self.logger.error(f"Monitoring collection failed after retries: {e}")
+                        self.logger.exception("Monitoring collection failed after retries")
                         raise InfrastructureError(f"Cache monitoring failed: {e}") from e
                 except asyncio.CancelledError:
                     break
                 except (ConnectionError, OSError) as e:
-                    self.logger.error(f"Network/system error in monitoring: {e}")
+                    self.logger.exception("Network/system error in monitoring")
                     # Don't break the loop for network issues, continue monitoring
                 except Exception as e:
-                    self.logger.error(f"Unexpected monitoring error: {e}")
+                    self.logger.exception("Unexpected monitoring error")
                     # For truly unexpected errors, we still continue but log more detail
                     import traceback
                     self.logger.debug(f"Full traceback: {traceback.format_exc()}")
@@ -188,7 +188,7 @@ class DistributedMultiTierCache(MultiTierCache):
             # Re-raise cache-specific errors
             raise
         except Exception as e:
-            self.logger.error(f"Unexpected metrics collection error: {e}")
+            self.logger.exception("Unexpected metrics collection error")
             raise InfrastructureError(f"Metrics collection failed: {e}") from e
 
     def _make_key(self, *args: str) -> str:
@@ -245,17 +245,18 @@ class DistributedMultiTierCache(MultiTierCache):
                         value = json.loads(redis_value)
                         if self.local_cache is not None:
                             self.local_cache[key] = value
-                        return value
                     except json.JSONDecodeError:
-                        self.logger.error(
-                            f"Failed to deserialize Redis value for key: {key}"
+                        self.logger.exception(
+                            "Failed to deserialize Redis value for key"
                         )
+                    else:
+                        return value
                 else:
                     self.metrics.record_miss("redis")
 
             except Exception as e:
-                self.logger.error(
-                    f"Redis error for key {key} on node {node_index}: {e}"
+                self.logger.exception(
+                    f"Redis error for key {key} on node"
                 )
                 self.metrics.record_cluster_operation(
                     f"node_{node_index}", "get", False, time.time() - redis_start
@@ -288,7 +289,7 @@ class DistributedMultiTierCache(MultiTierCache):
             try:
                 self.local_cache[key] = value
             except Exception as e:
-                self.logger.error(f"Local cache error for key {key}: {e}")
+                self.logger.exception("Local cache error for key")
                 success = False
 
         # Store in distributed Redis
@@ -322,8 +323,8 @@ class DistributedMultiTierCache(MultiTierCache):
                 await self._replicate_to_replicas(key, value, ttl, node_index)
 
             except Exception as e:
-                self.logger.error(
-                    f"Redis cache error for key {key} on node {node_index}: {e}"
+                self.logger.exception(
+                    f"Redis cache error for key {key} on node"
                 )
                 self.metrics.record_cluster_operation(
                     f"node_{node_index}", "set", False, time.time() - start_time

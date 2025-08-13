@@ -58,10 +58,10 @@ class MemoryUtilities:
             return json.dumps(data, default=str, ensure_ascii=False, indent=None)
 
         except (TypeError, ValueError) as e:
-            logger.error(f"Error serializing memory data (type/value): {e}")
+            logger.exception("Error serializing memory data (type/value)")
             return "{}"
         except json.JSONDecodeError as e:  # unlikely during dumps
-            logger.error(f"JSON encode error: {e}")
+            logger.exception("JSON encode error")
             return "{}"
 
     @staticmethod
@@ -82,10 +82,10 @@ class MemoryUtilities:
             return json.loads(data)
 
         except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
+            logger.exception("JSON decode error")
             return {}
         except (TypeError, ValueError) as e:
-            logger.error(f"Error deserializing memory data (type/value): {e}")
+            logger.exception("Error deserializing memory data (type/value)")
             return {}
 
     @staticmethod

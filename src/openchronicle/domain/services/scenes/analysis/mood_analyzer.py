@@ -128,8 +128,6 @@ class MoodAnalyzer:
 
                 results.append(scene_data)
 
-            return results
-
         except (sqlite3.Error, sqlite3.DatabaseError) as e:
             log_error_with_context(e, {"operation": "get_scenes_by_mood", "story_id": self.story_id, "mood": mood})
             return []
@@ -139,6 +137,8 @@ class MoodAnalyzer:
         except Exception as e:
             log_error_with_context(e, {"operation": "get_scenes_by_mood", "story_id": self.story_id, "mood": mood})
             return []
+        else:
+            return results
 
     def get_scenes_by_type(self, scene_type: str) -> list[dict[str, Any]]:
         """
@@ -193,8 +193,6 @@ class MoodAnalyzer:
 
                 results.append(scene_data)
 
-            return results
-
         except (sqlite3.Error, sqlite3.DatabaseError) as e:
             log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
             return []
@@ -204,6 +202,8 @@ class MoodAnalyzer:
         except Exception as e:
             log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
             return []
+        else:
+            return results
 
     def get_character_mood_timeline(self, character_name: str) -> list[dict[str, Any]]:
         """
@@ -250,14 +250,26 @@ class MoodAnalyzer:
             # Add trend analysis
             timeline_with_trends = self._add_mood_trends(timeline)
 
-            return timeline_with_trends
-
         except (AttributeError, KeyError) as e:
-            log_error_with_context(e, {"operation": "get_character_mood_timeline_data_error", "story_id": self.story_id, "character_name": character_name})
+            log_error_with_context(
+                e, {
+                    "operation": "get_character_mood_timeline_data_error",
+                    "story_id": self.story_id,
+                    "character_name": character_name
+                }
+            )
             return []
         except Exception as e:
-            log_error_with_context(e, {"operation": "get_character_mood_timeline", "story_id": self.story_id, "character_name": character_name})
+            log_error_with_context(
+                e, {
+                    "operation": "get_character_mood_timeline",
+                    "story_id": self.story_id,
+                    "character_name": character_name
+                }
+            )
             return []
+        else:
+            return timeline_with_trends
 
     def get_mood_distribution(self) -> dict[str, Any]:
         """
@@ -352,10 +364,10 @@ class MoodAnalyzer:
                     mood_info["characters_with_mood"].append(char_name)
                     mood_info["mood_details"][char_name] = mood_data
 
-            return mood_info
-
         except (json.JSONDecodeError, TypeError):
             return {}
+        else:
+            return mood_info
 
     def _extract_scene_type_info(self, structured_tags: str | None) -> dict[str, Any]:
         """Extract scene type information from structured tags."""

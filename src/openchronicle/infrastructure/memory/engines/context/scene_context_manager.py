@@ -317,10 +317,10 @@ class SceneContextManager:
                     )
                 updates["flags_added"] = len(scene_outcomes["flags"])
 
-            return updates
-
         except (TypeError, ValueError, KeyError, AttributeError):
             return {}
+        else:
+            return updates
 
     def _generate_time_context(self, memory: MemorySnapshot) -> str:
         """Generate time context description."""
@@ -356,25 +356,27 @@ class SceneContextManager:
                         character_moods.append(char_mood)
 
             if not character_moods:
-                return "neutral"
-
+                mood_result = "neutral"
             # Simple mood aggregation (could be more sophisticated)
-            if any(
+            elif any(
                 mood in ["angry", "hostile", "frustrated"] for mood in character_moods
             ):
-                return "tense"
-            if any(
+                mood_result = "tense"
+            elif any(
                 mood in ["happy", "excited", "cheerful"] for mood in character_moods
             ):
-                return "upbeat"
-            if any(
+                mood_result = "upbeat"
+            elif any(
                 mood in ["sad", "melancholy", "depressed"] for mood in character_moods
             ):
-                return "somber"
-            return "neutral"
+                mood_result = "somber"
+            else:
+                mood_result = "neutral"
 
         except (TypeError, ValueError, KeyError, AttributeError):
             return "neutral"
+        else:
+            return mood_result
 
     def _create_scene_context_config(
         self, scene_type: str, active_characters: list[str]
@@ -490,21 +492,21 @@ class SceneContextManager:
             )
 
             if not common_chars:
-                return 1.0  # No overlap, no inconsistency
+                consistency_score = 1.0  # No overlap, no inconsistency
+            else:
+                consistency_score = 1.0
 
-            consistency_score = 1.0
-
-            # Check mood consistency (gradual changes are expected)
-            for char_name in common_chars:
-                if char_name in memory.characters:
-                    # In a full implementation, would compare previous vs current character state
-                    # For now, assume consistency
-                    pass
-
-            return consistency_score
+                # Check mood consistency (gradual changes are expected)
+                for char_name in common_chars:
+                    if char_name in memory.characters:
+                        # In a full implementation, would compare previous vs current character state
+                        # For now, assume consistency
+                        pass
 
         except (TypeError, ValueError, KeyError, AttributeError):
             return 0.5
+        else:
+            return consistency_score
 
     def _check_world_state_consistency(
         self, prev_context: SceneContext, curr_context: SceneContext
@@ -615,20 +617,20 @@ class SceneContextManager:
                     ("evening", "night"),
                     ("night", "morning"),
                 ]
-                return (old_str, new_str) in reasonable_progressions
-
+                result = (old_str, new_str) in reasonable_progressions
             # Weather changes
-            if key == "weather":
+            elif key == "weather":
                 # Most weather changes are reasonable
-                return True
-
+                result = True
             # Threat level changes
-            if key == "threat_level":
+            elif key == "threat_level":
                 # Threat can escalate or de-escalate
-                return True
-
-            # Default: assume reasonable
-            return True
+                result = True
+            else:
+                # Default: assume reasonable
+                result = True
 
         except (TypeError, ValueError, KeyError, AttributeError):
             return True  # Assume reasonable if we can't determine
+        else:
+            return result

@@ -3,8 +3,25 @@ OpenChronicle Core - Narrative State Manager
 
 Handles all narrative state management, validation, and persistence.
 Extracted from narrative_orchestrator.py for better separation of concerns.
+            log_system_event(
+                "narrative_states_loaded",
+                f"Loaded {len(self.narrative_states)} narrative states",
+            )
 
-Author: OpenChronicle Development Team
+        except (OSError, IOError, PermissionError) as e:
+            log_error(f"File access error loading narrative states: {e}")
+            return False
+        except json.JSONDecodeError as e:
+            log_error(f"JSON decode error loading narrative states: {e}")
+            return False
+        except (ValueError, TypeError) as e:
+            log_error(f"Data validation error loading narrative states: {e}")
+            return False
+        except Exception as e:
+            log_error(f"Unexpected error loading narrative states: {e}")
+            return False
+        else:
+            return Trueicle Development Team
 """
 
 import json
@@ -93,14 +110,14 @@ class NarrativeStateManager:
                 f"Updated narrative state for story {story_id}: {list(kwargs.keys())}",
             )
 
-            return True
-
         except (AttributeError, TypeError, ValueError) as e:
             log_error(f"Invalid narrative state data for {story_id}: {e}")
             return False
         except Exception as e:
             log_error(f"Unexpected error updating narrative state for {story_id}: {e}")
             return False
+        else:
+            return True
 
     def get_character_narrative_context(
         self, story_id: str, character_id: str
@@ -142,8 +159,6 @@ class NarrativeStateManager:
                 f"Updated narrative state for character {character_id} in story {story_id}",
             )
 
-            return True
-
         except (AttributeError, TypeError, KeyError) as e:
             log_error(
                 f"Invalid character narrative data for {character_id} in {story_id}: {e}"
@@ -154,6 +169,8 @@ class NarrativeStateManager:
                 f"Unexpected error updating character narrative state for {character_id} in {story_id}: {e}"
             )
             return False
+        else:
+            return True
 
     def save_states(self) -> bool:
         """Save current narrative states to disk."""
@@ -171,8 +188,6 @@ class NarrativeStateManager:
                 f"Saved {len(self.narrative_states)} narrative states",
             )
 
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving narrative states: {e}")
             return False
@@ -182,6 +197,8 @@ class NarrativeStateManager:
         except Exception as e:
             log_error(f"Unexpected error saving narrative states: {e}")
             return False
+        else:
+            return True
 
     def load_states(self) -> bool:
         """Load narrative states from disk."""
@@ -203,8 +220,6 @@ class NarrativeStateManager:
                 f"Loaded {len(self.narrative_states)} narrative states",
             )
 
-            return True
-
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File access error loading narrative states: {e}")
             return False
@@ -217,6 +232,8 @@ class NarrativeStateManager:
         except Exception as e:
             log_error(f"Error loading narrative states: {e}")
             return False
+        else:
+            return True
 
     def get_active_stories_count(self) -> int:
         """Get count of active stories."""
@@ -250,8 +267,6 @@ class NarrativeStateManager:
                     f"Cleaned up {removed_count} old narrative states",
                 )
 
-            return removed_count
-
         except (AttributeError, KeyError) as e:
             log_error(f"Data structure error cleaning up narrative states: {e}")
             return 0
@@ -261,3 +276,5 @@ class NarrativeStateManager:
         except Exception as e:
             log_error(f"Error cleaning up narrative states: {e}")
             return 0
+        else:
+            return removed_count

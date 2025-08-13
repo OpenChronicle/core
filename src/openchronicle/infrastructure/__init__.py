@@ -26,7 +26,11 @@ Architecture Principles:
 - Performance-Focused: Caching and optimization built-in
 """
 
-from openchronicle.shared.exceptions import InfrastructureError, ModelError, ConfigurationError, ServiceError
+from openchronicle.shared.exceptions import ConfigurationError
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import ModelError
+from openchronicle.shared.exceptions import ServiceError
+
 from .adapters import AnthropicAdapter
 from .adapters import BaseModelAdapter
 from .adapters import MockModelAdapter
@@ -261,19 +265,19 @@ class InfrastructureContainer:
             }
         except (InfrastructureError, ServiceError) as e:
             results["components"]["cache"] = {
-                "status": "unhealthy", 
+                "status": "unhealthy",
                 "error": f"Infrastructure error: {str(e)}"
             }
             results["status"] = "degraded"
         except (AttributeError, KeyError) as e:
             results["components"]["cache"] = {
-                "status": "unhealthy", 
+                "status": "unhealthy",
                 "error": f"Data structure error: {str(e)}"
             }
             results["status"] = "degraded"
         except Exception as e:
             results["components"]["cache"] = {
-                "status": "unhealthy", 
+                "status": "unhealthy",
                 "error": f"Unexpected error: {str(e)}"
             }
             results["status"] = "degraded"

@@ -109,7 +109,6 @@ class NarrativeStateManager:
 
             state.last_update = datetime.now().isoformat()
             self._save_states()
-            return True
 
         except (AttributeError, KeyError) as e:
             log_error(
@@ -144,6 +143,8 @@ class NarrativeStateManager:
                 ],
             )
             return False
+        else:
+            return True
 
     def _save_states(self):
         """Save states to storage."""

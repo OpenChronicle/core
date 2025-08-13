@@ -105,9 +105,10 @@ class WorldStateManager:
                 updates=validated_updates, source=source, description=description
             )
             self._log_world_state_changes(validated_updates, source)
-            return update_record
         except (TypeError, ValueError, KeyError, AttributeError):
             return WorldStateUpdate(updates={}, description="Update failed")
+        else:
+            return update_record
 
     def add_world_event(
         self,
@@ -151,14 +152,14 @@ class WorldStateManager:
             # Check for world state implications
             self._process_event_implications(event, memory)
 
-            return event
-
         except (TypeError, ValueError, KeyError, AttributeError):
             return WorldEvent(
                 description=event_description,
                 event_type="error",
                 timestamp=datetime.now(UTC),
             )
+        else:
+            return event
 
     def add_memory_flag(
         self,
@@ -196,12 +197,12 @@ class WorldStateManager:
             # Clean up expired flags
             self._cleanup_expired_flags(memory)
 
-            return flag
-
         except (TypeError, ValueError, KeyError, AttributeError):
             return MemoryFlag(
                 name=flag_name, flag_type="error", timestamp=datetime.now(UTC)
             )
+        else:
+            return flag
 
     def remove_memory_flag(self, memory: MemorySnapshot, flag_name: str) -> bool:
         """Remove a memory flag by name."""
@@ -237,10 +238,10 @@ class WorldStateManager:
                 if flag_type is None or flag_data.get("flag_type") == flag_type:
                     flags.append(MemoryFlag.from_dict(flag_data))
 
-            return flags
-
         except (TypeError, ValueError, KeyError, AttributeError):
             return []
+        else:
+            return flags
 
     def query_events(
         self, memory: MemorySnapshot, event_filter: EventFilter
@@ -276,10 +277,10 @@ class WorldStateManager:
                 if len(events) >= event_filter.max_results:
                     break
 
-            return events
-
         except (TypeError, ValueError, KeyError, AttributeError):
             return []
+        else:
+            return events
 
     def analyze_world_state(self, memory: MemorySnapshot) -> WorldStateAnalysis:
         """Analyze world state for consistency and completeness."""

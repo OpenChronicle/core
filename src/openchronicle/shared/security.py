@@ -136,7 +136,10 @@ class InputValidator:
                 is_valid=False,
                 threat_level=SecurityThreatLevel.MEDIUM,
                 violation_type=SecurityViolationType.INPUT_VALIDATION,
-                error_message=f"Input too long: {len(content)} characters (max: {self.max_input_length})",
+                    error_message=(
+                        f"Input too long: {len(content)} characters "
+                        f"(max: {self.max_input_length})"
+                    ),
             )
 
         # SQL injection detection - only flag clear injection attempts in user content
@@ -186,7 +189,7 @@ class InputValidator:
     def validate_file_path(
         self, path: str | Path, context: SecurityContext
     ) -> SecurityValidationResult:
-        """Validate file paths to prevent directory traversal and unauthorized access."""
+        """Validate file paths to prevent directory traversal and access."""
         path_str = str(path)
 
         # Length validation
@@ -249,7 +252,9 @@ class InputValidator:
                     is_valid=False,
                     threat_level=SecurityThreatLevel.MEDIUM,
                     violation_type=SecurityViolationType.FILE_ACCESS,
-                    error_message=f"File extension not allowed: {normalized_path.suffix}",
+                    error_message=(
+                        f"File extension not allowed: {normalized_path.suffix}"
+                    ),
                 )
 
             return SecurityValidationResult(
@@ -457,15 +462,14 @@ class SQLSecurityValidator:
                 "SQL query executed safely",
                 context_tags={"security": "sql_execution", "user": context.user_id},
             )
-
-            return result
-
         except sqlite3.Error as e:
             log_error(
                 f"SQL execution error: {e}",
                 context_tags={"security": "sql_error", "user": context.user_id},
             )
             raise
+        else:
+            return result
 
 
 # === File Access Security ===
@@ -517,15 +521,14 @@ class FileAccessManager:
                 f"File read successfully: {safe_path}",
                 context_tags={"security": "file_access", "user": context.user_id},
             )
-
-            return True, content
-
         except (OSError, UnicodeDecodeError) as e:
             log_error(
                 f"File read error: {e}",
                 context_tags={"security": "file_error", "user": context.user_id},
             )
             return False, f"File read error: {e}"
+        else:
+            return True, content
 
     def safe_write_file(
         self,
@@ -571,15 +574,14 @@ class FileAccessManager:
                 f"File written successfully: {safe_path}",
                 context_tags={"security": "file_access", "user": context.user_id},
             )
-
-            return True, f"File written: {safe_path}"
-
         except OSError as e:
             log_error(
                 f"File write error: {e}",
                 context_tags={"security": "file_error", "user": context.user_id},
             )
             return False, f"File write error: {e}"
+        else:
+            return True, f"File written: {safe_path}"
 
 
 # === Security Monitoring ===
@@ -736,8 +738,6 @@ class SecurityManager:
                     context,
                     result.error_message,
                 )
-
-            return result
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             log_error(
                 f"Security validation error: {e}",
@@ -748,6 +748,8 @@ class SecurityManager:
                 threat_level=SecurityThreatLevel.MEDIUM,
                 error_message=f"Validation error: {e}",
             )
+        else:
+            return result
 
 
 # === Global Security Instance ===

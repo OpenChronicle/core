@@ -6,7 +6,7 @@ replacing the previous separate character engines with a unified, modular archit
 
 Components:
 - character_base.py - Base classes and interfaces
-- character_data.py - Unified dataclasses and enums  
+- character_data.py - Unified dataclasses and enums
 - character_storage.py - Character data persistence
 - character_orchestrator.py - Main coordinator
 - character_management_engine.py - Character lifecycle operations

@@ -69,8 +69,6 @@ class LabelingSystem:
                     context_tags=["update_scene_label", f"label={normalized_label}"],
                 )
 
-            return success
-
         except (ValueError, TypeError) as e:
             log_error_with_context(
                 e,
@@ -92,6 +90,8 @@ class LabelingSystem:
                 },
             )
             return False
+        else:
+            return success
 
     def get_scenes_by_label(self, scene_label: str) -> list[dict[str, Any]]:
         """
@@ -140,8 +140,6 @@ class LabelingSystem:
                 }
                 results.append(scene_data)
 
-            return results
-
         except (sqlite3.Error, sqlite3.DatabaseError) as e:
             log_error_with_context(
                 e,
@@ -174,6 +172,8 @@ class LabelingSystem:
                 },
             )
             return []
+        else:
+            return results
 
     def get_labeled_scenes(self) -> list[dict[str, Any]]:
         """
@@ -218,8 +218,6 @@ class LabelingSystem:
                 }
                 results.append(scene_data)
 
-            return results
-
         except (AttributeError, KeyError) as e:
             log_error_with_context(
                 e,
@@ -247,6 +245,8 @@ class LabelingSystem:
                 },
             )
             return []
+        else:
+            return results
 
     def get_label_statistics(self) -> dict[str, Any]:
         """
@@ -469,13 +469,6 @@ class LabelingSystem:
                 (new_label, old_label),
             )
 
-            return {
-                "success": True,
-                "scenes_updated": old_scenes,
-                "old_label": old_label,
-                "new_label": new_label,
-            }
-
         except Exception as e:
             log_error_with_context(
                 e,
@@ -487,6 +480,13 @@ class LabelingSystem:
                 },
             )
             return {"success": False, "error": f"Error renaming label: {e}"}
+        else:
+            return {
+                "success": True,
+                "scenes_updated": old_scenes,
+                "old_label": old_label,
+                "new_label": new_label,
+            }
 
     def delete_label(self, label: str) -> dict[str, Any]:
         """
@@ -524,12 +524,6 @@ class LabelingSystem:
                 (label,),
             )
 
-            return {
-                "success": True,
-                "scenes_updated": scene_count,
-                "label_removed": label,
-            }
-
         except (AttributeError, KeyError) as e:
             log_error_with_context(
                 e,
@@ -560,6 +554,12 @@ class LabelingSystem:
                 },
             )
             return {"success": False, "error": f"Error deleting label: {e}"}
+        else:
+            return {
+                "success": True,
+                "scenes_updated": scene_count,
+                "label_removed": label,
+            }
 
     def get_status(self) -> str:
         """

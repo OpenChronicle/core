@@ -37,8 +37,10 @@ class CharacterEngineBase(ABC):
         """Setup component-specific logging."""
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
+    @abstractmethod
     def _validate_config(self) -> None:
         """Validate component configuration. Override in subclasses."""
+        pass
 
     @abstractmethod
     def initialize_character(self, character_id: str, **kwargs) -> Any:
@@ -159,7 +161,7 @@ class CharacterEventHandler:
                 try:
                     handler(event_data)
                 except Exception as e:
-                    logger.error(f"Error in event handler for {event_type}: {e}")
+                    logger.exception("Error in event handler for")
 
     def get_event_history(
         self, event_type: str | None = None, character_id: str | None = None

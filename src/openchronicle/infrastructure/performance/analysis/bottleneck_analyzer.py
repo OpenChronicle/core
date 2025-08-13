@@ -134,11 +134,11 @@ class BottleneckAnalyzer(IBottleneckAnalyzer):
                 },
             )
 
-            return report
-
         except Exception as e:
-            self.logger.error(f"Failed to analyze bottlenecks: {e}")
+            self.logger.exception("Failed to analyze bottlenecks")
             return self._create_empty_report()
+        else:
+            return report
 
     async def identify_slow_operations(
         self, metrics: list[PerformanceMetrics], threshold_percentile: float = 95.0
@@ -172,17 +172,17 @@ class BottleneckAnalyzer(IBottleneckAnalyzer):
                 },
             )
 
-            return slow_operations
-
         except (KeyError, AttributeError) as e:
-            self.logger.error(f"Performance metrics data structure error: {e}")
+            self.logger.exception("Performance metrics data structure error")
             return []
         except (ValueError, TypeError) as e:
-            self.logger.error(f"Performance analysis parameter error: {e}")
+            self.logger.exception("Performance analysis parameter error")
             return []
         except Exception as e:
-            self.logger.error(f"Failed to identify slow operations: {e}")
+            self.logger.exception("Failed to identify slow operations")
             return []
+        else:
+            return slow_operations
 
     async def analyze_resource_usage_patterns(
         self, metrics: list[PerformanceMetrics]
@@ -248,11 +248,11 @@ class BottleneckAnalyzer(IBottleneckAnalyzer):
                 ),
             }
 
-            return patterns
-
         except Exception as e:
-            self.logger.error(f"Failed to analyze resource usage patterns: {e}")
+            self.logger.exception("Failed to analyze resource usage patterns")
             return {}
+        else:
+            return patterns
 
     def _group_by_adapter(
         self, metrics: list[PerformanceMetrics]

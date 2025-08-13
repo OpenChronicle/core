@@ -262,7 +262,7 @@ def capture_baseline() -> dict[str, Any]:
     # File system
     print("\n📁 Measuring file system metrics...")
     fs_metrics = measure_file_system_metrics()
-    for metric_type, data in fs_metrics.items():
+    for _metric_type, data in fs_metrics.items():
         if isinstance(data, dict):
             for key, value in data.items():
                 if isinstance(value, int):

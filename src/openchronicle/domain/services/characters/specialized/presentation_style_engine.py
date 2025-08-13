@@ -105,16 +105,16 @@ class PresentationStyleEngine(CharacterEngineBase):
                     self.logger.info(f"Loaded style data for {char_name}")
 
                 except (KeyError, AttributeError) as e:
-                    self.logger.error(
-                        f"Character style data structure error for {char_name}: {e}"
+                    self.logger.exception(
+                        "Character style data structure error for"
                     )
                 except (ValueError, TypeError) as e:
-                    self.logger.error(
-                        f"Character style data validation error for {char_name}: {e}"
+                    self.logger.exception(
+                        "Character style data validation error for"
                     )
                 except Exception as e:
-                    self.logger.error(
-                        f"Failed to load character style data for {char_name}: {e}"
+                    self.logger.exception(
+                        "Failed to load character style data for"
                     )
 
         return styles
@@ -333,16 +333,16 @@ class PresentationStyleEngine(CharacterEngineBase):
             self.logger.info(f"Imported presentation data for character {character_id}")
 
         except (KeyError, AttributeError) as e:
-            self.logger.error(
-                f"Character presentation data structure error for {character_id}: {e}"
+            self.logger.exception(
+                "Character presentation data structure error for"
             )
         except (ValueError, TypeError) as e:
-            self.logger.error(
-                f"Character presentation data validation error for {character_id}: {e}"
+            self.logger.exception(
+                "Character presentation data validation error for"
             )
         except Exception as e:
-            self.logger.error(
-                f"Failed to import presentation data for {character_id}: {e}"
+            self.logger.exception(
+                "Failed to import presentation data for"
             )
 
     # =============================================================================
@@ -420,7 +420,7 @@ class PresentationStyleEngine(CharacterEngineBase):
         # Simpler format for local models
         style_elements = []
 
-        for category, data in style.items():
+        for _category, data in style.items():
             if data:
                 if isinstance(data, dict):
                     style_elements.extend(data.values())

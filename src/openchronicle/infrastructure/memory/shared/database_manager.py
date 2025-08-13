@@ -100,14 +100,14 @@ class DatabaseManager:
 
         except sqlite3.Error as e:
             # Handle SQLite-specific errors during table creation
-            logger.error(f"Database error creating memory tables: {e}")
+            logger.exception("Database error creating memory tables")
             raise
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors for database file operations
-            logger.error(f"File system error creating memory tables: {e}")
+            logger.exception("File system error creating memory tables")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error creating memory tables: {e}")
+            logger.exception("Unexpected error creating memory tables")
             raise
 
     def get_connection(self) -> sqlite3.Connection:
@@ -127,9 +127,10 @@ class DatabaseManager:
         """Check if connection is closed."""
         try:
             self.connection.execute("SELECT 1")
-            return False
         except (sqlite3.ProgrammingError, AttributeError):
             return True
+        else:
+            return False
 
     def execute_query(self, query: str, params: tuple = ()) -> list[dict[str, Any]]:
         """
@@ -153,19 +154,19 @@ class DatabaseManager:
                 dict(zip(columns, row, strict=False)) for row in cursor.fetchall()
             ]
 
-            return results
-
         except sqlite3.Error as e:
             # Handle SQLite-specific errors during query execution
-            logger.error(f"Database error executing query: {e}")
+            logger.exception("Database error executing query")
             raise
         except (TypeError, ValueError) as e:
             # Handle parameter binding errors for query execution
-            logger.error(f"Parameter error executing query: {e}")
+            logger.exception("Parameter error executing query")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error executing query: {e}")
+            logger.exception("Unexpected error executing query")
             raise
+        else:
+            return results
 
     def execute_update(self, query: str, params: tuple = ()) -> int:
         """
@@ -184,19 +185,19 @@ class DatabaseManager:
             cursor.execute(query, params)
             conn.commit()
 
-            return cursor.rowcount
-
         except sqlite3.Error as e:
             # Handle SQLite-specific errors during update operations
-            logger.error(f"Database error executing update: {e}")
+            logger.exception("Database error executing update")
             raise
         except (TypeError, ValueError) as e:
             # Handle parameter binding errors for update operations
-            logger.error(f"Parameter error executing update: {e}")
+            logger.exception("Parameter error executing update")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error executing update: {e}")
+            logger.exception("Unexpected error executing update")
             raise
+        else:
+            return cursor.rowcount
 
     def execute_batch(self, query: str, params_list: list[tuple]) -> int:
         """
@@ -215,19 +216,19 @@ class DatabaseManager:
             cursor.executemany(query, params_list)
             conn.commit()
 
-            return cursor.rowcount
-
         except sqlite3.Error as e:
             # Handle SQLite-specific errors during batch operations
-            logger.error(f"Database error executing batch: {e}")
+            logger.exception("Database error executing batch")
             raise
         except (TypeError, ValueError) as e:
             # Handle parameter binding errors for batch operations
-            logger.error(f"Parameter error executing batch: {e}")
+            logger.exception("Parameter error executing batch")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error executing batch: {e}")
+            logger.exception("Unexpected error executing batch")
             raise
+        else:
+            return cursor.rowcount
 
     def get_memory_entries(
         self,

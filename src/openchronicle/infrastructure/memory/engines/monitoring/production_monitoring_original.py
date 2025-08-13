@@ -532,7 +532,7 @@ class ProductionMonitoring:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Metrics monitoring error: {e}")
+                self.logger.exception("Metrics monitoring error")
                 await asyncio.sleep(interval)
 
     async def _health_monitoring_loop(self, interval: int):
@@ -555,7 +555,7 @@ class ProductionMonitoring:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Health monitoring error: {e}")
+                self.logger.exception("Health monitoring error")
                 await asyncio.sleep(interval)
 
     async def get_prometheus_metrics(self) -> str:

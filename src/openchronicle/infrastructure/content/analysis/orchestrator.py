@@ -102,11 +102,11 @@ class ContentAnalysisOrchestrator(ContentAnalysisComponent):
                 f"Components used: {comprehensive_result.get('components_used')}",
             )
 
-            return comprehensive_result
-
         except Exception as e:
             log_error(f"Content analysis orchestration failed: {e}")
             return self._create_error_result(str(e), content)
+        else:
+            return comprehensive_result
 
     async def _run_detection_analysis(
         self, content: str, context: dict[str, Any]
@@ -123,12 +123,12 @@ class ContentAnalysisOrchestrator(ContentAnalysisComponent):
             if self.content_classifier.transformer_analyzer.use_transformers:
                 classification["detection_methods"].append("transformer")
 
-            return classification
-
         except Exception as e:
             log_error(f"Detection analysis failed: {e}")
             # Fallback to keyword-only detection
             return await self.keyword_detector.process(content, context)
+        else:
+            return classification
 
     async def _run_extraction_analysis(
         self, content: str, context: dict[str, Any]

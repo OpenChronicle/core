@@ -127,24 +127,24 @@ def database_optimize(
 
             for db_path in databases:
                 progress.update(task, description=f"Processing {db_path.name}...")
-                
+
                 try:
                     # Get current size
                     size_before = db_path.stat().st_size if db_path.exists() else 0
-                    
+
                     if not dry_run and not analyze_only:
                         # Placeholder optimization logic
                         # In real implementation, this would use DatabaseOptimizer
                         pass
-                    
+
                     # Simulate results for demonstration
                     size_after = size_before * 0.85 if not analyze_only else size_before  # 15% reduction
                     space_saved = size_before - size_after
                     total_saved += space_saved
-                    
+
                     status = "✅ Optimized" if not (dry_run or analyze_only) else "📋 Analyzed"
                     optimized_count += 1
-                    
+
                     table.add_row(
                         str(db_path.name),
                         _format_file_size(size_before),
@@ -152,12 +152,12 @@ def database_optimize(
                         _format_file_size(space_saved),
                         status
                     )
-                    
+
                 except (OSError, IOError, PermissionError) as e:
                     table.add_row(
                         str(db_path.name),
                         "Unknown",
-                        "Unknown", 
+                        "Unknown",
                         "0 B",
                         f"❌ File Error: {str(e)[:30]}..."
                     )
@@ -165,7 +165,7 @@ def database_optimize(
                     table.add_row(
                         str(db_path.name),
                         "Unknown",
-                        "Unknown", 
+                        "Unknown",
                         "0 B",
                         f"❌ Parameter Error: {str(e)[:30]}..."
                     )
@@ -173,7 +173,7 @@ def database_optimize(
                     table.add_row(
                         str(db_path.name),
                         "Unknown",
-                        "Unknown", 
+                        "Unknown",
                         "0 B",
                         f"❌ Error: {str(e)[:30]}..."
                     )
@@ -264,7 +264,7 @@ def database_health(
 
         # Health check results
         health_results = []
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -274,7 +274,7 @@ def database_health(
 
             for db_path in databases:
                 progress.update(task, description=f"Checking {db_path.name}...")
-                
+
                 try:
                     # Placeholder health check logic
                     # In real implementation, this would use DatabaseHealthValidator
@@ -286,14 +286,14 @@ def database_health(
                         "issues": [],
                         "status": "Healthy"
                     }
-                    
+
                     # Simulate some checks
                     if db_path.stat().st_size > 100 * 1024 * 1024:  # > 100MB
                         health_result["issues"].append("Large database size")
                         health_result["status"] = "Warning"
-                    
+
                     health_results.append(health_result)
-                    
+
                 except (OSError, IOError, PermissionError) as e:
                     health_results.append({
                         "database": str(db_path.name),
@@ -312,7 +312,7 @@ def database_health(
                         "status": "Error",
                         "error": str(e)
                     })
-                
+
                 progress.advance(task)
 
         # Display results
@@ -322,7 +322,7 @@ def database_health(
         else:
             table = Table(title="Database Health Report")
             table.add_column("Database", style="cyan")
-            table.add_column("Size", style="magenta") 
+            table.add_column("Size", style="magenta")
             table.add_column("Integrity", style="green")
             table.add_column("Performance", style="yellow")
             table.add_column("Issues", style="red")
@@ -333,7 +333,7 @@ def database_health(
                     table.add_row(
                         result["database"],
                         "Unknown",
-                        "Unknown", 
+                        "Unknown",
                         "Unknown",
                         result["error"],
                         "❌ Error"
@@ -369,10 +369,10 @@ def _format_file_size(size_bytes: int) -> str:
     """Format file size in human-readable format."""
     if size_bytes == 0:
         return "0 B"
-    
+
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size_bytes < 1024.0:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
-    
+
     return f"{size_bytes:.1f} PB"

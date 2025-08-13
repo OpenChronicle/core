@@ -11,6 +11,8 @@ import json
 import re
 from typing import Any
 
+from openchronicle.shared.exceptions import ModelInitializationError
+from openchronicle.shared.exceptions import ModelNotFoundError
 from openchronicle.shared.logging_system import log_error
 
 # Import logging utilities
@@ -61,11 +63,11 @@ Return empty object {{}} if no clear character information found."""
             if model not in self.model_manager.adapters:
                 success = await self.model_manager.initialize_adapter(model)
                 if not success:
-                    raise Exception(f"Failed to initialize adapter for model: {model}")
+                    raise ModelInitializationError(f"Failed to initialize adapter for model: {model}")
 
             adapter = self.model_manager.adapters.get(model)
             if not adapter:
-                raise Exception(f"No adapter available for model: {model}")
+                raise ModelNotFoundError(f"No adapter available for model: {model}")
 
             response = await adapter.generate_response(prompt)
 
@@ -80,7 +82,6 @@ Return empty object {{}} if no clear character information found."""
                 log_info(
                     f"Successfully extracted character data: {result.get('name', 'multiple/unknown')}"
                 )
-                return result
             except json.JSONDecodeError:
                 log_warning(
                     "Failed to parse character extraction JSON, attempting cleanup"
@@ -92,6 +93,8 @@ Return empty object {{}} if no clear character information found."""
                     return result
                 log_error("No valid JSON found in character extraction response")
                 return {}
+            else:
+                return result
 
         except ValueError as e:
             log_error(f"Invalid data format in character extraction: {e}")
@@ -132,8 +135,6 @@ Return empty object {{}} if no clear character information found."""
                 return []
             if isinstance(character_data, list):
                 return character_data
-            return []
-
         except ValueError as e:
             log_error(f"Invalid data format in character extraction from {content_name}: {e}")
             return []
@@ -142,6 +143,8 @@ Return empty object {{}} if no clear character information found."""
             return []
         except Exception as e:
             log_error(f"Error extracting characters from {content_name}: {e}")
+            return []
+        else:
             return []
 
     def _get_best_analysis_model(self, content_type: str = "general") -> str:

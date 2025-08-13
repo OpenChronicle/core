@@ -22,7 +22,7 @@ except ImportError:
 class ContextAdapter(IContextPort):
     """
     Infrastructure adapter that implements the context port interface.
-    
+
     This adapter bridges the domain port interface with the concrete
     infrastructure implementation (ContextOrchestrator).
     """
@@ -31,7 +31,7 @@ class ContextAdapter(IContextPort):
         """Initialize the context adapter."""
         if ContextOrchestrator is None:
             raise RuntimeError("ContextOrchestrator not available. Check infrastructure.content.context imports.")
-        
+
         self._orchestrator = ContextOrchestrator()
 
     async def build_context_with_analysis(

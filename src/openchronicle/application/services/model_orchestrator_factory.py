@@ -14,7 +14,7 @@ from openchronicle.domain.ports.registry_port import IRegistryPort
 class ModelOrchestratorFactory:
     """
     Factory for creating ModelOrchestrator instances with proper dependency injection.
-    
+
     This factory handles the wiring of infrastructure dependencies to domain objects,
     maintaining clean hexagonal architecture boundaries.
     """
@@ -23,57 +23,57 @@ class ModelOrchestratorFactory:
     def create_production_orchestrator(config: dict[str, Any] | None = None) -> ModelOrchestrator:
         """
         Create a ModelOrchestrator for production use.
-        
+
         Args:
             config: Optional configuration dictionary
-            
+
         Returns:
             Configured ModelOrchestrator with production registry adapter
         """
         from openchronicle.infrastructure.adapters.registry_adapter import (
             RegistryAdapter,
         )
-        
+
         # Create production registry adapter
         registry_port = RegistryAdapter(
             models_dir="config/models/",
             settings_file="config/registry_settings.json"
         )
-        
+
         return ModelOrchestrator(config=config, registry_port=registry_port)
 
     @staticmethod
     def create_test_orchestrator(config: dict[str, Any] | None = None) -> ModelOrchestrator:
         """
         Create a ModelOrchestrator for testing.
-        
+
         Args:
             config: Optional configuration dictionary
-            
+
         Returns:
             Configured ModelOrchestrator with mock registry adapter
         """
         from openchronicle.infrastructure.adapters.mock_registry_adapter import (
             MockRegistryAdapter,
         )
-        
+
         # Create mock registry adapter for testing
         registry_port = MockRegistryAdapter()
-        
+
         return ModelOrchestrator(config=config, registry_port=registry_port)
 
     @staticmethod
     def create_orchestrator_with_registry(
-        registry_port: IRegistryPort, 
+        registry_port: IRegistryPort,
         config: dict[str, Any] | None = None
     ) -> ModelOrchestrator:
         """
         Create a ModelOrchestrator with a specific registry port implementation.
-        
+
         Args:
             registry_port: The registry port implementation to use
             config: Optional configuration dictionary
-            
+
         Returns:
             Configured ModelOrchestrator with the provided registry port
         """

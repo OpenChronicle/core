@@ -60,10 +60,10 @@ class MetricsCollector(IMetricsCollector):
                 },
             )
 
-            return context.operation_id
-
         except Exception as e:
-            self.logger.error(f"Failed to start operation tracking: {e}")
+            self.logger.exception("Failed to start operation tracking")
+            return context.operation_id
+        else:
             return context.operation_id
 
     async def finish_operation_tracking(
@@ -116,23 +116,23 @@ class MetricsCollector(IMetricsCollector):
                 },
             )
 
-            return metrics
-
         except (KeyError, AttributeError) as e:
-            self.logger.error(
-                f"Performance metrics data structure error for {operation_id}: {e}"
+            self.logger.exception(
+                "Performance metrics data structure error for"
             )
             return self._create_fallback_metrics(operation_id, success, error_message)
         except (ValueError, TypeError) as e:
-            self.logger.error(
-                f"Performance metrics parameter error for {operation_id}: {e}"
+            self.logger.exception(
+                "Performance metrics parameter error for"
             )
             return self._create_fallback_metrics(operation_id, success, error_message)
         except Exception as e:
-            self.logger.error(
-                f"Failed to finish operation tracking for {operation_id}: {e}"
+            self.logger.exception(
+                "Failed to finish operation tracking for"
             )
             return self._create_fallback_metrics(operation_id, success, error_message)
+        else:
+            return metrics
 
     def collect_system_metrics(self) -> dict[str, float]:
         """Collect current system resource metrics."""
@@ -168,7 +168,7 @@ class MetricsCollector(IMetricsCollector):
 
         except (OSError, IOError) as e:
             # Handle system access errors during metrics collection
-            self.logger.error(f"System access error collecting metrics: {e}")
+            self.logger.exception("System access error collecting metrics")
             return {
                 "cpu_percent": 0.0,
                 "memory_mb": 0.0,
@@ -181,7 +181,7 @@ class MetricsCollector(IMetricsCollector):
             }
         except (AttributeError, ValueError) as e:
             # Handle psutil API errors during metrics collection
-            self.logger.error(f"Metrics calculation error: {e}")
+            self.logger.exception("Metrics calculation error")
             return {
                 "cpu_percent": 0.0,
                 "memory_mb": 0.0,
@@ -193,7 +193,7 @@ class MetricsCollector(IMetricsCollector):
                 "timestamp": time.time(),
             }
         except Exception as e:
-            self.logger.error(f"Unexpected error collecting system metrics: {e}")
+            self.logger.exception("Unexpected error collecting system metrics")
             return {
                 "cpu_percent": 0.0,
                 "memory_mb": 0.0,

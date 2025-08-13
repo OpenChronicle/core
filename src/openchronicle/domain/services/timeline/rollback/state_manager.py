@@ -310,10 +310,11 @@ class StateManager:
             for name, data in memory_state.items():
                 # Use store_memory to restore; overwrites existing entries
                 self.memory_port.store_memory(self.story_id, name, data)
-            return "Memory state restored via IMemoryPort"
         except Exception as e:
             log_error(f"Failed to restore memory state: {e}")
             return f"Memory restoration failed: {e}"
+        else:
+            return "Memory state restored via IMemoryPort"
 
     async def _remove_scenes_after(self, target_scene_id: str) -> int:
         """Remove all scenes that occurred after the target scene."""

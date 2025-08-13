@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ContentFile,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IStructureAnalyzer,
-)
-
-
 """
 OpenChronicle Structure Analyzer
 
@@ -17,6 +9,12 @@ Handles filesystem analysis and organization recommendations.
 from pathlib import Path
 from typing import Any
 
+from openchronicle.application.services.importers.storypack.interfaces import (
+    ContentFile,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
+    IStructureAnalyzer,
+)
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
@@ -119,11 +117,11 @@ class StructureAnalyzer(IStructureAnalyzer):
             )
 
         except (OSError, IOError, PermissionError) as e:
-            self.logger.error(f"File system error analyzing directory structure {source_path}: {e}")
+            self.logger.exception("File system error analyzing directory structure")
             analysis["status"] = "error"
             analysis["error"] = str(e)
         except Exception as e:
-            self.logger.error(f"Unexpected error analyzing directory structure {source_path}: {e}")
+            self.logger.exception("Unexpected error analyzing directory structure")
             analysis["status"] = "error"
             analysis["error"] = str(e)
 

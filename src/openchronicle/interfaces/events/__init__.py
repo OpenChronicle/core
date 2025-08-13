@@ -139,8 +139,6 @@ class ConnectionManager:
             if client_id in self.connection_metadata:
                 self.connection_metadata[client_id]["last_activity"] = datetime.now()
                 self.connection_metadata[client_id]["events_sent"] += 1
-
-            return True
         except (json.JSONEncodeError, TypeError) as e:
             print(f"JSON encoding error sending to client {client_id}: {e}")
             self.disconnect(client_id)
@@ -149,6 +147,8 @@ class ConnectionManager:
             print(f"Error sending to client {client_id}: {e}")
             self.disconnect(client_id)
             return False
+        else:
+            return True
 
     async def broadcast(self, event: Event, event_type_filter: EventType | None = None):
         """Broadcast an event to all subscribed clients."""
@@ -271,7 +271,7 @@ class BackgroundTaskManager:
         self.running = False
 
         # Cancel all tasks
-        for task_id, task in self.tasks.items():
+        for _task_id, task in self.tasks.items():
             if not task.done():
                 task.cancel()
                 try:

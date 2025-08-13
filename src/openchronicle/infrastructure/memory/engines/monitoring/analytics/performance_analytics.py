@@ -485,7 +485,7 @@ class CacheAnalyticsDashboard:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Monitoring loop error: {e}")
+                self.logger.exception("Monitoring loop error")
                 await asyncio.sleep(interval_seconds)
 
     def get_dashboard_data(self) -> dict[str, Any]:

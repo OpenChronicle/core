@@ -35,7 +35,8 @@ class OpenChronicleLogger:
 
     def __init__(self, name: str = "openchronicle", log_dir: Path | None = None):
         self.name = name
-        # Adjust path since we're now in src/openchronicle/shared/ - need to go up 4 levels to project root
+        # Adjust path since we're now in src/openchronicle/shared/
+        # - need to go up 4 levels to project root
         self.root_dir = Path(__file__).parent.parent.parent.parent
 
         # Determine log directory based on context
@@ -93,7 +94,8 @@ class OpenChronicleLogger:
         )
         file_handler.setLevel(logging.INFO)
         file_formatter = ContextualFormatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d%(context_tags)s - %(message)s"
+            "%(asctime)s - %(name)s - %(levelname)s - "
+            "%(funcName)s:%(lineno)d%(context_tags)s - %(message)s"
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)

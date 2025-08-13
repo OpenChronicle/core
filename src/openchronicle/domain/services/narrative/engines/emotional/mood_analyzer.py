@@ -122,18 +122,11 @@ class MoodAnalyzer:
                     "normalized": normalized_new,
                 }
             )
-
-            return max_similarity
-
         except AttributeError as e:
-            logger.error(f"Invalid dialogue data structure for similarity detection: {e}")
+            logger.exception("Invalid dialogue data structure for similarity detection")
             return 0.0
-        except ValueError as e:
-            logger.error(f"Text processing error in dialogue similarity: {e}")
-            return 0.0
-        except Exception as e:
-            logger.error(f"Error detecting dialogue similarity: {e}")
-            return 0.0
+        else:
+            return max_similarity
 
     def detect_emotional_loops(
         self, character_id: str, text: str
@@ -201,13 +194,13 @@ class MoodAnalyzer:
             return [pattern for pattern in detected_patterns]
 
         except AttributeError as e:
-            logger.error(f"Character data structure error in loop detection: {e}")
+            logger.exception("Character data structure error in loop detection")
             return []
         except ValueError as e:
-            logger.error(f"Invalid pattern data in emotional loop detection: {e}")
+            logger.exception("Invalid pattern data in emotional loop detection")
             return []
         except Exception as e:
-            logger.error(f"Error detecting emotional loops: {e}")
+            logger.exception("Error detecting emotional loops")
             return []
 
     def analyze_current_mood(self, character_id: str) -> dict[str, Any]:
@@ -273,7 +266,7 @@ class MoodAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing current mood: {e}")
+            logger.exception("Error analyzing current mood")
             return {"error": str(e)}
 
     def generate_anti_loop_prompt(
@@ -326,13 +319,13 @@ class MoodAnalyzer:
             return "\n".join(prompt_parts)
 
         except AttributeError as e:
-            logger.error(f"Loop data structure error in anti-loop prompt generation: {e}")
+            logger.exception("Loop data structure error in anti-loop prompt generation")
             return "[Error: Invalid loop data structure]"
         except ValueError as e:
-            logger.error(f"Text formatting error in anti-loop prompt: {e}")
+            logger.exception("Text formatting error in anti-loop prompt")
             return "[Error: Text formatting issue]"
         except Exception as e:
-            logger.error(f"Error generating anti-loop prompt: {e}")
+            logger.exception("Error generating anti-loop prompt")
             return "[Error generating anti-loop guidance]"
 
     def analyze_emotional_patterns(self, character_id: str) -> dict[str, Any]:
@@ -392,7 +385,7 @@ class MoodAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing emotional patterns: {e}")
+            logger.exception("Error analyzing emotional patterns")
             return {"error": str(e)}
 
     def get_loop_detection_summary(self, character_id: str) -> dict[str, Any]:
@@ -466,7 +459,7 @@ class MoodAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Error resetting character state: {e}")
+            logger.exception("Error resetting character state")
             return {"error": str(e)}
 
     def export_character_data(self, character_id: str) -> dict[str, Any]:
@@ -502,7 +495,7 @@ class MoodAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Error exporting character data: {e}")
+            logger.exception("Error exporting character data")
             return {"error": str(e)}
 
     def import_character_data(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -564,7 +557,7 @@ class MoodAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Error importing character data: {e}")
+            logger.exception("Error importing character data")
             return {"error": str(e)}
 
     def _normalize_text(self, text: str) -> str:

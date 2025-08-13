@@ -26,12 +26,12 @@ class CharacterValidationEngine:
         """Initialize character validation engine."""
         self.config = config or {}
         self.validation_providers: list[CharacterValidationProvider] = []
-        
+
         # Configuration
         self.strict_validation = self.config.get("strict_validation", False)
         self.consistency_checks_enabled = self.config.get("consistency_checks_enabled", True)
         self.action_validation_enabled = self.config.get("action_validation_enabled", True)
-        
+
         logger.info("Character validation engine initialized")
 
     def register_validation_provider(self, provider: CharacterValidationProvider) -> None:
@@ -105,15 +105,15 @@ class CharacterValidationEngine:
                             f"{provider.__class__.__name__}: {provider_error}"
                         )
                 except (AttributeError, KeyError) as e:
-                    logger.error(f"Validation provider data structure error in {provider.__class__.__name__}: {e}")
+                    logger.exception(f"Validation provider data structure error in {provider.__class__.__name__}")
                     if self.strict_validation:
                         validation_result["issues"].append(f"Validation provider data error: {e}")
                 except (ValueError, TypeError) as e:
-                    logger.error(f"Validation provider parameter error in {provider.__class__.__name__}: {e}")
+                    logger.exception(f"Validation provider parameter error in {provider.__class__.__name__}")
                     if self.strict_validation:
                         validation_result["issues"].append(f"Validation provider parameter error: {e}")
                 except Exception as e:
-                    logger.error(f"Error in validation provider {provider.__class__.__name__}: {e}")
+                    logger.exception(f"Error in validation provider {provider.__class__.__name__}")
                     if self.strict_validation:
                         validation_result["issues"].append(f"Validation provider error: {e}")
 
@@ -128,16 +128,16 @@ class CharacterValidationEngine:
                     f"{len(validation_result['issues'])} issues found"
                 )
 
-            return validation_result
-
         except Exception as e:
-            logger.error(f"Error validating character consistency: {e}")
+            logger.exception("Error validating character consistency")
             return {
                 "character_id": getattr(character, 'character_id', 'unknown'),
                 "valid": False,
                 "error": str(e),
                 "timestamp": datetime.now().isoformat(),
             }
+        else:
+            return validation_result
 
     def validate_character_action(
         self, character: CharacterData, action_data: dict[str, Any]
@@ -160,7 +160,7 @@ class CharacterValidationEngine:
                 return False, "No character provided for action validation"
 
             action_type = action_data.get("type", "unknown")
-            
+
             # Basic action validation
             if action_type == "stat_update":
                 return self._validate_stat_update_action(character, action_data)
@@ -180,29 +180,29 @@ class CharacterValidationEngine:
                         if not valid:
                             return False, error
                     except (AttributeError, KeyError) as e:
-                        logger.error(f"Action validation provider data structure error: {e}")
+                        logger.exception("Action validation provider data structure error")
                         if self.strict_validation:
                             return False, f"Validation provider data error: {e}"
                     except (ValueError, TypeError) as e:
-                        logger.error(f"Action validation provider parameter error: {e}")
+                        logger.exception("Action validation provider parameter error")
                         if self.strict_validation:
                             return False, f"Validation provider parameter error: {e}"
                     except Exception as e:
-                        logger.error(f"Error in action validation provider: {e}")
+                        logger.exception("Error in action validation provider")
                         if self.strict_validation:
                             return False, f"Validation provider error: {e}"
 
-            return True, ""
-
         except (AttributeError, KeyError) as e:
-            logger.error(f"Character action data structure error: {e}")
+            logger.exception("Character action data structure error")
             return False, f"Action validation data error: {e}"
         except (ValueError, TypeError) as e:
-            logger.error(f"Character action parameter error: {e}")
+            logger.exception("Character action parameter error")
             return False, f"Action validation parameter error: {e}"
         except Exception as e:
-            logger.error(f"Error validating character action: {e}")
+            logger.exception("Error validating character action")
             return False, f"Action validation error: {e}"
+        else:
+            return True, ""
 
     def _validate_basic_character_data(self, character: CharacterData) -> list[str]:
         """Validate basic character data integrity."""
@@ -255,7 +255,7 @@ class CharacterValidationEngine:
 
         # Basic stat validation
         from ..core.character_data import CharacterStatType
-        
+
         for stat_type in CharacterStatType:
             stat_value = getattr(character.stats, stat_type.value, None)
             if stat_value is None:
@@ -321,7 +321,7 @@ class CharacterValidationEngine:
     ) -> Tuple[bool, str]:
         """Validate relationship management action."""
         relationship_data = action_data.get("data", {})
-        
+
         if not isinstance(relationship_data, dict):
             return False, "Relationship data must be a dictionary"
 
@@ -336,7 +336,7 @@ class CharacterValidationEngine:
     ) -> Tuple[bool, str]:
         """Validate personality change action."""
         changes = action_data.get("changes", {})
-        
+
         if not isinstance(changes, dict):
             return False, "Personality changes must be a dictionary"
 
@@ -352,7 +352,7 @@ class CharacterValidationEngine:
     ) -> Tuple[bool, str]:
         """Validate dialogue action."""
         content = action_data.get("content", "")
-        
+
         if not content or len(content.strip()) == 0:
             return False, "Dialogue content cannot be empty"
 

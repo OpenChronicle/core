@@ -14,22 +14,22 @@ VIOLATIONS_TO_FIX = {
             "action": "Move infrastructure dependencies to dependency injection or ports"
         },
         {
-            "file": "src/openchronicle/domain/services/timeline/shared/fallback_navigation.py", 
+            "file": "src/openchronicle/domain/services/timeline/shared/fallback_navigation.py",
             "issue": "Imports from infrastructure layer",
             "action": "Use dependency injection or abstract interfaces"
         },
         {
             "file": "src/openchronicle/domain/services/timeline/shared/fallback_state.py",
-            "issue": "Imports from infrastructure layer", 
+            "issue": "Imports from infrastructure layer",
             "action": "Use dependency injection or abstract interfaces"
         },
         {
             "file": "src/openchronicle/domain/services/timeline/shared/fallback_timeline.py",
             "issue": "Imports from infrastructure layer",
-            "action": "Use dependency injection or abstract interfaces"  
+            "action": "Use dependency injection or abstract interfaces"
         }
     ],
-    
+
     "application_violations": [
         # 9 files in application/services/importers/storypack/* importing from interfaces
         {
@@ -38,7 +38,7 @@ VIOLATIONS_TO_FIX = {
             "action": "Use dependency injection or move interfaces to domain"
         }
     ],
-    
+
     "infrastructure_violations": [
         {
             "file": "src/openchronicle/infrastructure/performance/analysis/bottleneck_analyzer.py",
@@ -46,13 +46,13 @@ VIOLATIONS_TO_FIX = {
             "action": "Use dependency injection"
         },
         {
-            "file": "src/openchronicle/infrastructure/performance/metrics/collector.py", 
+            "file": "src/openchronicle/infrastructure/performance/metrics/collector.py",
             "issue": "Imports from interfaces layer",
             "action": "Use dependency injection"
         },
         {
             "file": "src/openchronicle/infrastructure/performance/metrics/storage.py",
-            "issue": "Imports from interfaces layer", 
+            "issue": "Imports from interfaces layer",
             "action": "Use dependency injection"
         }
     ]

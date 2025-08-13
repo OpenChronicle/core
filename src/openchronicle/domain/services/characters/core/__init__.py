@@ -26,7 +26,7 @@ from .character_storage import CharacterStorage
 
 __all__ = [
     "CharacterBehaviorProvider",
-    "CharacterBehaviorType", 
+    "CharacterBehaviorType",
     "CharacterData",
     "CharacterEngineBase",
     "CharacterEventHandler",

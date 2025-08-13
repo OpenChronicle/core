@@ -17,7 +17,9 @@ from datetime import datetime
 from openchronicle.domain import ModelResponse
 from openchronicle.domain import NarrativeContext
 from openchronicle.domain.ports.model_management_port import IModelManagementPort
-from openchronicle.shared.exceptions import ModelError, InfrastructureError
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import ModelError
+from openchronicle.shared.exceptions import ModelResponseError
 
 
 @dataclass
@@ -82,7 +84,7 @@ class BaseModelAdapter(ABC):
         if context.memory_state:
             if context.memory_state.character_memories:
                 prompt_parts.append("Characters present:")
-                for char_id, memory in context.memory_state.character_memories.items():
+                for char_id, _memory in context.memory_state.character_memories.items():
                     if char_id in context.participant_ids:
                         character = context.characters.get(char_id)
                         if character:
@@ -151,10 +153,10 @@ class OpenAIAdapter(BaseModelAdapter):
                 self._client = openai.AsyncOpenAI(
                     api_key=self.config.api_key, base_url=self.config.base_url
                 )
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
                     "OpenAI package not installed. Run: pip install openai"
-                )
+                ) from e
         return self._client
 
     async def generate_text(
@@ -180,13 +182,13 @@ class OpenAIAdapter(BaseModelAdapter):
 
             return response.choices[0].message.content
         except ImportError as e:
-            self.logger.error(f"OpenAI package not available: {e}")
+            self.logger.exception("OpenAI package not available")
             raise ModelError(f"OpenAI client not available: {e}") from e
         except (ConnectionError, TimeoutError) as e:
-            self.logger.error(f"OpenAI connection error: {e}")
+            self.logger.exception("OpenAI connection error")
             raise ModelError(f"OpenAI connection failed: {e}") from e
         except Exception as e:
-            self.logger.error(f"OpenAI API error: {e}")
+            self.logger.exception("OpenAI API error")
             raise ModelError(f"OpenAI API failed: {e}") from e
 
 
@@ -232,13 +234,13 @@ class AnthropicAdapter(BaseModelAdapter):
 
             return response.content[0].text
         except ImportError as e:
-            self.logger.error(f"Anthropic package not available: {e}")
+            self.logger.exception("Anthropic package not available")
             raise ModelError(f"Anthropic client not available: {e}") from e
         except (ConnectionError, TimeoutError) as e:
-            self.logger.error(f"Anthropic connection error: {e}")
+            self.logger.exception("Anthropic connection error")
             raise ModelError(f"Anthropic connection failed: {e}") from e
         except Exception as e:
-            self.logger.error(f"Anthropic API error: {e}")
+            self.logger.exception("Anthropic API error")
             raise ModelError(f"Anthropic API failed: {e}") from e
 
 
@@ -281,15 +283,15 @@ class OllamaAdapter(BaseModelAdapter):
                     if response.status == 200:
                         result = await response.json()
                         return result.get("response", "")
-                    raise Exception(f"Ollama API error: {response.status}")
+                    raise ModelResponseError(f"Ollama API error: {response.status}")
         except ImportError as e:
-            self.logger.error(f"aiohttp package not available: {e}")
+            self.logger.exception("aiohttp package not available")
             raise InfrastructureError("aiohttp package not installed. Run: pip install aiohttp") from e
         except (ConnectionError, TimeoutError) as e:
-            self.logger.error(f"Ollama connection error: {e}")
+            self.logger.exception("Ollama connection error")
             raise ModelError(f"Ollama connection failed: {e}") from e
         except Exception as e:
-            self.logger.error(f"Ollama API error: {e}")
+            self.logger.exception("Ollama API error")
             raise ModelError(f"Ollama API failed: {e}") from e
 
 

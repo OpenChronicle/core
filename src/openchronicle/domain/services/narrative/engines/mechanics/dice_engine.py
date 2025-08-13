@@ -118,9 +118,6 @@ class DiceEngine:
                 "dice_rolled",
                 f"Rolled {count}x{dice_type.value}: {rolls} + {modifier} = {dice_roll.total}",
             )
-
-            return dice_roll
-
         except ValueError as e:
             log_error_with_context(
                 e,
@@ -145,30 +142,19 @@ class DiceEngine:
                 },
             )
             raise NarrativeSystemError(f"Dice configuration error: {e}")
-        except (AttributeError, KeyError) as e:
-            log_error_with_context(
-                e,
-                {
-                    "operation": "roll_dice_data_error",
-                    "dice_type": getattr(dice_type, "value", str(dice_type)),
-                    "count": count,
-                    "modifier": modifier,
-                },
-            )
-            raise NarrativeSystemError(f"Dice data structure error: {e}")
         except Exception as e:
             log_error_with_context(
                 e,
                 {
-                    "operation": "roll_dice",
+                    "operation": "roll_dice_error",
                     "dice_type": getattr(dice_type, "value", str(dice_type)),
                     "count": count,
                     "modifier": modifier,
-                    "advantage": advantage,
-                    "disadvantage": disadvantage,
                 },
             )
-            raise NarrativeSystemError(f"Dice rolling failed: {e}")
+            raise NarrativeSystemError(f"Unexpected error during dice roll: {e}")
+        else:
+            return dice_roll
 
     def _roll_single_die(self, dice_type: DiceType) -> int:
         """Roll a single die of specified type."""

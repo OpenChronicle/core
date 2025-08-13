@@ -91,10 +91,10 @@ class FallbackStateManager:
                     }
                 )
 
-            return rollback_points
-
         except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return []
+        else:
+            return rollback_points
 
     async def rollback_to_point(self, rollback_id: str) -> dict[str, Any]:
         """Basic rollback with limited functionality."""

@@ -64,7 +64,7 @@ class ResponseOrchestrator(NarrativeComponent):
         )
         # Add model orchestrator for proper response generation
         self.model_orchestrator = ModelOrchestrator()
-        
+
         # Note: ResponseEvaluator will be added when we create it
 
         # State management
@@ -176,8 +176,6 @@ class ResponseOrchestrator(NarrativeComponent):
                 total_time=time.time() - start_time,
             )
 
-            return result
-
         except Exception as e:
             # Log with context, but preserve current return behavior
             try:
@@ -215,6 +213,8 @@ class ResponseOrchestrator(NarrativeComponent):
                 success=False,
                 error_message=str(e),
             )
+        else:
+            return result
 
     def validate(self, data: dict[str, Any]) -> ValidationResult:
         """Validate response orchestrator data."""
@@ -293,29 +293,29 @@ class ResponseOrchestrator(NarrativeComponent):
             strategy = response_plan.strategy.value
             complexity = response_plan.complexity.value
             content_focus = response_plan.content_focus
-            
+
             # Create comprehensive prompt
             prompt_parts = [
                 f"Generate a {complexity} response with {strategy} strategy.",
                 f"Focus on: {content_focus}",
                 f"Context: {context_analysis.content_summary}",
             ]
-            
+
             # Add key points if available
             if response_plan.key_points:
                 prompt_parts.append(f"Key points to address: {', '.join(response_plan.key_points)}")
-            
+
             # Add quality targets
             if response_plan.quality_targets:
                 quality_desc = ", ".join([f"{k}: {v}" for k, v in response_plan.quality_targets.items()])
                 prompt_parts.append(f"Quality targets: {quality_desc}")
-            
+
             # Set target length
             if response_plan.estimated_length > 0:
                 prompt_parts.append(f"Target length: approximately {response_plan.estimated_length} characters")
-            
+
             enhanced_prompt = "\n".join(prompt_parts)
-            
+
             # Use model orchestrator for generation
             model_response = await self.model_orchestrator.generate_response(
                 prompt=enhanced_prompt,
@@ -324,21 +324,20 @@ class ResponseOrchestrator(NarrativeComponent):
                 max_tokens=min(response_plan.estimated_length // 4, 1000),  # Rough token estimation
                 temperature=0.7 if complexity in ["complex", "elaborate"] else 0.5
             )
-            
-            return model_response.content if model_response else f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {content_focus}]"
-            
         except (AttributeError, KeyError) as e:
-            self.logger.error(f"Error accessing response generation data: {e}")
+            self.logger.exception("Error accessing response generation data")
             # Fallback to basic response
             strategy = getattr(response_plan.strategy, 'value', 'balanced')
             complexity = getattr(response_plan.complexity, 'value', 'moderate')
             return f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {response_plan.content_focus}]"
         except (ValueError, TypeError) as e:
-            self.logger.error(f"Error with response generation parameters: {e}")
-            return f"[ERROR RESPONSE - Parameter error in generation]"
+            self.logger.exception("Error with response generation parameters")
+            return "[ERROR RESPONSE - Parameter error in generation]"
         except Exception as e:
-            self.logger.error(f"Error generating response: {e}")
+            self.logger.exception("Error generating response")
             return f"[ERROR RESPONSE - Generation failed: {e}]"
+        else:
+            return model_response.content if model_response else f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {content_focus}]"
 
     def _evaluate_response(
         self,
@@ -352,56 +351,56 @@ class ResponseOrchestrator(NarrativeComponent):
             response_length = len(response)
             expected_length = response_plan.estimated_length
             length_score = min(1.0, response_length / max(expected_length, 1)) if expected_length > 0 else 0.8
-            
+
             # Calculate coherence score based on structure and content
             coherence_score = self._calculate_coherence_score(response, context_analysis)
-            
+
             # Calculate creativity score based on uniqueness and engagement
             creativity_score = self._calculate_creativity_score(response, response_plan)
-            
+
             # Calculate context integration score
             context_integration_score = self._calculate_context_integration_score(response, context_analysis)
-            
+
             # Calculate overall score as weighted average
             overall_score = (
-                length_score * 0.2 + 
-                coherence_score * 0.3 + 
-                creativity_score * 0.25 + 
+                length_score * 0.2 +
+                coherence_score * 0.3 +
+                creativity_score * 0.25 +
                 context_integration_score * 0.25
             )
-            
+
             # Analyze strengths and weaknesses
             strengths = []
             weaknesses = []
             suggestions = []
-            
+
             if length_score > 0.8:
                 strengths.append("Appropriate length")
             elif length_score < 0.5:
                 weaknesses.append("Length mismatch")
                 suggestions.append("Adjust response length to better match requirements")
-            
+
             if coherence_score > 0.8:
                 strengths.append("Good coherence and structure")
             elif coherence_score < 0.6:
                 weaknesses.append("Poor coherence")
                 suggestions.append("Improve logical flow and structure")
-            
+
             if creativity_score > 0.7:
                 strengths.append("Creative and engaging")
             elif creativity_score < 0.5:
                 weaknesses.append("Lacks creativity")
                 suggestions.append("Add more creative elements or unique perspectives")
-            
+
             if context_integration_score > 0.8:
                 strengths.append("Excellent context integration")
             elif context_integration_score < 0.6:
                 weaknesses.append("Poor context integration")
                 suggestions.append("Better incorporate contextual information")
-            
+
             # Check if response meets plan requirements
             meets_plan = overall_score >= 0.7 and len(weaknesses) <= 1
-            
+
             return ResponseEvaluation(
                 overall_score=overall_score,
                 coherence_score=coherence_score,
@@ -412,35 +411,35 @@ class ResponseOrchestrator(NarrativeComponent):
                 suggestions=suggestions,
                 meets_plan=meets_plan,
             )
-            
+
         except (AttributeError, KeyError) as e:
-            self.logger.error(f"Error accessing evaluation data: {e}")
+            self.logger.exception("Error accessing evaluation data")
             return self._fallback_evaluation()
         except (ValueError, TypeError) as e:
-            self.logger.error(f"Error with evaluation parameters: {e}")
+            self.logger.exception("Error with evaluation parameters")
             return self._fallback_evaluation()
         except Exception as e:
-            self.logger.error(f"Error evaluating response: {e}")
+            self.logger.exception("Error evaluating response")
             return self._fallback_evaluation()
-    
+
     def _calculate_coherence_score(self, response: str, context_analysis: ContextAnalysis) -> float:
         """Calculate coherence score based on response structure."""
         try:
             # Simple coherence metrics
             sentences = response.split('.')
             avg_sentence_length = sum(len(s.split()) for s in sentences if s.strip()) / max(len([s for s in sentences if s.strip()]), 1)
-            
+
             # Penalize very short or very long sentences
             sentence_score = 1.0 - abs(avg_sentence_length - 15) / 30.0  # Target ~15 words per sentence
             sentence_score = max(0.0, min(1.0, sentence_score))
-            
+
             # Check for repetition
             words = response.lower().split()
             unique_words = len(set(words))
             repetition_score = unique_words / max(len(words), 1)
-            
+
             return (sentence_score * 0.4 + repetition_score * 0.6)
-            
+
         except (AttributeError, KeyError) as e:
             self.logger.warning(f"Error accessing coherence calculation data: {e}")
             return 0.7  # Default coherence score
@@ -450,17 +449,17 @@ class ResponseOrchestrator(NarrativeComponent):
         except Exception as e:
             self.logger.warning(f"Unexpected error in coherence calculation: {e}")
             return 0.7  # Default coherence score
-    
+
     def _calculate_creativity_score(self, response: str, response_plan: ResponsePlan) -> float:
         """Calculate creativity score based on uniqueness and engagement."""
         try:
             # Simple creativity metrics
             words = response.split()
-            
+
             # Vocabulary diversity
             unique_words = len(set(word.lower() for word in words))
             diversity_score = min(1.0, unique_words / max(len(words), 1) * 2)
-            
+
             # Response complexity alignment
             complexity_value = getattr(response_plan.complexity, 'value', 'moderate')
             if complexity_value in ['complex', 'elaborate']:
@@ -469,10 +468,10 @@ class ResponseOrchestrator(NarrativeComponent):
                 target_creativity = 0.7
             else:
                 target_creativity = 0.6
-            
+
             # Combine metrics
             return min(1.0, (diversity_score + target_creativity) / 2)
-            
+
         except (AttributeError, KeyError) as e:
             self.logger.warning(f"Error accessing creativity calculation data: {e}")
             return 0.6  # Default creativity score
@@ -482,23 +481,20 @@ class ResponseOrchestrator(NarrativeComponent):
         except Exception as e:
             self.logger.warning(f"Unexpected error in creativity calculation: {e}")
             return 0.6  # Default creativity score
-    
+
     def _calculate_context_integration_score(self, response: str, context_analysis: ContextAnalysis) -> float:
         """Calculate how well the response integrates context."""
         try:
             if not context_analysis.content_summary:
-                return 0.5  # No context to integrate
-            
-            # Check for context keywords in response
-            context_words = set(context_analysis.content_summary.lower().split())
-            response_words = set(response.lower().split())
-            
-            # Calculate overlap
-            overlap = len(context_words.intersection(response_words))
-            overlap_score = min(1.0, overlap / max(len(context_words), 1) * 3)
-            
-            return overlap_score
-            
+                overlap_score = 0.5  # No context to integrate
+            else:
+                # Check for context keywords in response
+                context_words = set(context_analysis.content_summary.lower().split())
+                response_words = set(response.lower().split())
+
+                # Calculate overlap
+                overlap = len(context_words.intersection(response_words))
+                overlap_score = min(1.0, overlap / max(len(context_words), 1) * 3)
         except (AttributeError, KeyError) as e:
             self.logger.warning(f"Error accessing context integration data: {e}")
             return 0.5  # Default context integration score
@@ -508,7 +504,9 @@ class ResponseOrchestrator(NarrativeComponent):
         except Exception as e:
             self.logger.warning(f"Unexpected error in context integration calculation: {e}")
             return 0.5  # Default context integration score
-    
+        else:
+            return overlap_score
+
     def _fallback_evaluation(self) -> ResponseEvaluation:
         """Provide fallback evaluation when normal evaluation fails."""
         return ResponseEvaluation(

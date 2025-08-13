@@ -1,0 +1,2811 @@
+fix_b025.py:24:9: TRY300 Consider moving this statement to an `else` block
+   |
+22 |             cwd=Path.cwd(),
+23 |         )
+24 |         return result.stdout
+   |         ^^^^^^^^^^^^^^^^^^^^ TRY300
+25 |     except subprocess.CalledProcessError as e:
+26 |         print(f"Error running ruff: {e}")
+   |
+
+fix_b904.py:98:9: TRY300 Consider moving this statement to an `else` block
+    |
+ 96 |                 return True
+ 97 |
+ 98 |         return False
+    |         ^^^^^^^^^^^^ TRY300
+ 99 |
+100 |     except Exception as e:
+    |
+
+fix_small_violations.py:32:9: TRY300 Consider moving this statement to an `else` block
+   |
+30 |             cwd=Path.cwd(),
+31 |         )
+32 |         return result.stdout if result.stdout else ""
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+33 |     except subprocess.CalledProcessError as e:
+34 |         print(f"Error running ruff: {e}")
+   |
+
+fix_try300.py:110:9: TRY300 Consider moving this statement to an `else` block
+    |
+108 |             f.writelines(new_lines)
+109 |
+110 |         return True
+    |         ^^^^^^^^^^^ TRY300
+111 |
+112 |     except Exception as e:
+    |
+
+main.py:53:13: TRY300 Consider moving this statement to an `else` block
+   |
+51 |         try:
+52 |             result = subprocess.run(pytest_cmd, check=False)
+53 |             return result.returncode
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+54 |         except (OSError, ValueError) as e:  # subprocess.run(check=False) won't raise CalledProcessError
+55 |             log_error(
+   |
+
+scripts\import_analysis.py:451:9: TRY300 Consider moving this statement to an `else` block
+    |
+450 |         print("\n🎉 Import analysis complete!")
+451 |         return 0
+    |         ^^^^^^^^ TRY300
+452 |
+453 |     except Exception as e:
+    |
+
+scripts\performance_baseline.py:113:9: TRY300 Consider moving this statement to an `else` block
+    |
+111 |           memory_info = psutil.virtual_memory()
+112 |
+113 | /         return {
+114 | |             "import_memory_current": current,
+115 | |             "import_memory_peak": peak,
+116 | |             "system_memory_total": memory_info.total,
+117 | |             "system_memory_available": memory_info.available,
+118 | |             "system_memory_percent": memory_info.percent,
+119 | |         }
+    | |_________^ TRY300
+120 |       except Exception as e:
+121 |           tracemalloc.stop()
+    |
+
+scripts\performance_baseline.py:322:9: TRY300 Consider moving this statement to an `else` block
+    |
+321 |         print("\nUse this baseline to compare performance after migration!")
+322 |         return 0
+    |         ^^^^^^^^ TRY300
+323 |
+324 |     except Exception as e:
+    |
+
+scripts\phase1_health_check.py:26:9: TRY300 Consider moving this statement to an `else` block
+   |
+24 |             command, check=False, capture_output=True, text=True, timeout=timeout
+25 |         )
+26 |         return result.returncode, result.stdout, result.stderr
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+27 |     except subprocess.TimeoutExpired:
+28 |         return -1, "", "Command timed out"
+   |
+
+scripts\phase1_health_check.py:61:13: TRY300 Consider moving this statement to an `else` block
+   |
+59 |                   data.get("import_analysis", {}).get("problematic_imports", [])
+60 |               )
+61 | /             return (
+62 | |                 True,
+63 | |                 f"Import analysis complete. {problematic} problematic imports remaining.",
+64 | |             )
+   | |_____________^ TRY300
+65 |           except Exception:
+66 |               return True, "Import analysis completed but couldn't parse results"
+   |
+
+scripts\validate_environment.py:72:9: TRY300 Consider moving this statement to an `else` block
+   |
+70 |             return True
+71 |         print(f"❌ {package_name}: Not found")
+72 |         return False
+   |         ^^^^^^^^^^^^ TRY300
+73 |     except Exception:
+74 |         print(f"❌ {package_name}: Error checking")
+   |
+
+scripts\validate_environment.py:206:9: TRY300 Consider moving this statement to an `else` block
+    |
+204 |             f"✅ Import check: openchronicle v{getattr(openchronicle, '__version__', 'dev')}"
+205 |         )
+206 |         return True
+    |         ^^^^^^^^^^^ TRY300
+207 |     except ImportError as e:
+208 |         print(f"❌ Import check: Failed - {e}")
+    |
+
+src\openchronicle\application\services\importers\storypack\generators\output_formatter.py:130:13: TRY300 Consider moving this statement to an `else` block
+    |
+128 |                 return self._save_html_report(report, output_path)
+129 |             self.logger.error(f"Unsupported format type: {format_type}")
+130 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+131 |
+132 |         except (ServiceError, ValidationError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\generators\output_formatter.py:499:13: TRY300 Consider moving this statement to an `else` block
+    |
+497 |                 },
+498 |             )
+499 |             return True
+    |             ^^^^^^^^^^^ TRY300
+500 |
+501 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\generators\output_formatter.py:519:13: TRY300 Consider moving this statement to an `else` block
+    |
+517 |                 {"output_path": str(output_path)},
+518 |             )
+519 |             return True
+    |             ^^^^^^^^^^^ TRY300
+520 |
+521 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\generators\output_formatter.py:541:13: TRY300 Consider moving this statement to an `else` block
+    |
+539 |                 {"output_path": str(output_path)},
+540 |             )
+541 |             return True
+    |             ^^^^^^^^^^^ TRY300
+542 |
+543 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\generators\storypack_builder.py:89:13: TRY300 Consider moving this statement to an `else` block
+   |
+87 |             )
+88 |
+89 |             return storypack_path
+   |             ^^^^^^^^^^^^^^^^^^^^^ TRY300
+90 |
+91 |         except (OSError, IOError, PermissionError) as e:
+   |
+
+src\openchronicle\application\services\importers\storypack\generators\template_engine.py:177:13: TRY300 Consider moving this statement to an `else` block
+    |
+175 |             )
+176 |
+177 |             return customized_data
+    |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+178 |
+179 |         except (KeyError, ValueError, TypeError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\generators\template_engine.py:196:13: TRY300 Consider moving this statement to an `else` block
+    |
+194 |                 return template_data
+195 |             self.logger.warning(f"Invalid template structure in {template_file}")
+196 |             return None
+    |             ^^^^^^^^^^^ TRY300
+197 |
+198 |         except json.JSONDecodeError as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\content_parser.py:173:13: TRY300 Consider moving this statement to an `else` block
+    |
+171 |                 content = f.read()
+172 |
+173 |             return content, encoding
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+174 |
+175 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\content_parser.py:241:25: TRY300 Consider moving this statement to an `else` block
+    |
+239 |                     try:
+240 |                         raw_data.decode("utf-8")
+241 |                         return "utf-8"
+    |                         ^^^^^^^^^^^^^^ TRY300
+242 |                     except UnicodeDecodeError:
+243 |                         # Try common encodings
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\content_parser.py:247:33: TRY300 Consider moving this statement to an `else` block
+    |
+245 | …                     try:
+246 | …                         raw_data.decode(encoding)
+247 | …                         return encoding
+    |                           ^^^^^^^^^^^^^^^ TRY300
+248 | …                     except UnicodeDecodeError:
+249 | …                         continue
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\content_parser.py:252:13: TRY300 Consider moving this statement to an `else` block
+    |
+251 |             # Default to UTF-8 if detection fails or confidence is low
+252 |             return "utf-8"
+    |             ^^^^^^^^^^^^^^ TRY300
+253 |
+254 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\content_parser.py:268:13: TRY300 Consider moving this statement to an `else` block
+    |
+266 |             with open(file_path, encoding="utf-8") as f:
+267 |                 json.load(f)
+268 |             return True
+    |             ^^^^^^^^^^^ TRY300
+269 |         except (OSError, IOError, PermissionError):
+270 |             return False
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\content_parser.py:294:13: TRY300 Consider moving this statement to an `else` block
+    |
+292 |                 return False
+293 |
+294 |             return True
+    |             ^^^^^^^^^^^ TRY300
+295 |
+296 |         except (OSError, IOError, PermissionError):
+    |
+
+src\openchronicle\application\services\importers\storypack\parsers\metadata_extractor.py:143:13: TRY300 Consider moving this statement to an `else` block
+    |
+141 |             }
+142 |
+143 |             return metadata
+    |             ^^^^^^^^^^^^^^^ TRY300
+144 |
+145 |         except (ValidationError, ServiceError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\processors\ai_processor.py:84:13: TRY300 Consider moving this statement to an `else` block
+   |
+82 |                 log_warning("AI processor initialization completed with limitations")
+83 |
+84 |             return success
+   |             ^^^^^^^^^^^^^^ TRY300
+85 |
+86 |         except (ConnectionError, TimeoutError) as e:
+   |
+
+src\openchronicle\application\services\importers\storypack\processors\ai_processor.py:160:13: TRY300 Consider moving this statement to an `else` block
+    |
+158 |             )
+159 |
+160 |             return enhanced_result
+    |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+161 |
+162 |         except Exception as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\processors\ai_processor.py:224:13: TRY300 Consider moving this statement to an `else` block
+    |
+222 |                     )
+223 |
+224 |             return formatted_entities
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+225 |
+226 |         except (ConnectionError, TimeoutError) as e:
+    |
+
+src\openchronicle\application\services\importers\storypack\processors\ai_processor.py:344:13: TRY300 Consider moving this statement to an `else` block
+    |
+342 |                 return True, messages
+343 |             messages.append("✗ AI analysis returned no results")
+344 |             return False, messages
+    |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+345 |
+346 |         except (ConnectionError, TimeoutError) as e:
+    |
+
+src\openchronicle\application\services\management\management_orchestrator.py:285:13: TRY300 Consider moving this statement to an `else` block
+    |
+283 |             }
+284 |
+285 |             return analysis
+    |             ^^^^^^^^^^^^^^^ TRY300
+286 |
+287 |         except (ValidationError, ServiceError) as e:
+    |
+
+src\openchronicle\application\services\management\management_orchestrator.py:330:13: TRY300 Consider moving this statement to an `else` block
+    |
+328 |                     )
+329 |
+330 |             return optimization
+    |             ^^^^^^^^^^^^^^^^^^^ TRY300
+331 |
+332 |         except (ValidationError, ServiceError) as e:
+    |
+
+src\openchronicle\application\services\management\management_orchestrator.py:531:13: TRY300 Consider moving this statement to an `else` block
+    |
+530 |             log_info("Generated management performance metrics")
+531 |             return performance_metrics
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+532 |
+533 |         except (ServiceError, ValidationError) as e:
+    |
+
+src\openchronicle\application\services\management\shared\config_validation.py:138:13: TRY300 Consider moving this statement to an `else` block
+    |
+136 |             # Test JSON serialization
+137 |             json.dumps(metadata)
+138 |             return metadata
+    |             ^^^^^^^^^^^^^^^ TRY300
+139 |         except (TypeError, ValueError) as e:
+140 |             raise ManagementException(f"Metadata is not JSON-serializable: {e}")
+    |
+
+src\openchronicle\application\services\story_processing_service.py:236:13: TRY300 Consider moving this statement to an `else` block
+    |
+234 |                 f"Generated AI response: {ai_response[:100]}..."
+235 |             )
+236 |             return ai_response
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+237 |         except (ModelError, NarrativeError) as e:  # Model/narrative failures after retries
+238 |             await self.logging_service.log_error(
+    |
+
+src\openchronicle\application\services\story_processing_service.py:292:13: TRY300 Consider moving this statement to an `else` block
+    |
+290 |                 f"Generated {len(content_flags)} content flags"
+291 |             )
+292 |             return content_flags
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+293 |
+294 |         except (ServiceError, ValidationError) as e:
+    |
+
+src\openchronicle\application\services\story_processing_service.py:326:13: TRY300 Consider moving this statement to an `else` block
+    |
+325 |             await self.logging_service.log_info(f"Scene logged with ID: {scene_id}")
+326 |             return scene_id
+    |             ^^^^^^^^^^^^^^^ TRY300
+327 |
+328 |         except (ServiceError, ValidationError) as e:
+    |
+
+src\openchronicle\domain\models\configuration_manager.py:116:13: TRY300 Consider moving this statement to an `else` block
+    |
+114 |             )
+115 |
+116 |             return registry
+    |             ^^^^^^^^^^^^^^^ TRY300
+117 |
+118 |         except Exception as e:
+    |
+
+src\openchronicle\domain\models\configuration_manager.py:252:13: TRY300 Consider moving this statement to an `else` block
+    |
+250 |             # Use registry port for validation (hexagonal architecture)
+251 |             self.registry_port.validate_config("unknown", config)
+252 |             return {"valid": True, "errors": [], "warnings": []}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+253 |         except Exception as e:
+254 |             return {"valid": False, "errors": [str(e)], "warnings": []}
+    |
+
+src\openchronicle\domain\models\configuration_manager.py:284:13: TRY300 Consider moving this statement to an `else` block
+    |
+282 |                 "configuration_reloaded", "Configuration reloaded successfully"
+283 |             )
+284 |             return True
+    |             ^^^^^^^^^^^ TRY300
+285 |         except Exception as e:
+286 |             log_error(f"Failed to reload configuration: {e}")
+    |
+
+src\openchronicle\domain\models\configuration_manager.py:339:13: TRY300 Consider moving this statement to an `else` block
+    |
+338 |             log_system_event("model_added", f"Added runtime model: {name}")
+339 |             return True
+    |             ^^^^^^^^^^^ TRY300
+340 |
+341 |         except Exception as e:
+    |
+
+src\openchronicle\domain\models\configuration_manager.py:352:13: TRY300 Consider moving this statement to an `else` block
+    |
+350 |                 log_system_event("model_removed", f"Removed runtime model: {name}")
+351 |                 return True
+352 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+353 |         except Exception as e:
+354 |             log_error(f"Failed to remove model {name}: {e}")
+    |
+
+src\openchronicle\domain\models\configuration_manager.py:374:13: TRY300 Consider moving this statement to an `else` block
+    |
+372 |                 log_system_event("model_toggled", f"Model {name} {action}")
+373 |                 return True
+374 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+375 |         except Exception as e:
+376 |             log_error(f"Failed to toggle model {name}: {e}")
+    |
+
+src\openchronicle\domain\models\lifecycle_manager.py:417:13: TRY300 Consider moving this statement to an `else` block
+    |
+416 |             log_system_event("model_config_added", f"Added model configuration: {name}")
+417 |             return True
+    |             ^^^^^^^^^^^ TRY300
+418 |
+419 |         except Exception as e:
+    |
+
+src\openchronicle\domain\models\lifecycle_manager.py:549:13: TRY300 Consider moving this statement to an `else` block
+    |
+547 |                       }
+548 |
+549 | /             return {
+550 | |                 "valid": True,
+551 | |                 "reason": "Prerequisites validated",
+552 | |                 "can_enable_later": False,
+553 | |                 "recommendation": "Adapter ready for use",
+554 | |             }
+    | |_____________^ TRY300
+555 |
+556 |           except Exception as e:
+    |
+
+src\openchronicle\domain\models\lifecycle_manager.py:627:13: TRY300 Consider moving this statement to an `else` block
+    |
+625 |             sock.close()
+626 |
+627 |             return result == 0
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+628 |         except (socket.gaierror, socket.herror) as e:
+629 |             # Handle DNS and hostname resolution errors
+    |
+
+src\openchronicle\domain\models\model_orchestrator.py:248:17: TRY300 Consider moving this statement to an `else` block
+    |
+247 |                 log_info(f"Successfully initialized adapter {adapter_name}")
+248 |                 return True
+    |                 ^^^^^^^^^^^ TRY300
+249 |
+250 |             except Exception as e:
+    |
+
+src\openchronicle\domain\models\model_orchestrator.py:384:13: TRY300 Consider moving this statement to an `else` block
+    |
+382 |                 log_info(f"Successfully shutdown adapter {adapter_name}")
+383 |                 return True
+384 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+385 |         except Exception as e:
+386 |             log_error(f"Failed to shutdown adapter {adapter_name}: {e}")
+    |
+
+src\openchronicle\domain\models\model_orchestrator.py:402:13: TRY300 Consider moving this statement to an `else` block
+    |
+400 |                 status = await self.health_check_adapter(adapter_name)
+401 |                 return status.is_healthy
+402 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+403 |         except Exception as e:
+404 |             log_error(f"Failed to restart adapter {adapter_name}: {e}")
+    |
+
+src\openchronicle\domain\models\model_orchestrator.py:676:13: TRY300 Consider moving this statement to an `else` block
+    |
+674 |           try:
+675 |               response = await self.generate_response(prompt, adapter)
+676 | /             return {
+677 | |                 "success": True,
+678 | |                 "response": response.response_text,
+679 | |                 "adapter_used": response.adapter_name,
+680 | |                 "metadata": response.metadata,
+681 | |             }
+    | |_____________^ TRY300
+682 |           except (
+683 |               ModelError,
+    |
+
+src\openchronicle\domain\models\response_generator.py:206:17: TRY300 Consider moving this statement to an `else` block
+    |
+204 |                     f"(fallback position {chain.index(attempt_adapter)})",
+205 |                 )
+206 |                 return response
+    |                 ^^^^^^^^^^^^^^^ TRY300
+207 |
+208 |             except (
+    |
+
+src\openchronicle\domain\services\characters\core\character_storage.py:145:17: TRY300 Consider moving this statement to an `else` block
+    |
+143 |                 self.emit_event("character_saved", {"character_id": character_id})
+144 |                 self.logger.debug(f"Character {character_id} saved to storage")
+145 |                 return True
+    |                 ^^^^^^^^^^^ TRY300
+146 |
+147 |             except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\domain\services\characters\core\character_storage.py:227:13: TRY300 Consider moving this statement to an `else` block
+    |
+225 |             )
+226 |
+227 |             return True
+    |             ^^^^^^^^^^^ TRY300
+228 |
+229 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\domain\services\characters\core\character_storage.py:278:13: TRY300 Consider moving this statement to an `else` block
+    |
+277 |             self.emit_event("character_imported", {"character_id": character_id})
+278 |             return True
+    |             ^^^^^^^^^^^ TRY300
+279 |
+280 |         except (ValueError, TypeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_behavior_engine.py:155:13: TRY300 Consider moving this statement to an `else` block
+    |
+154 |             logger.info(f"Adapted character {character_id} style: {adaptation_type}")
+155 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+156 |
+157 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_behavior_engine.py:277:13: TRY300 Consider moving this statement to an `else` block
+    |
+276 |             logger.info(f"Generated behavioral analysis for {character_id}: {analysis_type}")
+277 |             return analysis
+    |             ^^^^^^^^^^^^^^^ TRY300
+278 |
+279 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_management_engine.py:125:13: TRY300 Consider moving this statement to an `else` block
+    |
+123 |             else:
+124 |                 logger.debug(f"Character {character_id} not found")
+125 |             return character
+    |             ^^^^^^^^^^^^^^^^ TRY300
+126 |
+127 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_management_engine.py:162:13: TRY300 Consider moving this statement to an `else` block
+    |
+160 |                 logger.error(f"Failed to delete character {character_id}")
+161 |
+162 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+163 |
+164 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_management_engine.py:227:13: TRY300 Consider moving this statement to an `else` block
+    |
+226 |             logger.debug(f"Retrieved state for character {character_id}")
+227 |             return state
+    |             ^^^^^^^^^^^^ TRY300
+228 |
+229 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_management_engine.py:272:13: TRY300 Consider moving this statement to an `else` block
+    |
+270 |                 logger.error(f"Failed to save character {character_id} state updates")
+271 |
+272 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+273 |
+274 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_stats_engine.py:97:13: TRY300 Consider moving this statement to an `else` block
+   |
+95 |                 f"Updated {stat_type.value} to {new_value} for character {character.character_id}: {reason}"
+96 |             )
+97 |             return True
+   |             ^^^^^^^^^^^ TRY300
+98 |
+99 |         except (ValueError, TypeError, AttributeError) as e:
+   |
+
+src\openchronicle\domain\services\characters\engines\character_stats_engine.py:131:13: TRY300 Consider moving this statement to an `else` block
+    |
+129 |                 return base_value + modifier if base_value is not None else None
+130 |
+131 |             return base_value
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+132 |
+133 |         except (ValueError, TypeError, AttributeError) as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_stats_engine.py:298:13: TRY300 Consider moving this statement to an `else` block
+    |
+296 |             )
+297 |
+298 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+299 |
+300 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_stats_engine.py:339:13: TRY300 Consider moving this statement to an `else` block
+    |
+337 |                 summary["average_stat"] = summary["total_stat_points"] / len(summary["stats"])
+338 |
+339 |             return summary
+    |             ^^^^^^^^^^^^^^ TRY300
+340 |
+341 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_validation_engine.py:131:13: TRY300 Consider moving this statement to an `else` block
+    |
+129 |                 )
+130 |
+131 |             return validation_result
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+132 |
+133 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\characters\engines\character_validation_engine.py:195:13: TRY300 Consider moving this statement to an `else` block
+    |
+193 |                             return False, f"Validation provider error: {e}"
+194 |
+195 |             return True, ""
+    |             ^^^^^^^^^^^^^^^ TRY300
+196 |
+197 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_character_integration.py:83:13: TRY300 Consider moving this statement to an `else` block
+   |
+82 |             log_info(f"Validated character consistency for {character_id}: {validation['consistency_score']}")
+83 |             return validation
+   |             ^^^^^^^^^^^^^^^^^ TRY300
+84 |
+85 |         except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
+   |
+
+src\openchronicle\domain\services\narrative\core\narrative_character_integration.py:280:13: TRY300 Consider moving this statement to an `else` block
+    |
+279 |             log_info(f"Validated emotional consistency for {character_id}: {validation['consistency_score']}")
+280 |             return validation
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+281 |
+282 |         except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_character_integration.py:382:13: TRY300 Consider moving this statement to an `else` block
+    |
+381 |             log_info(f"Validated narrative consistency: {validation['consistency_score']}")
+382 |             return validation
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+383 |
+384 |         except (NarrativeError, ValidationError, CacheError, InfrastructureError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_mechanics_handler.py:85:13: TRY300 Consider moving this statement to an `else` block
+   |
+83 |                 f"Dice roll: {dice_expression} = {total} (rolls: {rolls}, modifier: {modifier})"
+84 |             )
+85 |             return result
+   |             ^^^^^^^^^^^^^ TRY300
+86 |
+87 |         except Exception as e:
+   |
+
+src\openchronicle\domain\services\narrative\core\narrative_mechanics_handler.py:170:13: TRY300 Consider moving this statement to an `else` block
+    |
+168 |                 f"Evaluated narrative branch for {character_id} in {story_id}: {branch_type}"
+169 |             )
+170 |             return evaluation
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+171 |
+172 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_operation_router.py:89:13: TRY300 Consider moving this statement to an `else` block
+   |
+87 |             )
+88 |
+89 |             return operation
+   |             ^^^^^^^^^^^^^^^^ TRY300
+90 |
+91 |         except (ValueError, KeyError) as e:
+   |
+
+src\openchronicle\domain\services\narrative\core\narrative_operation_router.py:200:17: TRY300 Consider moving this statement to an `else` block
+    |
+198 |                       }
+199 |
+200 | /                 return {
+201 | |                     "status": "consistency_operation_complete",
+202 | |                     "success": True,
+203 | |                     "result": result,
+204 | |                 }
+    | |_________________^ TRY300
+205 |
+206 |               except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_operation_router.py:246:17: TRY300 Consider moving this statement to an `else` block
+    |
+244 |                       }
+245 |
+246 | /                 return {
+247 | |                     "status": "emotional_operation_complete",
+248 | |                     "success": True,
+249 | |                     "result": result,
+250 | |                 }
+    | |_________________^ TRY300
+251 |
+252 |               except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_state_manager.py:96:13: TRY300 Consider moving this statement to an `else` block
+   |
+94 |             )
+95 |
+96 |             return True
+   |             ^^^^^^^^^^^ TRY300
+97 |
+98 |         except (AttributeError, TypeError, ValueError) as e:
+   |
+
+src\openchronicle\domain\services\narrative\core\narrative_state_manager.py:145:13: TRY300 Consider moving this statement to an `else` block
+    |
+143 |             )
+144 |
+145 |             return True
+    |             ^^^^^^^^^^^ TRY300
+146 |
+147 |         except (AttributeError, TypeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_state_manager.py:174:13: TRY300 Consider moving this statement to an `else` block
+    |
+172 |             )
+173 |
+174 |             return True
+    |             ^^^^^^^^^^^ TRY300
+175 |
+176 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_state_manager.py:206:13: TRY300 Consider moving this statement to an `else` block
+    |
+204 |             )
+205 |
+206 |             return True
+    |             ^^^^^^^^^^^ TRY300
+207 |
+208 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\core\narrative_state_manager.py:253:13: TRY300 Consider moving this statement to an `else` block
+    |
+251 |                 )
+252 |
+253 |             return removed_count
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+254 |
+255 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\consistency\consistency_orchestrator.py:90:13: TRY300 Consider moving this statement to an `else` block
+   |
+88 |                     )
+89 |
+90 |             return validated_memories
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+91 |
+92 |         except Exception as e:
+   |
+
+src\openchronicle\domain\services\narrative\engines\consistency\memory_validator.py:208:13: TRY300 Consider moving this statement to an `else` block
+    |
+206 |                 memories.append(emotional_memory)
+207 |
+208 |             return memories
+    |             ^^^^^^^^^^^^^^^ TRY300
+209 |
+210 |         except (AttributeError, KeyError):
+    |
+
+src\openchronicle\domain\services\narrative\engines\consistency\memory_validator.py:360:13: TRY300 Consider moving this statement to an `else` block
+    |
+358 |                     compressed_count += len(memories)
+359 |
+360 |             return compressed_count
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+361 |
+362 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\consistency\memory_validator.py:493:13: TRY300 Consider moving this statement to an `else` block
+    |
+491 |                 return memories
+492 |
+493 |             return []
+    |             ^^^^^^^^^ TRY300
+494 |
+495 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\consistency\memory_validator.py:519:13: TRY300 Consider moving this statement to an `else` block
+    |
+517 |             ]
+518 |
+519 |             return filtered_memories
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+520 |
+521 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\consistency\state_tracker.py:168:13: TRY300 Consider moving this statement to an `else` block
+    |
+166 |             # Calculate system-wide metrics
+167 |             all_metrics["system_summary"] = self._calculate_system_consistency_metrics()
+168 |             return all_metrics
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+169 |
+170 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\emotional\emotional_orchestrator.py:109:13: TRY300 Consider moving this statement to an `else` block
+    |
+107 |                 result["warning"] = "Low emotional stability detected"
+108 |
+109 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+110 |
+111 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\emotional\mood_analyzer.py:126:13: TRY300 Consider moving this statement to an `else` block
+    |
+124 |             )
+125 |
+126 |             return max_similarity
+    |             ^^^^^^^^^^^^^^^^^^^^^ TRY300
+127 |
+128 |         except AttributeError as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\mechanics\dice_engine.py:122:13: TRY300 Consider moving this statement to an `else` block
+    |
+120 |             )
+121 |
+122 |             return dice_roll
+    |             ^^^^^^^^^^^^^^^^ TRY300
+123 |
+124 |         except ValueError as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\mechanics\mechanics_orchestrator.py:166:13: TRY300 Consider moving this statement to an `else` block
+    |
+164 |             )
+165 |
+166 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+167 |
+168 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\mechanics\narrative_branching.py:239:13: TRY300 Consider moving this statement to an `else` block
+    |
+237 |             )
+238 |
+239 |             return branches
+    |             ^^^^^^^^^^^^^^^ TRY300
+240 |
+241 |         except (ValueError, TypeError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\response\context_analyzer.py:131:13: TRY300 Consider moving this statement to an `else` block
+    |
+129 |                 },
+130 |             )
+131 |             return analysis
+    |             ^^^^^^^^^^^^^^^ TRY300
+132 |
+133 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\response\response_orchestrator.py:179:13: TRY300 Consider moving this statement to an `else` block
+    |
+177 |             )
+178 |
+179 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+180 |
+181 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\response\response_orchestrator.py:328:13: TRY300 Consider moving this statement to an `else` block
+    |
+326 | …     )
+327 | …
+328 | …     return model_response.content if model_response else f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {content_focus}]"
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+329 | …
+330 | … except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\response\response_orchestrator.py:500:13: TRY300 Consider moving this statement to an `else` block
+    |
+498 |             overlap_score = min(1.0, overlap / max(len(context_words), 1) * 3)
+499 |
+500 |             return overlap_score
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+501 |
+502 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\engines\response\response_planner.py:176:13: TRY300 Consider moving this statement to an `else` block
+    |
+174 |                 },
+175 |             )
+176 |             return plan
+    |             ^^^^^^^^^^^ TRY300
+177 |
+178 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\narrative_orchestrator.py:322:13: TRY300 Consider moving this statement to an `else` block
+    |
+320 |                 )
+321 |
+322 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+323 |
+324 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\shared\narrative_base.py:120:13: TRY300 Consider moving this statement to an `else` block
+    |
+118 |             # Set new state
+119 |             self.states[key] = state.copy()
+120 |             return True
+    |             ^^^^^^^^^^^ TRY300
+121 |
+122 |         except Exception as e:
+    |
+
+src\openchronicle\domain\services\narrative\shared\narrative_base.py:163:13: TRY300 Consider moving this statement to an `else` block
+    |
+161 |             self.states.pop(key, None)
+162 |             self.state_history.pop(key, None)
+163 |             return True
+    |             ^^^^^^^^^^^ TRY300
+164 |         except Exception as e:
+165 |             log_error(
+    |
+
+src\openchronicle\domain\services\narrative\shared\narrative_base.py:185:13: TRY300 Consider moving this statement to an `else` block
+    |
+183 |                 self.event_handlers[event_type] = []
+184 |             self.event_handlers[event_type].append(handler)
+185 |             return True
+    |             ^^^^^^^^^^^ TRY300
+186 |         except Exception as e:
+187 |             log_error(
+    |
+
+src\openchronicle\domain\services\narrative\shared\narrative_base.py:233:13: TRY300 Consider moving this statement to an `else` block
+    |
+231 |                 self.processed_events = self.processed_events[-max_events:]
+232 |
+233 |             return results
+    |             ^^^^^^^^^^^^^^ TRY300
+234 |
+235 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\narrative\shared\narrative_state.py:112:13: TRY300 Consider moving this statement to an `else` block
+    |
+110 |             state.last_update = datetime.now().isoformat()
+111 |             self._save_states()
+112 |             return True
+    |             ^^^^^^^^^^^ TRY300
+113 |
+114 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\analysis\mood_analyzer.py:131:13: TRY300 Consider moving this statement to an `else` block
+    |
+129 |                 results.append(scene_data)
+130 |
+131 |             return results
+    |             ^^^^^^^^^^^^^^ TRY300
+132 |
+133 |         except (sqlite3.Error, sqlite3.DatabaseError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\analysis\mood_analyzer.py:196:13: TRY300 Consider moving this statement to an `else` block
+    |
+194 |                 results.append(scene_data)
+195 |
+196 |             return results
+    |             ^^^^^^^^^^^^^^ TRY300
+197 |
+198 |         except (sqlite3.Error, sqlite3.DatabaseError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\analysis\mood_analyzer.py:253:13: TRY300 Consider moving this statement to an `else` block
+    |
+251 |             timeline_with_trends = self._add_mood_trends(timeline)
+252 |
+253 |             return timeline_with_trends
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+254 |
+255 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\analysis\mood_analyzer.py:355:13: TRY300 Consider moving this statement to an `else` block
+    |
+353 |                     mood_info["mood_details"][char_name] = mood_data
+354 |
+355 |             return mood_info
+    |             ^^^^^^^^^^^^^^^^ TRY300
+356 |
+357 |         except (json.JSONDecodeError, TypeError):
+    |
+
+src\openchronicle\domain\services\scenes\analysis\scene_statistics.py:79:13: TRY300 Consider moving this statement to an `else` block
+   |
+77 |                 results.append(scene_data)
+78 |
+79 |             return results
+   |             ^^^^^^^^^^^^^^ TRY300
+80 |
+81 |         except Exception as e:  # noqa: BLE001 - broad for telemetry safety at boundary
+   |
+
+src\openchronicle\domain\services\scenes\management\labeling_system.py:72:13: TRY300 Consider moving this statement to an `else` block
+   |
+70 |                 )
+71 |
+72 |             return success
+   |             ^^^^^^^^^^^^^^ TRY300
+73 |
+74 |         except (ValueError, TypeError) as e:
+   |
+
+src\openchronicle\domain\services\scenes\management\labeling_system.py:143:13: TRY300 Consider moving this statement to an `else` block
+    |
+141 |                 results.append(scene_data)
+142 |
+143 |             return results
+    |             ^^^^^^^^^^^^^^ TRY300
+144 |
+145 |         except (sqlite3.Error, sqlite3.DatabaseError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\management\labeling_system.py:221:13: TRY300 Consider moving this statement to an `else` block
+    |
+219 |                 results.append(scene_data)
+220 |
+221 |             return results
+    |             ^^^^^^^^^^^^^^ TRY300
+222 |
+223 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\management\labeling_system.py:472:13: TRY300 Consider moving this statement to an `else` block
+    |
+470 |               )
+471 |
+472 | /             return {
+473 | |                 "success": True,
+474 | |                 "scenes_updated": old_scenes,
+475 | |                 "old_label": old_label,
+476 | |                 "new_label": new_label,
+477 | |             }
+    | |_____________^ TRY300
+478 |
+479 |           except Exception as e:
+    |
+
+src\openchronicle\domain\services\scenes\management\labeling_system.py:527:13: TRY300 Consider moving this statement to an `else` block
+    |
+525 |               )
+526 |
+527 | /             return {
+528 | |                 "success": True,
+529 | |                 "scenes_updated": scene_count,
+530 | |                 "label_removed": label,
+531 | |             }
+    | |_____________^ TRY300
+532 |
+533 |           except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\management\scene_manager.py:131:13: TRY300 Consider moving this statement to an `else` block
+    |
+129 |                 context_tags=["scene","rollback","success"],
+130 |             )
+131 |             return True
+    |             ^^^^^^^^^^^ TRY300
+132 |
+133 |         except (RuntimeError, ValueError, KeyError, TypeError) as e:  # narrowed
+    |
+
+src\openchronicle\domain\services\scenes\management\scene_manager.py:307:13: TRY300 Consider moving this statement to an `else` block
+    |
+306 |               # Estimate potential savings (placeholder logic)
+307 | /             return {
+308 | |                 "total_scenes": total_scenes,
+309 | |                 "compaction_performed": False,
+310 | |                 "note": "Scene data compaction is not yet implemented",
+311 | |                 "recommendation": "Scene data is already efficiently stored",
+312 | |             }
+    | |_____________^ TRY300
+313 |
+314 |           except (RuntimeError, ValueError, KeyError, TypeError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\persistence\scene_repository.py:252:13: TRY300 Consider moving this statement to an `else` block
+    |
+250 |             )
+251 |
+252 |             return True
+    |             ^^^^^^^^^^^ TRY300
+253 |
+254 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\persistence\scene_repository.py:283:13: TRY300 Consider moving this statement to an `else` block
+    |
+281 |             )
+282 |
+283 |             return True
+    |             ^^^^^^^^^^^ TRY300
+284 |
+285 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\persistence\scene_repository.py:343:13: TRY300 Consider moving this statement to an `else` block
+    |
+341 |         try:
+342 |             count = self.count_scenes()
+343 |             return f"active ({count} scenes)"
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+344 |         except CountScenesError:
+345 |             return "error"
+    |
+
+src\openchronicle\domain\services\scenes\scene_orchestrator.py:233:13: TRY300 Consider moving this statement to an `else` block
+    |
+231 |                 context_tags=["save_scene"],
+232 |             )
+233 |             return ""
+    |             ^^^^^^^^^ TRY300
+234 |
+235 |         except (ValueError, TypeError, RuntimeError, KeyError) as e:
+    |
+
+src\openchronicle\domain\services\scenes\scene_orchestrator.py:352:13: TRY300 Consider moving this statement to an `else` block
+    |
+350 |             if scene_data:
+351 |                 return self.serializer.serialize_scene_for_output(scene_data)
+352 |             return None
+    |             ^^^^^^^^^^^ TRY300
+353 |         except LoadSceneError as e:
+354 |             log_error(
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:72:13: TRY300 Consider moving this statement to an `else` block
+   |
+70 |                 )
+71 |
+72 |             return history
+   |             ^^^^^^^^^^^^^^ TRY300
+73 |
+74 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+   |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:252:13: TRY300 Consider moving this statement to an `else` block
+    |
+250 |             )
+251 |
+252 |             return True
+    |             ^^^^^^^^^^^ TRY300
+253 |
+254 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:325:13: TRY300 Consider moving this statement to an `else` block
+    |
+323 |             if navigation_type == "search":
+324 |                 return await self._navigate_search(kwargs.get("search_criteria", {}))
+325 |             return {"error": f"Unknown navigation type: {navigation_type}"}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+326 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+327 |             return {"error": f"Navigation failed: {e!s}"}
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:371:13: TRY300 Consider moving this statement to an `else` block
+    |
+369 |                     )
+370 |
+371 |             return navigation_structure
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+372 |
+373 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:424:13: TRY300 Consider moving this statement to an `else` block
+    |
+422 |                     "status": "success",
+423 |                 }
+424 |             return {"error": "No next scene found"}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+425 |
+426 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:470:13: TRY300 Consider moving this statement to an `else` block
+    |
+468 |                     "status": "success",
+469 |                 }
+470 |             return {"error": "No previous scene found"}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+471 |
+472 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:495:13: TRY300 Consider moving this statement to an `else` block
+    |
+493 |                     "status": "success",
+494 |                 }
+495 |             return {"error": f"Scene {target_scene_id} not found"}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+496 |
+497 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\timeline\navigation\navigation_manager.py:516:13: TRY300 Consider moving this statement to an `else` block
+    |
+514 |                     "status": "success",
+515 |                 }
+516 |             return {"error": "No scenes found matching search criteria"}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+517 |
+518 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    |
+
+src\openchronicle\domain\services\timeline\rollback\state_manager.py:313:13: TRY300 Consider moving this statement to an `else` block
+    |
+311 |                 # Use store_memory to restore; overwrites existing entries
+312 |                 self.memory_port.store_memory(self.story_id, name, data)
+313 |             return "Memory state restored via IMemoryPort"
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+314 |         except Exception as e:
+315 |             log_error(f"Failed to restore memory state: {e}")
+    |
+
+src\openchronicle\domain\services\timeline\shared\fallback_navigation.py:52:13: TRY300 Consider moving this statement to an `else` block
+   |
+50 |                 )
+51 |
+52 |             return history
+   |             ^^^^^^^^^^^^^^ TRY300
+53 |
+54 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError):
+   |
+
+src\openchronicle\domain\services\timeline\shared\fallback_state.py:94:13: TRY300 Consider moving this statement to an `else` block
+   |
+92 |                 )
+93 |
+94 |             return rollback_points
+   |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+95 |
+96 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError):
+   |
+
+src\openchronicle\domain\services\timeline\timeline_orchestrator.py:210:13: TRY300 Consider moving this statement to an `else` block
+    |
+208 |             )
+209 |
+210 |             return timeline_data
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+211 |
+212 |         except (
+    |
+
+src\openchronicle\domain\services\timeline\timeline_orchestrator.py:254:13: TRY300 Consider moving this statement to an `else` block
+    |
+252 |             )
+253 |
+254 |             return rollback_data
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+255 |
+256 |         except (
+    |
+
+src\openchronicle\domain\services\timeline\timeline_orchestrator.py:308:13: TRY300 Consider moving this statement to an `else` block
+    |
+306 |             log_info(f"Successfully rolled back to point {rollback_id}")
+307 |
+308 |             return restoration_result
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+309 |
+310 |         except (
+    |
+
+src\openchronicle\domain\services\timeline\timeline_orchestrator.py:340:13: TRY300 Consider moving this statement to an `else` block
+    |
+338 |             self.metrics.record_operation("navigation", True)
+339 |
+340 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+341 |
+342 |         except (
+    |
+
+src\openchronicle\infrastructure\adapters\persistence_adapter.py:46:13: TRY300 Consider moving this statement to an `else` block
+   |
+44 |                 timeline_file.write_text("[]", encoding='utf-8')
+45 |
+46 |             return True
+   |             ^^^^^^^^^^^ TRY300
+47 |         except (OSError, IOError, PermissionError) as e:
+48 |             print(f"File system error initializing database for {story_id}: {e}")
+   |
+
+src\openchronicle\infrastructure\adapters\persistence_adapter.py:116:13: TRY300 Consider moving this statement to an `else` block
+    |
+114 |                 return scenes[-limit:] if scenes else []
+115 |
+116 |             return []
+    |             ^^^^^^^^^ TRY300
+117 |         except (OSError, IOError, PermissionError) as e:
+118 |             print(f"File system error getting scenes for {story_id}: {e}")
+    |
+
+src\openchronicle\infrastructure\adapters\persistence_adapter.py:139:13: TRY300 Consider moving this statement to an `else` block
+    |
+137 |                         return scene
+138 |
+139 |             return None
+    |             ^^^^^^^^^^^ TRY300
+140 |         except (OSError, IOError, PermissionError) as e:
+141 |             print(f"File system error getting scene {scene_id} for {story_id}: {e}")
+    |
+
+src\openchronicle\infrastructure\adapters\persistence_adapter.py:167:13: TRY300 Consider moving this statement to an `else` block
+    |
+165 |                 return True
+166 |
+167 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+168 |         except (OSError, IOError, PermissionError) as e:
+169 |             print(f"File system error updating scene {scene_id} for {story_id}: {e}")
+    |
+
+src\openchronicle\infrastructure\adapters\persistence_adapter.py:187:13: TRY300 Consider moving this statement to an `else` block
+    |
+185 |             if scenes_file.exists():
+186 |                 return json.loads(scenes_file.read_text(encoding='utf-8'))
+187 |             return []
+    |             ^^^^^^^^^ TRY300
+188 |         except (OSError, IOError, PermissionError) as e:
+189 |             print(f"File system error querying scenes: {e}")
+    |
+
+src\openchronicle\infrastructure\adapters\persistence_adapter.py:204:13: TRY300 Consider moving this statement to an `else` block
+    |
+202 |             if timeline_file.exists():
+203 |                 return json.loads(timeline_file.read_text(encoding='utf-8'))
+204 |             return []
+    |             ^^^^^^^^^ TRY300
+205 |         except (OSError, IOError, PermissionError) as e:
+206 |             print(f"File system error querying timeline: {e}")
+    |
+
+src\openchronicle\infrastructure\adapters\registry_adapter.py:83:13: TRY300 Consider moving this statement to an `else` block
+   |
+81 |             if missing_fields:
+82 |                 raise ValueError(f"Missing required fields: {missing_fields}")
+83 |             return True
+   |             ^^^^^^^^^^^ TRY300
+84 |         except (ValueError, TypeError) as e:
+85 |             log_error(f"validate_config failed for '{provider_name}': {e}")
+   |
+
+src\openchronicle\infrastructure\cache\__init__.py:258:13: TRY300 Consider moving this statement to an `else` block
+    |
+256 |                 await f.write(json.dumps(entry.to_dict(), indent=2))
+257 |
+258 |             return value
+    |             ^^^^^^^^^^^^ TRY300
+259 |
+260 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\cache\__init__.py:285:17: TRY300 Consider moving this statement to an `else` block
+    |
+283 |                     await f.write(json.dumps(entry.to_dict(), indent=2, default=str))
+284 |
+285 |                 return True
+    |                 ^^^^^^^^^^^ TRY300
+286 |
+287 |             except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\cache\__init__.py:307:13: TRY300 Consider moving this statement to an `else` block
+    |
+305 |                 cache_file.unlink()
+306 |                 return True
+307 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+308 |         except (OSError, IOError, PermissionError) as e:
+309 |             # Handle file system errors specifically for cache file deletion
+    |
+
+src\openchronicle\infrastructure\cache\__init__.py:321:13: TRY300 Consider moving this statement to an `else` block
+    |
+319 |             for cache_file in self.cache_dir.glob("*.cache"):
+320 |                 cache_file.unlink()
+321 |             return True
+    |             ^^^^^^^^^^^ TRY300
+322 |         except (OSError, IOError, PermissionError) as e:
+323 |             # Handle file system errors specifically for cache clearing operations
+    |
+
+src\openchronicle\infrastructure\cache\__init__.py:349:13: TRY300 Consider moving this statement to an `else` block
+    |
+347 |                 return False
+348 |
+349 |             return True
+    |             ^^^^^^^^^^^ TRY300
+350 |
+351 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\content\analysis\extraction\character_extractor.py:85:17: TRY300 Consider moving this statement to an `else` block
+   |
+83 |                     f"Successfully extracted character data: {result.get('name', 'multiple/unknown')}"
+84 |                 )
+85 |                 return result
+   |                 ^^^^^^^^^^^^^ TRY300
+86 |             except json.JSONDecodeError:
+87 |                 log_warning(
+   |
+
+src\openchronicle\infrastructure\content\analysis\extraction\character_extractor.py:137:13: TRY300 Consider moving this statement to an `else` block
+    |
+135 |             if isinstance(character_data, list):
+136 |                 return character_data
+137 |             return []
+    |             ^^^^^^^^^ TRY300
+138 |
+139 |         except ValueError as e:
+    |
+
+src\openchronicle\infrastructure\content\analysis\extraction\location_extractor.py:86:17: TRY300 Consider moving this statement to an `else` block
+   |
+84 |                     f"Successfully extracted location data: {result.get('name', 'multiple/unknown')}"
+85 |                 )
+86 |                 return result
+   |                 ^^^^^^^^^^^^^ TRY300
+87 |             except json.JSONDecodeError:
+88 |                 log_warning(
+   |
+
+src\openchronicle\infrastructure\content\analysis\extraction\lore_extractor.py:84:17: TRY300 Consider moving this statement to an `else` block
+   |
+82 |                     f"Successfully extracted lore data: {result.get('title', 'multiple/unknown')}"
+83 |                 )
+84 |                 return result
+   |                 ^^^^^^^^^^^^^ TRY300
+85 |             except json.JSONDecodeError:
+86 |                 log_warning("Failed to parse lore extraction JSON, attempting cleanup")
+   |
+
+src\openchronicle\infrastructure\content\analysis\orchestrator.py:105:13: TRY300 Consider moving this statement to an `else` block
+    |
+103 |             )
+104 |
+105 |             return comprehensive_result
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+106 |
+107 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\content\analysis\orchestrator.py:126:13: TRY300 Consider moving this statement to an `else` block
+    |
+124 |                 classification["detection_methods"].append("transformer")
+125 |
+126 |             return classification
+    |             ^^^^^^^^^^^^^^^^^^^^^ TRY300
+127 |
+128 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\content\analysis\routing\recommendation_engine.py:191:13: TRY300 Consider moving this statement to an `else` block
+    |
+189 |                 )
+190 |
+191 |             return suggestions
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+192 |
+193 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\content\context\orchestrator.py:240:13: TRY300 Consider moving this statement to an `else` block
+    |
+238 |             )
+239 |
+240 |             return final_context
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+241 |
+242 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\content\context\orchestrator.py:346:13: TRY300 Consider moving this statement to an `else` block
+    |
+344 |                 )
+345 |
+346 |             return ""
+    |             ^^^^^^^^^ TRY300
+347 |
+348 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\content\context\orchestrator.py:370:13: TRY300 Consider moving this statement to an `else` block
+    |
+368 |                 )
+369 |
+370 |             return ""
+    |             ^^^^^^^^^ TRY300
+371 |
+372 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\images\generation\generation_engine.py:87:13: TRY300 Consider moving this statement to an `else` block
+   |
+86 |             logger.info(f"Loaded metadata for {len(metadata)} images")
+87 |             return metadata
+   |             ^^^^^^^^^^^^^^^ TRY300
+88 |
+89 |         except Exception as e:
+   |
+
+src\openchronicle\infrastructure\images\generation\generation_engine.py:224:13: TRY300 Consider moving this statement to an `else` block
+    |
+223 |             logger.info(f"Generated image {image_id}: {filename}")
+224 |             return image_id
+    |             ^^^^^^^^^^^^^^^ TRY300
+225 |
+226 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\images\generation\generation_engine.py:302:13: TRY300 Consider moving this statement to an `else` block
+    |
+301 |             logger.info(f"Deleted image {image_id}")
+302 |             return True
+    |             ^^^^^^^^^^^ TRY300
+303 |
+304 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\images\processing\storage_manager.py:82:13: TRY300 Consider moving this statement to an `else` block
+   |
+81 |             logger.info(f"Loaded metadata for {len(metadata)} images")
+82 |             return metadata
+   |             ^^^^^^^^^^^^^^^ TRY300
+83 |         except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
+84 |             logger.exception("Failed to load image metadata")
+   |
+
+src\openchronicle\infrastructure\images\processing\storage_manager.py:251:13: TRY300 Consider moving this statement to an `else` block
+    |
+250 |             logger.info(f"Stored image {image_id} at {file_path}")
+251 |             return metadata
+    |             ^^^^^^^^^^^^^^^ TRY300
+252 |         except (OSError, ImageValidationError, ValueError, TypeError) as e:
+253 |             # Cleanup on failure
+    |
+
+src\openchronicle\infrastructure\images\processing\storage_manager.py:303:13: TRY300 Consider moving this statement to an `else` block
+    |
+302 |             logger.info(f"Deleted image {image_id}")
+303 |             return True
+    |             ^^^^^^^^^^^ TRY300
+304 |         except (OSError, KeyError) as e:
+305 |             logger.exception("Failed to delete image")
+    |
+
+src\openchronicle\infrastructure\images\shared\validation_utils.py:163:13: TRY300 Consider moving this statement to an `else` block
+    |
+161 |                 )
+162 |
+163 |             return True, None
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+164 |
+165 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\images\shared\validation_utils.py:257:13: TRY300 Consider moving this statement to an `else` block
+    |
+255 |                 )
+256 |
+257 |             return True, None
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+258 |
+259 |         except (OSError, IOError) as e:
+    |
+
+src\openchronicle\infrastructure\llm_adapters\adapter_factory.py:149:13: TRY300 Consider moving this statement to an `else` block
+    |
+147 |                     config_name = config.get("config_name", f"{provider_name}_default")
+148 |                     all_configs.append(config_name)
+149 |             return all_configs
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+150 |         except (OSError, ValueError, TypeError) as e:
+151 |             logger.warning(f"Error getting configurations: {e}")
+    |
+
+src\openchronicle\infrastructure\llm_adapters\adapter_factory.py:243:13: TRY300 Consider moving this statement to an `else` block
+    |
+242 |             logger.info(f"Created {provider} adapter from config: {config_name}")
+243 |             return adapter
+    |             ^^^^^^^^^^^^^^ TRY300
+244 |         except (AdapterNotFoundError, AdapterInitializationError, ValueError, TypeError) as e:
+245 |             logger.exception(f"Failed to create adapter from config '{config_name}'")
+    |
+
+src\openchronicle\infrastructure\llm_adapters\adapter_factory.py:275:13: TRY300 Consider moving this statement to an `else` block
+    |
+274 |             logger.info(f"Created default {provider} adapter")
+275 |             return adapter
+    |             ^^^^^^^^^^^^^^ TRY300
+276 |         except (KeyError, AdapterNotFoundError, AdapterInitializationError, ValueError, TypeError) as e:
+277 |             logger.exception(f"Failed to create adapter for provider '{provider}'")
+    |
+
+src\openchronicle\infrastructure\llm_adapters\adapter_factory.py:315:13: TRY300 Consider moving this statement to an `else` block
+    |
+313 |             if success:
+314 |                 logger.info(f"Added runtime configuration: {config_name}")
+315 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+316 |         except (OSError, ValueError, TypeError) as e:
+317 |             logger.exception(f"Failed to add runtime config '{config_name}'")
+    |
+
+src\openchronicle\infrastructure\llm_adapters\adapter_factory.py:326:13: TRY300 Consider moving this statement to an `else` block
+    |
+324 |             if success:
+325 |                 logger.info(f"Removed runtime configuration: {config_name}")
+326 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+327 |         except (OSError, ValueError, TypeError) as e:
+328 |             logger.exception(f"Failed to remove runtime config '{config_name}'")
+    |
+
+src\openchronicle\infrastructure\llm_adapters\api_adapter_base.py:228:13: TRY300 Consider moving this statement to an `else` block
+    |
+226 |             )
+227 |
+228 |             return response
+    |             ^^^^^^^^^^^^^^^ TRY300
+229 |
+230 |         except (
+    |
+
+src\openchronicle\infrastructure\llm_adapters\providers\ollama_adapter.py:42:13: TRY300 Consider moving this statement to an `else` block
+   |
+40 |                     f"Ollama connection failed: HTTP {response.status_code}",
+41 |                 )
+42 |             return client
+   |             ^^^^^^^^^^^^^ TRY300
+43 |         except httpx.RequestError as e:
+44 |             await client.aclose()
+   |
+
+src\openchronicle\infrastructure\llm_adapters\providers\ollama_adapter.py:80:13: TRY300 Consider moving this statement to an `else` block
+   |
+78 |                 )
+79 |
+80 |             return content
+   |             ^^^^^^^^^^^^^^ TRY300
+81 |
+82 |         except asyncio.TimeoutError:
+   |
+
+src\openchronicle\infrastructure\memory\cache_orchestrator.py:248:25: TRY300 Consider moving this statement to an `else` block
+    |
+246 |                         if self.local_cache is not None:
+247 |                             self.local_cache[key] = value
+248 |                         return value
+    |                         ^^^^^^^^^^^^ TRY300
+249 |                     except json.JSONDecodeError:
+250 |                         self.logger.exception(
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:78:13: TRY300 Consider moving this statement to an `else` block
+   |
+76 |             self._update_performance_stats(end_time - start_time)
+77 |
+78 |             return result
+   |             ^^^^^^^^^^^^^ TRY300
+79 |
+80 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+   |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:125:13: TRY300 Consider moving this statement to an `else` block
+    |
+123 |                 )
+124 |
+125 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+126 |
+127 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:150:13: TRY300 Consider moving this statement to an `else` block
+    |
+148 |             self._update_performance_stats(end_time - start_time)
+149 |
+150 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+151 |
+152 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:188:13: TRY300 Consider moving this statement to an `else` block
+    |
+186 |             self._update_performance_stats(end_time - start_time)
+187 |
+188 |             return character_memory
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+189 |
+190 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:218:13: TRY300 Consider moving this statement to an `else` block
+    |
+216 |             self._update_performance_stats(end_time - start_time)
+217 |
+218 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+219 |
+220 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:241:13: TRY300 Consider moving this statement to an `else` block
+    |
+239 |             self._update_performance_stats(end_time - start_time)
+240 |
+241 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+242 |
+243 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:266:13: TRY300 Consider moving this statement to an `else` block
+    |
+264 |             self._update_performance_stats(end_time - start_time)
+265 |
+266 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+267 |
+268 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\core\async_memory_orchestrator.py:320:13: TRY300 Consider moving this statement to an `else` block
+    |
+318 |                 del memory["flags"][flag_name]
+319 |                 return await self.repository.save_memory(story_id, memory)
+320 |             return True
+    |             ^^^^^^^^^^^ TRY300
+321 |         except (CacheError, CacheConnectionError, InfrastructureError) as e:
+322 |             self.logger.exception("Error removing memory flag")
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:164:13: TRY300 Consider moving this statement to an `else` block
+    |
+162 |                 f"Unsupported memory_data type for save: {type(memory_data)!r}"
+163 |             )
+164 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+165 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+166 |             log_error_with_context(e, {"operation": "save_current_memory", "story_id": story_id})
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:181:13: TRY300 Consider moving this statement to an `else` block
+    |
+179 |             _ = self.save_current_memory(key, memory_data)
+180 |             self.logger.info(f"Stored memory with key {key}")
+181 |             return True
+    |             ^^^^^^^^^^^ TRY300
+182 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+183 |             log_error_with_context(e, {"operation": "store_memory", "key": key})
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:210:13: TRY300 Consider moving this statement to an `else` block
+    |
+208 |             }
+209 |             self.logger.info("Retrieved current memory state")
+210 |             return current_state
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+211 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+212 |             log_error_with_context(e, {"operation": "get_current_state"})
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:342:13: TRY300 Consider moving this statement to an `else` block
+    |
+340 | …             character = memory.characters[character_name]
+341 | …             return self.voice_manager.generate_voice_prompt(character)
+342 | …         return f"Character: {character_name} (no voice profile available)"
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+343 | …     except (TypeError, ValueError, KeyError, AttributeError) as e:
+344 | …         log_error_with_context(e, {"operation": "get_character_voice_prompt", "character_name": character_name, "story_id": story_i…
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:577:13: TRY300 Consider moving this statement to an `else` block
+    |
+575 | …             },
+576 | …         )
+577 | …         return restored_memory
+    |           ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+578 | …     except (ValueError, TypeError, KeyError, AttributeError) as e:
+579 | …         log_error_with_context(e, {"operation": "refresh_memory_after_rollback", "story_id": story_id, "target_scene_id": target_sc…
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:616:13: TRY300 Consider moving this statement to an `else` block
+    |
+614 |                 analysis["recommendations"].append("World state appears incomplete")
+615 |
+616 |             return analysis
+    |             ^^^^^^^^^^^^^^^ TRY300
+617 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+618 |             log_error_with_context(e, {"operation": "analyze_memory_health", "story_id": story_id})
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:683:13: TRY300 Consider moving this statement to an `else` block
+    |
+681 |                 },
+682 |             )
+683 |             return True
+    |             ^^^^^^^^^^^ TRY300
+684 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+685 |             log_error_with_context(e, {"operation": "track_model_operation", "story_id": story_id, "operation_type": operation_type})
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:725:13: TRY300 Consider moving this statement to an `else` block
+    |
+723 |                     )
+724 |
+725 |             return True
+    |             ^^^^^^^^^^^ TRY300
+726 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+727 |             log_error_with_context(e, {"operation": "update_from_model_response", "story_id": story_id})
+    |
+
+src\openchronicle\infrastructure\memory\core\memory_orchestrator.py:789:13: TRY300 Consider moving this statement to an `else` block
+    |
+787 |                     pass
+788 |                 return {"success": True, "memory": memory}
+789 |             return {"error": f"Unknown operation: {operation}", "success": False}
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+790 |
+791 |         except (TypeError, ValueError, KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\caching\redis_cache.py:255:25: TRY300 Consider moving this statement to an `else` block
+    |
+253 |                         if self.local_cache is not None:
+254 |                             self.local_cache[key] = value
+255 |                         return value
+    |                         ^^^^^^^^^^^^ TRY300
+256 |                     except json.JSONDecodeError:
+257 |                         self.logger.exception(
+    |
+
+src\openchronicle\infrastructure\memory\engines\caching\warming_manager.py:94:13: TRY300 Consider moving this statement to an `else` block
+   |
+92 |             self.cache_manager.metrics.warming_metrics["avg_time_ms"] = new_avg
+93 |
+94 |             return True
+   |             ^^^^^^^^^^^ TRY300
+95 |
+96 |         except (AttributeError, KeyError) as e:
+   |
+
+src\openchronicle\infrastructure\memory\engines\character\character_manager.py:195:13: TRY300 Consider moving this statement to an `else` block
+    |
+193 |                 snapshot["recent_dialogue"] = character.dialogue_history[-10:]
+194 |
+195 |             return snapshot
+    |             ^^^^^^^^^^^^^^^ TRY300
+196 |
+197 |         except Exception:
+    |
+
+src\openchronicle\infrastructure\memory\engines\character\voice_manager.py:330:13: TRY300 Consider moving this statement to an `else` block
+    |
+328 |                 voice.vocabulary_level = "moderate"  # Default fallback
+329 |
+330 |             return True
+    |             ^^^^^^^^^^^ TRY300
+331 |
+332 |         except (AttributeError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\context_builder.py:113:13: TRY300 Consider moving this statement to an `else` block
+    |
+111 |                 )
+112 |
+113 |             return full_context
+    |             ^^^^^^^^^^^^^^^^^^^ TRY300
+114 |
+115 |         except (AttributeError, KeyError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\scene_context_manager.py:320:13: TRY300 Consider moving this statement to an `else` block
+    |
+318 |                 updates["flags_added"] = len(scene_outcomes["flags"])
+319 |
+320 |             return updates
+    |             ^^^^^^^^^^^^^^ TRY300
+321 |
+322 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\scene_context_manager.py:374:13: TRY300 Consider moving this statement to an `else` block
+    |
+372 |             ):
+373 |                 return "somber"
+374 |             return "neutral"
+    |             ^^^^^^^^^^^^^^^^ TRY300
+375 |
+376 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\scene_context_manager.py:504:13: TRY300 Consider moving this statement to an `else` block
+    |
+502 |                     pass
+503 |
+504 |             return consistency_score
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+505 |
+506 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\scene_context_manager.py:631:13: TRY300 Consider moving this statement to an `else` block
+    |
+630 |             # Default: assume reasonable
+631 |             return True
+    |             ^^^^^^^^^^^ TRY300
+632 |
+633 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\world_state_manager.py:108:13: TRY300 Consider moving this statement to an `else` block
+    |
+106 |             )
+107 |             self._log_world_state_changes(validated_updates, source)
+108 |             return update_record
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+109 |         except (TypeError, ValueError, KeyError, AttributeError):
+110 |             return WorldStateUpdate(updates={}, description="Update failed")
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\world_state_manager.py:154:13: TRY300 Consider moving this statement to an `else` block
+    |
+152 |             self._process_event_implications(event, memory)
+153 |
+154 |             return event
+    |             ^^^^^^^^^^^^ TRY300
+155 |
+156 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\world_state_manager.py:199:13: TRY300 Consider moving this statement to an `else` block
+    |
+197 |             self._cleanup_expired_flags(memory)
+198 |
+199 |             return flag
+    |             ^^^^^^^^^^^ TRY300
+200 |
+201 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\world_state_manager.py:240:13: TRY300 Consider moving this statement to an `else` block
+    |
+238 |                     flags.append(MemoryFlag.from_dict(flag_data))
+239 |
+240 |             return flags
+    |             ^^^^^^^^^^^^ TRY300
+241 |
+242 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\context\world_state_manager.py:279:13: TRY300 Consider moving this statement to an `else` block
+    |
+277 |                     break
+278 |
+279 |             return events
+    |             ^^^^^^^^^^^^^ TRY300
+280 |
+281 |         except (TypeError, ValueError, KeyError, AttributeError):
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:107:13: TRY300 Consider moving this statement to an `else` block
+    |
+105 |             self.memory_cache[cache_key] = memory_state
+106 |
+107 |             return memory_state
+    |             ^^^^^^^^^^^^^^^^^^^ TRY300
+108 |
+109 |         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:159:13: TRY300 Consider moving this statement to an `else` block
+    |
+157 |                 logger.error(f"Memory data: {str(memory)[:500]}")
+158 |
+159 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+160 |
+161 |         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:212:13: TRY300 Consider moving this statement to an `else` block
+    |
+210 |             self.character_cache[cache_key] = character_memory
+211 |
+212 |             return character_memory
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+213 |
+214 |         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:269:17: TRY300 Consider moving this statement to an `else` block
+    |
+267 |                         del self.character_cache[cache_key]
+268 |
+269 |                 return success
+    |                 ^^^^^^^^^^^^^^ TRY300
+270 |
+271 |             except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:308:13: TRY300 Consider moving this statement to an `else` block
+    |
+306 |             self.world_state_cache[cache_key] = world_state
+307 |
+308 |             return world_state
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+309 |
+310 |         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:344:13: TRY300 Consider moving this statement to an `else` block
+    |
+342 |                     del self.world_state_cache[cache_key]
+343 |
+344 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+345 |
+346 |         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\async_memory_repository.py:374:13: TRY300 Consider moving this statement to an `else` block
+    |
+372 |             )
+373 |
+374 |             return success
+    |             ^^^^^^^^^^^^^^ TRY300
+375 |
+376 |         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\memory_repository.py:165:13: TRY300 Consider moving this statement to an `else` block
+    |
+163 |                 ),
+164 |             )
+165 |             return True
+    |             ^^^^^^^^^^^ TRY300
+166 |
+167 |         except (sqlite3.Error, TypeError, ValueError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\memory_repository.py:199:13: TRY300 Consider moving this statement to an `else` block
+    |
+197 |             self._cleanup_old_snapshots(story_id)
+198 |
+199 |             return snapshot_id
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+200 |
+201 |         except (sqlite3.Error, TypeError, ValueError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\memory_repository.py:229:13: TRY300 Consider moving this statement to an `else` block
+    |
+227 |                     return self._deserialize_memory(snapshot_data)
+228 |
+229 |             return None
+    |             ^^^^^^^^^^^ TRY300
+230 |
+231 |         except (sqlite3.Error, TypeError, ValueError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\engines\persistence\memory_serializer.py:99:13: TRY300 Consider moving this statement to an `else` block
+    |
+ 97 |                 memory.metadata = self._deserialize_metadata(validated_data["metadata"])
+ 98 |
+ 99 |             return memory
+    |             ^^^^^^^^^^^^^ TRY300
+100 |
+101 |         except (TypeError, ValueError, KeyError) as e:
+    |
+
+src\openchronicle\infrastructure\memory\shared\database_manager.py:130:13: TRY300 Consider moving this statement to an `else` block
+    |
+128 |         try:
+129 |             self.connection.execute("SELECT 1")
+130 |             return False
+    |             ^^^^^^^^^^^^ TRY300
+131 |         except (sqlite3.ProgrammingError, AttributeError):
+132 |             return True
+    |
+
+src\openchronicle\infrastructure\memory\shared\database_manager.py:156:13: TRY300 Consider moving this statement to an `else` block
+    |
+154 |             ]
+155 |
+156 |             return results
+    |             ^^^^^^^^^^^^^^ TRY300
+157 |
+158 |         except sqlite3.Error as e:
+    |
+
+src\openchronicle\infrastructure\memory\shared\database_manager.py:187:13: TRY300 Consider moving this statement to an `else` block
+    |
+185 |             conn.commit()
+186 |
+187 |             return cursor.rowcount
+    |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+188 |
+189 |         except sqlite3.Error as e:
+    |
+
+src\openchronicle\infrastructure\memory\shared\database_manager.py:218:13: TRY300 Consider moving this statement to an `else` block
+    |
+216 |             conn.commit()
+217 |
+218 |             return cursor.rowcount
+    |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+219 |
+220 |         except sqlite3.Error as e:
+    |
+
+src\openchronicle\infrastructure\performance\analysis\bottleneck_analyzer.py:137:13: TRY300 Consider moving this statement to an `else` block
+    |
+135 |             )
+136 |
+137 |             return report
+    |             ^^^^^^^^^^^^^ TRY300
+138 |
+139 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\analysis\bottleneck_analyzer.py:175:13: TRY300 Consider moving this statement to an `else` block
+    |
+173 |             )
+174 |
+175 |             return slow_operations
+    |             ^^^^^^^^^^^^^^^^^^^^^^ TRY300
+176 |
+177 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\infrastructure\performance\analysis\bottleneck_analyzer.py:251:13: TRY300 Consider moving this statement to an `else` block
+    |
+249 |             }
+250 |
+251 |             return patterns
+    |             ^^^^^^^^^^^^^^^ TRY300
+252 |
+253 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\metrics\collector.py:63:13: TRY300 Consider moving this statement to an `else` block
+   |
+61 |             )
+62 |
+63 |             return context.operation_id
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+64 |
+65 |         except Exception as e:
+   |
+
+src\openchronicle\infrastructure\performance\metrics\collector.py:119:13: TRY300 Consider moving this statement to an `else` block
+    |
+117 |             )
+118 |
+119 |             return metrics
+    |             ^^^^^^^^^^^^^^ TRY300
+120 |
+121 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\infrastructure\performance\metrics\storage.py:197:13: TRY300 Consider moving this statement to an `else` block
+    |
+195 |             )
+196 |
+197 |             return metrics_list
+    |             ^^^^^^^^^^^^^^^^^^^ TRY300
+198 |
+199 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\metrics\storage.py:285:13: TRY300 Consider moving this statement to an `else` block
+    |
+283 |             ]
+284 |
+285 |             return summary
+    |             ^^^^^^^^^^^^^^ TRY300
+286 |
+287 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\metrics\storage.py:331:13: TRY300 Consider moving this statement to an `else` block
+    |
+329 |             )
+330 |
+331 |             return deleted_count
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+332 |
+333 |         except sqlite3.Error as e:
+    |
+
+src\openchronicle\infrastructure\performance\metrics\storage.py:389:13: TRY300 Consider moving this statement to an `else` block
+    |
+387 |             }
+388 |
+389 |             return stats
+    |             ^^^^^^^^^^^^ TRY300
+390 |
+391 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\model_monitor.py:288:13: TRY300 Consider moving this statement to an `else` block
+    |
+286 |                     registry = json.load(f)
+287 |                 return registry.get("performance_tuning", {})
+288 |             return {}
+    |             ^^^^^^^^^ TRY300
+289 |         except Exception as e:
+290 |             log_error(f"Error getting performance config: {e}")
+    |
+
+src\openchronicle\infrastructure\performance\model_monitor.py:410:13: TRY300 Consider moving this statement to an `else` block
+    |
+408 |                     optimizations.append(optimization_result)
+409 |
+410 |             return optimizations
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+411 |
+412 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\infrastructure\performance\orchestrator.py:128:13: TRY300 Consider moving this statement to an `else` block
+    |
+126 |             )
+127 |
+128 |             return operation_id
+    |             ^^^^^^^^^^^^^^^^^^^ TRY300
+129 |
+130 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\orchestrator.py:169:13: TRY300 Consider moving this statement to an `else` block
+    |
+167 |             )
+168 |
+169 |             return metrics
+    |             ^^^^^^^^^^^^^^ TRY300
+170 |
+171 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\orchestrator.py:265:13: TRY300 Consider moving this statement to an `else` block
+    |
+263 |             )
+264 |
+265 |             return analysis
+    |             ^^^^^^^^^^^^^^^ TRY300
+266 |
+267 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\orchestrator.py:300:13: TRY300 Consider moving this statement to an `else` block
+    |
+298 |             }
+299 |
+300 |             return real_time_metrics
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+301 |
+302 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\orchestrator.py:337:13: TRY300 Consider moving this statement to an `else` block
+    |
+335 |             )
+336 |
+337 |             return cleanup_stats
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+338 |
+339 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\performance\orchestrator.py:414:13: TRY300 Consider moving this statement to an `else` block
+    |
+412 |             )
+413 |
+414 |             return True
+    |             ^^^^^^^^^^^ TRY300
+415 |
+416 |         except Exception as e:
+    |
+
+src\openchronicle\infrastructure\persistence\async_operations.py:140:13: TRY300 Consider moving this statement to an `else` block
+    |
+138 |             )
+139 |             await conn.execute("DROP TABLE IF EXISTS fts_test")
+140 |             return True
+    |             ^^^^^^^^^^^ TRY300
+141 |         except aiosqlite.Error:
+142 |             return False
+    |
+
+src\openchronicle\infrastructure\persistence\health_checker.py:103:13: TRY300 Consider moving this statement to an `else` block
+    |
+101 |                 )
+102 |
+103 |             return health_report
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+104 |
+105 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\persistence\migration.py:56:13: TRY300 Consider moving this statement to an `else` block
+   |
+54 |                 success = False
+55 |
+56 |             return success
+   |             ^^^^^^^^^^^^^^ TRY300
+57 |
+58 |         except (OSError, IOError, PermissionError) as e:
+   |
+
+src\openchronicle\infrastructure\persistence\migration.py:102:13: TRY300 Consider moving this statement to an `else` block
+    |
+100 |                         print(f"Unexpected error cleaning up {filepath}: {e}")
+101 |
+102 |             return True
+    |             ^^^^^^^^^^^ TRY300
+103 |
+104 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\memory_adapter.py:191:13: TRY300 Consider moving this statement to an `else` block
+    |
+189 |                 json.dump(backup_data, f, indent=2, ensure_ascii=False)
+190 |
+191 |             return True
+    |             ^^^^^^^^^^^ TRY300
+192 |
+193 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\memory_adapter.py:236:13: TRY300 Consider moving this statement to an `else` block
+    |
+234 |                 orchestrator.store_character_memory(char_name, memory_data)
+235 |
+236 |             return True
+    |             ^^^^^^^^^^^ TRY300
+237 |
+238 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\persistence_adapter.py:75:13: TRY300 Consider moving this statement to an `else` block
+   |
+73 |             result = _execute_update(story_id, query, params)
+74 |             # Return True if any rows were affected or operation succeeded
+75 |             return result is not None and result >= 0
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+76 |         except (OSError, IOError) as e:
+77 |             print(f"Database file system error: {e}")
+   |
+
+src\openchronicle\infrastructure\persistence_adapters\persistence_adapter.py:98:13: TRY300 Consider moving this statement to an `else` block
+    |
+ 96 |         try:
+ 97 |             _init_database(story_id)
+ 98 |             return True
+    |             ^^^^^^^^^^^ TRY300
+ 99 |         except (OSError, IOError, PermissionError) as e:
+100 |             print(f"Database file system error: {e}")
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\persistence_adapter.py:136:13: TRY300 Consider moving this statement to an `else` block
+    |
+134 |             # Copy database file
+135 |             shutil.copy2(db_path, backup_path)
+136 |             return True
+    |             ^^^^^^^^^^^ TRY300
+137 |
+138 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\persistence_adapter.py:179:13: TRY300 Consider moving this statement to an `else` block
+    |
+177 |             # Restore database file
+178 |             shutil.copy2(backup_path, db_path)
+179 |             return True
+    |             ^^^^^^^^^^^ TRY300
+180 |
+181 |         except (OSError, IOError, PermissionError) as e:
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\registry_adapter.py:104:13: TRY300 Consider moving this statement to an `else` block
+    |
+102 |         try:
+103 |             self.validate_config_func(config)
+104 |             return True
+    |             ^^^^^^^^^^^ TRY300
+105 |         except ValueError as e:  # Explicit validation error
+106 |             log_warning(
+    |
+
+src\openchronicle\infrastructure\persistence_adapters\storage_adapter.py:68:13: TRY300 Consider moving this statement to an `else` block
+   |
+66 |             if non_printables > max(3, len(text) * 0.1):
+67 |                 return raw
+68 |             return text
+   |             ^^^^^^^^^^^ TRY300
+69 |         except OSError as e:
+70 |             log_error(
+   |
+
+src\openchronicle\infrastructure\registry\content_router.py:85:13: TRY300 Consider moving this statement to an `else` block
+   |
+83 |                 if provider_config:
+84 |                     capabilities[provider] = provider_config.get("capabilities", {})
+85 |             return capabilities
+   |             ^^^^^^^^^^^^^^^^^^^ TRY300
+86 |         except Exception as e:
+87 |             log_error(f"Failed to load provider capabilities: {e}")
+   |
+
+src\openchronicle\infrastructure\registry\content_router.py:100:13: TRY300 Consider moving this statement to an `else` block
+    |
+ 98 |                 if performance_limits:
+ 99 |                     profiles[provider] = performance_limits
+100 |             return profiles
+    |             ^^^^^^^^^^^^^^^ TRY300
+101 |         except Exception as e:
+102 |             log_error(f"Failed to load performance profiles: {e}")
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:106:13: TRY300 Consider moving this statement to an `else` block
+    |
+104 |                 log_info(f"Created default global settings at {self.settings_file}")
+105 |
+106 |             return self.global_settings
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+107 |
+108 |         except (OSError, json.JSONDecodeError) as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:204:13: TRY300 Consider moving this statement to an `else` block
+    |
+202 |             shutil.copy2(self.settings_file, backup_path)
+203 |
+204 |             return backup_path
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+205 |
+206 |         except (OSError, shutil.Error) as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:279:13: TRY300 Consider moving this statement to an `else` block
+    |
+277 |             )
+278 |
+279 |             return discovered_providers
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+280 |
+281 |         except OSError as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:306:13: TRY300 Consider moving this statement to an `else` block
+    |
+304 |                 return None
+305 |
+306 |             return config
+    |             ^^^^^^^^^^^^^ TRY300
+307 |
+308 |         except json.JSONDecodeError as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:336:13: TRY300 Consider moving this statement to an `else` block
+    |
+334 |             validated_config = validate_provider_config(config)
+335 |             log_info(f"Config {config_file} passed schema validation")
+336 |             return True
+    |             ^^^^^^^^^^^ TRY300
+337 |
+338 |         except SchemaValidationError as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:436:13: TRY300 Consider moving this statement to an `else` block
+    |
+434 |                 "model_config_added", f"Added model configuration: {config_name}"
+435 |             )
+436 |             return True
+    |             ^^^^^^^^^^^ TRY300
+437 |
+438 |         except (OSError, SchemaValidationError, TypeError, ValueError) as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:471:13: TRY300 Consider moving this statement to an `else` block
+    |
+469 |                 "model_config_removed", f"Removed model configuration: {config_name}"
+470 |             )
+471 |             return True
+    |             ^^^^^^^^^^^ TRY300
+472 |
+473 |         except OSError as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:490:13: TRY300 Consider moving this statement to an `else` block
+    |
+488 |             log_info("Refreshing provider discovery...")
+489 |             self.discover_providers()
+490 |             return True
+    |             ^^^^^^^^^^^ TRY300
+491 |         except OSError as e:
+492 |             log_error(
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:530:13: TRY300 Consider moving this statement to an `else` block
+    |
+528 |                         fallback_chain.append(provider)
+529 |
+530 |             return fallback_chain
+    |             ^^^^^^^^^^^^^^^^^^^^^ TRY300
+531 |
+532 |         except (KeyError, AttributeError) as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:574:13: TRY300 Consider moving this statement to an `else` block
+    |
+572 |             validated_registry = self.validator.validate_registry_file(registry_file)
+573 |             log_info(f"Registry validation successful: {registry_file}")
+574 |             return True
+    |             ^^^^^^^^^^^ TRY300
+575 |
+576 |         except SchemaValidationError as e:
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:601:13: TRY300 Consider moving this statement to an `else` block
+    |
+599 |         try:
+600 |             backup_path = self.validator.create_backup(file_path)
+601 |             return backup_path
+    |             ^^^^^^^^^^^^^^^^^^ TRY300
+602 |         except (OSError, shutil.Error) as e:
+603 |             log_error(
+    |
+
+src\openchronicle\infrastructure\registry\registry_manager.py:634:13: TRY300 Consider moving this statement to an `else` block
+    |
+633 |             log_info(f"Configuration saved successfully: {config_file}")
+634 |             return True
+    |             ^^^^^^^^^^^ TRY300
+635 |
+636 |         except SchemaValidationError as e:
+    |
+
+src\openchronicle\infrastructure\registry\schema_validation.py:375:13: TRY300 Consider moving this statement to an `else` block
+    |
+373 |             registry.validate_complete()
+374 |             self.logger.info("Registry validation successful")
+375 |             return registry
+    |             ^^^^^^^^^^^^^^^ TRY300
+376 |         except (ValueError, TypeError) as e:
+377 |             error_msg = f"Registry validation parameter error: {e}"
+    |
+
+src\openchronicle\infrastructure\registry\schema_validation.py:405:13: TRY300 Consider moving this statement to an `else` block
+    |
+403 |             provider = ProviderConfig(**config_data)
+404 |             self.logger.info(f"Provider '{provider.provider}' validation successful")
+405 |             return provider
+    |             ^^^^^^^^^^^^^^^ TRY300
+406 |         except (ValueError, TypeError) as e:
+407 |             error_msg = f"Provider validation parameter error: {e}"
+    |
+
+src\openchronicle\infrastructure\repositories\__init__.py:57:13: TRY300 Consider moving this statement to an `else` block
+   |
+55 |                 await f.write(json.dumps(story_data, indent=2, ensure_ascii=False))
+56 |
+57 |             return True
+   |             ^^^^^^^^^^^ TRY300
+58 |         except (OSError, IOError, PermissionError) as e:
+59 |             log_error(f"File system error saving story {story.id}: {e}")
+   |
+
+src\openchronicle\infrastructure\repositories\__init__.py:116:13: TRY300 Consider moving this statement to an `else` block
+    |
+114 |             if story_file.exists():
+115 |                 story_file.unlink()
+116 |             return True
+    |             ^^^^^^^^^^^ TRY300
+117 |         except (OSError, IOError, PermissionError) as e:
+118 |             log_error(f"File system error deleting story {story_id}: {e}")
+    |
+
+src\openchronicle\infrastructure\repositories\__init__.py:138:13: TRY300 Consider moving this statement to an `else` block
+    |
+136 |                     stories.append(story)
+137 |
+138 |             return stories
+    |             ^^^^^^^^^^^^^^ TRY300
+139 |         except (OSError, IOError, PermissionError) as e:
+140 |             log_error(f"File system error listing stories: {e}")
+    |
+
+src\openchronicle\infrastructure\repositories\__init__.py:184:13: TRY300 Consider moving this statement to an `else` block
+    |
+182 |                 await f.write(json.dumps(char_data, indent=2, ensure_ascii=False))
+183 |
+184 |             return True
+    |             ^^^^^^^^^^^ TRY300
+185 |         except (OSError, IOError, PermissionError) as e:
+186 |             log_error(f"File system error saving character {character.id}: {e}")
+    |
+
+src\openchronicle\infrastructure\repositories\__init__.py:290:13: TRY300 Consider moving this statement to an `else` block
+    |
+288 |                 await f.write(json.dumps(scene_data, indent=2, ensure_ascii=False))
+289 |
+290 |             return True
+    |             ^^^^^^^^^^^ TRY300
+291 |         except (OSError, IOError, PermissionError) as e:
+292 |             log_error(f"File system error saving scene {scene.id}: {e}")
+    |
+
+src\openchronicle\interfaces\cli\commands\config\__init__.py:130:17: TRY300 Consider moving this statement to an `else` block
+    |
+128 |                       "system_config.json", system_config
+129 |                   )
+130 | /                 return {
+131 | |                     "type": "system",
+132 | |                     "key": key,
+133 | |                     "value": value,
+134 | |                     "status": "updated",
+135 | |                 }
+    | |_________________^ TRY300
+136 |
+137 |               except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
+    |
+
+src\openchronicle\interfaces\cli\commands\story\__init__.py:157:13: TRY300 Consider moving this statement to an `else` block
+    |
+155 |             self.output.info(f"Characters: {len(story_data.get('characters', []))}")
+156 |
+157 |             return story_data
+    |             ^^^^^^^^^^^^^^^^^ TRY300
+158 |
+159 |         except Exception as e:
+    |
+
+src\openchronicle\interfaces\cli\commands\story\interactive.py:210:13: TRY300 Consider moving this statement to an `else` block
+    |
+208 |                 return validation_result.sanitized_value or ""
+209 |
+210 |             return validation_result.sanitized_value or raw_input
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+211 |
+212 |         except KeyboardInterrupt:
+    |
+
+src\openchronicle\interfaces\cli\support\base_command.py:177:13: TRY300 Consider moving this statement to an `else` block
+    |
+175 |         try:
+176 |             path.mkdir(parents=True, exist_ok=True)
+177 |             return path
+    |             ^^^^^^^^^^^ TRY300
+178 |         except PermissionError:
+179 |             self.output.error(f"Cannot create directory {path}: Permission denied")
+    |
+
+src\openchronicle\interfaces\cli\support\output_manager.py:244:13: TRY300 Consider moving this statement to an `else` block
+    |
+242 |             if not response:
+243 |                 return default
+244 |             return response in ["y", "yes", "true", "1"]
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+245 |         except (EOFError, KeyboardInterrupt):
+246 |             print()  # New line after interrupt
+    |
+
+src\openchronicle\interfaces\events\__init__.py:143:13: TRY300 Consider moving this statement to an `else` block
+    |
+141 |                 self.connection_metadata[client_id]["events_sent"] += 1
+142 |
+143 |             return True
+    |             ^^^^^^^^^^^ TRY300
+144 |         except (json.JSONEncodeError, TypeError) as e:
+145 |             print(f"JSON encoding error sending to client {client_id}: {e}")
+    |
+
+src\openchronicle\shared\security.py:466:13: TRY300 Consider moving this statement to an `else` block
+    |
+464 |             )
+465 |
+466 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+467 |
+468 |         except sqlite3.Error as e:
+    |
+
+src\openchronicle\shared\security.py:526:13: TRY300 Consider moving this statement to an `else` block
+    |
+524 |             )
+525 |
+526 |             return True, content
+    |             ^^^^^^^^^^^^^^^^^^^^ TRY300
+527 |
+528 |         except (OSError, UnicodeDecodeError) as e:
+    |
+
+src\openchronicle\shared\security.py:580:13: TRY300 Consider moving this statement to an `else` block
+    |
+578 |             )
+579 |
+580 |             return True, f"File written: {safe_path}"
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRY300
+581 |
+582 |         except OSError as e:
+    |
+
+src\openchronicle\shared\security.py:745:13: TRY300 Consider moving this statement to an `else` block
+    |
+743 |                 )
+744 |
+745 |             return result
+    |             ^^^^^^^^^^^^^ TRY300
+746 |         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+747 |             log_error(
+    |
+
+src\openchronicle\shared\security_decorators.py:292:17: TRY300 Consider moving this statement to an `else` block
+    |
+290 |                     )
+291 |
+292 |                 return result
+    |                 ^^^^^^^^^^^^^ TRY300
+293 |
+294 |             except (
+    |
+
+Found 279 errors.

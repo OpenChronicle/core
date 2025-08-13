@@ -22,7 +22,7 @@ except ImportError:
 class ContentAnalysisAdapter(IContentAnalysisPort):
     """
     Infrastructure adapter that implements the content analysis port interface.
-    
+
     This adapter bridges the domain port interface with the concrete
     infrastructure implementation (ContentAnalysisOrchestrator).
     """
@@ -30,13 +30,13 @@ class ContentAnalysisAdapter(IContentAnalysisPort):
     def __init__(self, model_orchestrator):
         """
         Initialize the content analysis adapter.
-        
+
         Args:
             model_orchestrator: Model orchestrator for AI operations
         """
         if ContentAnalysisOrchestrator is None:
             raise RuntimeError("ContentAnalysisOrchestrator not available. Check infrastructure.content imports.")
-        
+
         self._analyzer = ContentAnalysisOrchestrator(model_orchestrator)
 
     async def generate_content_flags(

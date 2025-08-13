@@ -1,6 +1,24 @@
-"""Storage Adapter - Implementation of IStoragePort.
-
-Provides file and blob storage operations for the domain layer.
+"""Storage Adapter - Implementation of IStoragePort.        try:
+            with open(full_path, "rb") as f:
+                raw = f.read()
+            # Heuristic: treat as binary if NULL byte or high binary ratio
+            if b"\x00" in raw:
+                return raw
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                return raw
+            # If decoded, but contains many non-printable chars, return bytes
+            non_printables = sum(1 for c in text if ord(c) < 9 or (13 < ord(c) < 32))
+            if non_printables > max(3, len(text) * 0.1):
+                return raw
+        except OSError as e:
+            log_error(
+                f"File load error: {e}", context_tags=["storage", "file", "load", "error"]
+            )
+            return None
+        else:
+            return text blob storage operations for the domain layer.
 """
 
 import tarfile
@@ -37,12 +55,13 @@ class StorageAdapter(IStoragePort):
             else:
                 with open(full_path, "wb") as f:
                     f.write(content)
-            return True
         except OSError as e:
             log_error(
                 f"File save error: {e}", context_tags=["storage", "file", "save", "error"]
             )
             return False
+        else:
+            return True
 
     def load_file(self, story_id: str, file_path: str) -> Optional[Union[str, bytes]]:
         try:
@@ -64,12 +83,13 @@ class StorageAdapter(IStoragePort):
             non_printables = sum(1 for c in text if ord(c) < 9 or (13 < ord(c) < 32))
             if non_printables > max(3, len(text) * 0.1):
                 return raw
-            return text
         except OSError as e:
             log_error(
                 f"File load error: {e}", context_tags=["storage", "file", "load", "error"]
             )
             return None
+        else:
+            return text
 
     def delete_file(self, story_id: str, file_path: str) -> bool:
         try:
@@ -77,12 +97,13 @@ class StorageAdapter(IStoragePort):
             full_path = story_path / file_path
             if full_path.exists():
                 full_path.unlink()
-            return True
         except OSError as e:
             log_error(
                 f"File delete error: {e}", context_tags=["storage", "file", "delete", "error"]
             )
             return False
+        else:
+            return True
 
     def list_files(self, story_id: str, directory: str = "") -> list[str]:
         try:
@@ -108,12 +129,13 @@ class StorageAdapter(IStoragePort):
             story_path = self._get_story_path(story_id)
             target_path = story_path / directory_path
             target_path.mkdir(parents=True, exist_ok=True)
-            return True
         except OSError as e:
             log_error(
                 f"Directory creation error: {e}", context_tags=["storage", "directory", "create", "error"]
             )
             return False
+        else:
+            return True
 
     def get_file_metadata(self, story_id: str, file_path: str) -> Optional[dict[str, Any]]:
         try:
@@ -148,12 +170,13 @@ class StorageAdapter(IStoragePort):
             )
             with tarfile.open(backup_file, "w:gz") as tar:
                 tar.add(story_path, arcname=story_id)
-            return True
         except (OSError, tarfile.TarError) as e:
             log_error(
                 f"Story backup error: {e}", context_tags=["storage", "story", "backup", "error"]
             )
             return False
+        else:
+            return True
 
     def restore_story_files(self, story_id: str, backup_name: str) -> bool:
         try:
@@ -164,9 +187,10 @@ class StorageAdapter(IStoragePort):
             backup_file = max(backup_files, key=lambda p: p.stat().st_mtime)
             with tarfile.open(backup_file, "r:gz") as tar:
                 tar.extractall(self.base_path)
-            return True
         except (OSError, tarfile.TarError) as e:
             log_error(
                 f"Story restore error: {e}", context_tags=["storage", "story", "restore", "error"]
             )
             return False
+        else:
+            return True

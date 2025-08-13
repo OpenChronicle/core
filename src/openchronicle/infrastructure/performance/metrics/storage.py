@@ -50,14 +50,14 @@ class MetricsStorage(IMetricsStorage):
             )
         except sqlite3.Error as e:
             # Handle SQLite-specific errors during storage initialization
-            self.logger.error(f"Database error initializing storage: {e}")
+            self.logger.exception("Database error initializing storage")
             raise
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors during storage initialization
-            self.logger.error(f"File system error initializing storage: {e}")
+            self.logger.exception("File system error initializing storage")
             raise
         except Exception as e:
-            self.logger.error(f"Unexpected error initializing storage: {e}")
+            self.logger.exception("Unexpected error initializing storage")
             raise
 
     async def store_metrics(self, metrics: PerformanceMetrics):
@@ -108,7 +108,7 @@ class MetricsStorage(IMetricsStorage):
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to store metrics: {e}")
+            self.logger.exception("Failed to store metrics")
             raise
 
     async def retrieve_metrics(self, query: MetricsQuery) -> list[PerformanceMetrics]:
@@ -194,11 +194,11 @@ class MetricsStorage(IMetricsStorage):
                 },
             )
 
-            return metrics_list
-
         except Exception as e:
-            self.logger.error(f"Failed to retrieve metrics: {e}")
+            self.logger.exception("Failed to retrieve metrics")
             return []
+        else:
+            return metrics_list
 
     async def get_metrics_summary(
         self,
@@ -282,10 +282,8 @@ class MetricsStorage(IMetricsStorage):
                 for row in adapter_rows
             ]
 
-            return summary
-
         except Exception as e:
-            self.logger.error(f"Failed to get metrics summary: {e}")
+            self.logger.exception("Failed to get metrics summary")
             return {
                 "total_operations": 0,
                 "successful_operations": 0,
@@ -298,6 +296,8 @@ class MetricsStorage(IMetricsStorage):
                 "avg_memory_delta": 0.0,
                 "adapter_breakdown": [],
             }
+        else:
+            return summary
 
     async def cleanup_old_metrics(self, retention_days: int = 30) -> int:
         """Clean up old metrics beyond retention period."""
@@ -328,19 +328,19 @@ class MetricsStorage(IMetricsStorage):
                 },
             )
 
-            return deleted_count
-
         except sqlite3.Error as e:
             # Handle SQLite-specific errors during metrics cleanup
-            self.logger.error(f"Database error during metrics cleanup: {e}")
+            self.logger.exception("Database error during metrics cleanup")
             return 0
         except (OSError, IOError) as e:
             # Handle file system errors during database operations
-            self.logger.error(f"File system error during metrics cleanup: {e}")
+            self.logger.exception("File system error during metrics cleanup")
             return 0
         except Exception as e:
-            self.logger.error(f"Unexpected error during metrics cleanup: {e}")
+            self.logger.exception("Unexpected error during metrics cleanup")
             return 0
+        else:
+            return deleted_count
 
     async def get_storage_stats(self) -> dict[str, Any]:
         """Get storage statistics and health information."""
@@ -386,10 +386,8 @@ class MetricsStorage(IMetricsStorage):
                 "initialized": self._initialized,
             }
 
-            return stats
-
         except Exception as e:
-            self.logger.error(f"Failed to get storage stats: {e}")
+            self.logger.exception("Failed to get storage stats")
             return {
                 "total_records": 0,
                 "file_size_mb": 0.0,
@@ -397,6 +395,8 @@ class MetricsStorage(IMetricsStorage):
                 "date_range": {"earliest": None, "latest": None},
                 "initialized": self._initialized,
             }
+        else:
+            return stats
 
     async def _setup_database(self):
         """Set up the SQLite database schema."""

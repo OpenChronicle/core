@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Week 2 Task 2: Centralized Configuration System
-Creates a unified configuration management system with typed classes for better maintainability.
+Creates a unified configuration management system with typed classes
+for better maintainability.
 """
 
 import json
@@ -153,7 +154,8 @@ class CentralizedConfigManager:
         # Load or create default configuration
         self.config = self._load_or_create_config()
 
-    # NOTE: Directory provisioning deferred to explicit call to avoid side-effects at import/instantiation.
+    # NOTE: Directory provisioning deferred to explicit call to avoid
+    # side-effects at import/instantiation.
     # Call self.provision_storage() explicitly where startup bootstrapping occurs.
 
         log_system_event(
@@ -163,7 +165,7 @@ class CentralizedConfigManager:
         )
 
     def provision_storage(self):  # formerly _ensure_storage_directories
-        """Idempotently create required storage directories (explicit lifecycle step)."""
+        """Idempotently create required storage directories (explicit step)."""
         storage_paths = [
             self.config.storage.base_storage_path,
             self.config.storage.scene_storage_path,
@@ -211,15 +213,15 @@ class CentralizedConfigManager:
                 log_info(
                     "Configuration loaded successfully", context_tags=["config", "load"]
                 )
-                return config
-
-            except (OSError, json.JSONDecodeError) as e:  # Narrowed from broad Exception
+            except (OSError, json.JSONDecodeError) as e:  # Narrowed exception
                 log_error(
                     f"Failed to load configuration: {e}",
                     context_tags=["config", "error"],
                 )
                 log_warning("Creating default configuration")
                 return self._create_default_config()
+            else:
+                return config
         else:
             log_info("Creating new configuration file")
             return self._create_default_config()
@@ -254,12 +256,13 @@ class CentralizedConfigManager:
                 "System configuration saved",
                 {"path": str(self.config_path)},
             )
-            return True
         except (OSError, IOError) as e:  # Narrowed from broad Exception
             log_error(
                 f"Failed to save configuration: {e}", context_tags=["config", "error"]
             )
             return False
+        else:
+            return True
 
     def _create_backup(self) -> bool:
         """Create backup of current configuration."""
@@ -282,13 +285,14 @@ class CentralizedConfigManager:
                 f"Configuration backup created: {backup_path.name}",
                 context_tags=["config", "backup"],
             )
-            return True
         except (OSError, IOError) as e:  # Narrowed from broad Exception
             log_warning(
                 f"Failed to create config backup: {e}",
                 context_tags=["config", "backup", "error"],
             )
             return False
+        else:
+            return True
 
     def update_config(self, section: str, **kwargs) -> bool:
         """Update specific configuration section."""
@@ -378,7 +382,7 @@ class CentralizedConfigManager:
         # Log validation completion
         if not issues:
             log_info(
-                "Configuration validation passed - all directories exist and are writable",
+                "Configuration validation passed - all directories exist and writable",
                 context_tags=["config", "validation", "success"],
             )
         else:

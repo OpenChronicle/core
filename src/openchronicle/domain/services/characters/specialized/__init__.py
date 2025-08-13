@@ -20,6 +20,6 @@ from .stats_behavior_engine import StatsBehaviorEngine
 __all__ = [
     "ConsistencyValidationEngine",
     "InteractionDynamicsEngine",
-    "PresentationStyleEngine", 
+    "PresentationStyleEngine",
     "StatsBehaviorEngine",
 ]

@@ -34,7 +34,7 @@ class CachePartitioner:
     def _hash_key(self, key: str) -> str:
         """Generate hash for partitioning key."""
         import hashlib
-        
+
         if self.config.hash_algorithm == "sha256":
             return hashlib.sha256(key.encode()).hexdigest()
         if self.config.hash_algorithm == "md5":
@@ -126,7 +126,7 @@ class RedisClusterManager:
                     self.logger.info("Redis cluster client initialized")
 
             except Exception as e:
-                self.logger.error(f"Failed to initialize Redis cluster: {e}")
+                self.logger.exception("Failed to initialize Redis cluster")
                 # Fallback to single node
                 await self._initialize_single_node()
         else:
@@ -149,7 +149,7 @@ class RedisClusterManager:
                     f"Connected to single Redis node: {self.config.redis_host}:{self.config.redis_port}"
                 )
         except Exception as e:
-            self.logger.error(f"Failed to initialize single Redis node: {e}")
+            self.logger.exception("Failed to initialize single Redis node")
 
     async def get_client_for_key(self, key: str) -> tuple[Any | None, int]:
         """Get the appropriate Redis client for a key."""

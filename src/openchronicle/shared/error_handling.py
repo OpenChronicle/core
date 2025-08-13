@@ -303,7 +303,8 @@ class RetryStrategy(ErrorRecoveryStrategy):
 
             try:
                 log_info(
-                    f"Retry attempt {attempt + 1}/{self.max_retries} for {error.context.operation}",
+                    f"Retry attempt {attempt + 1}/{self.max_retries} "
+                    f"for {error.context.operation}",
                     context_tags=error.context.to_log_tags(),
                 )
                 return await original_func(
@@ -323,7 +324,7 @@ class RetryStrategy(ErrorRecoveryStrategy):
                         context=error.context,
                         cause=retry_error,
                         recoverable=False,
-                    )
+                    ) from retry_error
                 continue
 
 
@@ -350,7 +351,8 @@ class ErrorRecoveryManager:
                     return await strategy.recover(error, original_args, original_kwargs)
                 except RECOVERABLE_EXCEPTIONS as recovery_error:
                     log_error(
-                        f"Recovery strategy {type(strategy).__name__} failed: {recovery_error}"
+                        f"Recovery strategy {type(strategy).__name__} "
+                        f"failed: {recovery_error}"
                     )
                     continue
 
@@ -433,7 +435,8 @@ def with_error_handling(
             except RECOVERABLE_EXCEPTIONS as error:
                 # Convert to structured OpenChronicle error
                 oc_error = OpenChronicleError(
-                    message=f"Unexpected error in {operation_context.operation}: {error!s}",
+                    message=f"Unexpected error in {operation_context.operation}: "
+                    f"{error!s}",
                     category=error_category or ErrorCategory.INTEGRATION,
                     severity=ErrorSeverity.HIGH,
                     context=operation_context,
@@ -475,7 +478,7 @@ def with_error_handling(
 
                 if fallback_result is not None:
                     return fallback_result
-                raise oc_error
+                raise oc_error from None
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs) -> T:
@@ -503,7 +506,8 @@ def with_error_handling(
 
             except RECOVERABLE_EXCEPTIONS as error:
                 oc_error = OpenChronicleError(
-                    message=f"Unexpected error in {operation_context.operation}: {error!s}",
+                    message=f"Unexpected error in {operation_context.operation}: "
+                    f"{error!s}",
                     category=error_category or ErrorCategory.INTEGRATION,
                     severity=ErrorSeverity.HIGH,
                     context=operation_context,
@@ -530,7 +534,7 @@ def with_error_handling(
 
                 if fallback_result is not None:
                     return fallback_result
-                raise oc_error
+                raise oc_error from None
 
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):

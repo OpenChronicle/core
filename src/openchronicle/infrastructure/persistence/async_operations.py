@@ -137,9 +137,10 @@ class AsyncDatabaseOperations:
                 "CREATE VIRTUAL TABLE IF NOT EXISTS fts_test USING fts5(content)"
             )
             await conn.execute("DROP TABLE IF EXISTS fts_test")
-            return True
         except aiosqlite.Error:
             return False
+        else:
+            return True
 
     async def get_database_info(
         self, story_id: str, is_test: bool | None = None

@@ -84,34 +84,35 @@ class AsyncMemoryRepository:
                 # No data found, return default memory structure
                 default_memory = self._get_default_memory()
                 self.memory_cache[cache_key] = default_memory
-                return default_memory
+                result = default_memory
+            else:
+                memory_data = {}
+                for row in rows:
+                    memory_type = row["type"]
+                    value = self.json_util.safe_loads(row["value"])
+                    if value:
+                        memory_data[memory_type] = value
 
-            memory_data = {}
-            for row in rows:
-                memory_type = row["type"]
-                value = self.json_util.safe_loads(row["value"])
-                if value:
-                    memory_data[memory_type] = value
+                # If we still don't have data, use defaults
+                if not memory_data:
+                    default_memory = self._get_default_memory()
+                    self.memory_cache[cache_key] = default_memory
+                    result = default_memory
+                else:
+                    memory_state = self._deserialize_memory(memory_data)
 
-            # If we still don't have data, use defaults
-            if not memory_data:
-                default_memory = self._get_default_memory()
-                self.memory_cache[cache_key] = default_memory
-                return default_memory
-
-            memory_state = self._deserialize_memory(memory_data)
-
-            # Cache the result
-            self.memory_cache[cache_key] = memory_state
-
-            return memory_state
+                    # Cache the result
+                    self.memory_cache[cache_key] = memory_state
+                    result = memory_state
 
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
-            logger.error(
-                f"Failed to load memory for story {story_id}: {e}",
+            logger.exception(
+                f"Failed to load memory for story {story_id}",
                 exc_info=False,
             )
             return self._get_default_memory()
+        else:
+            return result
 
     async def save_memory(self, story_id: str, memory: dict[str, Any]) -> bool:
         """Save memory state with automatic timestamping and cache invalidation."""
@@ -156,16 +157,14 @@ class AsyncMemoryRepository:
                 logger.error(f"Memory data type: {type(memory)}")
                 logger.error(f"Memory data: {str(memory)[:500]}")
 
-            return success
-
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
-            logger.error(
-                f"Failed to save memory for story {story_id}: {e}",
+            logger.exception(
+                f"Failed to save memory for story {story_id}",
                 exc_info=False,
             )
             return False
-
-    @lru_cache(maxsize=512)
+        else:
+            return success
     def get_character_memory_cached(
         self, story_id: str, character_name: str
     ) -> dict[str, Any] | None:
@@ -200,18 +199,16 @@ class AsyncMemoryRepository:
             )
 
             if not rows:
-                return None
+                character_memory = None
+            else:
+                characters_data = self.json_util.safe_loads(rows[0]["value"])
+                if not characters_data or character_name not in characters_data:
+                    character_memory = None
+                else:
+                    character_memory = characters_data[character_name]
 
-            characters_data = self.json_util.safe_loads(rows[0]["value"])
-            if not characters_data or character_name not in characters_data:
-                return None
-
-            character_memory = characters_data[character_name]
-
-            # Cache the result
-            self.character_cache[cache_key] = character_memory
-
-            return character_memory
+                    # Cache the result
+                    self.character_cache[cache_key] = character_memory
 
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
             logger.warning(
@@ -219,6 +216,8 @@ class AsyncMemoryRepository:
                 exc_info=False,
             )
             return None
+        else:
+            return character_memory
 
     async def update_character_memory(
         self, story_id: str, character_name: str, updates: dict[str, Any]
@@ -268,14 +267,14 @@ class AsyncMemoryRepository:
                     if cache_key in self.character_cache:
                         del self.character_cache[cache_key]
 
-                return success
-
             except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
-                logger.error(
-                    f"Error updating character memory {character_name} for {story_id}: {e}",
+                logger.exception(
+                    f"Error updating character memory {character_name} for {story_id}",
                     exc_info=False,
                 )
                 return False
+            else:
+                return success
 
     async def load_world_state(self, story_id: str) -> dict[str, Any]:
         """Load world state with caching."""
@@ -300,14 +299,12 @@ class AsyncMemoryRepository:
             )
 
             if not rows:
-                return {}
+                world_state = {}
+            else:
+                world_state = self.json_util.safe_loads(rows[0]["value"]) or {}
 
-            world_state = self.json_util.safe_loads(rows[0]["value"]) or {}
-
-            # Cache the result
-            self.world_state_cache[cache_key] = world_state
-
-            return world_state
+                # Cache the result
+                self.world_state_cache[cache_key] = world_state
 
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
             logger.warning(
@@ -315,6 +312,8 @@ class AsyncMemoryRepository:
                 exc_info=False,
             )
             return {}
+        else:
+            return world_state
 
     async def save_world_state(
         self, story_id: str, world_state: dict[str, Any]
@@ -343,14 +342,14 @@ class AsyncMemoryRepository:
                 if cache_key in self.world_state_cache:
                     del self.world_state_cache[cache_key]
 
-            return success
-
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
-            logger.error(
-                f"Error saving world state for {story_id}: {e}",
+            logger.exception(
+                f"Error saving world state for {story_id}",
                 exc_info=False,
             )
             return False
+        else:
+            return success
 
     async def create_memory_snapshot(self, story_id: str, scene_id: str) -> bool:
         """Create memory snapshot for rollback capability."""
@@ -373,14 +372,14 @@ class AsyncMemoryRepository:
                 is_test=False,
             )
 
-            return success
-
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
-            logger.error(
-                f"Failed to create memory snapshot for story {story_id} scene {scene_id}: {e}",
+            logger.exception(
+                f"Failed to create memory snapshot for story {story_id} scene {scene_id}",
                 exc_info=False,
             )
             return False
+        else:
+            return success
 
     async def restore_memory_snapshot(self, story_id: str, scene_id: str) -> bool:
         """Restore memory from snapshot with cache invalidation."""
@@ -407,15 +406,21 @@ class AsyncMemoryRepository:
             # Restore memory state
             memory = self._deserialize_memory(snapshot_data)
             success = await self.save_memory(story_id, memory)
-
-            return success
-
-        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
-            logger.error(
-                f"Failed to restore memory snapshot for story {story_id} scene {scene_id}: {e}",
+        except (
+            sqlite3.Error,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+            KeyError,
+        ) as e:
+            logger.exception(
+                f"Failed to restore memory snapshot for story {story_id} "
+                f"scene {scene_id}",
                 exc_info=False,
             )
             return False
+        else:
+            return success
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get cache performance statistics."""

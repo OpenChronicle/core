@@ -50,14 +50,14 @@ class NarrativeOrchestrator:
         # Initialize core components
         self.state_manager = NarrativeStateManager(self.data_dir)
         self.mechanics_handler = NarrativeMechanicsHandler(self.config.get("mechanics_settings", {}))
-        
+
         # Component orchestrators (will be initialized as we build them)
         self.component_orchestrators = {}
         self._initialize_available_orchestrators()
-        
+
         # Initialize operation router with orchestrator references
         self.operation_router = NarrativeOperationRouter(self.component_orchestrators)
-        
+
         # Initialize character integration
         self.character_integration = NarrativeCharacterIntegration(
             self.state_manager, self.component_orchestrators
@@ -159,11 +159,11 @@ class NarrativeOrchestrator:
     def update_narrative_state(self, story_id: str, **kwargs) -> bool:
         """Update narrative state for a story."""
         result = self.state_manager.update_narrative_state(story_id, **kwargs)
-        
+
         # Update mechanics handler configuration if needed
         if "narrative_tension" in kwargs:
             self.mechanics_handler.config["current_tension"] = kwargs["narrative_tension"]
-            
+
         return result
 
     # Operation Processing Interface
@@ -174,7 +174,7 @@ class NarrativeOrchestrator:
         # Handle mechanics operations locally if no mechanics orchestrator
         if operation_type.startswith("mechanics") and "mechanics" not in self.component_orchestrators:
             return self._handle_local_mechanics_operation(story_id, operation_data)
-        
+
         # Route other operations through the operation router
         return self.operation_router.process_narrative_operation(operation_type, story_id, operation_data)
 
@@ -182,7 +182,7 @@ class NarrativeOrchestrator:
         """Handle mechanics operations using local mechanics handler."""
         try:
             operation_type = data.get("operation", "unknown")
-            
+
             if operation_type == "roll_dice":
                 result = self.mechanics_handler.roll_dice(data.get("expression", "1d20"))
             elif operation_type == "evaluate_branch":
@@ -190,24 +190,24 @@ class NarrativeOrchestrator:
                 scenario = data.get("scenario", {})
                 scenario["narrative_tension"] = self.get_narrative_state(story_id)["narrative_tension"]
                 result = self.mechanics_handler.evaluate_narrative_branch(scenario)
-                
+
                 # Update narrative tension if the evaluation includes tension changes
                 if result.get("success") and "tension_modifier" in result:
                     current_state = self.get_narrative_state(story_id)
-                    new_tension = max(0.0, min(1.0, 
+                    new_tension = max(0.0, min(1.0,
                         current_state["narrative_tension"] + result["tension_modifier"]))
                     self.update_narrative_state(story_id, narrative_tension=new_tension)
                     result["updated_tension"] = new_tension
-                    
+
             else:
                 result = {"status": "unknown_mechanics_operation", "operation": operation_type}
-                
+
             return NarrativeOperation(
                 operation_type=f"mechanics_{operation_type}",
                 success=result.get("success", True),
                 result=result
             )
-            
+
         except Exception as e:
             log_error(f"Error in local mechanics operation: {e}")
             return NarrativeOperation(
@@ -228,10 +228,10 @@ class NarrativeOrchestrator:
         if story_id:
             state = self.get_narrative_state(story_id)
             scenario["narrative_tension"] = state["narrative_tension"]
-            
+
         return self.mechanics_handler.evaluate_narrative_branch(scenario)
 
-    # Character Integration Interface  
+    # Character Integration Interface
     def get_character_narrative_context(self, story_id: str, character_id: str) -> dict[str, Any]:
         """Get narrative context for a specific character."""
         return self.character_integration.state_manager.get_character_narrative_context(story_id, character_id)
@@ -312,15 +312,14 @@ class NarrativeOrchestrator:
         try:
             # Save states through state manager
             success = self.state_manager.save_states()
-            
+
             if success:
                 log_system_event(
                     "narrative_orchestrator_cleanup",
                     "Narrative orchestrator cleanup completed successfully",
                 )
-            
-            return success
-
         except Exception as e:
             log_error(f"Error during narrative orchestrator cleanup: {e}")
             return False
+        else:
+            return success

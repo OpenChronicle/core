@@ -76,11 +76,11 @@ class SceneStatistics:
 
                 results.append(scene_data)
 
-            return results
-
         except Exception as e:  # noqa: BLE001 - broad for telemetry safety at boundary
             log_error_with_context(e, {"operation": "get_scenes_with_long_turns", "story_id": self.story_id})
             return []
+        else:
+            return results
 
     def get_token_usage_stats(self) -> dict[str, Any]:
         """Return comprehensive token usage statistics."""

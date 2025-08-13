@@ -128,7 +128,6 @@ class ContextAnalyzer(NarrativeComponent):
                     "content_type": content_type,
                 },
             )
-            return analysis
 
         except (AttributeError, KeyError) as e:
             log_error_with_context(
@@ -181,6 +180,8 @@ class ContextAnalyzer(NarrativeComponent):
                 confidence=0.0,
                 recommendations=[f"Analysis error: {e!s}"],
             )
+        else:
+            return analysis
 
     def validate(self, data: dict[str, Any]) -> ValidationResult:
         """Validate context data for analysis."""

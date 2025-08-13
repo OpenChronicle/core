@@ -174,13 +174,14 @@ class OpenChronicleCommand(ABC):
         path = Path(path)
         try:
             path.mkdir(parents=True, exist_ok=True)
-            return path
         except PermissionError:
             self.output.error(f"Cannot create directory {path}: Permission denied")
             raise
         except OSError as e:
             self.output.error(f"Cannot create directory {path}: {e}")
             raise
+        else:
+            return path
 
     def read_json_file(self, file_path: str | Path) -> dict[str, Any]:
         """
@@ -209,7 +210,7 @@ class OpenChronicleCommand(ABC):
             self.output.error(f"File system error reading {path}: {e}")
             raise
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {path}: {e}")
+            raise ValueError(f"Invalid JSON in {path}: {e}") from e
         except Exception as e:
             self.output.error(f"Error reading {path}: {e}")
             raise

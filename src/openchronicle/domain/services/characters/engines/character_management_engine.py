@@ -1,8 +1,23 @@
 """
 OpenChronicle Core - Character Management Engine
 
-Handles character lifecycle, storage operations, and basic management.
-Extracted from character_orchestrator.py for better separation of concerns.
+Handles character lifecycle, storage operations, and basic ma        try:
+            character = self.storage.get_character(character_id)
+            if character:
+                logger.debug(f"Retrieved character {character_id}")
+            else:
+                logger.debug(f"Character {character_id} not found")
+        except (KeyError, AttributeError) as e:
+            logger.exception("Character data structure error retrieving")
+            return None
+        except (ValueError, TypeError) as e:
+            logger.exception("Character data validation error retrieving")
+            return None
+        except Exception as e:
+            logger.exception("Error retrieving character")
+            return None
+        else:
+            return characterted from character_orchestrator.py for better separation of concerns.
 
 Author: OpenChronicle Development Team
 """
@@ -100,10 +115,10 @@ class CharacterManagementEngine(CharacterEventHandler):
                 return None
 
         except (ValueError, TypeError, KeyError) as e:
-            logger.error(f"Invalid character data during creation: {e}")
+            logger.exception("Invalid character data during creation")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error creating character: {e}")
+            logger.exception("Unexpected error creating character")
             return None
 
     def get_character(self, character_id: str) -> CharacterData | None:
@@ -122,17 +137,17 @@ class CharacterManagementEngine(CharacterEventHandler):
                 logger.debug(f"Retrieved character {character_id}")
             else:
                 logger.debug(f"Character {character_id} not found")
-            return character
-
         except (KeyError, AttributeError) as e:
-            logger.error(f"Character data structure error retrieving {character_id}: {e}")
+            logger.exception("Character data structure error retrieving")
             return None
         except (ValueError, TypeError) as e:
-            logger.error(f"Character parameter error retrieving {character_id}: {e}")
+            logger.exception("Character parameter error retrieving")
             return None
         except Exception as e:
-            logger.error(f"Error retrieving character {character_id}: {e}")
+            logger.exception("Error retrieving character")
             return None
+        else:
+            return character
 
     def delete_character(self, character_id: str) -> bool:
         """
@@ -147,42 +162,42 @@ class CharacterManagementEngine(CharacterEventHandler):
         try:
             if not self.storage.get_character(character_id):
                 logger.warning(f"Character {character_id} not found for deletion")
-                return False
-
-            success = self.storage.delete_character(character_id)
-            if success:
-                self.emit_event(
-                    "character_deleted",
-                    {"character_id": character_id},
-                )
-                logger.info(f"Character {character_id} deleted successfully")
+                success = False
             else:
-                logger.error(f"Failed to delete character {character_id}")
-
-            return success
+                success = self.storage.delete_character(character_id)
+                if success:
+                    self.emit_event(
+                        "character_deleted",
+                        {"character_id": character_id},
+                    )
+                    logger.info(f"Character {character_id} deleted successfully")
+                else:
+                    logger.error(f"Failed to delete character {character_id}")
 
         except (KeyError, AttributeError) as e:
-            logger.error(f"Character data structure error deleting {character_id}: {e}")
+            logger.exception("Character data structure error deleting")
             return False
         except (OSError, IOError) as e:
-            logger.error(f"Storage error deleting character {character_id}: {e}")
+            logger.exception("Storage error deleting character")
             return False
         except Exception as e:
-            logger.error(f"Error deleting character {character_id}: {e}")
+            logger.exception("Error deleting character")
             return False
+        else:
+            return success
 
     def list_characters(self) -> list[str]:
         """Get list of all character IDs."""
         try:
             return self.storage.list_characters()
         except (OSError, IOError) as e:
-            logger.error(f"Storage error listing characters: {e}")
+            logger.exception("Storage error listing characters")
             return []
         except (AttributeError, KeyError) as e:
-            logger.error(f"Character data structure error listing characters: {e}")
+            logger.exception("Character data structure error listing characters")
             return []
         except Exception as e:
-            logger.error(f"Error listing characters: {e}")
+            logger.exception("Error listing characters")
             return []
 
     def get_character_state(self, character_id: str) -> dict[str, Any]:
@@ -198,37 +213,38 @@ class CharacterManagementEngine(CharacterEventHandler):
         try:
             character = self.get_character(character_id)
             if not character:
-                return {}
-
-            state = {
-                "character_id": character_id,
-                "exists": True,
-                "name": character.name,
-                "description": character.description,
-                "traits": character.traits,
-                "personality": character.personality,
-                "background": character.background,
-                "relationships": character.relationships,
-                "metadata": character.metadata,
-            }
-
-            # Include stats if available
-            if character.stats:
-                state["stats"] = {
-                    "strength": character.stats.strength,
-                    "dexterity": character.stats.dexterity,
-                    "intelligence": character.stats.intelligence,
-                    "wisdom": character.stats.wisdom,
-                    "charisma": character.stats.charisma,
-                    "constitution": character.stats.constitution,
+                state = {}
+            else:
+                state = {
+                    "character_id": character_id,
+                    "exists": True,
+                    "name": character.name,
+                    "description": character.description,
+                    "traits": character.traits,
+                    "personality": character.personality,
+                    "background": character.background,
+                    "relationships": character.relationships,
+                    "metadata": character.metadata,
                 }
 
-            logger.debug(f"Retrieved state for character {character_id}")
-            return state
+                # Include stats if available
+                if character.stats:
+                    state["stats"] = {
+                        "strength": character.stats.strength,
+                        "dexterity": character.stats.dexterity,
+                        "intelligence": character.stats.intelligence,
+                        "wisdom": character.stats.wisdom,
+                        "charisma": character.stats.charisma,
+                        "constitution": character.stats.constitution,
+                    }
+
+                logger.debug(f"Retrieved state for character {character_id}")
 
         except Exception as e:
-            logger.error(f"Error getting character state for {character_id}: {e}")
+            logger.exception("Error getting character state for")
             return {"character_id": character_id, "exists": False, "error": str(e)}
+        else:
+            return state
 
     def _update_character_state_sync(
         self, character_id: str, state_updates: dict[str, Any]
@@ -247,39 +263,39 @@ class CharacterManagementEngine(CharacterEventHandler):
             character = self.get_character(character_id)
             if not character:
                 logger.error(f"Character {character_id} not found for state update")
-                return False
-
-            # Update character attributes
-            for key, value in state_updates.items():
-                if hasattr(character, key):
-                    setattr(character, key, value)
-                    logger.debug(f"Updated {key} for character {character_id}")
-
-            # Save updated character
-            success = self.storage.update_character(character)
-            if success:
-                self.emit_event(
-                    "character_state_updated",
-                    {
-                        "character_id": character_id,
-                        "updates": state_updates,
-                    },
-                )
-                logger.info(f"Character {character_id} state updated successfully")
+                success = False
             else:
-                logger.error(f"Failed to save character {character_id} state updates")
+                # Update character attributes
+                for key, value in state_updates.items():
+                    if hasattr(character, key):
+                        setattr(character, key, value)
+                        logger.debug(f"Updated {key} for character {character_id}")
 
-            return success
+                # Save updated character
+                success = self.storage.update_character(character)
+                if success:
+                    self.emit_event(
+                        "character_state_updated",
+                        {
+                            "character_id": character_id,
+                            "updates": state_updates,
+                        },
+                    )
+                    logger.info(f"Character {character_id} state updated successfully")
+                else:
+                    logger.error(f"Failed to save character {character_id} state updates")
 
         except (KeyError, AttributeError) as e:
-            logger.error(f"Character data structure error updating {character_id} state: {e}")
+            logger.exception(f"Character data structure error updating {character_id} state")
             return False
         except (ValueError, TypeError) as e:
-            logger.error(f"Character state validation error for {character_id}: {e}")
+            logger.exception("Character state validation error for")
             return False
         except Exception as e:
-            logger.error(f"Error updating character {character_id} state: {e}")
+            logger.exception(f"Error updating character {character_id} state")
             return False
+        else:
+            return success
 
     def _on_character_updated(self, event_data: dict[str, Any]) -> None:
         """Handle character updated event."""
@@ -305,5 +321,5 @@ class CharacterManagementEngine(CharacterEventHandler):
                 "storage_type": type(self.storage).__name__,
             }
         except Exception as e:
-            logger.error(f"Error getting management status: {e}")
+            logger.exception("Error getting management status")
             return {"engine_status": "error", "error": str(e)}

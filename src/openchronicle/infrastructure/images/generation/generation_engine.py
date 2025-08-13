@@ -84,11 +84,11 @@ class GenerationEngine:
                 metadata[image_id] = ImageMetadata(**meta_dict)
 
             logger.info(f"Loaded metadata for {len(metadata)} images")
-            return metadata
-
         except Exception as e:
-            logger.error(f"Failed to load image metadata: {e}")
+            logger.exception("Failed to load image metadata")
             return {}
+        else:
+            return metadata
 
     def _save_metadata(self):
         """Save image metadata to JSON file"""
@@ -101,11 +101,11 @@ class GenerationEngine:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
         except (OSError, IOError, PermissionError) as e:
-            logger.error(f"File system error saving image metadata: {e}")
+            logger.exception("File system error saving image metadata")
         except (AttributeError, KeyError) as e:
-            logger.error(f"Data structure error saving image metadata: {e}")
+            logger.exception("Data structure error saving image metadata")
         except Exception as e:
-            logger.error(f"Failed to save image metadata: {e}")
+            logger.exception("Failed to save image metadata")
 
     def _generate_filename(
         self,
@@ -221,11 +221,11 @@ class GenerationEngine:
             self._update_stats(metadata)
 
             logger.info(f"Generated image {image_id}: {filename}")
-            return image_id
-
         except Exception as e:
-            logger.error(f"Failed to generate image: {e}")
+            logger.exception("Failed to generate image")
             return None
+        else:
+            return image_id
 
     async def _save_generated_image(self, result, image_path: Path):
         """Save generated image to file system"""
@@ -299,11 +299,11 @@ class GenerationEngine:
             self._save_metadata()
 
             logger.info(f"Deleted image {image_id}")
-            return True
-
         except Exception as e:
-            logger.error(f"Failed to delete image {image_id}: {e}")
+            logger.exception("Failed to delete image")
             return False
+        else:
+            return True
 
     def get_engine_stats(self) -> dict[str, Any]:
         """Get engine statistics"""

@@ -8,12 +8,12 @@ and ensure proper transaction boundaries.
 
 import logging
 from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Protocol
 
-from openchronicle.shared.exceptions import ServiceError, ValidationError, ModelError, NarrativeError
 from openchronicle.domain import Character
 from openchronicle.domain import CharacterAnalyzer
 from openchronicle.domain import MemoryState
@@ -22,6 +22,10 @@ from openchronicle.domain import NarrativeContext
 from openchronicle.domain import Scene
 from openchronicle.domain import Story
 from openchronicle.domain import StoryGenerator
+from openchronicle.shared.exceptions import ModelError
+from openchronicle.shared.exceptions import NarrativeError
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 
 
 if TYPE_CHECKING:
@@ -114,6 +118,11 @@ class BaseOrchestrator(ABC):
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
+    @abstractmethod
+    async def handle_command(self, command) -> Any:
+        """Handle a command. Override in subclasses."""
+        pass
+
 
 class StoryOrchestrator(BaseOrchestrator):
     """Orchestrates story-related operations."""
@@ -175,10 +184,10 @@ class StoryOrchestrator(BaseOrchestrator):
             return CommandResult.success("Story created successfully", story)
 
         except (ValidationError, ServiceError) as e:
-            self.logger.error(f"Service/validation error creating story: {e}")
+            self.logger.exception("Service/validation error creating story")
             return CommandResult.failure(f"Story creation failed: {e!s}")
         except Exception as e:
-            self.logger.error(f"Unexpected error creating story: {e}")
+            self.logger.exception("Unexpected error creating story")
             return CommandResult.failure(f"Unexpected story creation failure: {e!s}")
 
     async def update_story(self, command: UpdateStoryCommand) -> CommandResult:
@@ -214,10 +223,10 @@ class StoryOrchestrator(BaseOrchestrator):
             return CommandResult.success("Story updated successfully", story)
 
         except (ValidationError, ServiceError) as e:
-            self.logger.error(f"Service/validation error updating story: {e}")
+            self.logger.exception("Service/validation error updating story")
             return CommandResult.failure(f"Story update failed: {e!s}")
         except Exception as e:
-            self.logger.error(f"Unexpected error updating story: {e}")
+            self.logger.exception("Unexpected error updating story")
             return CommandResult.failure(f"Unexpected story update failure: {e!s}")
 
 
@@ -292,10 +301,10 @@ class CharacterOrchestrator(BaseOrchestrator):
             return CommandResult.success("Character created successfully", character)
 
         except (ValidationError, ServiceError) as e:
-            self.logger.error(f"Service/validation error creating character: {e}")
+            self.logger.exception("Service/validation error creating character")
             return CommandResult.failure(f"Character creation failed: {e!s}")
         except Exception as e:
-            self.logger.error(f"Unexpected error creating character: {e}")
+            self.logger.exception("Unexpected error creating character")
             return CommandResult.failure(f"Unexpected character creation failure: {e!s}")
 
 
@@ -399,13 +408,13 @@ class NarrativeOrchestrator(BaseOrchestrator):
             )
 
         except (ModelError, NarrativeError) as e:
-            self.logger.error(f"Model/narrative error generating scene: {e}")
+            self.logger.exception("Model/narrative error generating scene")
             return CommandResult.failure(f"Scene generation failed: {e!s}")
         except (ValidationError, ServiceError) as e:
-            self.logger.error(f"Service/validation error generating scene: {e}")
+            self.logger.exception("Service/validation error generating scene")
             return CommandResult.failure(f"Scene generation service error: {e!s}")
         except Exception as e:
-            self.logger.error(f"Unexpected error generating scene: {e}")
+            self.logger.exception("Unexpected error generating scene")
             return CommandResult.failure(f"Unexpected scene generation failure: {e!s}")
 
     async def save_scene(self, command: SaveSceneCommand) -> CommandResult:
@@ -459,10 +468,10 @@ class NarrativeOrchestrator(BaseOrchestrator):
             return CommandResult.success("Scene saved successfully", scene)
 
         except (ValidationError, ServiceError) as e:
-            self.logger.error(f"Service/validation error saving scene: {e}")
+            self.logger.exception("Service/validation error saving scene")
             return CommandResult.failure(f"Scene save failed: {e!s}")
         except Exception as e:
-            self.logger.error(f"Unexpected error saving scene: {e}")
+            self.logger.exception("Unexpected error saving scene")
             return CommandResult.failure(f"Unexpected scene save failure: {e!s}")
 
 

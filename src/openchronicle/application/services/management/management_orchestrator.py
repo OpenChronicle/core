@@ -280,14 +280,14 @@ class ManagementOrchestrator:
                 ),
             }
 
-            return analysis
-
         except (ValidationError, ServiceError) as e:
             log_error(f"Service error during story content analysis: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
         except Exception as e:
             log_error(f"Unexpected error during story content analysis: {e}")
             return {"error": f"Unexpected analysis failure: {str(e)}"}
+        else:
+            return analysis
 
     def optimize_story_navigation(self, story_id: str) -> dict[str, Any]:
         """Optimize story navigation structure."""
@@ -325,14 +325,14 @@ class ManagementOrchestrator:
                         "Chapters may be too long - consider subdividing"
                     )
 
-            return optimization
-
         except (ValidationError, ServiceError) as e:
             log_error(f"Service error during story navigation optimization: {e}")
             return {"error": f"Navigation optimization failed: {str(e)}"}
         except Exception as e:
             log_error(f"Unexpected error during story navigation optimization: {e}")
             return {"error": f"Unexpected optimization failure: {str(e)}"}
+        else:
+            return optimization
 
     def get_management_stats(self) -> dict[str, Any]:
         """Get comprehensive management system statistics."""
@@ -526,7 +526,6 @@ class ManagementOrchestrator:
             }
 
             log_info("Generated management performance metrics")
-            return performance_metrics
 
         except (ServiceError, ValidationError) as e:
             log_error(f"Service error generating performance metrics: {e}")
@@ -542,3 +541,5 @@ class ManagementOrchestrator:
                 "status": "failed",
                 "timestamp": str(datetime.now()),
             }
+        else:
+            return performance_metrics

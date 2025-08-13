@@ -99,9 +99,6 @@ class DatabaseHealthChecker:
                 log_error(
                     f"Database health check failed: Critical issues found in {health_report['issues_found']} databases"
                 )
-
-            return health_report
-
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors during database health check
             log_error(f"File system error during database health check: {e!s}")
@@ -113,6 +110,8 @@ class DatabaseHealthChecker:
             log_error(f"Database health check failed: {e!s}")
             health_report["overall_status"] = "error"
             health_report["error"] = str(e)
+            return health_report
+        else:
             return health_report
 
     async def _discover_databases(self) -> list[Path]:

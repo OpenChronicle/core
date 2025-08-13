@@ -414,11 +414,12 @@ class LifecycleManager:
                 json.dump(registry, f, indent=2, ensure_ascii=False)
 
             log_system_event("model_config_added", f"Added model configuration: {name}")
-            return True
 
         except Exception as e:
             log_error(f"Failed to add model config {name}: {e}")
             return False
+        else:
+            return True
 
     def get_adapter_status(self, name: str) -> dict[str, Any] | None:
         """Get status information for a specific adapter."""
@@ -446,7 +447,7 @@ class LifecycleManager:
         # Look through both text and image models
         for model_category in ["text_models", "image_models"]:
             models_config = self.global_config.get(model_category, {})
-            for category, models in models_config.items():
+            for _category, models in models_config.items():
                 for model in models:
                     if model.get("name") == adapter_name:
                         if not model.get("enabled", True):
@@ -546,19 +547,20 @@ class LifecycleManager:
                         "recommendation": "Start Ollama service or check if it's running on a different port",
                     }
 
+        except Exception as e:
+            log_error(f"Exception during prerequisites validation for {name}: {e}")
+            return {
+                "valid": False,
+                "reason": f"Prerequisites validation failed: {e}",
+                "can_enable_later": True,
+                "recommendation": "Check adapter configuration and try again",
+            }
+        else:
             return {
                 "valid": True,
                 "reason": "Prerequisites validated",
                 "can_enable_later": False,
                 "recommendation": "Adapter ready for use",
-            }
-
-        except Exception as e:
-            return {
-                "valid": False,
-                "reason": f"Prerequisite validation error: {e}",
-                "can_enable_later": True,
-                "recommendation": "Check system configuration and try again",
             }
 
     def _validate_api_key_smart(
@@ -624,7 +626,6 @@ class LifecycleManager:
             result = sock.connect_ex((host, port))
             sock.close()
 
-            return result == 0
         except (socket.gaierror, socket.herror) as e:
             # Handle DNS and hostname resolution errors
             return False
@@ -633,6 +634,8 @@ class LifecycleManager:
             return False
         except Exception:
             return False
+        else:
+            return result == 0
 
     def _is_potentially_transient_error(self, error: Exception) -> bool:
         """Determine if an error might be transient and worth retrying."""

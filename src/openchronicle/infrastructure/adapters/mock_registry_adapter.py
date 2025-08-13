@@ -14,7 +14,7 @@ from openchronicle.domain.ports.registry_port import IRegistryPort
 class MockRegistryAdapter(IRegistryPort):
     """
     Mock implementation of the registry port interface for testing.
-    
+
     Provides predictable responses without requiring actual infrastructure.
     """
 

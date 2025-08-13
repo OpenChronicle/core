@@ -177,4 +177,5 @@ class AsyncQueryBuilder:
         return query, tuple(self._params)
 
 
-# No backwards-compatibility utility functions are provided. Use AsyncDatabaseOperations directly.
+# No backwards-compatibility utility functions are provided.
+# Use AsyncDatabaseOperations directly.

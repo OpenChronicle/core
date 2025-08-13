@@ -241,10 +241,11 @@ class OutputManager:
             response = input().strip().lower()
             if not response:
                 return default
-            return response in ["y", "yes", "true", "1"]
         except (EOFError, KeyboardInterrupt):
             print()  # New line after interrupt
             return False
+        else:
+            return response in ["y", "yes", "true", "1"]
 
 
 class _PlainProgress:

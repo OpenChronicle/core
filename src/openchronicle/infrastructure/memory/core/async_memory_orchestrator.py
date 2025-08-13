@@ -11,10 +11,10 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
+from ....shared.exceptions import CacheConnectionError
+from ....shared.exceptions import CacheError
+from ....shared.exceptions import InfrastructureError
 from ....shared.exceptions import (
-    CacheError,
-    CacheConnectionError,
-    InfrastructureError,
     MemoryError as MemorySystemError,  # Avoid conflict with built-in MemoryError
 )
 from .character import CharacterManager
@@ -74,16 +74,15 @@ class AsyncMemoryOrchestrator:
             # Update performance stats
             end_time = asyncio.get_event_loop().time()
             self._update_performance_stats(end_time - start_time)
-
-            return result
-
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error loading memory for story {story_id}: {e}")
+            self.logger.exception("Error loading memory for story")
             return self._get_default_memory()
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error loading memory for story {story_id}: {e}")
+            self.logger.exception("Unexpected error loading memory for story")
             return self._get_default_memory()
+        else:
+            return result
 
     def _get_default_memory(self) -> dict[str, Any]:
         """Get default memory structure."""
@@ -121,16 +120,15 @@ class AsyncMemoryOrchestrator:
                     self.performance_stats["average_response_time"] * 0.9
                     + operation_time * 0.1
                 )
-
-            return result
-
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error saving memory for story {story_id}: {e}")
+            self.logger.exception("Error saving memory for story")
             return False
         except Exception as e:
-            # Unexpected error - log and convert to infrastructure error  
-            self.logger.error(f"Unexpected error saving memory for story {story_id}: {e}")
+            # Unexpected error - log and convert to infrastructure error
+            self.logger.exception("Unexpected error saving memory for story")
             return False
+        else:
+            return result
 
     async def update_character_memory(
         self, story_id: str, character_name: str, updates: dict[str, Any]
@@ -146,16 +144,15 @@ class AsyncMemoryOrchestrator:
             # Update performance stats
             end_time = asyncio.get_event_loop().time()
             self._update_performance_stats(end_time - start_time)
-
-            return success
-
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error updating character {character_name} memory: {e}")
+            self.logger.exception(f"Error updating character {character_name} memory")
             return False
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error updating character {character_name} memory: {e}")
+            self.logger.exception(f"Unexpected error updating character {character_name} memory")
             return False
+        else:
+            return success
 
     async def get_character_memory_snapshot(
         self, story_id: str, character_name: str, format_for_prompt: bool = True
@@ -179,21 +176,22 @@ class AsyncMemoryOrchestrator:
                 end_time = asyncio.get_event_loop().time()
                 self._update_performance_stats(end_time - start_time)
 
-                return formatted
+                result = formatted
+            else:
+                # Update performance stats
+                end_time = asyncio.get_event_loop().time()
+                self._update_performance_stats(end_time - start_time)
 
-            # Update performance stats
-            end_time = asyncio.get_event_loop().time()
-            self._update_performance_stats(end_time - start_time)
-
-            return character_memory
-
+                result = character_memory
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error getting character {character_name} snapshot: {e}")
+            self.logger.exception(f"Error getting character {character_name} snapshot")
             return None
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error getting character {character_name} snapshot: {e}")
+            self.logger.exception(f"Unexpected error getting character {character_name} snapshot")
             return None
+        else:
+            return result
 
     async def update_world_state(self, story_id: str, updates: dict[str, Any]) -> bool:
         """Update world state asynchronously."""
@@ -214,16 +212,15 @@ class AsyncMemoryOrchestrator:
             # Update performance stats
             end_time = asyncio.get_event_loop().time()
             self._update_performance_stats(end_time - start_time)
-
-            return success
-
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error updating world state: {e}")
+            self.logger.exception("Error updating world state")
             return False
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error updating world state: {e}")
+            self.logger.exception("Unexpected error updating world state")
             return False
+        else:
+            return success
 
     async def archive_memory_snapshot(
         self, story_id: str, scene_id: str, memory_data: dict[str, Any] | None = None
@@ -237,16 +234,15 @@ class AsyncMemoryOrchestrator:
             # Update performance stats
             end_time = asyncio.get_event_loop().time()
             self._update_performance_stats(end_time - start_time)
-
-            return success
-
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error creating memory snapshot: {e}")
+            self.logger.exception("Error creating memory snapshot")
             return False
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error creating memory snapshot: {e}")
+            self.logger.exception("Unexpected error creating memory snapshot")
             return False
+        else:
+            return success
 
     async def refresh_memory_after_rollback(
         self, story_id: str, target_scene_id: str
@@ -262,16 +258,15 @@ class AsyncMemoryOrchestrator:
             # Update performance stats
             end_time = asyncio.get_event_loop().time()
             self._update_performance_stats(end_time - start_time)
-
-            return success
-
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error restoring memory snapshot: {e}")
+            self.logger.exception("Error restoring memory snapshot")
             return False
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error restoring memory snapshot: {e}")
+            self.logger.exception("Unexpected error restoring memory snapshot")
             return False
+        else:
+            return success
 
     # ===== PERFORMANCE MONITORING =====
 
@@ -303,11 +298,11 @@ class AsyncMemoryOrchestrator:
             memory["flags"][flag_name] = flag_data or True
             return await self.repository.save_memory(story_id, memory)
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error adding memory flag: {e}")
+            self.logger.exception("Error adding memory flag")
             return False
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error adding memory flag: {e}")
+            self.logger.exception("Unexpected error adding memory flag")
             return False
 
     async def remove_memory_flag(self, story_id: str, flag_name: str) -> bool:
@@ -316,15 +311,18 @@ class AsyncMemoryOrchestrator:
             memory = await self.repository.load_memory(story_id)
             if "flags" in memory and flag_name in memory["flags"]:
                 del memory["flags"][flag_name]
-                return await self.repository.save_memory(story_id, memory)
-            return True
+                result = await self.repository.save_memory(story_id, memory)
+            else:
+                result = True
         except (CacheError, CacheConnectionError, InfrastructureError) as e:
-            self.logger.error(f"Error removing memory flag: {e}")
+            self.logger.exception("Error removing memory flag")
             return False
         except Exception as e:
             # Unexpected error - log and convert to infrastructure error
-            self.logger.error(f"Unexpected error removing memory flag: {e}")
+            self.logger.exception("Unexpected error removing memory flag")
             return False
+        else:
+            return result
 
     async def has_memory_flag(self, story_id: str, flag_name: str) -> bool:
         """Check if a memory flag exists asynchronously."""
@@ -365,7 +363,7 @@ class AsyncMemoryOrchestrator:
             return await self.repository.save_memory(story_id, memory)
 
         except Exception as e:
-            self.logger.error(f"Error adding recent event: {e}")
+            self.logger.exception("Error adding recent event")
             return False
 
     # ===== PRIVATE HELPER METHODS =====

@@ -128,13 +128,14 @@ class OutputFormatter(IOutputFormatter):
             if format_type == "html":
                 return self._save_html_report(report, output_path)
             self.logger.error(f"Unsupported format type: {format_type}")
-            return False
 
         except (ServiceError, ValidationError) as e:
             self.logger.error(f"Service/validation error saving report to {output_path}: {e}")
             return False
         except Exception as e:
             self.logger.error(f"Unexpected error saving report to {output_path}: {e}")
+            return False
+        else:
             return False
 
     def format_import_summary(self, result: ImportResult) -> str:
@@ -497,7 +498,6 @@ class OutputFormatter(IOutputFormatter):
                     "report_sections": list(report.keys()),
                 },
             )
-            return True
 
         except (OSError, IOError, PermissionError) as e:
             self.logger.error(f"File system error saving JSON report: {e}")
@@ -505,6 +505,8 @@ class OutputFormatter(IOutputFormatter):
         except Exception as e:
             self.logger.error(f"Unexpected error saving JSON report: {e}")
             return False
+        else:
+            return True
 
     def _save_text_report(self, report: dict[str, Any], output_path: Path) -> bool:
         """Save report as text."""
@@ -517,7 +519,6 @@ class OutputFormatter(IOutputFormatter):
                 "Text report saved",
                 {"output_path": str(output_path)},
             )
-            return True
 
         except (OSError, IOError, PermissionError) as e:
             self.logger.error(f"File system error saving text report: {e}")
@@ -525,6 +526,8 @@ class OutputFormatter(IOutputFormatter):
         except Exception as e:
             self.logger.error(f"Failed to save text report: {e}")
             return False
+        else:
+            return True
 
     def _save_html_report(self, report: dict[str, Any], output_path: Path) -> bool:
         """Save report as HTML."""
@@ -539,7 +542,6 @@ class OutputFormatter(IOutputFormatter):
                 "HTML report saved",
                 {"output_path": str(output_path)},
             )
-            return True
 
         except (OSError, IOError, PermissionError) as e:
             self.logger.error(f"File system error saving HTML report: {e}")
@@ -547,6 +549,8 @@ class OutputFormatter(IOutputFormatter):
         except Exception as e:
             self.logger.error(f"Failed to save HTML report: {e}")
             return False
+        else:
+            return True
 
     def _convert_report_to_text(self, report: dict[str, Any]) -> str:
         """Convert report to plain text format."""

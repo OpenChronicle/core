@@ -562,7 +562,7 @@ class CharacterAnalyzer:
 
         # Check relationship updates
         if "relationships" in proposed_updates:
-            for other_id, rel_data in proposed_updates["relationships"].items():
+            for _other_id, rel_data in proposed_updates["relationships"].items():
                 if "strength" in rel_data:
                     strength = rel_data["strength"]
                     if (

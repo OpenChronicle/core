@@ -126,7 +126,7 @@ class ImageFormatConverter:
                 return output.getvalue()
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
-            logger.error(f"Format conversion failed: {e}")
+            logger.exception("Format conversion failed")
             raise ImageValidationError(
                 f"Could not convert to {target_format.value}: {e}"
             )
@@ -165,7 +165,7 @@ class ImageFormatConverter:
                 return output.getvalue()
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
-            logger.error(f"Image resize failed: {e}")
+            logger.exception("Image resize failed")
             raise ImageValidationError(f"Could not resize image: {e}")
 
     def optimize_size(self, image_data: bytes, max_size_kb: int = 1024) -> bytes:
@@ -230,7 +230,7 @@ class ImageFormatConverter:
             return self.convert_format(image_data, ImageFormat.WEBP, ImageQuality.LOW)
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
-            logger.error(f"Image optimization failed: {e}")
+            logger.exception("Image optimization failed")
             return image_data  # Return original if optimization fails
 
     def create_thumbnail(
@@ -248,7 +248,7 @@ class ImageFormatConverter:
                 return output.getvalue()
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
-            logger.error(f"Thumbnail creation failed: {e}")
+            logger.exception("Thumbnail creation failed")
             raise ImageValidationError(f"Could not create thumbnail: {e}")
 
     def add_watermark(
@@ -327,7 +327,7 @@ class ImageFormatConverter:
                 return output.getvalue()
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
-            logger.error(f"Watermark addition failed: {e}")
+            logger.exception("Watermark addition failed")
             return image_data  # Return original if watermarking fails
 
     def get_image_info(self, image_data: bytes) -> dict[str, Any]:
@@ -347,7 +347,7 @@ class ImageFormatConverter:
                     "aspect_ratio": img.width / img.height if img.height > 0 else 0,
                 }
         except (OSError, ValueError, UnidentifiedImageError) as e:
-            logger.error(f"Could not get image info: {e}")
+            logger.exception("Could not get image info")
             return {"error": str(e)}
 
     def validate_image_data(self, image_data: bytes) -> tuple[bool, str | None]:

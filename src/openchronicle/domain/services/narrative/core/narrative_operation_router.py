@@ -86,8 +86,6 @@ class NarrativeOperationRouter:
                 f"Completed {operation_type} operation for story {story_id}",
             )
 
-            return operation
-
         except (ValueError, KeyError) as e:
             log_error(f"Invalid operation data for {operation_type}: {e}")
 
@@ -106,11 +104,13 @@ class NarrativeOperationRouter:
                 result=str(e),
                 metrics={"processing_time": time.time() - start_time},
             )
+        else:
+            return operation
 
     def _handle_response_operation(self, story_id: str, data: dict[str, Any]) -> Any:
         """Handle response intelligence operations."""
         response_orchestrator = self.orchestrators.get("response")
-        
+
         if response_orchestrator:
             try:
                 # Process through response orchestrator
@@ -153,18 +153,18 @@ class NarrativeOperationRouter:
     def _handle_mechanics_operation(self, story_id: str, data: dict[str, Any]) -> Any:
         """Handle narrative mechanics operations."""
         mechanics_orchestrator = self.orchestrators.get("mechanics")
-        
+
         if mechanics_orchestrator:
             try:
                 operation_type = data.get("operation", "unknown")
-                
+
                 if operation_type == "roll_dice":
                     return mechanics_orchestrator.roll_dice(data.get("expression", "1d20"))
                 elif operation_type == "evaluate_branch":
                     return mechanics_orchestrator.evaluate_narrative_branch(data.get("scenario", {}))
                 else:
                     return {"status": "unknown_mechanics_operation", "operation": operation_type}
-                    
+
             except Exception as e:
                 log_error(f"Error in mechanics operation: {e}")
                 return {"status": "mechanics_operation_error", "error": str(e)}
@@ -174,7 +174,7 @@ class NarrativeOperationRouter:
     def _handle_consistency_operation(self, story_id: str, data: dict[str, Any]) -> Any:
         """Handle consistency validation operations."""
         consistency_orchestrator = self.orchestrators.get("consistency")
-        
+
         if consistency_orchestrator:
             try:
                 operation_type = data.get("operation", "unknown")
@@ -197,22 +197,22 @@ class NarrativeOperationRouter:
                         "operation": operation_type,
                     }
 
+            except Exception as e:
+                log_error(f"Error in consistency operation: {e}")
+                return {"status": "consistency_operation_error", "error": str(e)}
+            else:
                 return {
                     "status": "consistency_operation_complete",
                     "success": True,
                     "result": result,
                 }
-
-            except Exception as e:
-                log_error(f"Error in consistency operation: {e}")
-                return {"status": "consistency_operation_error", "error": str(e)}
         else:
             return {"status": "consistency_operation_unavailable", "data": data}
 
     def _handle_emotional_operation(self, story_id: str, data: dict[str, Any]) -> Any:
         """Handle emotional stability operations."""
         emotional_orchestrator = self.orchestrators.get("emotional")
-        
+
         if emotional_orchestrator:
             try:
                 operation_type = data.get("operation", "unknown")
@@ -243,15 +243,15 @@ class NarrativeOperationRouter:
                         "operation": operation_type,
                     }
 
+            except Exception as e:
+                log_error(f"Error in emotional operation: {e}")
+                return {"status": "emotional_operation_error", "error": str(e)}
+            else:
                 return {
                     "status": "emotional_operation_complete",
                     "success": True,
                     "result": result,
                 }
-
-            except Exception as e:
-                log_error(f"Error in emotional operation: {e}")
-                return {"status": "emotional_operation_error", "error": str(e)}
         else:
             return {"status": "emotional_operation_unavailable", "data": data}
 

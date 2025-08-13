@@ -17,10 +17,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from openchronicle.shared.logging_system import (
-    log_info,
-    log_error,
-)
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_info
 
 
 def main():
@@ -35,7 +33,10 @@ def main():
     if "--test" in sys.argv:
         # Remove our flag and any unrelated args we don't support here
         # Advanced tests are intentionally excluded (stress/perf/chaos/production)
-        log_info("Running OpenChronicle system tests (unit only)…", context_tags=["startup","test"])
+        log_info(
+            "Running OpenChronicle system tests (unit only)…",
+            context_tags=["startup", "test"]
+        )
         pytest_cmd = [
             sys.executable,
             "-m",

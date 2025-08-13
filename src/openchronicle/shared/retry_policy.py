@@ -19,7 +19,7 @@ from .exceptions import InfrastructureError
 DEFAULT_RETRIABLE_EXCEPTIONS = (
     ConnectionError,          # Network connectivity issues
     OSError,                 # System-level errors (file access, etc.)
-    TimeoutError,            # Timeout-related errors  
+    TimeoutError,            # Timeout-related errors
     InfrastructureError,     # Our custom infrastructure errors
     asyncio.TimeoutError,    # Async timeout errors
 )
@@ -53,11 +53,11 @@ class RetryPolicy:
 
 def retryable(*exceptions: Type[Exception]):
     """Convenience decorator to attach a simple retry with default policy.
-    
+
     Args:
         *exceptions: Specific exceptions to retry on. If none provided,
                     uses DEFAULT_RETRIABLE_EXCEPTIONS.
-    
+
     Example:
         @retryable(ConnectionError, TimeoutError)
         async def fetch_data():
@@ -66,7 +66,9 @@ def retryable(*exceptions: Type[Exception]):
     """
     def decorator(func):
         async def wrapper(*args, **kwargs):
-            policy = RetryPolicy(retry_exceptions=exceptions or DEFAULT_RETRIABLE_EXCEPTIONS)
+            policy = RetryPolicy(
+                retry_exceptions=exceptions or DEFAULT_RETRIABLE_EXCEPTIONS
+            )
             return await policy.run(lambda: func(*args, **kwargs))
         return wrapper
     return decorator

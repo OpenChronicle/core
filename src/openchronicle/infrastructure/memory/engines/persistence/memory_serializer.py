@@ -96,11 +96,11 @@ class MemorySerializer:
             if "metadata" in validated_data:
                 memory.metadata = self._deserialize_metadata(validated_data["metadata"])
 
-            return memory
-
         except (TypeError, ValueError, KeyError) as e:
             # Return default memory on structural/data errors
             return MemoryState()
+        else:
+            return memory
 
     def validate_memory_structure(self, memory: MemoryState) -> ValidationResult:
         """Validate memory structure integrity."""

@@ -55,17 +55,17 @@ class AnthropicAdapter(BaseAPIAdapter):
         except (asyncio.TimeoutError, TimeoutError):
             from ..adapter_exceptions import AdapterTimeoutError
 
-            raise AdapterTimeoutError(self.get_provider_name(), self.timeout)
+            raise AdapterTimeoutError(self.get_provider_name(), self.timeout) from None
         except (KeyError, AttributeError, ValueError, TypeError) as e:
             raise AdapterResponseError(
                 self.get_provider_name(), f"Malformed response: {e}"
-            )
+            ) from e
         except Exception as e:
             msg = str(e).lower()
             if "429" in msg or "rate limit" in msg:
                 from ..adapter_exceptions import AdapterRateLimitError
 
-                raise AdapterRateLimitError(self.get_provider_name())
+                raise AdapterRateLimitError(self.get_provider_name()) from e
             raise AdapterResponseError(
                 self.get_provider_name(), f"Anthropic API request failed: {e}"
-            )
+            ) from e

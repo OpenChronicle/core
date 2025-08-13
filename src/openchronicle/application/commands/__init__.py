@@ -7,6 +7,7 @@ domain services and infrastructure.
 """
 
 from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -17,6 +18,11 @@ from openchronicle.domain import StoryStatus
 
 class Command(ABC):
     """Base class for all commands."""
+
+    @abstractmethod
+    def __post_init__(self) -> None:
+        """Validate command after initialization. Override in subclasses."""
+        pass
 
 
 class CommandResult:

@@ -81,8 +81,6 @@ class AIProcessor(IAIProcessor):
             else:
                 log_warning("AI processor initialization completed with limitations")
 
-            return success
-
         except (ConnectionError, TimeoutError) as e:
             log_error(f"Network error initializing AI processor: {e}")
             self.is_initialized = False
@@ -95,6 +93,8 @@ class AIProcessor(IAIProcessor):
             log_error(f"Failed to initialize AI processor: {e}")
             self.is_initialized = False
             return False
+        else:
+            return success
 
     async def analyze_content(
         self, content: str, file_path: Path, context: ImportContext
@@ -157,8 +157,6 @@ class AIProcessor(IAIProcessor):
                 },
             )
 
-            return enhanced_result
-
         except Exception as e:
             log_error(f"AI content analysis failed for {file_path}: {e}")
             return {
@@ -166,6 +164,8 @@ class AIProcessor(IAIProcessor):
                 "error": str(e),
                 "file_path": str(file_path),
             }
+        else:
+            return enhanced_result
 
     async def extract_entities(
         self, content: str, entity_type: str
@@ -221,8 +221,6 @@ class AIProcessor(IAIProcessor):
                         }
                     )
 
-            return formatted_entities
-
         except (ConnectionError, TimeoutError) as e:
             log_error(f"Network error in entity extraction for type {entity_type}: {e}")
             return []
@@ -232,6 +230,8 @@ class AIProcessor(IAIProcessor):
         except Exception as e:
             log_error(f"Entity extraction failed for type {entity_type}: {e}")
             return []
+        else:
+            return formatted_entities
 
     async def classify_content_type(self, content: str) -> dict[str, Any]:
         """
@@ -341,7 +341,6 @@ class AIProcessor(IAIProcessor):
                 self.available_models = ["content_analyzer"]  # Simplified model tracking
                 return True, messages
             messages.append("✗ AI analysis returned no results")
-            return False, messages
 
         except (ConnectionError, TimeoutError) as e:
             messages.append(f"✗ Network error in AI capability test: {e!s}")
@@ -351,6 +350,8 @@ class AIProcessor(IAIProcessor):
             return False, messages
         except Exception as e:
             messages.append(f"✗ AI capability test failed: {e!s}")
+            return False, messages
+        else:
             return False, messages
 
     def _determine_content_category(self, file_path: Path, content: str) -> str:

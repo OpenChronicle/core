@@ -125,13 +125,13 @@ class TransformerAnalyzer(DetectionComponent):
                             )
                         except ImportError as model_error:
                             log_error(f"Model library dependencies missing for {model_name}: {model_error}")
-                            continue
+                            return None
                         except OSError as model_error:
                             log_error(f"Model file access error for {model_name}: {model_error}")
-                            continue
+                            return None
                         except (ConnectionError, TimeoutError) as model_error:
                             log_error(f"Network error downloading model {model_name}: {model_error}")
-                            continue
+                            return None
                         except Exception as model_error:
                             error_msg = str(model_error).lower()
                             if any(

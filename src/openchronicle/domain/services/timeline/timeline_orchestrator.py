@@ -207,8 +207,6 @@ class TimelineOrchestrator:
                 f"Timeline built successfully for {self.story_id} ({processing_time}ms)"
             )
 
-            return timeline_data
-
         except (
             OpenChronicleError,
             TimelineError,
@@ -222,6 +220,8 @@ class TimelineOrchestrator:
 
             # Return minimal fallback timeline
             return self._create_fallback_timeline()
+        else:
+            return timeline_data
 
     async def create_rollback_point(
         self, scene_id: str, description: str = "Manual rollback point"
@@ -251,8 +251,6 @@ class TimelineOrchestrator:
                 f"Rollback point created for scene {scene_id}: {rollback_data['id']}"
             )
 
-            return rollback_data
-
         except (
             OpenChronicleError,
             TimelineError,
@@ -264,6 +262,8 @@ class TimelineOrchestrator:
             self.metrics.record_operation("rollback", False)
             log_error(f"Rollback point creation failed for scene {scene_id}: {e}")
             raise
+        else:
+            return rollback_data
 
     async def list_rollback_points(self) -> list[dict[str, Any]]:
         """
@@ -305,8 +305,6 @@ class TimelineOrchestrator:
             self.metrics.record_operation("rollback", True)
             log_info(f"Successfully rolled back to point {rollback_id}")
 
-            return restoration_result
-
         except (
             OpenChronicleError,
             TimelineError,
@@ -318,6 +316,8 @@ class TimelineOrchestrator:
             self.metrics.record_operation("rollback", False)
             log_error(f"Rollback to {rollback_id} failed: {e}")
             raise
+        else:
+            return restoration_result
 
     async def navigate_timeline(self, navigation_type: str, **kwargs) -> dict[str, Any]:
         """
@@ -337,8 +337,6 @@ class TimelineOrchestrator:
 
             self.metrics.record_operation("navigation", True)
 
-            return result
-
         except (
             OpenChronicleError,
             TimelineError,
@@ -350,6 +348,8 @@ class TimelineOrchestrator:
             self.metrics.record_operation("navigation", False)
             log_error(f"Timeline navigation failed: {e}")
             raise
+        else:
+            return result
 
     def get_metrics(self) -> dict[str, Any]:
         """Get timeline system metrics and performance data."""

@@ -144,7 +144,7 @@ class BaseAPIAdapter(ABC):
             raise
         except (ValueError, TypeError, OSError) as e:
             log_error(f"Failed to initialize {self.get_provider_name()} adapter: {e}")
-            raise AdapterInitializationError(f"Adapter initialization failed: {e}")
+            raise AdapterInitializationError(f"Adapter initialization failed: {e}") from e
 
     @abstractmethod
     def get_provider_name(self) -> str:
@@ -170,7 +170,7 @@ class BaseAPIAdapter(ABC):
                 log_info(f"Created {self.get_provider_name()} client")
             except (ImportError, ValueError, TypeError, OSError) as e:
                 log_error(f"Failed to create {self.get_provider_name()} client: {e}")
-                raise AdapterConnectionError(f"Client creation failed: {e}")
+                raise AdapterConnectionError(f"Client creation failed: {e}") from e
 
         return self.client
 
@@ -225,8 +225,6 @@ class BaseAPIAdapter(ABC):
                 status="completed",
             )
 
-            return response
-
         except (
             AdapterConnectionError,
             AdapterConfigurationError,
@@ -250,6 +248,8 @@ class BaseAPIAdapter(ABC):
             )
 
             raise
+        else:
+            return response
 
     def get_adapter_info(self) -> dict[str, Any]:
         """Return adapter information for debugging and monitoring."""
@@ -293,6 +293,6 @@ class LocalModelAdapter(BaseAPIAdapter):
             )
             raise AdapterInitializationError(
                 f"Local adapter initialization failed: {e}"
-            )
+            ) from e
 
 

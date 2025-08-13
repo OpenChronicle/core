@@ -117,8 +117,6 @@ class StateManager:
 
             # Set new state
             self.states[key] = state.copy()
-            return True
-
         except Exception as e:
             # Log and preserve existing return semantics
             log_error(
@@ -126,6 +124,8 @@ class StateManager:
                 context_tags=["narrative_base", "state_manager", f"key:{key}"],
             )
             return False
+        else:
+            return True
 
     def update_state(self, key: str, updates: dict[str, Any]) -> bool:
         """Update specific fields in state."""
@@ -160,13 +160,14 @@ class StateManager:
         try:
             self.states.pop(key, None)
             self.state_history.pop(key, None)
-            return True
         except Exception as e:
             log_error(
                 f"StateManager.clear_state failed: {type(e).__name__}: {e}",
                 context_tags=["narrative_base", "state_manager", f"key:{key}", "operation:clear"],
             )
             return False
+        else:
+            return True
 
 
 class EventProcessor:
@@ -182,7 +183,6 @@ class EventProcessor:
             if event_type not in self.event_handlers:
                 self.event_handlers[event_type] = []
             self.event_handlers[event_type].append(handler)
-            return True
         except Exception as e:
             log_error(
                 f"EventProcessor.register_handler failed: {type(e).__name__}: {e}",
@@ -193,6 +193,8 @@ class EventProcessor:
                 ],
             )
             return False
+        else:
+            return True
 
     def process_event(self, event: NarrativeEvent) -> list[dict[str, Any]]:
         """Process event through registered handlers."""
@@ -230,8 +232,6 @@ class EventProcessor:
             if len(self.processed_events) > max_events:
                 self.processed_events = self.processed_events[-max_events:]
 
-            return results
-
         except (AttributeError, KeyError) as e:
             log_error(
                 f"EventProcessor.process_event data structure error: {type(e).__name__}: {e}",
@@ -262,6 +262,8 @@ class EventProcessor:
                 ],
             )
             return [{"error": str(e)}]
+        else:
+            return results
 
     def get_event_statistics(self) -> dict[str, Any]:
         """Get event processing statistics."""

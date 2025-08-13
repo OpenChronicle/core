@@ -51,7 +51,7 @@ class ServiceConfigurator:
 
         log_system_event(
             "di_services_configured",
-            f"Configured {len(self._registered_services)} services with dependency injection",
+            f"Configured {len(self._registered_services)} services with DI",
         )
 
         return self.container
@@ -102,7 +102,9 @@ class ServiceConfigurator:
                 def __init__(self):
                     # Provide proper registry_port dependency
                     registry_port = RegistryAdapter()
-                    self._config_manager = ConfigurationManager(registry_port=registry_port)
+                    self._config_manager = ConfigurationManager(
+                        registry_port=registry_port
+                    )
 
                 def get_config(self, section: str) -> dict[str, Any]:
                     if hasattr(self._config_manager, "config"):

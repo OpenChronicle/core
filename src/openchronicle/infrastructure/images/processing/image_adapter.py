@@ -112,7 +112,7 @@ class OpenAIImageAdapter(ImageAdapter):
                 import openai
             except ImportError as e:
                 generation_time = time.time() - start_time
-                logger.error(f"OpenAI SDK not available: {e}")
+                logger.exception("OpenAI SDK not available")
                 return ImageGenerationResult(
                     success=False,
                     error_message="OpenAI SDK not installed",
@@ -138,13 +138,13 @@ class OpenAIImageAdapter(ImageAdapter):
                     image_data = image_response.content
             except httpx.HTTPStatusError as e:
                 generation_time = time.time() - start_time
-                logger.error(f"OpenAI image fetch HTTP error: {e}")
+                logger.exception("OpenAI image fetch HTTP error")
                 return ImageGenerationResult(
                     success=False, error_message=str(e), generation_time=generation_time
                 )
             except (httpx.RequestError, httpx.TimeoutException) as e:
                 generation_time = time.time() - start_time
-                logger.error(f"OpenAI image fetch network error: {e}")
+                logger.exception("OpenAI image fetch network error")
                 return ImageGenerationResult(
                     success=False, error_message=str(e), generation_time=generation_time
                 )
@@ -174,13 +174,13 @@ class OpenAIImageAdapter(ImageAdapter):
 
         except (KeyError, ValueError) as e:
             generation_time = time.time() - start_time
-            logger.error(f"OpenAI response parse error: {e}")
+            logger.exception("OpenAI response parse error")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
         except Exception as e:
             generation_time = time.time() - start_time
-            logger.error(f"OpenAI image generation failed: {e}")
+            logger.exception("OpenAI image generation failed")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
@@ -275,19 +275,19 @@ class StabilityImageAdapter(ImageAdapter):
 
         except httpx.HTTPStatusError as e:
             generation_time = time.time() - start_time
-            logger.error(f"Stability API HTTP error: {e}")
+            logger.exception("Stability API HTTP error")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
         except (httpx.RequestError, httpx.TimeoutException) as e:
             generation_time = time.time() - start_time
-            logger.error(f"Stability API network error: {e}")
+            logger.exception("Stability API network error")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
         except (KeyError, ValueError) as e:
             generation_time = time.time() - start_time
-            logger.error(f"Stability API response parse error: {e}")
+            logger.exception("Stability API response parse error")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
@@ -376,7 +376,7 @@ class MockImageAdapter(ImageAdapter):
 
         except (ValueError, OSError, UnidentifiedImageError) as e:
             generation_time = time.time() - start_time
-            logger.error(f"Mock image generation failed: {e}")
+            logger.exception("Mock image generation failed")
             return ImageGenerationResult(
                 success=False, error_message=str(e), generation_time=generation_time
             )
@@ -411,7 +411,7 @@ class ImageAdapterRegistry:
                     logger.warning(f"Unknown adapter class: {adapter_class_name}")
 
             except Exception as e:
-                logger.error(f"Failed to initialize adapter {adapter_name}: {e}")
+                logger.exception("Failed to initialize adapter")
 
     def get_adapter(self, provider: ImageProvider | None = None) -> ImageAdapter | None:
         """Get an adapter for the specified provider"""

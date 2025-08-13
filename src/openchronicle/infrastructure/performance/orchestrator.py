@@ -98,7 +98,7 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize performance orchestrator: {e}")
+            self.logger.exception("Failed to initialize performance orchestrator")
             raise
 
     async def start_operation_monitoring(self, context: OperationContext) -> str:
@@ -125,11 +125,11 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
                 },
             )
 
-            return operation_id
-
         except Exception as e:
-            self.logger.error(f"Failed to start operation monitoring: {e}")
+            self.logger.exception("Failed to start operation monitoring")
             return context.operation_id
+        else:
+            return operation_id
 
     async def finish_operation_monitoring(
         self, operation_id: str, success: bool, error_message: str | None = None
@@ -166,13 +166,13 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
                 },
             )
 
-            return metrics
-
         except Exception as e:
-            self.logger.error(
-                f"Failed to finish operation monitoring for {operation_id}: {e}"
+            self.logger.exception(
+                "Failed to finish operation monitoring for"
             )
             return self._create_fallback_metrics(operation_id, success, error_message)
+        else:
+            return metrics
 
     async def analyze_performance(
         self,
@@ -262,15 +262,15 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
                 },
             )
 
-            return analysis
-
         except Exception as e:
-            self.logger.error(f"Failed to analyze performance: {e}")
+            self.logger.exception("Failed to analyze performance")
             return {
                 "analysis_time": datetime.now().isoformat(),
                 "error": str(e),
-                "recommendations": ["Analysis failed - check system logs"],
+                "status": "failed",
             }
+        else:
+            return analysis
 
     async def get_real_time_metrics(self) -> dict[str, Any]:
         """Get current real-time performance metrics."""
@@ -297,16 +297,15 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
                 "initialized": self._initialized,
             }
 
-            return real_time_metrics
-
         except Exception as e:
-            self.logger.error(f"Failed to get real-time metrics: {e}")
+            self.logger.exception("Failed to get real-time metrics")
             return {
                 "timestamp": datetime.now().isoformat(),
                 "error": str(e),
-                "monitoring_enabled": self._monitoring_enabled,
-                "initialized": self._initialized,
+                "status": "failed",
             }
+        else:
+            return real_time_metrics
 
     async def cleanup_old_data(self, retention_days: int = 30) -> dict[str, int]:
         """Clean up old performance data."""
@@ -334,15 +333,16 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
                 "performance_orchestrator", "Data cleanup completed", cleanup_stats
             )
 
-            return cleanup_stats
-
         except Exception as e:
-            self.logger.error(f"Failed to cleanup old data: {e}")
+            self.logger.exception("Failed to cleanup old data")
             return {
                 "deleted_metrics": 0,
                 "cleaned_operations": 0,
                 "retention_days": retention_days,
+                "error": str(e),
             }
+        else:
+            return cleanup_stats
 
     async def generate_performance_report(
         self, time_period: tuple[datetime, datetime], report_format: str = "json"
@@ -370,7 +370,7 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to generate performance report: {e}")
+            self.logger.exception("Failed to generate performance report")
             return {
                 "report_type": "performance_analysis",
                 "format": report_format,
@@ -400,22 +400,22 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
             # Initialize the orchestrator if not already done
             if not self._initialized:
                 await self.initialize()
-            
+
             # Enable monitoring
             self.enable_monitoring()
-            
+
             # Log initialization
             log_system_event(
-                "performance_orchestrator", 
+                "performance_orchestrator",
                 f"Monitoring initialized for story: {story_id}",
                 {"story_id": story_id}
             )
-            
-            return True
-            
+
         except Exception as e:
-            self.logger.error(f"Error initializing monitoring for story {story_id}: {e}")
+            self.logger.exception("Error initializing monitoring for story")
             return False
+        else:
+            return True
 
     def get_monitoring_status(self) -> dict[str, Any]:
         """Get current monitoring status."""
@@ -446,7 +446,7 @@ class PerformanceOrchestrator(IPerformanceOrchestrator):
             if self.alert_manager:
                 await self.alert_manager.check_metrics_for_alerts(metrics)
         except Exception as e:
-            self.logger.error(f"Failed to check alerts for {metrics.operation_id}: {e}")
+            self.logger.exception(f"Failed to check alerts for {metrics.operation_id}")
 
     def _create_fallback_metrics(
         self, operation_id: str, success: bool, error_message: str | None

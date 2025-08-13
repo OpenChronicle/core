@@ -326,14 +326,13 @@ class VoiceManager:
                 "technical",
             ]:
                 voice.vocabulary_level = "moderate"  # Default fallback
-
-            return True
-
         except (AttributeError, KeyError) as e:
             # Data structure error in voice profile
             return False
         except Exception as e:
             return False
+        else:
+            return True
 
     def extract_voice_from_dialogue(
         self, dialogue_history: list[str]
@@ -425,7 +424,7 @@ class VoiceManager:
         # Infer traits from speaking style
         if voice.speaking_style:
             style_lower = voice.speaking_style.lower()
-            for category, trait_list in self.common_traits.items():
+            for _category, trait_list in self.common_traits.items():
                 for trait in trait_list:
                     if trait in style_lower and trait not in traits:
                         traits.append(trait)

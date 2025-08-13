@@ -15,12 +15,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
 
-from openchronicle.shared.exceptions import ServiceError, ValidationError, ModelError, NarrativeError
 from openchronicle.domain.entities import Story
 from openchronicle.domain.services import CharacterService
 from openchronicle.domain.services import MemoryService
 from openchronicle.domain.services import SceneService
 from openchronicle.domain.services import StoryService
+from openchronicle.shared.exceptions import ModelError
+from openchronicle.shared.exceptions import NarrativeError
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.retry_policy import RetryPolicy
 
 
@@ -172,7 +175,7 @@ class StoryProcessingService:
         else:
             # Fallback for backward compatibility
             from openchronicle.domain.ports.context_port import IContextPort
-            
+
             class MockContextPort(IContextPort):
                 async def build_context_with_analysis(
                     self, user_input: str, story_data: dict[str, Any]
@@ -182,7 +185,7 @@ class StoryProcessingService:
                         "story_data": story_data,
                         "context_type": "mock"
                     }
-                
+
                 async def build_basic_context(
                     self, user_input: str, story_data: dict[str, Any]
                 ) -> dict[str, Any]:
@@ -191,12 +194,12 @@ class StoryProcessingService:
                         "story_data": story_data,
                         "context_type": "basic_mock"
                     }
-                
+
                 async def extract_context_metadata(
                     self, context: dict[str, Any]
                 ) -> dict[str, Any]:
                     return {"mock": True}
-            
+
             mock_port = MockContextPort()
             return await mock_port.build_context_with_analysis(
                 user_input, story.to_dict()
@@ -230,7 +233,6 @@ class StoryProcessingService:
             await self.logging_service.log_info(
                 f"Generated AI response: {ai_response[:100]}..."
             )
-            return ai_response
         except (ModelError, NarrativeError) as e:  # Model/narrative failures after retries
             await self.logging_service.log_error(
                 f"Model/narrative error after retries: {e}"
@@ -241,6 +243,8 @@ class StoryProcessingService:
                 f"Unexpected AI generation failure after retries: {e}"
             )
             return f"[Unexpected error generating response after retries: {e}]"
+        else:
+            return ai_response
 
     async def _generate_content_flags(
         self, story_id: str, analysis: dict[str, Any], ai_response: str
@@ -257,7 +261,7 @@ class StoryProcessingService:
                 from openchronicle.domain.ports.content_analysis_port import (
                     IContentAnalysisPort,
                 )
-                
+
                 class MockContentAnalysisPort(IContentAnalysisPort):
                     async def generate_content_flags(
                         self, analysis: dict[str, Any], content: str
@@ -265,13 +269,13 @@ class StoryProcessingService:
                         return [
                             {"name": "mock_flag", "value": "test", "type": "content"}
                         ]
-                    
+
                     async def analyze_content_sentiment(self, content: str) -> dict[str, Any]:
                         return {"sentiment": "neutral", "confidence": 0.5}
-                    
+
                     async def detect_content_themes(self, content: str) -> list[str]:
                         return ["general"]
-                
+
                 mock_port = MockContentAnalysisPort()
                 content_flags = await mock_port.generate_content_flags(
                     analysis, ai_response
@@ -286,14 +290,14 @@ class StoryProcessingService:
             await self.logging_service.log_info(
                 f"Generated {len(content_flags)} content flags"
             )
-            return content_flags
-
         except (ServiceError, ValidationError) as e:
             await self.logging_service.log_error(f"Service/validation error in content flag generation: {e}")
             return []
         except Exception as e:
             await self.logging_service.log_error(f"Unexpected error in content flag generation: {e}")
             return []
+        else:
+            return content_flags
 
     async def _log_scene(
         self,
@@ -320,14 +324,14 @@ class StoryProcessingService:
             )
 
             await self.logging_service.log_info(f"Scene logged with ID: {scene_id}")
-            return scene_id
-
         except (ServiceError, ValidationError) as e:
             await self.logging_service.log_error(f"Service/validation error in scene logging: {e}")
             return None
         except Exception as e:
             await self.logging_service.log_error(f"Unexpected error in scene logging: {e}")
             return None
+        else:
+            return scene_id
 
 
 class StoryProcessingServiceFactory:

@@ -229,14 +229,6 @@ class HealthMonitor:
                 },
             )
 
-        except TimeoutError:
-            response_time = (datetime.now(UTC) - start_time).total_seconds()
-            return HealthCheckResult(
-                adapter_name=adapter_name,
-                status=HealthStatus.UNHEALTHY,
-                response_time=response_time,
-                error_message="Health check timeout",
-            )
         except (ConnectionError, TimeoutError) as e:
             response_time = (datetime.now(UTC) - start_time).total_seconds()
             return HealthCheckResult(

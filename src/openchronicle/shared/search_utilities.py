@@ -281,14 +281,18 @@ class ResultRanker:
 
         # Define sort key function
         if sort_by == "score":
-            key_func = lambda r: r.score
+            def key_func(r):
+                return r.score
         elif sort_by == "timestamp":
-            key_func = lambda r: r.timestamp or datetime.min
+            def key_func(r):
+                return r.timestamp or datetime.min
         elif sort_by == "id":
-            key_func = lambda r: r.id
+            def key_func(r):
+                return r.id
         else:
             # Default to score
-            key_func = lambda r: r.score
+            def key_func(r):
+                return r.score
 
         # Sort results
         sorted_results = sorted(results, key=key_func, reverse=not ascending)
@@ -342,8 +346,8 @@ class SearchUtilities:
             return self._execute_simple_search(
                 story_id, table, columns, filters, options, db_ops
             )
-        except (RuntimeError, ValueError, KeyError, TypeError) as e:
-            logger.error(f"Search execution failed: {e}")
+        except (RuntimeError, ValueError, KeyError, TypeError):
+            logger.exception("Search execution failed")
             return []
 
     def _execute_fts_search(

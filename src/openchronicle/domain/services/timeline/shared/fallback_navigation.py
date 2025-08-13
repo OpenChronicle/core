@@ -49,10 +49,10 @@ class FallbackNavigationManager:
                     }
                 )
 
-            return history
-
         except (RuntimeError, ValueError, KeyError, TypeError, OSError):
             return []
+        else:
+            return history
 
     async def find_scene_by_criteria(self, **kwargs) -> list[dict[str, Any]]:
         """Basic scene search."""

@@ -19,7 +19,7 @@ from .story_processing_service import StoryProcessingService
 
 __all__ = [
     "AIProcessor",
-    "AIProcessingConfig", 
+    "AIProcessingConfig",
     "AIProcessorFactory",
     "StoryProcessingService",
     "StoryProcessingConfig",

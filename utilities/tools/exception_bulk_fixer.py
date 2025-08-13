@@ -254,10 +254,10 @@ class ExceptionPatternFixer:
                 file_path.write_text(final_content, encoding='utf-8')
                 changes.append(f"File updated: {file_path}")
             
-            return final_content != original_content, changes
-            
         except Exception as e:
             return False, [f"Error processing {file_path}: {e}"]
+        else:
+            return final_content != original_content, changes
 
 
 def scan_file_for_patterns(path: pathlib.Path) -> List[Tuple[int, str]]:

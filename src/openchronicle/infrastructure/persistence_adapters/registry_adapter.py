@@ -101,7 +101,6 @@ class RegistryAdapter(IRegistryPort):
 
         try:
             self.validate_config_func(config)
-            return True
         except ValueError as e:  # Explicit validation error
             log_warning(
                 f"Config validation failed for {provider_name}: {e}",
@@ -113,6 +112,9 @@ class RegistryAdapter(IRegistryPort):
                 f"Unexpected validation error for {provider_name}: {e}",
                 context_tags=["registry", "provider", "validation", "error"],
             )
+            return False
+        else:
+            return True
             return False
 
     def register_provider(self, provider_name: str, config: dict[str, Any]) -> bool:

@@ -19,11 +19,11 @@ from rich.prompt import Confirm
 from rich.prompt import Prompt
 from rich.table import Table
 
-from openchronicle.shared.exceptions import ValidationError, ServiceError
-
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 
 
 # ================================

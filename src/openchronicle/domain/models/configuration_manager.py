@@ -5,7 +5,20 @@ ConfigurationManager - Refactored to use existing components
 Simplified to coordinate existing specialized components instead of being monolithic:
 - Uses core.shared.centralized_config for typed configuration
 - Uses registry port interface for dynamic discovery (hexagonal architecture)
-- Uses core.registry.schema_validation for validation
+- Uses core.            # Add to runtime adapters
+            self.config["adapters"][name] = {
+                "type": config.get("provider", name),
+                "enabled": enabled,
+                **config,
+            }
+
+            log_system_event("model_added", f"Added runtime model: {name}")
+
+        except Exception as e:
+            log_error(f"Failed to add model config: {e}")
+            return False
+        else:
+            return Truema_validation for validation
 - Focuses on coordination rather than doing everything
 
 Following EMBRACE BREAKING CHANGES philosophy for better architecture.
@@ -98,7 +111,7 @@ class ConfigurationManager:
             registry = {"providers": discovered_providers, "fallback_chains": {}}
 
             # Extract fallback chains from model configs
-            for provider_name, models in discovered_providers.items():
+            for _provider_name, models in discovered_providers.items():
                 for model_config in models:
                     model_name = model_config.get(
                         "name", model_config.get("config_name")
@@ -113,11 +126,11 @@ class ConfigurationManager:
                 f"Discovered {len(discovered_providers)} providers with {total_models} models",
             )
 
-            return registry
-
         except Exception as e:
             log_error(f"Model discovery failed: {e}")
             return {"providers": {}, "fallback_chains": {}}
+        else:
+            return registry
 
     def _build_global_config(self) -> dict[str, Any]:
         """Build global configuration using existing SystemConfig."""
@@ -224,7 +237,7 @@ class ConfigurationManager:
         all_models = {}
         providers = self.registry.get("providers", {})
 
-        for provider_name, models in providers.items():
+        for _provider_name, models in providers.items():
             for model_config in models:
                 model_name = model_config.get("name", model_config.get("config_name"))
                 if model_name:
@@ -237,7 +250,7 @@ class ConfigurationManager:
         adapters = self.config.get("adapters", {})
         if adapter_name not in adapters:
             return None
-        
+
         adapter_config = adapters[adapter_name].copy()
         adapter_config["fallback_chain"] = self.get_fallback_chain(adapter_name)
         return adapter_config
@@ -249,9 +262,11 @@ class ConfigurationManager:
         try:
             # Use registry port for validation (hexagonal architecture)
             self.registry_port.validate_config("unknown", config)
-            return {"valid": True, "errors": [], "warnings": []}
+
         except Exception as e:
             return {"valid": False, "errors": [str(e)], "warnings": []}
+        else:
+            return {"valid": True, "errors": [], "warnings": []}
 
     def get_configuration_summary(self) -> dict[str, Any]:
         """Get summary of current configuration."""
@@ -281,10 +296,12 @@ class ConfigurationManager:
             log_system_event(
                 "configuration_reloaded", "Configuration reloaded successfully"
             )
-            return True
+
         except Exception as e:
             log_error(f"Failed to reload configuration: {e}")
             return False
+        else:
+            return True
 
     # Simplified stubs for compatibility (can be extended if needed)
     def get_content_routing_config(self) -> dict[str, Any]:
@@ -309,7 +326,7 @@ class ConfigurationManager:
     ) -> list[dict[str, Any]]:
         """Get enabled models of a specific type."""
         models = []
-        for model_name, model_config in self.list_model_configs().items():
+        for _model_name, model_config in self.list_model_configs().items():
             if model_config.get("type") == model_type and model_config.get(
                 "enabled", True
             ):
@@ -336,11 +353,12 @@ class ConfigurationManager:
             }
 
             log_system_event("model_added", f"Added runtime model: {name}")
-            return True
 
         except Exception as e:
             log_error(f"Failed to add model {name}: {e}")
             return False
+        else:
+            return True
 
     def remove_model_config(self, name: str) -> bool:
         """Remove model configuration (runtime only)."""
@@ -349,9 +367,11 @@ class ConfigurationManager:
                 del self.config["adapters"][name]
                 log_system_event("model_removed", f"Removed runtime model: {name}")
                 return True
-            return False
+
         except Exception as e:
             log_error(f"Failed to remove model {name}: {e}")
+            return False
+        else:
             return False
 
     def enable_model(self, name: str) -> bool:
@@ -371,9 +391,11 @@ class ConfigurationManager:
                 action = "enabled" if enabled else "disabled"
                 log_system_event("model_toggled", f"Model {name} {action}")
                 return True
-            return False
+
         except Exception as e:
             log_error(f"Failed to toggle model {name}: {e}")
+            return False
+        else:
             return False
 
     @property

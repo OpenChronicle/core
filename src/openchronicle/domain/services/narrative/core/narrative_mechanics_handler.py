@@ -82,11 +82,12 @@ class NarrativeMechanicsHandler:
             log_info(
                 f"Dice roll: {dice_expression} = {total} (rolls: {rolls}, modifier: {modifier})"
             )
-            return result
 
         except Exception as e:
             log_error(f"Error rolling dice '{dice_expression}': {e}")
             return {"success": False, "error": str(e), "expression": dice_expression}
+        else:
+            return result
 
     def evaluate_narrative_branch(self, scenario: dict[str, Any]) -> dict[str, Any]:
         """Evaluate narrative branching scenarios."""
@@ -119,7 +120,7 @@ class NarrativeMechanicsHandler:
                     # Use weighted selection based on narrative tension
                     selected_option = self._weighted_choice_selection(choices, narrative_tension)
                     evaluation["selection_method"] = "weighted"
-                
+
                 evaluation["selected_option"] = selected_option
                 evaluation["available_choices"] = choices
 
@@ -167,11 +168,12 @@ class NarrativeMechanicsHandler:
             log_info(
                 f"Evaluated narrative branch for {character_id} in {story_id}: {branch_type}"
             )
-            return evaluation
 
         except Exception as e:
             log_error(f"Error evaluating narrative branch: {e}")
             return {"success": False, "error": str(e), "scenario": scenario}
+        else:
+            return evaluation
 
     def _weighted_choice_selection(self, choices: list[Any], narrative_tension: float) -> Any:
         """Select choice based on weighted algorithm considering narrative tension."""
@@ -194,7 +196,7 @@ class NarrativeMechanicsHandler:
     def calculate_difficulty_modifier(self, base_difficulty: str, context: dict[str, Any] = None) -> float:
         """Calculate difficulty modifier based on scaling setting and context."""
         context = context or {}
-        
+
         # Base difficulty values
         difficulty_values = {
             "trivial": 0.1,
@@ -203,9 +205,9 @@ class NarrativeMechanicsHandler:
             "hard": 0.7,
             "extreme": 0.9
         }
-        
+
         base_value = difficulty_values.get(base_difficulty, 0.5)
-        
+
         # Apply scaling based on configuration
         if self.difficulty_scaling == "forgiving":
             return max(0.1, base_value - 0.2)
@@ -240,14 +242,14 @@ class NarrativeMechanicsHandler:
                     "Resources become scarce"
                 ]
             }
-            
+
             templates = event_templates.get(event_type, event_templates["general"])
             selected_event = random.choice(templates)
-            
+
             # Add some randomization details
             intensity = random.choice(["mild", "moderate", "intense"])
             timing = random.choice(["immediate", "delayed", "gradual"])
-            
+
             return {
                 "success": True,
                 "event_type": event_type,
@@ -257,7 +259,7 @@ class NarrativeMechanicsHandler:
                 "tension_impact": random.uniform(-0.3, 0.3),
                 "timestamp": datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             log_error(f"Error generating random event: {e}")
             return {"success": False, "error": str(e)}
@@ -273,7 +275,7 @@ class NarrativeMechanicsHandler:
             },
             "supported_operations": [
                 "roll_dice",
-                "evaluate_narrative_branch", 
+                "evaluate_narrative_branch",
                 "calculate_difficulty_modifier",
                 "generate_random_event"
             ]

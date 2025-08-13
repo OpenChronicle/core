@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ImportContext,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ITemplateEngine,
-)
-
-
 """
 OpenChronicle Template Engine
 
@@ -18,6 +10,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from openchronicle.application.services.importers.storypack.interfaces import (
+    ImportContext,
+)
+from openchronicle.application.services.importers.storypack.interfaces import (
+    ITemplateEngine,
+)
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
@@ -69,13 +67,13 @@ class TemplateEngine(ITemplateEngine):
                         self.logger.info(f"Loaded template: {template_name}")
 
                 except (OSError, IOError, PermissionError) as e:
-                    self.logger.error(f"File system error loading template {template_file}: {e}")
+                    self.logger.exception("File system error loading template")
                     continue
                 except (json.JSONDecodeError, ValueError) as e:
-                    self.logger.error(f"JSON format error in template {template_file}: {e}")
+                    self.logger.exception("JSON format error in template")
                     continue
                 except Exception as e:
-                    self.logger.error(f"Unexpected error loading template {template_file}: {e}")
+                    self.logger.exception("Unexpected error loading template")
                     continue
 
             # Cache loaded templates
@@ -93,9 +91,9 @@ class TemplateEngine(ITemplateEngine):
             )
 
         except (OSError, IOError, PermissionError) as e:
-            self.logger.error(f"File system error accessing templates directory {templates_dir}: {e}")
+            self.logger.exception("File system error accessing templates directory")
         except Exception as e:
-            self.logger.error(f"Unexpected error loading templates from {templates_dir}: {e}")
+            self.logger.exception("Unexpected error loading templates from")
 
         return templates
 
@@ -176,14 +174,14 @@ class TemplateEngine(ITemplateEngine):
                 },
             )
 
-            return customized_data
-
         except (KeyError, ValueError, TypeError) as e:
-            self.logger.error(f"Template processing error for {template_name}: {e}")
+            self.logger.exception("Template processing error for")
             return template_data  # Return unprocessed template as fallback
         except Exception as e:
-            self.logger.error(f"Unexpected error processing template {template_name}: {e}")
+            self.logger.exception("Unexpected error processing template")
             return template_data  # Return unprocessed template as fallback
+        else:
+            return customized_data
 
     def _load_single_template(self, template_file: Path) -> dict[str, Any] | None:
         """Load a single template file."""
@@ -195,13 +193,14 @@ class TemplateEngine(ITemplateEngine):
             if self._validate_template_structure(template_data):
                 return template_data
             self.logger.warning(f"Invalid template structure in {template_file}")
-            return None
 
         except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid JSON in template {template_file}: {e}")
+            self.logger.exception("Invalid JSON in template")
             return None
         except Exception as e:
-            self.logger.error(f"Error loading template {template_file}: {e}")
+            self.logger.exception("Error loading template")
+            return None
+        else:
             return None
 
     def _validate_template_structure(self, template_data: dict[str, Any]) -> bool:

@@ -11,6 +11,8 @@ import json
 import re
 from typing import Any
 
+from openchronicle.shared.exceptions import ModelInitializationError
+from openchronicle.shared.exceptions import ModelNotFoundError
 from openchronicle.shared.logging_system import log_error
 
 # Import logging utilities
@@ -62,11 +64,11 @@ Return empty object {{}} if no clear location information found."""
             if model not in self.model_manager.adapters:
                 success = await self.model_manager.initialize_adapter(model)
                 if not success:
-                    raise Exception(f"Failed to initialize adapter for model: {model}")
+                    raise ModelInitializationError(f"Failed to initialize adapter for model: {model}")
 
             adapter = self.model_manager.adapters.get(model)
             if not adapter:
-                raise Exception(f"No adapter available for model: {model}")
+                raise ModelNotFoundError(f"No adapter available for model: {model}")
 
             response = await adapter.generate_response(prompt)
 
@@ -81,7 +83,6 @@ Return empty object {{}} if no clear location information found."""
                 log_info(
                     f"Successfully extracted location data: {result.get('name', 'multiple/unknown')}"
                 )
-                return result
             except json.JSONDecodeError:
                 log_warning(
                     "Failed to parse location extraction JSON, attempting cleanup"
@@ -93,6 +94,8 @@ Return empty object {{}} if no clear location information found."""
                     return result
                 log_error("No valid JSON found in location extraction response")
                 return {}
+            else:
+                return result
 
         except Exception as e:
             log_error(f"Location extraction failed: {e}")
