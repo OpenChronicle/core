@@ -32,7 +32,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
-from openchronicle.infrastructure.memory.memory_orchestrator import (
+from openchronicle.infrastructure.memory.core.memory_orchestrator import (
     MemoryOrchestrator,
 )
 from openchronicle.infrastructure.persistence.database_orchestrator import (

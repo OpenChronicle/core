@@ -8,7 +8,7 @@ import time
 import uuid
 
 import pytest
-from openchronicle.infrastructure.memory.async_memory_orchestrator import (
+from openchronicle.infrastructure.memory.core.async_memory_orchestrator import (
     AsyncMemoryOrchestrator,
 )
 

@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from openchronicle.infrastructure.memory.persistence.memory_repository import MemoryRepository, MemoryState
+from openchronicle.infrastructure.memory.engines.persistence.memory_repository import MemoryRepository, MemoryState
 
 
 def test_save_and_load_round_trip(tmp_path, monkeypatch):

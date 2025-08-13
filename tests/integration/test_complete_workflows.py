@@ -20,7 +20,7 @@ from openchronicle.domain.services.timeline.timeline_orchestrator import (
 from openchronicle.infrastructure.content.context.orchestrator import (
     ContextOrchestrator,
 )
-from openchronicle.infrastructure.memory.memory_orchestrator import (
+from openchronicle.infrastructure.memory.core.memory_orchestrator import (
     MemoryOrchestrator,
 )
 

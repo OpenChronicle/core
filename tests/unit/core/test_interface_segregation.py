@@ -22,18 +22,18 @@ from openchronicle.domain.models.model_interfaces import ModelResponse
 from openchronicle.domain.models.model_orchestrator import ModelLifecycleManager
 from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 from openchronicle.domain.models.model_orchestrator import ModelResponseGenerator
-from openchronicle.infrastructure.memory.memory_interfaces import CharacterMemory
-from openchronicle.infrastructure.memory.memory_interfaces import (
+from openchronicle.infrastructure.memory.core.memory_interfaces import CharacterMemory
+from openchronicle.infrastructure.memory.core.memory_interfaces import (
     ICharacterMemoryManager,
 )
-from openchronicle.infrastructure.memory.memory_interfaces import (
+from openchronicle.infrastructure.memory.core.memory_interfaces import (
     IMemoryContextBuilder,
 )
-from openchronicle.infrastructure.memory.memory_interfaces import IMemoryFlagManager
-from openchronicle.infrastructure.memory.memory_interfaces import IMemoryPersistence
-from openchronicle.infrastructure.memory.memory_interfaces import IWorldStateManager
-from openchronicle.infrastructure.memory.memory_interfaces import MemorySnapshot
-from openchronicle.infrastructure.memory.memory_interfaces import WorldState
+from openchronicle.infrastructure.memory.core.memory_interfaces import IMemoryFlagManager
+from openchronicle.infrastructure.memory.core.memory_interfaces import IMemoryPersistence
+from openchronicle.infrastructure.memory.core.memory_interfaces import IWorldStateManager
+from openchronicle.infrastructure.memory.core.memory_interfaces import MemorySnapshot
+from openchronicle.infrastructure.memory.core.memory_interfaces import WorldState
 
 
 class TestModelInterfaceSegregation:

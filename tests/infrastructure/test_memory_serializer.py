@@ -1,5 +1,5 @@
 import pytest
-from openchronicle.infrastructure.memory.persistence.memory_serializer import MemorySerializer, MemoryState, CharacterMemory, MemoryFlag, RecentEvent, MemoryMetadata, MoodEntry, VoiceProfile
+from openchronicle.infrastructure.memory.engines.persistence.memory_serializer import MemorySerializer, MemoryState, CharacterMemory, MemoryFlag, RecentEvent, MemoryMetadata, MoodEntry, VoiceProfile
 from datetime import datetime, UTC
 
 def build_sample_state():

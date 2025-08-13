@@ -28,7 +28,7 @@ from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 from openchronicle.domain.services.scenes.scene_orchestrator import (
     SceneOrchestrator,
 )
-from openchronicle.infrastructure.memory.memory_orchestrator import (
+from openchronicle.infrastructure.memory.core.memory_orchestrator import (
     MemoryOrchestrator,
 )
 from openchronicle.shared.logging_system import log_info

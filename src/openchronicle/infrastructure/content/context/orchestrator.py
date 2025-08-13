@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from openchronicle.domain.services.narrative import NarrativeOrchestrator
-from openchronicle.domain.services.narrative.response.context_analyzer import (
+from openchronicle.domain.services.narrative.engines.response.context_analyzer import (
     ContextAnalyzer as NarrativeContextAnalyzer,
 )
 
@@ -22,8 +22,12 @@ from openchronicle.domain.services.narrative.response.context_analyzer import (
 from openchronicle.infrastructure.memory import MemoryOrchestrator
 
 # Import modular context systems
-from openchronicle.infrastructure.memory.context import ContextBuilder as MemoryContextBuilder
-from openchronicle.infrastructure.memory.context import ContextConfiguration as MemoryContextConfiguration
+from openchronicle.infrastructure.memory.engines.context.context_builder import (
+    ContextBuilder as MemoryContextBuilder,
+)
+from openchronicle.infrastructure.memory.engines.context.context_builder import (
+    ContextConfiguration as MemoryContextConfiguration,
+)
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event

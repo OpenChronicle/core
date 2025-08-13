@@ -15,13 +15,13 @@ from ....shared.exceptions import CacheConnectionError
 from ....shared.exceptions import CacheError
 from ....shared.exceptions import InfrastructureError
 from ....shared.exceptions import MemoryError as MemorySystemError  # Avoid conflict with built-in MemoryError
-from .character import CharacterManager
-from .character import MoodTracker
-from .character import VoiceManager
-from .context import ContextBuilder
-from .context import SceneContextManager
-from .context import WorldStateManager
-from .persistence.async_memory_repository import AsyncMemoryRepository
+from ..engines.character import CharacterManager
+from ..engines.character import MoodTracker
+from ..engines.character import VoiceManager
+from ..engines.context import ContextBuilder
+from ..engines.context import SceneContextManager
+from ..engines.context import WorldStateManager
+from ..engines.persistence.async_memory_repository import AsyncMemoryRepository
 
 
 class AsyncMemoryOrchestrator:

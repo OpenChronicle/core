@@ -13,7 +13,7 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
-from .memory_orchestrator import MemoryOrchestrator
+from ...core.memory_orchestrator import MemoryOrchestrator
 from .redis_cache import CacheConfig
 from .redis_cache import CachedMemoryOrchestrator
 

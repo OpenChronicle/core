@@ -27,8 +27,8 @@ except ImportError:
     REDIS_AVAILABLE = False
     redis = None
 
-from .memory_interfaces import CharacterMemory
-from .memory_interfaces import MemorySnapshot
+from ...core.memory_interfaces import CharacterMemory
+from ...core.memory_interfaces import MemorySnapshot
 
 
 class CacheConfig:
