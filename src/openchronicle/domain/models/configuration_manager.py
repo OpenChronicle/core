@@ -126,8 +126,14 @@ class ConfigurationManager:
                 f"Discovered {len(discovered_providers)} providers with {total_models} models",
             )
 
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error during model discovery: {e}")
+            return {"providers": {}, "fallback_chains": {}}
+        except (KeyError, AttributeError, ValueError) as e:
+            log_error(f"Data structure error during model discovery: {e}")
+            return {"providers": {}, "fallback_chains": {}}
         except Exception as e:
-            log_error(f"Model discovery failed: {e}")
+            log_error(f"Unexpected error during model discovery: {e}")
             return {"providers": {}, "fallback_chains": {}}
         else:
             return registry
@@ -263,8 +269,12 @@ class ConfigurationManager:
             # Use registry port for validation (hexagonal architecture)
             self.registry_port.validate_config("unknown", config)
 
+        except (ValueError, TypeError) as e:
+            return {"valid": False, "errors": [f"Configuration format error: {str(e)}"], "warnings": []}
+        except (KeyError, AttributeError) as e:
+            return {"valid": False, "errors": [f"Configuration structure error: {str(e)}"], "warnings": []}
         except Exception as e:
-            return {"valid": False, "errors": [str(e)], "warnings": []}
+            return {"valid": False, "errors": [f"Unexpected validation error: {str(e)}"], "warnings": []}
         else:
             return {"valid": True, "errors": [], "warnings": []}
 
@@ -297,8 +307,14 @@ class ConfigurationManager:
                 "configuration_reloaded", "Configuration reloaded successfully"
             )
 
+        except (ConnectionError, TimeoutError) as e:
+            log_error(f"Network error during configuration reload: {e}")
+            return False
+        except (KeyError, AttributeError, ValueError) as e:
+            log_error(f"Data structure error during configuration reload: {e}")
+            return False
         except Exception as e:
-            log_error(f"Failed to reload configuration: {e}")
+            log_error(f"Unexpected error during configuration reload: {e}")
             return False
         else:
             return True
@@ -354,8 +370,14 @@ class ConfigurationManager:
 
             log_system_event("model_added", f"Added runtime model: {name}")
 
+        except (ValueError, TypeError) as e:
+            log_error(f"Invalid configuration format for model {name}: {e}")
+            return False
+        except (KeyError, AttributeError) as e:
+            log_error(f"Configuration structure error for model {name}: {e}")
+            return False
         except Exception as e:
-            log_error(f"Failed to add model {name}: {e}")
+            log_error(f"Unexpected error adding model {name}: {e}")
             return False
         else:
             return True

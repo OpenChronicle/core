@@ -83,9 +83,15 @@ class NarrativeMechanicsHandler:
                 f"Dice roll: {dice_expression} = {total} (rolls: {rolls}, modifier: {modifier})"
             )
 
+        except (ValueError, TypeError) as e:
+            log_error(f"Invalid dice expression parameters '{dice_expression}': {e}")
+            return {"success": False, "error": f"Invalid dice parameters: {str(e)}", "expression": dice_expression}
+        except (AttributeError, KeyError) as e:
+            log_error(f"Dice rolling data access error '{dice_expression}': {e}")
+            return {"success": False, "error": f"Data access error: {str(e)}", "expression": dice_expression}
         except Exception as e:
-            log_error(f"Error rolling dice '{dice_expression}': {e}")
-            return {"success": False, "error": str(e), "expression": dice_expression}
+            log_error(f"Unexpected error rolling dice '{dice_expression}': {e}")
+            return {"success": False, "error": f"Unexpected error: {str(e)}", "expression": dice_expression}
         else:
             return result
 

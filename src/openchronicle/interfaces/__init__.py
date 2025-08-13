@@ -14,7 +14,7 @@ The interface layer is responsible for:
 """
 
 from openchronicle.shared.exceptions import InfrastructureError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 
 from ..shared.logging_system import log_error
 from ..shared.logging_system import log_info
@@ -215,7 +215,7 @@ async def check_all_interfaces():
 
         await infrastructure.shutdown()
 
-    except (InfrastructureError, ServiceError) as e:
+    except (InfrastructureError, ApplicationError) as e:
         health_status["interface_layer"] = "unhealthy"
         health_status["components"]["infrastructure"] = "service_error"
         health_status["details"]["error"] = f"Infrastructure/service error: {str(e)}"

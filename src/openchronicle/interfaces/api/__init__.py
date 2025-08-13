@@ -22,7 +22,7 @@ from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
 from openchronicle.shared.exceptions import ConfigurationError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 
 
@@ -268,7 +268,7 @@ async def create_story(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid story data: {e!s}",
         ) from e
-    except (ServiceError, ConfigurationError) as e:
+    except (ApplicationError, ConfigurationError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error creating story: {e!s}",
@@ -323,7 +323,7 @@ async def get_story(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid story ID: {e!s}",
         ) from e
-    except ServiceError as e:
+    except ApplicationError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error retrieving story: {e!s}",
@@ -386,7 +386,7 @@ async def update_story(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid update data: {e!s}",
         ) from e
-    except ServiceError as e:
+    except ApplicationError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error updating story: {e!s}",
@@ -441,7 +441,7 @@ async def list_stories(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid pagination parameters: {e!s}",
         ) from e
-    except ServiceError as e:
+    except ApplicationError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error listing stories: {e!s}",

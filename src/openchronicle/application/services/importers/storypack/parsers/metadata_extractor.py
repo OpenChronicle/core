@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from openchronicle.application.services.importers.storypack.interfaces import IMetadataExtractor
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 
@@ -138,7 +138,7 @@ class MetadataExtractor(IMetadataExtractor):
                 "relative_path": str(file_path),
             }
 
-        except (ValidationError, ServiceError) as e:
+        except (ValidationError, ApplicationError) as e:
             self.logger.warning(f"Service/validation error extracting file metadata for {file_path}: {e}")
             return {"filename": file_path.name, "error": f"Service error: {str(e)}"}
         except Exception as e:

@@ -9,12 +9,7 @@ validation decorators, and data sanitization functions.
 import json
 import re
 from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from .exceptions import ValidationError
 

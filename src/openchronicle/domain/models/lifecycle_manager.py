@@ -294,10 +294,42 @@ class LifecycleManager:
                     )
                     await asyncio.sleep(wait_time)
 
+            except (ConnectionError, TimeoutError, OSError) as e:
+                # Network/connectivity errors - likely transient, always retry
+                last_exception = e
+                error_msg = f"Connectivity error initializing {adapter_type} adapter {name}: {e}"
+                log_error(error_msg)
+                log_system_event("adapter_connectivity_error", error_msg)
+
+                if attempt < max_retries:
+                    # Exponential backoff for connectivity issues
+                    wait_time = 2**attempt
+                    log_info(
+                        f"Retrying {name} initialization in {wait_time} seconds..."
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    break
+            except (ValueError, TypeError, AttributeError) as e:
+                # Configuration/data errors - not transient, limited retries
+                last_exception = e
+                error_msg = f"Configuration error initializing {adapter_type} adapter {name}: {e}"
+                log_error(error_msg)
+                log_system_event("adapter_configuration_error", error_msg)
+
+                # Only retry configuration errors once in case of race conditions
+                if attempt < min(max_retries, 1):
+                    wait_time = 1
+                    log_info(
+                        f"Retrying {name} initialization once in {wait_time} second..."
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    break
             except Exception as e:
                 # Other errors - handle based on graceful_degradation setting
                 last_exception = e
-                error_msg = f"Error initializing {adapter_type} adapter {name}: {e}"
+                error_msg = f"Unexpected error initializing {adapter_type} adapter {name}: {e}"
                 log_error(error_msg)
                 log_system_event("adapter_initialization_error", error_msg)
 

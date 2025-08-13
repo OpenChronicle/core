@@ -55,9 +55,15 @@ class RegistryAdapter(IRegistryPort):
                 context_tags=["registry", "provider", "lookup", "missing"],
             )
             return None
+        except (AttributeError, TypeError) as e:
+            log_error(
+                f"Configuration access error for {provider_name}: {e}",
+                context_tags=["registry", "provider", "lookup", "error"],
+            )
+            return None
         except Exception as e:
             log_error(
-                f"Error getting provider config for {provider_name}: {e}",
+                f"Unexpected error getting provider config for {provider_name}: {e}",
                 context_tags=["registry", "provider", "lookup", "error"],
             )
             return None
@@ -74,9 +80,15 @@ class RegistryAdapter(IRegistryPort):
 
         try:
             return self.registry_manager.list_providers()
+        except (AttributeError, TypeError) as e:
+            log_error(
+                f"Registry access error listing providers: {e}",
+                context_tags=["registry", "provider", "list", "error"],
+            )
+            return []
         except Exception as e:
             log_error(
-                f"Error listing providers: {e}",
+                f"Unexpected error listing providers: {e}",
                 context_tags=["registry", "provider", "list", "error"],
             )
             return []

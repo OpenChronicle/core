@@ -252,16 +252,42 @@ class ModelLifecycleManager(IModelLifecycleManager):
 
                 log_info(f"Successfully initialized adapter {adapter_name}")
 
-            except Exception as e:
+            except (ImportError, ModuleNotFoundError) as e:
                 log_warning(
-                    f"Failed to initialize adapter {adapter_name} (attempt {attempt + 1}): {e}"
+                    f"Adapter module unavailable for {adapter_name} (attempt {attempt + 1}): {e}"
                 )
                 if attempt == max_retries:
                     self.adapter_health[adapter_name] = {
                         "status": "failed",
                         "last_check": datetime.now(UTC),
                         "error_count": attempt + 1,
-                        "last_error": str(e),
+                        "last_error": f"Module unavailable: {str(e)}",
+                    }
+                    return False
+                await asyncio.sleep(1.0 * (attempt + 1))  # Exponential backoff
+            except (ValueError, TypeError, AttributeError) as e:
+                log_warning(
+                    f"Configuration error for adapter {adapter_name} (attempt {attempt + 1}): {e}"
+                )
+                if attempt == max_retries:
+                    self.adapter_health[adapter_name] = {
+                        "status": "failed", 
+                        "last_check": datetime.now(UTC),
+                        "error_count": attempt + 1,
+                        "last_error": f"Configuration error: {str(e)}",
+                    }
+                    return False
+                await asyncio.sleep(1.0 * (attempt + 1))
+            except Exception as e:
+                log_warning(
+                    f"Unexpected error initializing adapter {adapter_name} (attempt {attempt + 1}): {e}"
+                )
+                if attempt == max_retries:
+                    self.adapter_health[adapter_name] = {
+                        "status": "failed",
+                        "last_check": datetime.now(UTC),
+                        "error_count": attempt + 1,
+                        "last_error": f"Unexpected error: {str(e)}",
                     }
                     return False
                 await asyncio.sleep(1.0 * (attempt + 1))  # Exponential backoff
@@ -346,7 +372,7 @@ class ModelLifecycleManager(IModelLifecycleManager):
                 error_count=1,
                 success_count=0,
                 average_response_time=0.0,
-                metadata={"error": str(e)},
+                metadata={"error": f"Unexpected adapter error: {str(e)}"},
             )
 
     async def health_check_all_adapters(self) -> dict[str, AdapterStatus]:
@@ -592,7 +618,7 @@ class ModelOrchestrator(IModelOrchestrator):
         configs = self._configuration_manager.get_available_models()
         return configs.get(adapter_name, {})
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Shutdown all adapters."""
         for adapter_name in list(self.adapters.keys()):
             await self._lifecycle_manager.shutdown_adapter(adapter_name)

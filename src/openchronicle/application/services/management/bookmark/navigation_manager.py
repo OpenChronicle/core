@@ -76,9 +76,15 @@ class NavigationManager:
 
             return bookmark_id
 
+        except (OSError, IOError) as e:
+            log_warning(f"Database error creating auto chapter bookmark: {e}")
+            raise BookmarkManagerException(f"Database error in auto chapter creation: {e}")
+        except (ValueError, TypeError) as e:
+            log_warning(f"Invalid data for auto chapter bookmark: {e}")
+            raise BookmarkManagerException(f"Invalid chapter data: {e}")
         except Exception as e:
-            log_warning(f"Failed to create auto chapter bookmark: {e}")
-            raise BookmarkManagerException(f"Auto chapter creation failed: {e}")
+            log_warning(f"Unexpected error creating auto chapter bookmark: {e}")
+            raise BookmarkManagerException(f"Unexpected auto chapter creation error: {e}")
 
     def get_chapter_bookmarks(self) -> list[dict[str, Any]]:
         """Get all chapter bookmarks in chronological order."""
@@ -97,6 +103,12 @@ class NavigationManager:
 
         except (AttributeError, KeyError) as e:
             log_warning(f"Data structure error getting chapter bookmarks: {e}")
+            return []
+        except (OSError, IOError) as e:
+            log_warning(f"Database error getting chapter bookmarks: {e}")
+            return []
+        except Exception as e:
+            log_warning(f"Unexpected error getting chapter bookmarks: {e}")
             return []
         except Exception as e:
             log_warning(f"Failed to get chapter bookmarks: {e}")

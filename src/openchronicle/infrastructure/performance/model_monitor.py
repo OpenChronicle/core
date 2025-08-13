@@ -68,7 +68,7 @@ class PerformanceMonitor:
             "performance_monitor_initialized", "Performance monitoring system ready"
         )
 
-    def _initialize_performance_monitoring(self):
+    def _initialize_performance_monitoring(self) -> None:
         """Initialize performance monitoring system."""
         try:
             if PERFORMANCE_MONITOR_AVAILABLE:
@@ -172,13 +172,33 @@ class PerformanceMonitor:
                 },
             }
 
-        except Exception as e:
-            log_error(f"Failed to generate performance report: {e}")
+        except (AttributeError, ValueError, TypeError) as e:
+            log_error(f"Performance report generation failed due to invalid data: {e}")
             return {
                 "success": False,
-                "error": str(e),
+                "error": f"Data validation error: {str(e)}",
                 "recommendations": [
-                    "Check performance monitoring system configuration"
+                    "Check performance monitoring system configuration",
+                    "Verify performance data integrity"
+                ],
+            }
+        except (OSError, IOError) as e:
+            log_error(f"Performance report file operation failed: {e}")
+            return {
+                "success": False,
+                "error": f"File system error: {str(e)}",
+                "recommendations": [
+                    "Check file system permissions and disk space"
+                ],
+            }
+        except Exception as e:
+            log_error(f"Unexpected error generating performance report: {e}")
+            return {
+                "success": False,
+                "error": f"Unexpected error: {str(e)}",
+                "recommendations": [
+                    "Check performance monitoring system configuration",
+                    "Review system logs for detailed error information"
                 ],
             }
 
@@ -236,9 +256,12 @@ class PerformanceMonitor:
                 "timestamp": datetime.now(UTC).isoformat(),
             }
 
+        except (AttributeError, KeyError) as e:
+            log_error(f"Performance analytics failed due to missing adapter data: {e}")
+            return {"success": False, "error": f"Data access error: {str(e)}"}
         except Exception as e:
-            log_error(f"Failed to get performance analytics: {e}")
-            return {"success": False, "error": str(e)}
+            log_error(f"Unexpected error retrieving performance analytics: {e}")
+            return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
     def track_model_operation(self, adapter_name: str, operation_type: str, **kwargs):
         """
@@ -285,8 +308,14 @@ class PerformanceMonitor:
             if os.path.exists(registry_file):
                 with open(registry_file, encoding="utf-8") as f:
                     registry = json.load(f)
+        except (OSError, IOError) as e:
+            log_error(f"File system error reading performance config: {e}")
+            return {}
+        except json.JSONDecodeError as e:
+            log_error(f"JSON parsing error in performance config: {e}")
+            return {}
         except Exception as e:
-            log_error(f"Error getting performance config: {e}")
+            log_error(f"Unexpected error getting performance config: {e}")
             return {}
         else:
             if os.path.exists(registry_file):
@@ -421,8 +450,6 @@ class PerformanceMonitor:
             return []
         else:
             return optimizations
-            log_error(f"Failed to apply automatic optimizations: {e}")
-            return []
 
     async def _apply_optimization(self, recommendation) -> dict[str, Any]:
         """Apply a specific optimization recommendation."""
@@ -447,7 +474,7 @@ class PerformanceMonitor:
             }
 
     # Recording methods for integration compatibility
-    def record_response_time(self, adapter_name: str, response_time: float):
+    def record_response_time(self, adapter_name: str, response_time: float) -> None:
         """Record response time for adapter."""
         if adapter_name not in self.adapter_performance:
             self.adapter_performance[adapter_name] = {
@@ -459,7 +486,7 @@ class PerformanceMonitor:
         self.adapter_performance[adapter_name]["response_times"].append(response_time)
         log_info(f"Recorded response time for {adapter_name}: {response_time:.3f}s")
 
-    def record_success(self, adapter_name: str, input_tokens: int, output_tokens: int):
+    def record_success(self, adapter_name: str, input_tokens: int, output_tokens: int) -> None:
         """Record successful operation for adapter."""
         if adapter_name not in self.adapter_performance:
             self.adapter_performance[adapter_name] = {

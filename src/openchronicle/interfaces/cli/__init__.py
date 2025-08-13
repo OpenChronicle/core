@@ -22,7 +22,7 @@ from rich.table import Table
 from openchronicle.application import ApplicationFacade
 from openchronicle.infrastructure import InfrastructureConfig
 from openchronicle.infrastructure import InfrastructureContainer
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 
 
@@ -201,7 +201,7 @@ async def create(title: str, description: str, genre: str, interactive: bool):
 
     except (ValidationError, ValueError) as e:
         console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
-    except ServiceError as e:
+    except ApplicationError as e:
         console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
     except (ConnectionError, TimeoutError) as e:
         console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
@@ -263,7 +263,7 @@ async def list(limit: int):
 
     except (ValidationError, ValueError) as e:
         console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
-    except ServiceError as e:
+    except ApplicationError as e:
         console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
     except (ConnectionError, TimeoutError) as e:
         console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
@@ -312,7 +312,7 @@ async def show(story_id: str):
 
     except (ValidationError, ValueError) as e:
         console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
-    except ServiceError as e:
+    except ApplicationError as e:
         console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
     except (ConnectionError, TimeoutError) as e:
         console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")
@@ -426,7 +426,7 @@ async def create(story_id: str, name: str, interactive: bool):
 
     except (ValidationError, ValueError) as e:
         console.print(f"[bold red]❌ Invalid input:[/bold red] {e!s}")
-    except ServiceError as e:
+    except ApplicationError as e:
         console.print(f"[bold red]❌ Service error:[/bold red] {e!s}")
     except (ConnectionError, TimeoutError) as e:
         console.print(f"[bold red]❌ Network error:[/bold red] {e!s}")

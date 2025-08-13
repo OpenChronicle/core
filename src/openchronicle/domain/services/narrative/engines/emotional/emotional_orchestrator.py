@@ -105,8 +105,14 @@ class EmotionalOrchestrator:
 
             if stability_analysis.get("stability_score", 1.0) < 0.5:
                 result["warning"] = "Low emotional stability detected"
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Data structure error in emotional state tracking: {e}")
+            return {"error": "Invalid emotional data structure", "timestamp": datetime.now().isoformat()}
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid parameter in emotional state tracking: {e}")
+            return {"error": "Invalid emotional parameters", "timestamp": datetime.now().isoformat()}
         except Exception as e:
-            logger.exception("Error tracking emotional state")
+            logger.exception("Unexpected error tracking emotional state")
             return {"error": str(e), "timestamp": datetime.now().isoformat()}
         else:
             return result

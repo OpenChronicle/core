@@ -21,7 +21,7 @@ from openchronicle.shared.exceptions import DatabaseConnectionError
 from openchronicle.shared.exceptions import DatabaseError
 from openchronicle.shared.exceptions import InfrastructureError
 from openchronicle.shared.exceptions import OpenChronicleError
-from openchronicle.shared.exceptions import PersistenceError
+from openchronicle.shared.exceptions import StorageError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import log_error
 
@@ -57,8 +57,11 @@ class FileSystemStoryRepository:
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving story {story.id}: {e}")
             return False
-        except (ValidationError, PersistenceError) as e:
+        except (ValidationError, StorageError) as e:
             log_error(f"Data error saving story {story.id}: {e}")
+            return False
+        except (json.JSONEncodeError, ValueError, TypeError) as e:
+            log_error(f"Data serialization error saving story {story.id}: {e}")
             return False
         except Exception as e:
             # Unexpected error during story save
@@ -66,10 +69,6 @@ class FileSystemStoryRepository:
             return False
         else:
             return True
-            log_error(f"Unexpected error saving story {story.id}: {e}")
-            return False
-            log_error(f"Error saving story {story.id}: {e}")
-            return False
 
     async def get_by_id(self, story_id: str) -> Story | None:
         """Get a story by ID."""
@@ -104,6 +103,9 @@ class FileSystemStoryRepository:
             return None
         except (json.JSONDecodeError, ValueError, KeyError) as e:
             log_error(f"Data format error loading story {story_id}: {e}")
+            return None
+        except (AttributeError, TypeError) as e:
+            log_error(f"Data structure error loading story {story_id}: {e}")
             return None
         except Exception as e:
             # Unexpected error during story load
@@ -188,7 +190,7 @@ class FileSystemCharacterRepository:
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving character {character.id}: {e}")
             return False
-        except (ValidationError, PersistenceError) as e:
+        except (ValidationError, StorageError) as e:
             log_error(f"Data error saving character {character.id}: {e}")
             return False
         except Exception as e:
@@ -239,6 +241,12 @@ class FileSystemCharacterRepository:
             return None
         except json.JSONDecodeError as e:
             log_error(f"JSON parsing error loading character {character_id}: {e}")
+            return None
+        except (OSError, IOError) as e:
+            log_error(f"File system error loading character {character_id}: {e}")
+            return None
+        except (AttributeError, KeyError) as e:
+            log_error(f"Invalid character data structure for {character_id}: {e}")
             return None
         except Exception as e:
             log_error(f"Unexpected error loading character {character_id}: {e}")
@@ -298,6 +306,9 @@ class FileSystemSceneRepository:
 
         except (OSError, IOError, PermissionError) as e:
             log_error(f"File system error saving scene {scene.id}: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            log_error(f"Invalid scene data for {scene.id}: {e}")
             return False
         except Exception as e:
             log_error(f"Unexpected error saving scene {scene.id}: {e}")

@@ -20,7 +20,7 @@ except ImportError:
 from openchronicle.application.services.importers.storypack.interfaces import ContentFile
 from openchronicle.application.services.importers.storypack.interfaces import IContentParser
 from openchronicle.shared.exceptions import InfrastructureError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
@@ -154,7 +154,7 @@ class ContentParser(IContentParser):
 
     def _raise_unexpected_read_error(self, file_path: Path, error: Exception) -> None:
         """Helper to raise unexpected read error."""
-        raise ServiceError(f"Unexpected file read failure {file_path}: {error}") from error
+        raise ApplicationError(f"Unexpected file read failure {file_path}: {error}") from error
 
     def read_file_content(self, file_path: Path) -> tuple[str, str]:
         """

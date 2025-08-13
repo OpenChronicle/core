@@ -7,7 +7,7 @@ Part of: Phase 5A - Content Analysis Enhancement
 Extracted from: core/content_analyzer.py (lines 579-759)
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from openchronicle.shared.logging_system import log_error
 
@@ -20,9 +20,29 @@ from .transformer_analyzer import TransformerAnalyzer
 
 
 class ContentClassifier(DetectionComponent):
-    """Main content classification combining keyword and transformer approaches."""
+    """
+    Main content classification combining keyword and transformer approaches.
+    
+    This class provides content type detection and classification using both
+    rule-based keyword detection and optional transformer-based analysis.
+    
+    Attributes:
+        keyword_detector: Rule-based keyword detection component
+        transformer_analyzer: Optional transformer-based analysis component
+        
+    Example:
+        classifier = ContentClassifier(model_manager, use_transformers=True)
+        result = classifier.analyze("Some narrative text...")
+    """
 
-    def __init__(self, model_manager, use_transformers: bool = True):
+    def __init__(self, model_manager: Any, use_transformers: bool = True) -> None:
+        """
+        Initialize the content classifier.
+        
+        Args:
+            model_manager: Model management instance for accessing language models
+            use_transformers: Whether to enable transformer-based analysis
+        """
         super().__init__(model_manager)
 
         # Initialize sub-components
@@ -30,7 +50,22 @@ class ContentClassifier(DetectionComponent):
         self.transformer_analyzer = TransformerAnalyzer(model_manager, use_transformers)
 
     def detect_content_type(self, content: str) -> dict[str, Any]:
-        """Detect content type using hybrid keyword + transformer approach."""
+        """
+        Detect content type using hybrid keyword + transformer approach.
+        
+        Args:
+            content: Text content to analyze and classify
+            
+        Returns:
+            Dictionary containing classification results with confidence scores
+            and detected content types
+            
+        Raises:
+            ValueError: If content is empty or invalid
+        """
+        if not content or not content.strip():
+            raise ValueError("Content cannot be empty")
+            
         # Start with keyword-based analysis
         keyword_analysis = self.keyword_detector.detect_content_type(content)
 

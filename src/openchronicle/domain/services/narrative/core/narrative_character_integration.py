@@ -14,7 +14,7 @@ from openchronicle.shared.exceptions import CacheConnectionError
 from openchronicle.shared.exceptions import CacheError
 from openchronicle.shared.exceptions import InfrastructureError
 from openchronicle.shared.exceptions import ModelError
-from openchronicle.shared.exceptions import NarrativeError
+from openchronicle.shared.error_handling import NarrativeError
 from openchronicle.shared.exceptions import OpenChronicleError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import log_error

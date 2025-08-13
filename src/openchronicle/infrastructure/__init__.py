@@ -29,7 +29,7 @@ Architecture Principles:
 from openchronicle.shared.exceptions import ConfigurationError
 from openchronicle.shared.exceptions import InfrastructureError
 from openchronicle.shared.exceptions import ModelError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 
 from .adapters import AnthropicAdapter
 from .adapters import BaseModelAdapter
@@ -208,7 +208,7 @@ class InfrastructureContainer:
                 "status": "healthy",
                 "type": type(story_repo).__name__,
             }
-        except (InfrastructureError, ServiceError) as e:
+        except (InfrastructureError, ApplicationError) as e:
             results["components"]["story_repository"] = {
                 "status": "unhealthy",
                 "error": f"Infrastructure error: {str(e)}",
@@ -234,7 +234,7 @@ class InfrastructureContainer:
                 "status": "healthy",
                 "type": type(memory_manager).__name__,
             }
-        except (InfrastructureError, ServiceError) as e:
+        except (InfrastructureError, ApplicationError) as e:
             results["components"]["memory_manager"] = {
                 "status": "unhealthy",
                 "error": f"Infrastructure error: {str(e)}",
@@ -263,7 +263,7 @@ class InfrastructureContainer:
                 "status": "healthy" if cached_value == "test" else "degraded",
                 "type": type(cache).__name__,
             }
-        except (InfrastructureError, ServiceError) as e:
+        except (InfrastructureError, ApplicationError) as e:
             results["components"]["cache"] = {
                 "status": "unhealthy",
                 "error": f"Infrastructure error: {str(e)}"

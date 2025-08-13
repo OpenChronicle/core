@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from openchronicle.shared.exceptions import InfrastructureError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_error
@@ -122,7 +122,7 @@ class StorypackOrchestrator:
                 log_info("✓ AI capabilities initialized")
             else:
                 log_warning("⚠ AI capabilities limited or unavailable")
-        except (ServiceError, InfrastructureError) as e:
+        except (ApplicationError, InfrastructureError) as e:
             log_error(f"Service/infrastructure error during AI processor initialization: {e}")
             self._ai_initialized = False
         except Exception as e:
@@ -140,7 +140,7 @@ class StorypackOrchestrator:
                     log_info(f"✓ Loaded {len(self._available_templates)} templates")
                 else:
                     log_warning("⚠ No templates found")
-            except (ServiceError, InfrastructureError) as e:
+            except (ApplicationError, InfrastructureError) as e:
                 log_error(f"Service/infrastructure error during template loading: {e}")
                 self._templates_loaded = False
             except Exception as e:
@@ -300,7 +300,7 @@ class StorypackOrchestrator:
             else:
                 log_error("✗ Storypack import completed with issues")
 
-        except (ServiceError, ValidationError) as e:
+        except (ApplicationError, ValidationError) as e:
             log_error(f"Service/validation error during storypack import: {e}")
             result.errors.append(f"Import service error: {e!s}")
             result.success = False
@@ -370,7 +370,7 @@ class StorypackOrchestrator:
 
             log_info(f"✓ Scan completed: {len(candidates)} candidates found")
 
-        except (ServiceError, InfrastructureError) as e:
+        except (ApplicationError, InfrastructureError) as e:
             log_error(f"Service/infrastructure error during import directory scan: {e}")
             scan_result["status"] = "scan_error"
             scan_result["error"] = f"Service error: {str(e)}"
@@ -453,7 +453,7 @@ class StorypackOrchestrator:
                                 content, content_file.path, context
                             )
                             file_result["ai_analysis"] = ai_analysis
-                        except (ServiceError, ValidationError) as e:
+                        except (ApplicationError, ValidationError) as e:
                             log_warning(
                                 f"Service/validation error during AI analysis for {content_file.path}: {e}"
                             )
@@ -467,7 +467,7 @@ class StorypackOrchestrator:
                     category_results.append(file_result)
                     processed_content["total_processed"] += 1
 
-                except (ServiceError, ValidationError) as e:
+                except (ApplicationError, ValidationError) as e:
                     log_error(f"Service/validation error processing file {content_file.path}: {e}")
                     continue
                 except Exception as e:

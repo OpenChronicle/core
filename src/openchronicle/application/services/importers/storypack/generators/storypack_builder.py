@@ -17,7 +17,7 @@ from openchronicle.application.services.importers.storypack.interfaces import Co
 from openchronicle.application.services.importers.storypack.interfaces import ImportContext
 from openchronicle.application.services.importers.storypack.interfaces import IStorypackBuilder
 from openchronicle.shared.exceptions import InfrastructureError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
@@ -89,7 +89,7 @@ class StorypackBuilder(IStorypackBuilder):
             self.logger.exception(
                 "Unexpected error creating storypack structure at"
             )
-            raise ServiceError(f"Unexpected storypack creation failure: {e}") from e
+            raise ApplicationError(f"Unexpected storypack creation failure: {e}") from e
         else:
             return storypack_path
 
@@ -160,12 +160,12 @@ class StorypackBuilder(IStorypackBuilder):
         except (OSError, IOError, PermissionError) as e:
             self.logger.exception("File system error generating metadata file")
             raise InfrastructureError(f"Failed to write metadata file: {e}") from e
-        except (ValidationError, ServiceError) as e:
+        except (ValidationError, ApplicationError) as e:
             self.logger.exception("Service/validation error generating metadata file")
             raise
         except Exception as e:
             self.logger.exception("Unexpected error generating metadata file")
-            raise ServiceError(f"Unexpected metadata generation failure: {e}") from e
+            raise ApplicationError(f"Unexpected metadata generation failure: {e}") from e
 
         return metadata
 
@@ -486,7 +486,7 @@ Narrative files can include:
                 self.logger.exception(
                     f"Unexpected error copying {source_path} to"
                 )
-                raise ServiceError(f"Unexpected file copy failure: {copy_error}") from copy_error
+                raise ApplicationError(f"Unexpected file copy failure: {copy_error}") from copy_error
         except Exception as e:
             # If processing fails for other reasons, fall back to direct copy
             self.logger.warning(
@@ -503,7 +503,7 @@ Narrative files can include:
                 self.logger.exception(
                     f"Unexpected error copying {source_path} to"
                 )
-                raise ServiceError(f"Unexpected file copy failure: {copy_error}") from copy_error
+                raise ApplicationError(f"Unexpected file copy failure: {copy_error}") from copy_error
 
     def _convert_to_json_format(
         self, content: str, source_path: Path

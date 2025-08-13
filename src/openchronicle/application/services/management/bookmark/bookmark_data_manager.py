@@ -9,8 +9,7 @@ import json
 import sqlite3
 import sys
 from datetime import datetime
-from typing import Any
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
@@ -102,10 +101,6 @@ class BookmarkDataManager:
     def _mock_init_database(self, *args, **kwargs):
         """Mock database init for testing."""
         return True
-        self.execute_update = execute_update
-
-        # Initialize database for this story
-        init_database(story_id)
 
     def create_bookmark(
         self,
@@ -164,9 +159,15 @@ class BookmarkDataManager:
 
             return cursor
 
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_warning(f"Database error creating bookmark: {e}")
+            raise BookmarkManagerException(f"Database error creating bookmark: {e}")
+        except (ValueError, TypeError) as e:
+            log_warning(f"Invalid bookmark data: {e}")
+            raise BookmarkManagerException(f"Invalid bookmark data: {e}")
         except Exception as e:
-            log_warning(f"Failed to create bookmark: {e}")
-            raise BookmarkManagerException(f"Bookmark creation failed: {e}")
+            log_warning(f"Unexpected error creating bookmark: {e}")
+            raise BookmarkManagerException(f"Unexpected error creating bookmark: {e}")
 
     def get_bookmark(self, bookmark_id: int) -> BookmarkRecord | None:
         """Get a bookmark by ID."""
@@ -187,6 +188,12 @@ class BookmarkDataManager:
 
         except (sqlite3.Error, sqlite3.DatabaseError) as e:
             log_warning(f"Database error getting bookmark {bookmark_id}: {e}")
+            return None
+        except (ValueError, TypeError, AttributeError) as e:
+            log_warning(f"Data processing error getting bookmark {bookmark_id}: {e}")
+            return None
+        except Exception as e:
+            log_warning(f"Unexpected error getting bookmark {bookmark_id}: {e}")
             return None
         except Exception as e:
             log_warning(f"Unexpected error getting bookmark {bookmark_id}: {e}")
@@ -225,6 +232,9 @@ class BookmarkDataManager:
 
         except (sqlite3.Error, sqlite3.DatabaseError) as e:
             log_warning(f"Database error listing bookmarks: {e}")
+            return []
+        except (ValueError, TypeError) as e:
+            log_warning(f"Data processing error listing bookmarks: {e}")
             return []
         except Exception as e:
             log_warning(f"Unexpected error listing bookmarks: {e}")
@@ -289,8 +299,11 @@ class BookmarkDataManager:
         except (AttributeError, KeyError) as e:
             log_warning(f"Data structure error updating bookmark {bookmark_id}: {e}")
             return False
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            log_warning(f"Database error updating bookmark {bookmark_id}: {e}")
+            return False
         except Exception as e:
-            log_warning(f"Failed to update bookmark {bookmark_id}: {e}")
+            log_warning(f"Unexpected error updating bookmark {bookmark_id}: {e}")
             return False
 
     def delete_bookmark(self, bookmark_id: int) -> bool:
@@ -339,7 +352,12 @@ class BookmarkDataManager:
         except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
             log_warning(f"Database error deleting bookmarks for scene {scene_id}: {e}")
             return 0
+        except (ValueError, TypeError) as e:
+            log_warning(f"Invalid scene ID for bookmark deletion: {e}")
+            return 0
         except Exception as e:
+            log_warning(f"Unexpected error deleting bookmarks for scene {scene_id}: {e}")
+            return 0
             log_warning(f"Failed to delete bookmarks for scene {scene_id}: {e}")
             return 0
 
@@ -385,8 +403,14 @@ class BookmarkDataManager:
         except (AttributeError, KeyError) as e:
             log_warning(f"Data structure error getting bookmarks with scenes: {e}")
             return []
+        except (json.JSONDecodeError, ValueError) as e:
+            log_warning(f"JSON parsing error getting bookmarks with scenes: {e}")
+            return []
+        except (OSError, IOError) as e:
+            log_warning(f"Database error getting bookmarks with scenes: {e}")
+            return []
         except Exception as e:
-            log_warning(f"Failed to get bookmarks with scenes: {e}")
+            log_warning(f"Unexpected error getting bookmarks with scenes: {e}")
             return []
 
     def get_stats(self) -> dict[str, Any]:
@@ -442,8 +466,14 @@ class BookmarkDataManager:
                 "recent_bookmarks": recent_bookmarks,
             }
 
+        except (OSError, IOError) as e:
+            log_warning(f"Database access error while getting bookmark stats: {e}")
+            return {"total_bookmarks": 0, "by_type": {}, "recent_bookmarks": []}
+        except (ValueError, TypeError, json.JSONDecodeError) as e:
+            log_warning(f"Data format error while getting bookmark stats: {e}")
+            return {"total_bookmarks": 0, "by_type": {}, "recent_bookmarks": []}
         except Exception as e:
-            log_warning(f"Failed to get bookmark stats: {e}")
+            log_warning(f"Unexpected error while getting bookmark stats: {e}")
             return {"total_bookmarks": 0, "by_type": {}, "recent_bookmarks": []}
 
     def _row_to_bookmark_record(self, row) -> BookmarkRecord:

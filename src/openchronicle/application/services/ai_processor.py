@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from openchronicle.shared.exceptions import ModelError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.retry_policy import RetryPolicy
 
 
@@ -289,7 +289,7 @@ class AIProcessor:
             try:
                 adapters = await self.model_management_port.get_available_adapters()
                 capabilities["available_adapters"] = adapters
-            except (ModelError, ServiceError) as e:
+            except (ModelError, ApplicationError) as e:
                 capabilities["available_adapters"] = ["service_error"]
             except (AttributeError, KeyError) as e:
                 # Data structure error

@@ -15,7 +15,7 @@ from typing import Any
 from openchronicle.application.services.importers.storypack.interfaces import ImportContext
 from openchronicle.application.services.importers.storypack.interfaces import ImportResult
 from openchronicle.application.services.importers.storypack.interfaces import IOutputFormatter
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
@@ -59,7 +59,7 @@ class OutputFormatter(IOutputFormatter):
             self.logger.warning(f"Unknown format type: {format_type}, using summary")
             return self._format_summary(result)
 
-        except (ServiceError, ValidationError) as e:
+        except (ApplicationError, ValidationError) as e:
             self.logger.exception("Service/validation error formatting import result")
             return f"Service error formatting result: {e}"
         except Exception as e:
@@ -91,7 +91,7 @@ class OutputFormatter(IOutputFormatter):
             self.logger.warning(f"Unknown report type: {report_type}, using standard")
             return self._enhance_standard_report(base_report, result)
 
-        except (ServiceError, ValidationError) as e:
+        except (ApplicationError, ValidationError) as e:
             self.logger.exception("Service/validation error generating report")
             return self._create_error_report(e, result)
         except Exception as e:
@@ -123,7 +123,7 @@ class OutputFormatter(IOutputFormatter):
                 return self._save_html_report(report, output_path)
             self.logger.error(f"Unsupported format type: {format_type}")
 
-        except (ServiceError, ValidationError) as e:
+        except (ApplicationError, ValidationError) as e:
             self.logger.exception(f"Service/validation error saving report to {output_path}")
             return False
         except Exception as e:

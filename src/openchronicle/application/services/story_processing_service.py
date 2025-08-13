@@ -21,8 +21,8 @@ from openchronicle.domain.services import MemoryService
 from openchronicle.domain.services import SceneService
 from openchronicle.domain.services import StoryService
 from openchronicle.shared.exceptions import ModelError
-from openchronicle.shared.exceptions import NarrativeError
-from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.error_handling import NarrativeError
+from openchronicle.shared.exceptions import ApplicationError
 from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.retry_policy import RetryPolicy
 
@@ -289,7 +289,7 @@ class StoryProcessingService:
             await self.logging_service.log_info(
                 f"Generated {len(content_flags)} content flags"
             )
-        except (ServiceError, ValidationError) as e:
+        except (ApplicationError, ValidationError) as e:
             await self.logging_service.log_error(f"Service/validation error in content flag generation: {e}")
             return []
         except Exception as e:
@@ -321,7 +321,7 @@ class StoryProcessingService:
             )
 
             await self.logging_service.log_info(f"Scene logged with ID: {scene_id}")
-        except (ServiceError, ValidationError) as e:
+        except (ApplicationError, ValidationError) as e:
             await self.logging_service.log_error(f"Service/validation error in scene logging: {e}")
             return None
         except Exception as e:

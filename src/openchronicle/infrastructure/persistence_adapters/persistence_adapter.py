@@ -42,9 +42,16 @@ class PersistenceAdapter(IPersistencePort):
                 return results
             else:
                 return []
+        except (OSError, IOError, PermissionError) as e:
+            # Log error but don't raise to maintain service availability
+            print(f"Database file system error: {e}")
+            return []
+        except (ValueError, TypeError, AttributeError) as e:
+            print(f"Database query parameter error: {e}")
+            return []
         except Exception as e:
             # Log error but don't raise to maintain service availability
-            print(f"Database query error: {e}")
+            print(f"Unexpected database query error: {e}")
             return []
 
     def execute_update(

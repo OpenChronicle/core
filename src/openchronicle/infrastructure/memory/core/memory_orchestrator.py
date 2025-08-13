@@ -11,6 +11,7 @@ from typing import Any
 
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_error_with_context
+from openchronicle.shared.logging_system import log_warning
 
 from ..engines.character.character_manager import CharacterManager
 from ..engines.character.mood_tracker import MoodTracker
@@ -31,36 +32,66 @@ class MemoryOrchestrator:
     Unified memory management orchestrator.
 
     Provides a single interface for all memory operations while delegating
-    to specialized components.
+    to specialized components. This orchestrator manages character memories,
+    scene contexts, world state, and memory persistence.
+    
+    The orchestrator supports both synchronous and asynchronous operations
+    for compatibility with different parts of the system.
+    
+    Attributes:
+        repository: Memory persistence repository
+        character_manager: Character-specific memory management
+        mood_tracker: Character mood and emotional state tracking
+        voice_manager: Character voice and speaking pattern management
+        context_builder: Scene and world context building
+        scene_context_manager: Scene-specific context management
+        world_state_manager: Global world state management
+        
+    Example:
+        orchestrator = MemoryOrchestrator()
+        memory_state = orchestrator.load_current_memory("story_123")
+        await orchestrator.save_memory_async("story_123", updated_memory)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the memory orchestrator with all components."""
-        # Core components
+        self._initialize_core_components()
+        self._initialize_character_components()
+        self._initialize_context_components()
+        self._initialize_utilities()
+        self._initialize_test_storage()
+        self._setup_async_compatibility()
+
+    def _initialize_core_components(self) -> None:
+        """Initialize core memory persistence components."""
         self.repository = MemoryRepository()
         self.serializer = MemorySerializer()
         self.snapshot_manager = SnapshotManager(self.repository)
 
-        # Character components
+    def _initialize_character_components(self) -> None:
+        """Initialize character-specific memory components."""
         self.character_manager = CharacterManager(self.repository)
         self.mood_tracker = MoodTracker()
         self.voice_manager = VoiceManager()
 
-        # Context components
+    def _initialize_context_components(self) -> None:
+        """Initialize context management components."""
         self.context_builder = ContextBuilder()
         self.world_manager = WorldStateManager()
         self.scene_manager = SceneContextManager()
 
-        # Shared utilities
-        # self.db_manager = DatabaseManager()  # Not used, removed to avoid schema conflicts
-
+    def _initialize_utilities(self) -> None:
+        """Initialize shared utilities and logging."""
         # Setup centralized logging
         self.logger = get_logger("openchronicle.memory")
 
-        # Simple in-memory storage for integration tests
+    def _initialize_test_storage(self) -> None:
+        """Initialize in-memory storage for integration tests."""
         self._stored_memory = {}
         self._saved_scenes = []
 
+    def _setup_async_compatibility(self) -> None:
+        """Setup async compatibility wrappers for dual sync/async support."""
         # Internal: simple awaitable wrapper for sync results (workflow compatibility)
         class _AsyncCompatResult:
             """A lightweight wrapper that can be awaited or used directly.
@@ -119,26 +150,47 @@ class MemoryOrchestrator:
         """Wrap a value to be awaitable while remaining usable synchronously."""
         return self._AsyncCompatResult(value)
 
-    def _unwrap(self, value):
-        """Return underlying value if wrapped in our internal awaitable wrapper."""
+    def _unwrap(self, value: Any) -> Any:
+        """
+        Return underlying value if wrapped in our internal awaitable wrapper.
+        
+        Args:
+            value: The value to unwrap, potentially wrapped in _AsyncCompatResult
+            
+        Returns:
+            The unwrapped value, or the original value if not wrapped
+        """
         try:
             if isinstance(value, self._AsyncCompatResult):
                 return value._value
-        except (AttributeError, TypeError) as e:
-            # Data structure error in wrapper object
-            pass
-        except Exception as e:
-            pass
+        except (AttributeError, TypeError):
+            # Data structure error in wrapper object - value is not properly wrapped
+            log_warning(f"Failed to unwrap value of type {type(value)}")
         return value
 
     # Async-named convenience methods that delegate to sync implementations
-    async def load_current_memory_async(self, story_id: str):
+    async def load_current_memory_async(self, story_id: str) -> Any:
+        """Async wrapper for load_current_memory."""
         return self.load_current_memory(story_id)
 
     # ===== CORE MEMORY OPERATIONS =====
 
-    def load_current_memory(self, story_id: str):
-        """Load current memory state for a story (public API)."""
+    def load_current_memory(self, story_id: str) -> Any:
+        """
+        Load current memory state for a story (public API).
+        
+        Args:
+            story_id: Unique identifier for the story
+            
+        Returns:
+            Memory state wrapped in awaitable compatible object
+            
+        Raises:
+            ValueError: If story_id is invalid
+        """
+        if not story_id or not story_id.strip():
+            raise ValueError("Story ID cannot be empty")
+            
         try:
             memory_state = self.repository.load_memory(story_id)
         except (TypeError, ValueError, KeyError, AttributeError) as e:
@@ -233,6 +285,9 @@ class MemoryOrchestrator:
         """Return a shallow copy of tracked scenes (for tests/diagnostics)."""
         try:
             return list(self._saved_scenes)
+        except (AttributeError, TypeError) as e:
+            log_error_with_context(e, {"operation": "get_saved_scenes", "issue": "Invalid scene data structure"})
+            return []
         except Exception as e:
             log_error_with_context(e, {"operation": "get_saved_scenes"})
             return []
