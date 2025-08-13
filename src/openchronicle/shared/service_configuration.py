@@ -90,12 +90,8 @@ class ServiceConfigurator:
         log_info("Configuring configuration services")
 
         try:
-            from openchronicle.domain.models.configuration_manager import (
-                ConfigurationManager,
-            )
-            from openchronicle.infrastructure.adapters.registry_adapter import (
-                RegistryAdapter,
-            )
+            from openchronicle.domain.models.configuration_manager import ConfigurationManager
+            from openchronicle.infrastructure.adapters.registry_adapter import RegistryAdapter
 
             # Create wrapper that implements interface
             class ConfigurationManagerAdapter(IConfigurationManager):
@@ -131,9 +127,7 @@ class ServiceConfigurator:
         log_info("Configuring database services")
 
         try:
-            from openchronicle.infrastructure.persistence.database_orchestrator import (
-                DatabaseOrchestrator,
-            )
+            from openchronicle.infrastructure.persistence.database_orchestrator import DatabaseOrchestrator
 
             # Create wrapper that implements interface
             class DatabaseOrchestratorAdapter(IDatabaseOrchestrator):
@@ -210,9 +204,7 @@ class ServiceConfigurator:
         log_info("Configuring memory management services")
 
         try:
-            from openchronicle.infrastructure.memory.memory_orchestrator import (
-                MemoryOrchestrator,
-            )
+            from openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
 
             # Create wrapper that implements interface
             class MemoryOrchestratorAdapter(IMemoryOrchestrator):
@@ -251,9 +243,7 @@ class ServiceConfigurator:
         log_info("Configuring content analysis services")
 
         try:
-            from openchronicle.infrastructure.content.context.orchestrator import (
-                ContextOrchestrator,
-            )
+            from openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
 
             # Create wrapper that implements interface
             class ContextOrchestratorAdapter(IContextOrchestrator):
@@ -285,9 +275,7 @@ class ServiceConfigurator:
         log_info("Configuring scene management services")
 
         try:
-            from openchronicle.domain.services.scenes.scene_orchestrator import (
-                SceneOrchestrator,
-            )
+            from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
 
             # Create wrapper that implements interface
             class SceneOrchestratorAdapter(ISceneOrchestrator):
@@ -324,9 +312,7 @@ class ServiceConfigurator:
         log_info("Configuring narrative services")
 
         try:
-            from openchronicle.domain.services.narrative.narrative_orchestrator import (
-                NarrativeOrchestrator,
-            )
+            from openchronicle.domain.services.narrative.narrative_orchestrator import NarrativeOrchestrator
 
             # Create wrapper that implements interface
             class NarrativeOrchestratorAdapter(INarrativeOrchestrator):

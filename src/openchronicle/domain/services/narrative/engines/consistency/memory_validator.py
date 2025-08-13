@@ -13,9 +13,7 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-from openchronicle.infrastructure.memory.engines.persistence.memory_repository import (
-    MemoryRepository,
-)
+from openchronicle.infrastructure.memory.engines.persistence.memory_repository import MemoryRepository
 from openchronicle.shared.json_utilities import JSONUtilities
 
 
@@ -196,7 +194,10 @@ class MemoryValidator:
             if abs(event.emotional_impact) > 0.5:
                 emotional_memory = {
                     "character_id": character_id,
-                    "content": f"Felt {self._interpret_emotional_score(event.emotional_impact)} about: {event.content[:50]}...",
+                    "content": (
+                        f"Felt {self._interpret_emotional_score(event.emotional_impact)} "
+                        f"about: {event.content[:50]}..."
+                    ),
                     "memory_type": "emotional_reaction",
                     "emotional_score": event.emotional_impact,
                     "importance": abs(event.emotional_impact),

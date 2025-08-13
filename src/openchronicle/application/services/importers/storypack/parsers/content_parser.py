@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ContentFile,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IContentParser,
-)
-
 
 """
 OpenChronicle Content Parser
@@ -14,17 +7,21 @@ Focused component for discovering, categorizing, and reading content files.
 Follows single responsibility principle - only handles file operations.
 """
 
+import json
 from pathlib import Path
 
-from openchronicle.shared.exceptions import ServiceError, InfrastructureError, ValidationError
 
 try:
     import chardet
-
     CHARDET_AVAILABLE = True
 except ImportError:
     CHARDET_AVAILABLE = False
 
+from openchronicle.application.services.importers.storypack.interfaces import ContentFile
+from openchronicle.application.services.importers.storypack.interfaces import IContentParser
+from openchronicle.shared.exceptions import InfrastructureError
+from openchronicle.shared.exceptions import ServiceError
+from openchronicle.shared.exceptions import ValidationError
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
@@ -102,9 +99,9 @@ class ContentParser(IContentParser):
                         self.logger.warning(f"Unexpected error processing file {file_path}: {e}")
 
         except (OSError, IOError, PermissionError) as e:
-            self.logger.error(f"File system error scanning directory {source_path}: {e}")
+            self.logger.exception(f"File system error scanning directory {source_path}")
         except Exception as e:
-            self.logger.error(f"Unexpected error scanning directory {source_path}: {e}")
+            self.logger.exception(f"Unexpected error scanning directory {source_path}")
 
         # Log discovery results
         category_counts = {
@@ -147,6 +144,18 @@ class ContentParser(IContentParser):
 
         return "uncategorized"
 
+    def _raise_file_system_error(self, file_path: Path, error: Exception) -> None:
+        """Helper to raise file system error."""
+        raise InfrastructureError(f"Cannot read file {file_path}: {error}") from error
+
+    def _raise_encoding_error(self, file_path: Path, error: UnicodeDecodeError) -> None:
+        """Helper to raise encoding error."""
+        raise ValidationError(f"File encoding issue {file_path}: {error}") from error
+
+    def _raise_unexpected_read_error(self, file_path: Path, error: Exception) -> None:
+        """Helper to raise unexpected read error."""
+        raise ServiceError(f"Unexpected file read failure {file_path}: {error}") from error
+
     def read_file_content(self, file_path: Path) -> tuple[str, str]:
         """
         Read file content and return content with detected encoding.
@@ -169,14 +178,14 @@ class ContentParser(IContentParser):
                 content = f.read()
 
         except (OSError, IOError, PermissionError) as e:
-            self.logger.error(f"File system error reading file {file_path}: {e}")
-            raise InfrastructureError(f"Cannot read file {file_path}: {e}")
+            self.logger.exception(f"File system error reading file {file_path}")
+            self._raise_file_system_error(file_path, e)
         except UnicodeDecodeError as e:
-            self.logger.error(f"Encoding error reading file {file_path}: {e}")
-            raise ValidationError(f"File encoding issue {file_path}: {e}")
+            self.logger.exception(f"Encoding error reading file {file_path}")
+            self._raise_encoding_error(file_path, e)
         except Exception as e:
-            self.logger.error(f"Unexpected error reading file {file_path}: {e}")
-            raise ServiceError(f"Unexpected file read failure {file_path}: {e}")
+            self.logger.exception(f"Unexpected error reading file {file_path}")
+            self._raise_unexpected_read_error(file_path, e)
         else:
             return content, encoding
 

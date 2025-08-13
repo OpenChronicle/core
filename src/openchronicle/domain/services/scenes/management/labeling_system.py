@@ -573,7 +573,8 @@ class LabelingSystem:
             if "error" in stats:
                 return "error"
 
-            return f"active ({stats['labeled_scenes']}/{stats['total_scenes']} scenes labeled, {stats['unique_labels']} unique labels)"
+            return (f"active ({stats['labeled_scenes']}/{stats['total_scenes']} scenes labeled, "
+                    f"{stats['unique_labels']} unique labels)")
         except (AttributeError, KeyError) as e:
             log_error_with_context(
                 e,

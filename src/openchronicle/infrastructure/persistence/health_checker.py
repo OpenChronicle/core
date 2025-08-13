@@ -413,7 +413,8 @@ class DatabaseHealthChecker:
                     db_info["details"]["fragmentation_ratio"] > 0.2
                 ):  # More than 20% fragmentation
                     recommendations.append(
-                        f"🗜️  Database '{db_id}' has high fragmentation ({db_info['details']['fragmentation_ratio']:.1%}) - consider running VACUUM"
+                        f"🗜️  Database '{db_id}' has high fragmentation "
+                        f"({db_info['details']['fragmentation_ratio']:.1%}) - consider running VACUUM"
                     )
 
         if health_report["databases_checked"] == 0:

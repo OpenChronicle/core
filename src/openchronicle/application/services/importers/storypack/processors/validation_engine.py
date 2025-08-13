@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ImportContext,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IValidationEngine,
-)
-
 
 """
 OpenChronicle Validation Engine
@@ -17,6 +10,8 @@ Handles all validation logic for the import process.
 import json
 from pathlib import Path
 
+from openchronicle.application.services.importers.storypack.interfaces import ImportContext
+from openchronicle.application.services.importers.storypack.interfaces import IValidationEngine
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 

@@ -130,7 +130,8 @@ class ModelSelector(RoutingComponent):
                 recommended = "mock"
                 routing_reason = "Emergency fallback to mock model"
                 log_warning(
-                    "WARNING: Using mock adapter for AI processing - this is for testing only and will not provide real AI functionality!"
+                    "WARNING: Using mock adapter for AI processing - this is for testing only and "
+                    "will not provide real AI functionality!"
                 )
                 log_warning(
                     "Please configure a real AI model (Ollama, OpenAI, Anthropic, etc.) for production use."

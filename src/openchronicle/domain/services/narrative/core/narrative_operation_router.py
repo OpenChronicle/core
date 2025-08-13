@@ -55,6 +55,10 @@ class NarrativeOperationRouter:
         - consistency: Memory validation and conflict detection
         - emotional: Emotional stability and mood tracking
         """
+
+        def _raise_unknown_operation_error(operation_type: str):
+            raise ValueError(f"Unknown operation type: {operation_type}")
+
         start_time = time.time()
 
         try:
@@ -68,7 +72,7 @@ class NarrativeOperationRouter:
             elif operation_type.startswith("emotional"):
                 result = self._handle_emotional_operation(story_id, operation_data)
             else:
-                raise ValueError(f"Unknown operation type: {operation_type}")
+                _raise_unknown_operation_error(operation_type)
 
             # Create operation record
             operation = NarrativeOperation(

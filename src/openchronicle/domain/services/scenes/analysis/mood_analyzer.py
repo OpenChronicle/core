@@ -194,13 +194,19 @@ class MoodAnalyzer:
                 results.append(scene_data)
 
         except (sqlite3.Error, sqlite3.DatabaseError) as e:
-            log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
+            log_error_with_context(
+                e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type}
+            )
             return []
         except (ValueError, KeyError, TypeError) as e:
-            log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
+            log_error_with_context(
+                e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type}
+            )
             return []
         except Exception as e:
-            log_error_with_context(e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type})
+            log_error_with_context(
+                e, {"operation": "get_scenes_by_type", "story_id": self.story_id, "scene_type": scene_type}
+            )
             return []
         else:
             return results

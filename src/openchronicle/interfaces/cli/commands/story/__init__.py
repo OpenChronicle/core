@@ -461,9 +461,7 @@ def import_storypack(
     from openchronicle.application.services.importers.storypack import MetadataExtractor
     from openchronicle.application.services.importers.storypack import OutputFormatter
     from openchronicle.application.services.importers.storypack import StorypackBuilder
-    from openchronicle.application.services.importers.storypack import (
-        StorypackOrchestrator,
-    )
+    from openchronicle.application.services.importers.storypack import StorypackOrchestrator
     from openchronicle.application.services.importers.storypack import StructureAnalyzer
     from openchronicle.application.services.importers.storypack import TemplateEngine
     from openchronicle.application.services.importers.storypack import ValidationEngine

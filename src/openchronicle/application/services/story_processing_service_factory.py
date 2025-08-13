@@ -7,12 +7,8 @@ instances with correct dependency injection for different environments.
 
 from typing import Any
 
-from openchronicle.application.services.story_processing_service import (
-    StoryProcessingConfig,
-)
-from openchronicle.application.services.story_processing_service import (
-    StoryProcessingService,
-)
+from openchronicle.application.services.story_processing_service import StoryProcessingConfig
+from openchronicle.application.services.story_processing_service import StoryProcessingService
 from openchronicle.domain.services import CharacterService
 from openchronicle.domain.services import MemoryService
 from openchronicle.domain.services import SceneService
@@ -52,12 +48,8 @@ class StoryProcessingServiceFactory:
         Returns:
             Configured StoryProcessingService with production adapters
         """
-        from openchronicle.application.services.model_orchestrator_factory import (
-            ModelOrchestratorFactory,
-        )
-        from openchronicle.infrastructure.adapters.content_analysis_adapter import (
-            ContentAnalysisAdapter,
-        )
+        from openchronicle.application.services.model_orchestrator_factory import ModelOrchestratorFactory
+        from openchronicle.infrastructure.adapters.content_analysis_adapter import ContentAnalysisAdapter
         from openchronicle.infrastructure.adapters.context_adapter import ContextAdapter
 
         # Create production adapters

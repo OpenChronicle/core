@@ -77,12 +77,8 @@ class CharacterOrchestrator(CharacterEventHandler):
         """Load the default character management components."""
         try:
             # Import and register components
-            from .specialized.consistency_validation_engine import (
-                ConsistencyValidationEngine,
-            )
-            from .specialized.interaction_dynamics_engine import (
-                InteractionDynamicsEngine,
-            )
+            from .specialized.consistency_validation_engine import ConsistencyValidationEngine
+            from .specialized.interaction_dynamics_engine import InteractionDynamicsEngine
             from .specialized.presentation_style_engine import PresentationStyleEngine
             from .specialized.stats_behavior_engine import StatsBehaviorEngine
 
@@ -303,7 +299,9 @@ class CharacterOrchestrator(CharacterEventHandler):
         """Get comprehensive character state."""
         return self.management_engine.get_character_state(character_id)
 
-    async def get_character_data(self, character_id: str | None = None, character_name: str | None = None) -> dict[str, Any]:
+    async def get_character_data(
+        self, character_id: str | None = None, character_name: str | None = None
+    ) -> dict[str, Any]:
         """Get character data (wrapper for tests)."""
         # Find character_id if not provided
         if not character_id and character_name:

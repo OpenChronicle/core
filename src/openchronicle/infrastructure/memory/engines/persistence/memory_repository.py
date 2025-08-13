@@ -11,9 +11,7 @@ from datetime import UTC
 from datetime import datetime
 from typing import Any
 
-from openchronicle.infrastructure.persistence.database_orchestrator import (
-    database_orchestrator,
-)
+from openchronicle.infrastructure.persistence.database_orchestrator import database_orchestrator
 from openchronicle.shared.json_utilities import JSONUtilities
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info

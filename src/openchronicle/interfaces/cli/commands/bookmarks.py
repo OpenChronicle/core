@@ -12,9 +12,7 @@ from datetime import datetime
 import typer
 
 from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
-from openchronicle.domain.services.timeline.shared.bookmark_manager import (
-    SimpleBookmarkManager,
-)
+from openchronicle.domain.services.timeline.shared.bookmark_manager import SimpleBookmarkManager
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
 
 
@@ -49,7 +47,11 @@ def list_bookmarks(story_id: str = typer.Argument(..., help="Story ID")):
         }
         for b in bookmarks
     ]
-    output.table(rows, title=f"Bookmarks for {story_id}", headers=["bookmark_id", "scene_id", "timestamp", "description"])
+    output.table(
+        rows,
+        title=f"Bookmarks for {story_id}",
+        headers=["bookmark_id", "scene_id", "timestamp", "description"]
+    )
 
 
 @bookmarks_app.command("add")
@@ -80,7 +82,10 @@ def add_bookmark(
     )
 
     if ok:
-        output.success("Bookmark created", data={"story_id": story_id, "bookmark_id": bid, "scene_id": scene_id, "timestamp": ts})
+        output.success(
+            "Bookmark created",
+            data={"story_id": story_id, "bookmark_id": bid, "scene_id": scene_id, "timestamp": ts}
+        )
     else:
         output.error("Failed to create bookmark")
 

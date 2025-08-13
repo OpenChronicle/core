@@ -1,5 +1,33 @@
 from __future__ import annotations
 
+from datetime import UTC
+from datetime import datetime
+from typing import TYPE_CHECKING
+from typing import Any
+
+from openchronicle.domain.errors.persistence_errors import ListScenesError
+from openchronicle.domain.errors.persistence_errors import LoadSceneError
+from openchronicle.domain.errors.persistence_errors import RollbackSceneError
+from openchronicle.domain.errors.persistence_errors import SaveSceneError
+from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
+from openchronicle.shared.logging_system import log_error
+from openchronicle.shared.logging_system import log_info
+from openchronicle.shared.logging_system import log_warning
+
+from .management.labeling_system import LabelingSystem
+from .management.scene_manager import SceneManager
+from .persistence.scene_repository import SceneRepository
+from .persistence.scene_serializer import SceneSerializer
+from .shared.id_generator import SceneIdGenerator
+from .shared.scene_models import SceneData
+from .shared.scene_models import StructuredTags
+
+
+# Avoid importing analysis submodules at module import time to prevent
+# package-level side effects and stale import-cache issues.
+if TYPE_CHECKING:
+    from .analysis.mood_analyzer import MoodAnalyzer
+    from .analysis.scene_statistics import SceneStatistics
 
 """
 Scene Orchestrator - Unified Scene Management
@@ -12,37 +40,6 @@ This orchestrator coordinates between all scene subsystems:
 
 Replaces the legacy monolithic scene_logger.py with a clean orchestration pattern.
 """
-
-from datetime import UTC
-from datetime import datetime
-from typing import TYPE_CHECKING
-from typing import Any
-
-from openchronicle.domain.errors.persistence_errors import ListScenesError
-from openchronicle.domain.errors.persistence_errors import LoadSceneError
-from openchronicle.domain.errors.persistence_errors import RollbackSceneError
-from openchronicle.domain.errors.persistence_errors import SaveSceneError
-from openchronicle.shared.logging_system import log_error
-from openchronicle.shared.logging_system import log_info
-from openchronicle.shared.logging_system import log_warning
-
-
-# Avoid importing analysis submodules at module import time to prevent
-# package-level side effects and stale import-cache issues.
-if TYPE_CHECKING:
-    from .analysis.mood_analyzer import MoodAnalyzer
-    from .analysis.scene_statistics import SceneStatistics
-from openchronicle.domain.ports.persistence_inmemory import InMemorySqlitePersistence
-
-from .management.labeling_system import LabelingSystem
-from .management.scene_manager import SceneManager
-
-# Import modular scene components
-from .persistence.scene_repository import SceneRepository
-from .persistence.scene_serializer import SceneSerializer
-from .shared.id_generator import SceneIdGenerator
-from .shared.scene_models import SceneData
-from .shared.scene_models import StructuredTags
 
 
 class SceneOrchestrator:

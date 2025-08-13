@@ -140,7 +140,8 @@ class PerformanceMonitor:
             log_system_event(
                 "performance_report_generated",
                 f"Performance report generated: {report.total_operations} operations analyzed, "
-                f"{len(report.bottlenecks)} bottlenecks found, {len(report.optimization_recommendations)} recommendations",
+                f"{len(report.bottlenecks)} bottlenecks found, "
+                f"{len(report.optimization_recommendations)} recommendations",
             )
 
             return {

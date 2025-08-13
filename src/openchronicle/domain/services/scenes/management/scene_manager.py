@@ -17,15 +17,9 @@ from openchronicle.domain.errors.persistence_errors import RollbackSceneError
 
 # Import domain interfaces (following dependency inversion principle)
 from openchronicle.domain.ports.persistence_port import IPersistencePort
-from openchronicle.shared.logging_system import (
-    log_error,
-)  # Lightweight logging (Band-Aid removal: replace prints)
-from openchronicle.shared.logging_system import (
-    log_info,
-)  # Lightweight logging (Band-Aid removal: replace prints)
-from openchronicle.shared.logging_system import (
-    log_warning,
-)  # Lightweight logging (Band-Aid removal: replace prints)
+from openchronicle.shared.logging_system import log_error  # Lightweight logging (Band-Aid removal: replace prints)
+from openchronicle.shared.logging_system import log_info  # Lightweight logging (Band-Aid removal: replace prints)
+from openchronicle.shared.logging_system import log_warning  # Lightweight logging (Band-Aid removal: replace prints)
 
 from ..persistence.scene_repository import SceneRepository
 
@@ -186,7 +180,8 @@ class SceneManager:
                     }
                     for scene in scenes_to_remove
                 ],
-                "warning": f"This will permanently delete {len(scenes_to_remove)} scenes created after the target scene.",
+                "warning": f"This will permanently delete {len(scenes_to_remove)} scenes "
+                          f"created after the target scene.",
             }
 
         except (RuntimeError, ValueError, KeyError, TypeError) as e:

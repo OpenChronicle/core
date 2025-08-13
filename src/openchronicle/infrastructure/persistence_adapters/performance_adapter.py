@@ -22,9 +22,7 @@ class PerformanceAdapter(IPerformancePort):
 
         # Import here to avoid circular dependencies
         try:
-            from openchronicle.infrastructure.performance.model_monitor import (
-                PerformanceMonitor,
-            )
+            from openchronicle.infrastructure.performance.model_monitor import PerformanceMonitor
 
             self.monitor = PerformanceMonitor({})
         except ImportError as e:

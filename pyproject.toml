@@ -191,7 +191,7 @@ disallow_incomplete_defs = false
 # Enhanced ruff configuration
 [tool.ruff]
 target-version = "py311"
-line-length = 88
+line-length = 120
 src = ["src"]
 exclude = [
     ".bzr",
@@ -264,7 +264,7 @@ max-statements = 60
 
 # Enhanced black configuration
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ["py311", "py312"]
 include = '\.pyi?$'
 extend-exclude = '''

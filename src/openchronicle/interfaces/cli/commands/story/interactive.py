@@ -49,26 +49,16 @@ except ImportError:
 # Import core components
 try:
     from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
-    from openchronicle.domain.services.scenes.scene_orchestrator import (
-        SceneOrchestrator,
-    )
+    from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
     from openchronicle.domain.services.story_loader import load_storypack
-    from openchronicle.domain.services.timeline.timeline_orchestrator import (
-        TimelineOrchestrator,
-    )
+    from openchronicle.domain.services.timeline.timeline_orchestrator import TimelineOrchestrator
     from openchronicle.infrastructure.content.analysis.orchestrator import (
         ContentAnalysisOrchestrator as ContentAnalyzer,
     )
-    from openchronicle.infrastructure.content.context.orchestrator import (
-        ContextOrchestrator,
-    )
+    from openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
     from openchronicle.infrastructure.images.image_orchestrator import ImageType
-    from openchronicle.infrastructure.memory.memory_orchestrator import (
-        MemoryOrchestrator,
-    )
-    from openchronicle.infrastructure.persistence.database_orchestrator import (
-        startup_health_check,
-    )
+    from openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+    from openchronicle.infrastructure.persistence.database_orchestrator import startup_health_check
 
     CORE_AVAILABLE = True
 except ImportError as e:

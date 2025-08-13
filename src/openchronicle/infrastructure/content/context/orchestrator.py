@@ -22,21 +22,15 @@ from openchronicle.domain.services.narrative.response.context_analyzer import (
 from openchronicle.infrastructure.memory import MemoryOrchestrator
 
 # Import modular context systems
-from openchronicle.infrastructure.memory.context import (
-    ContextBuilder as MemoryContextBuilder,
-)
-from openchronicle.infrastructure.memory.context import (
-    ContextConfiguration as MemoryContextConfiguration,
-)
+from openchronicle.infrastructure.memory.context import ContextBuilder as MemoryContextBuilder
+from openchronicle.infrastructure.memory.context import ContextConfiguration as MemoryContextConfiguration
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_info
 from openchronicle.shared.logging_system import log_system_event
 from openchronicle.shared.logging_system import log_warning
 
 from ..analysis.orchestrator import ContentAnalysisOrchestrator
-from ..analysis.orchestrator import (
-    ContentAnalysisOrchestrator as ContentContextOrchestrator,
-)
+from ..analysis.orchestrator import ContentAnalysisOrchestrator as ContentContextOrchestrator
 
 
 @dataclass

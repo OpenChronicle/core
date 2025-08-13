@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IAIProcessor,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ImportContext,
-)
-
 
 """
 OpenChronicle AI Processor
@@ -18,6 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 
+from openchronicle.application.services.importers.storypack.interfaces import IAIProcessor
+from openchronicle.application.services.importers.storypack.interfaces import ImportContext
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_error
 from openchronicle.shared.logging_system import log_system_event
@@ -46,22 +41,20 @@ class AIProcessor(IAIProcessor):
                 self.is_initialized = True
             else:
                 # Fallback for backward compatibility
-                from openchronicle.domain.ports.content_analysis_port import (
-                    IContentAnalysisPort,
-                )
-                
+                from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+
                 class MockContentAnalysisPort(IContentAnalysisPort):
                     async def generate_content_flags(
                         self, analysis: dict[str, Any], content: str
                     ) -> list[dict[str, Any]]:
                         return [{"name": "mock_flag", "value": "test"}]
-                    
+
                     async def analyze_content_sentiment(self, content: str) -> dict[str, Any]:
                         return {"sentiment": "neutral", "confidence": 0.5}
-                    
+
                     async def detect_content_themes(self, content: str) -> list[str]:
                         return ["general"]
-                
+
                 self.content_analysis_port = MockContentAnalysisPort()
                 self.is_initialized = True
 
@@ -124,7 +117,7 @@ class AIProcessor(IAIProcessor):
             # Note: We need to adapt the interface since the port has different methods
             sentiment = await self.content_analysis_port.analyze_content_sentiment(content)
             themes = await self.content_analysis_port.detect_content_themes(content)
-            
+
             # Create analysis result in expected format
             analysis_result = {
                 "status": "analyzed",
@@ -327,11 +320,11 @@ class AIProcessor(IAIProcessor):
 
             if sentiment and themes:
                 messages.append("✓ Basic content analysis working")
-                
+
                 # Check sentiment analysis
                 if sentiment.get("sentiment"):
                     messages.append(f"✓ Sentiment analysis working (detected: {sentiment['sentiment']})")
-                
+
                 # Check theme detection
                 if themes:
                     messages.append(f"✓ Theme detection working ({len(themes)} themes found)")

@@ -74,12 +74,16 @@ class RegistryAdapter(IRegistryPort):
         Raises:
             ValueError: If configuration is invalid
         """
+
+        def _raise_missing_fields_error(missing_fields):
+            raise ValueError(f"Missing required fields: {missing_fields}")
+
         try:
             # Basic validation for required fields
             required_fields = ["name", "type"]
             missing_fields = [field for field in required_fields if field not in config]
             if missing_fields:
-                raise ValueError(f"Missing required fields: {missing_fields}")
+                _raise_missing_fields_error(missing_fields)
         except (ValueError, TypeError) as e:
             log_error(f"validate_config failed for '{provider_name}': {e}")
             raise

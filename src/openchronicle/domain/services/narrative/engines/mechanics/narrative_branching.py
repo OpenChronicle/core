@@ -246,7 +246,7 @@ class NarrativeBranchingEngine:
                     "character_id": getattr(resolution_result, "character_id", None),
                 },
             )
-            raise NarrativeSystemError(f"Branch parameter validation error: {e}")
+            raise NarrativeSystemError(f"Branch parameter validation error: {e}") from e
         except (AttributeError, KeyError) as e:
             log_error_with_context(
                 e,
@@ -257,7 +257,7 @@ class NarrativeBranchingEngine:
                     "character_id": getattr(resolution_result, "character_id", None),
                 },
             )
-            raise NarrativeSystemError(f"Branch data structure error: {e}")
+            raise NarrativeSystemError(f"Branch data structure error: {e}") from e
         except Exception as e:
             log_error_with_context(
                 e,
@@ -271,7 +271,7 @@ class NarrativeBranchingEngine:
                     "character_id": getattr(resolution_result, "character_id", None),
                 },
             )
-            raise NarrativeSystemError(f"Branch creation failed: {e}")
+            raise NarrativeSystemError(f"Branch creation failed: {e}") from e
         else:
             return branches
 

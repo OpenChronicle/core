@@ -88,7 +88,8 @@ class NavigationManager:
 
             # Build dynamic query based on criteria
             query_parts = [
-                "SELECT scene_id, scene_label AS scene_title, timestamp, substr(output, 1, 200) AS scene_summary FROM scenes WHERE story_id = ?",
+                "SELECT scene_id, scene_label AS scene_title, timestamp, "
+                "substr(output, 1, 200) AS scene_summary FROM scenes WHERE story_id = ?",
             ]
             params: list[Any] = [self.story_id]
 
@@ -162,17 +163,20 @@ class NavigationManager:
             context_rows = self.persistence.execute_query(
                 self.story_id,
                 """
-                (SELECT scene_id, scene_label AS scene_title, timestamp, substr(output, 1, 200) AS scene_summary, 'before' AS position
+                (SELECT scene_id, scene_label AS scene_title, timestamp,
+                        substr(output, 1, 200) AS scene_summary, 'before' AS position
                  FROM scenes
                  WHERE story_id = ? AND timestamp < ?
                  ORDER BY timestamp DESC
                  LIMIT ?)
                 UNION ALL
-                (SELECT scene_id, scene_label AS scene_title, timestamp, substr(output, 1, 200) AS scene_summary, 'current' AS position
+                (SELECT scene_id, scene_label AS scene_title, timestamp,
+                        substr(output, 1, 200) AS scene_summary, 'current' AS position
                  FROM scenes
                  WHERE story_id = ? AND scene_id = ?)
                 UNION ALL
-                (SELECT scene_id, scene_label AS scene_title, timestamp, substr(output, 1, 200) AS scene_summary, 'after' AS position
+                (SELECT scene_id, scene_label AS scene_title, timestamp,
+                        substr(output, 1, 200) AS scene_summary, 'after' AS position
                  FROM scenes
                  WHERE story_id = ? AND timestamp > ?
                  ORDER BY timestamp ASC
@@ -411,7 +415,9 @@ class NavigationManager:
                     self.story_id,
                     """
                     SELECT scene_id, scene_label AS scene_title, timestamp FROM scenes
-                    WHERE story_id = ? AND timestamp > (SELECT timestamp FROM scenes WHERE scene_id = ? AND story_id = ?)
+                    WHERE story_id = ? AND timestamp > (
+                        SELECT timestamp FROM scenes WHERE scene_id = ? AND story_id = ?
+                    )
                     ORDER BY timestamp ASC LIMIT 1
                     """,
                     (self.story_id, current_scene_id, self.story_id),
@@ -460,7 +466,9 @@ class NavigationManager:
                     self.story_id,
                     """
                     SELECT scene_id, scene_label AS scene_title, timestamp FROM scenes
-                    WHERE story_id = ? AND timestamp < (SELECT timestamp FROM scenes WHERE scene_id = ? AND story_id = ?)
+                    WHERE story_id = ? AND timestamp < (
+                        SELECT timestamp FROM scenes WHERE scene_id = ? AND story_id = ?
+                    )
                     ORDER BY timestamp DESC LIMIT 1
                     """,
                     (self.story_id, current_scene_id, self.story_id),

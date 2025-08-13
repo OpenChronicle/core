@@ -66,6 +66,11 @@ class LifecycleManager:
             "lifecycle_manager_initialized", "Adapter lifecycle management ready"
         )
 
+    def _raise_missing_dependencies_error(self, adapter_type: str, name: str, error: ImportError) -> None:
+        """Helper to raise missing dependencies error."""
+        error_msg = f"Missing dependencies for {adapter_type} adapter {name}: {error}"
+        raise RuntimeError(error_msg) from error
+
     async def initialize_adapter(
         self, name: str, max_retries: int = 2, graceful_degradation: bool = True
     ) -> bool:
@@ -84,6 +89,13 @@ class LifecycleManager:
             ValueError: If adapter not found in configuration (only when graceful_degradation=False)
             RuntimeError: If initialization fails critically (only when graceful_degradation=False)
         """
+
+        def _raise_prerequisites_error(reason: str):
+            raise RuntimeError(f"Adapter prerequisites failed: {reason}")
+
+        def _raise_initialization_error():
+            raise RuntimeError("Adapter initialization returned False")
+
         # Validate adapter exists in configuration
         if name not in self.config["adapters"]:
             # Check if adapter exists in global registry but is disabled
@@ -180,9 +192,8 @@ class LifecycleManager:
                             f"Skipped {name}: {validation_result['reason']}",
                         )
                         return False
-                    raise RuntimeError(
-                        f"Adapter prerequisites failed: {validation_result['reason']}"
-                    )
+
+                    _raise_prerequisites_error(validation_result['reason'])
                 # Track successful validation
                 if adapter_type in [
                     "openai",
@@ -237,11 +248,14 @@ class LifecycleManager:
                         f"Successfully initialized {adapter_type} adapter: {name}",
                     )
                     return True
-                raise RuntimeError("Adapter initialization returned False")
+                _raise_initialization_error()
 
             except TimeoutError as e:
                 last_exception = e
-                error_msg = f"Timeout initializing {adapter_type} adapter {name} (attempt {attempt + 1}/{max_retries + 1})"
+                error_msg = (
+                    f"Timeout initializing {adapter_type} adapter {name} "
+                    f"(attempt {attempt + 1}/{max_retries + 1})"
+                )
                 log_error(error_msg)
                 log_system_event("adapter_initialization_timeout", error_msg)
 
@@ -254,7 +268,7 @@ class LifecycleManager:
                 log_system_event("adapter_initialization_dependency_error", error_msg)
                 if graceful_degradation:
                     return False
-                raise RuntimeError(error_msg)
+                self._raise_missing_dependencies_error(adapter_type, name, e)
 
             except (ConnectionError, OSError) as e:
                 # Network/connection issues - retry (handle httpx.ConnectError if available)
@@ -265,7 +279,10 @@ class LifecycleManager:
                 ):
                     pass  # This is also a connection error
                 last_exception = e
-                error_msg = f"Connection error initializing {adapter_type} adapter {name} (attempt {attempt + 1}/{max_retries + 1}): {e}"
+                error_msg = (
+                    f"Connection error initializing {adapter_type} adapter {name} "
+                    f"(attempt {attempt + 1}/{max_retries + 1}): {e}"
+                )
                 log_error(error_msg)
                 log_system_event("adapter_initialization_connection_error", error_msg)
 
@@ -471,7 +488,10 @@ class LifecycleManager:
                     "valid": False,
                     "reason": f"Adapter '{name}' is disabled in configuration",
                     "can_enable_later": True,
-                    "recommendation": f"Enable '{name}' in model registry configuration or use: python utilities/api_key_manager.py --set {adapter_type}",
+                    "recommendation": (
+                        f"Enable '{name}' in model registry configuration or use: "
+                        f"python utilities/api_key_manager.py --set {adapter_type}"
+                    ),
                 }
 
             # Check for required Python packages first
@@ -602,7 +622,10 @@ class LifecycleManager:
                 "valid": False,
                 "reason": f"Missing API key for {provider_type}",
                 "can_enable_later": True,
-                "recommendation": f"Set {env_var} environment variable or use: python utilities/api_key_manager.py --set {provider_type}",
+                "recommendation": (
+                    f"Set {env_var} environment variable or use: "
+                    f"python utilities/api_key_manager.py --set {provider_type}"
+                ),
             }
 
         return {

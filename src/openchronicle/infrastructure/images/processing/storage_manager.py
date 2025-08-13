@@ -103,7 +103,7 @@ class ImageStorageManager:
             logger.debug(f"Saved metadata for {len(data)} images")
         except (OSError, TypeError, ValueError) as e:
             logger.exception("Failed to save image metadata")
-            raise ImageValidationError(f"Could not save metadata: {e}")
+            raise ImageValidationError(f"Could not save metadata: {e}") from e
 
     def generate_image_id(
         self, image_type: ImageType, context: dict[str, Any] | None = None
@@ -258,7 +258,7 @@ class ImageStorageManager:
                     pass
 
             logger.exception("Failed to store image")
-            raise ImageValidationError(f"Storage failed: {e}")
+            raise ImageValidationError(f"Storage failed: {e}") from e
         else:
             return metadata
 

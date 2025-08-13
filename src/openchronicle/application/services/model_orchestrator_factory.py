@@ -30,9 +30,7 @@ class ModelOrchestratorFactory:
         Returns:
             Configured ModelOrchestrator with production registry adapter
         """
-        from openchronicle.infrastructure.adapters.registry_adapter import (
-            RegistryAdapter,
-        )
+        from openchronicle.infrastructure.adapters.registry_adapter import RegistryAdapter
 
         # Create production registry adapter
         registry_port = RegistryAdapter(
@@ -53,9 +51,7 @@ class ModelOrchestratorFactory:
         Returns:
             Configured ModelOrchestrator with mock registry adapter
         """
-        from openchronicle.infrastructure.adapters.mock_registry_adapter import (
-            MockRegistryAdapter,
-        )
+        from openchronicle.infrastructure.adapters.mock_registry_adapter import MockRegistryAdapter
 
         # Create mock registry adapter for testing
         registry_port = MockRegistryAdapter()

@@ -293,7 +293,8 @@ class MockAdapter:
         emotion = random.choice(self.content_library["emotions"])
 
         creative_elements = [
-            f"In a moment that would change everything, {character} discovered something extraordinary in the {setting}.",
+            f"In a moment that would change everything, {character} discovered "
+            f"something extraordinary in the {setting}.",
             f"The {emotion} expression on {character}'s face told a story of its own.",
             "What happened next defied all expectations—the very air seemed to shimmer with possibility.",
             f"Time seemed to slow as {character} realized the true significance of this moment.",

@@ -82,6 +82,10 @@ class ResponseOrchestrator(NarrativeComponent):
 
     async def process(self, data: dict[str, Any]) -> ResponseResult:
         """Process a complete response request."""
+
+        def _raise_validation_error(issues):
+            raise ValueError(f"Invalid request: {issues}")
+
         start_time = time.time()
 
         try:
@@ -95,7 +99,7 @@ class ResponseOrchestrator(NarrativeComponent):
             # Validate request
             validation = self.validate({"request": request})
             if not validation.is_valid:
-                raise ValueError(f"Invalid request: {validation.issues}")
+                _raise_validation_error(validation.issues)
 
             # Step 1: Analyze context
             analysis_start = time.time()
@@ -329,7 +333,8 @@ class ResponseOrchestrator(NarrativeComponent):
             # Fallback to basic response
             strategy = getattr(response_plan.strategy, 'value', 'balanced')
             complexity = getattr(response_plan.complexity, 'value', 'moderate')
-            return f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {response_plan.content_focus}]"
+            return (f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, "
+                    f"Focus: {response_plan.content_focus}]")
         except (ValueError, TypeError) as e:
             self.logger.exception("Error with response generation parameters")
             return "[ERROR RESPONSE - Parameter error in generation]"
@@ -337,7 +342,8 @@ class ResponseOrchestrator(NarrativeComponent):
             self.logger.exception("Error generating response")
             return f"[ERROR RESPONSE - Generation failed: {e}]"
         else:
-            return model_response.content if model_response else f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {content_focus}]"
+            return (model_response.content if model_response else
+                    f"[FALLBACK RESPONSE - Strategy: {strategy}, Complexity: {complexity}, Focus: {content_focus}]")
 
     def _evaluate_response(
         self,
@@ -427,7 +433,8 @@ class ResponseOrchestrator(NarrativeComponent):
         try:
             # Simple coherence metrics
             sentences = response.split('.')
-            avg_sentence_length = sum(len(s.split()) for s in sentences if s.strip()) / max(len([s for s in sentences if s.strip()]), 1)
+            avg_sentence_length = (sum(len(s.split()) for s in sentences if s.strip()) /
+                                  max(len([s for s in sentences if s.strip()]), 1))
 
             # Penalize very short or very long sentences
             sentence_score = 1.0 - abs(avg_sentence_length - 15) / 30.0  # Target ~15 words per sentence

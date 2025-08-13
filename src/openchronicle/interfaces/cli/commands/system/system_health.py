@@ -173,4 +173,4 @@ def health_check(
     except Exception as e:
         output_manager = OutputManager()
         output_manager.error(f"Health check failed: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

@@ -130,7 +130,7 @@ class DiceEngine:
                     "disadvantage": disadvantage,
                 },
             )
-            raise NarrativeSystemError(f"Invalid dice parameters: {e!s}")
+            raise NarrativeSystemError(f"Invalid dice parameters: {e!s}") from e
         except (AttributeError, KeyError) as e:
             log_error_with_context(
                 e,
@@ -141,7 +141,7 @@ class DiceEngine:
                     "modifier": modifier,
                 },
             )
-            raise NarrativeSystemError(f"Dice configuration error: {e}")
+            raise NarrativeSystemError(f"Dice configuration error: {e}") from e
         except Exception as e:
             log_error_with_context(
                 e,
@@ -152,7 +152,7 @@ class DiceEngine:
                     "modifier": modifier,
                 },
             )
-            raise NarrativeSystemError(f"Unexpected error during dice roll: {e}")
+            raise NarrativeSystemError(f"Unexpected error during dice roll: {e}") from e
         else:
             return dice_roll
 
@@ -207,7 +207,7 @@ class DiceEngine:
                     "dice_string": dice_string,
                 },
             )
-            raise NarrativeSystemError(f"Invalid dice notation format: {dice_string}")
+            raise NarrativeSystemError(f"Invalid dice notation format: {dice_string}") from e
         except (AttributeError, KeyError) as e:
             log_error_with_context(
                 e,
@@ -216,7 +216,7 @@ class DiceEngine:
                     "dice_string": dice_string,
                 },
             )
-            raise NarrativeSystemError(f"Dice notation parsing error: {dice_string}")
+            raise NarrativeSystemError(f"Dice notation parsing error: {dice_string}") from e
         except Exception as e:
             log_error_with_context(
                 e,
@@ -225,7 +225,7 @@ class DiceEngine:
                     "dice_string": dice_string,
                 },
             )
-            raise NarrativeSystemError(f"Invalid dice notation: {dice_string}")
+            raise NarrativeSystemError(f"Invalid dice notation: {dice_string}") from e
 
     def _parse_dice_string(self, dice_string: str) -> tuple[int, DiceType, int]:
         """Parse dice notation string into components."""

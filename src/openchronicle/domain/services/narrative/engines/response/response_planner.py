@@ -86,6 +86,10 @@ class ResponsePlanner(NarrativeComponent):
 
     def process(self, data: dict[str, Any]) -> ResponsePlan:
         """Plan a response based on context analysis."""
+
+        def _raise_missing_context_analysis_error():
+            raise ValueError("Context analysis required for response planning")
+
         try:
             self.logger.log_info(
                 "response planning started",
@@ -100,7 +104,7 @@ class ResponsePlanner(NarrativeComponent):
             preferences = data.get("preferences", {})
 
             if not context_analysis:
-                raise ValueError("Context analysis required for response planning")
+                _raise_missing_context_analysis_error()
 
             # Select response strategy
             strategy = self._select_response_strategy(context_analysis, preferences)

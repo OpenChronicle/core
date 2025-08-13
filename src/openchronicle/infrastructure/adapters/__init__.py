@@ -206,10 +206,10 @@ class AnthropicAdapter(BaseModelAdapter):
                 import anthropic
 
                 self._client = anthropic.AsyncAnthropic(api_key=self.config.api_key)
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
                     "Anthropic package not installed. Run: pip install anthropic"
-                )
+                ) from e
         return self._client
 
     async def generate_text(
@@ -259,6 +259,10 @@ class OllamaAdapter(BaseModelAdapter):
         **kwargs,
     ) -> str:
         """Generate text using Ollama API."""
+
+        def _raise_ollama_api_error(status):
+            raise ModelResponseError(f"Ollama API error: {status}")
+
         await self._check_rate_limit()
 
         try:
@@ -283,7 +287,7 @@ class OllamaAdapter(BaseModelAdapter):
                     if response.status == 200:
                         result = await response.json()
                         return result.get("response", "")
-                    raise ModelResponseError(f"Ollama API error: {response.status}")
+                    _raise_ollama_api_error(response.status)
         except ImportError as e:
             self.logger.exception("aiohttp package not available")
             raise InfrastructureError("aiohttp package not installed. Run: pip install aiohttp") from e

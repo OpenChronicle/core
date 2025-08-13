@@ -141,13 +141,14 @@ class MemoryOrchestrator:
         """Load current memory state for a story (public API)."""
         try:
             memory_state = self.repository.load_memory(story_id)
-            return self._awaitable(memory_state)
         except (TypeError, ValueError, KeyError, AttributeError) as e:
             log_error_with_context(e, {"operation": "load_current_memory", "story_id": story_id})
             try:
                 return self._awaitable(MemoryState())
             except (TypeError, ValueError, KeyError, AttributeError):
                 return self._awaitable(self.repository.create_default_memory_structure())
+        else:
+            return self._awaitable(memory_state)
 
     def save_current_memory(self, story_id: str, memory_data: dict[str, Any]) -> bool:
         """Save current memory state for a story (public API)."""
@@ -255,21 +256,29 @@ class MemoryOrchestrator:
             snapshot_id = self.snapshot_manager.create_snapshot(story_id, scene_id)
             return bool(snapshot_id)
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "archive_memory_snapshot", "story_id": story_id, "scene_id": scene_id})
+            log_error_with_context(
+                e, {"operation": "archive_memory_snapshot", "story_id": story_id, "scene_id": scene_id}
+            )
             return False
 
     def restore_memory_from_snapshot(
         self, story_id: str, scene_id: str
     ) -> dict[str, Any]:
         """Restore memory from a historical snapshot."""
+        
+        def _raise_no_snapshot_error(scene_id: str):
+            raise ValueError(f"No memory snapshot found for scene: {scene_id}")
+        
         try:
             restored_state = self.repository.restore_from_snapshot(story_id, scene_id)
             if restored_state is not None:
                 self.repository.save_memory(story_id, restored_state)
                 return restored_state.to_dict()
-            raise ValueError(f"No memory snapshot found for scene: {scene_id}")
+            _raise_no_snapshot_error(scene_id)
         except ValueError as e:
-            log_error_with_context(e, {"operation": "restore_memory_from_snapshot", "story_id": story_id, "scene_id": scene_id})
+            log_error_with_context(
+                e, {"operation": "restore_memory_from_snapshot", "story_id": story_id, "scene_id": scene_id}
+            )
             raise
 
     # ===== CHARACTER MEMORY OPERATIONS =====
@@ -287,7 +296,9 @@ class MemoryOrchestrator:
             self.logger.error(f"Character update failed: {result.warnings}")
             return self._AwaitableDict(self.repository.load_memory(story_id).to_dict())
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "update_character_memory", "story_id": story_id, "character_name": character_name})
+            log_error_with_context(
+                e, {"operation": "update_character_memory", "story_id": story_id, "character_name": character_name}
+            )
             return self._AwaitableDict(self.repository.load_memory(story_id).to_dict())
 
     async def update_character_memory_async(
@@ -319,7 +330,13 @@ class MemoryOrchestrator:
 
             return snapshot.to_dict() if snapshot else {}
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "get_character_memory_snapshot", "story_id": story_id, "character_name": character_name})
+            log_error_with_context(
+                e, {
+                    "operation": "get_character_memory_snapshot",
+                    "story_id": story_id,
+                    "character_name": character_name
+                }
+            )
             return {}
 
     def format_character_snapshot_for_prompt(self, snapshot: dict[str, Any]) -> str:
@@ -347,7 +364,9 @@ class MemoryOrchestrator:
             else:
                 result = f"Character: {character_name} (no voice profile available)"
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "get_character_voice_prompt", "character_name": character_name, "story_id": story_id})
+            log_error_with_context(
+                e, {"operation": "get_character_voice_prompt", "character_name": character_name, "story_id": story_id}
+            )
             return f"Character: {character_name} (error loading voice profile)"
         else:
             return result
@@ -372,7 +391,9 @@ class MemoryOrchestrator:
                 self.repository.save_memory(story_id, memory)
             return memory.to_dict()
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "update_character_mood", "story_id": story_id, "character_name": character_name})
+            log_error_with_context(
+                e, {"operation": "update_character_mood", "story_id": story_id, "character_name": character_name}
+            )
             try:
                 return self._AwaitableDict(self.repository.load_memory(story_id).to_dict())
             except (TypeError, ValueError, KeyError, AttributeError):
@@ -388,7 +409,9 @@ class MemoryOrchestrator:
                 return self._AwaitableDict(memory.characters[character_name].to_dict())
             return self._AwaitableDict({})
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "get_character_memory", "story_id": story_id, "character_name": character_name})
+            log_error_with_context(
+                e, {"operation": "get_character_memory", "story_id": story_id, "character_name": character_name}
+            )
             return self._AwaitableDict({})
 
     async def get_character_memory_async(
@@ -583,7 +606,14 @@ class MemoryOrchestrator:
                 },
             )
         except (ValueError, TypeError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "refresh_memory_after_rollback", "story_id": story_id, "target_scene_id": target_scene_id})
+            log_error_with_context(
+                e,
+                {
+                    "operation": "refresh_memory_after_rollback",
+                    "story_id": story_id,
+                    "target_scene_id": target_scene_id
+                }
+            )
             try:
                 return self._AwaitableDict(self.repository.load_memory(story_id).to_dict())
             except (TypeError, ValueError, KeyError, AttributeError):
@@ -690,7 +720,14 @@ class MemoryOrchestrator:
                 },
             )
         except (TypeError, ValueError, KeyError, AttributeError) as e:
-            log_error_with_context(e, {"operation": "track_model_operation", "story_id": story_id, "operation_type": operation_type})
+            log_error_with_context(
+                e,
+                {
+                    "operation": "track_model_operation",
+                    "story_id": story_id,
+                    "operation_type": operation_type
+                }
+            )
             return False
         else:
             return True
@@ -753,9 +790,7 @@ class MemoryOrchestrator:
     async def initialize_story_memory(self, story_id: str) -> bool:
         """Initialize memory for a specific story."""
         try:
-            from openchronicle.infrastructure.persistence.database_orchestrator import (
-                database_orchestrator as _db,
-            )
+            from openchronicle.infrastructure.persistence.database_orchestrator import database_orchestrator as _db
             _db.init_database(story_id)
             default_memory = self.repository.create_default_memory_structure()
             success = self.save_current_memory(story_id, default_memory)

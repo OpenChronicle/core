@@ -9,9 +9,7 @@ Works independently of AI processing for basic classification.
 import re
 from typing import Any
 
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IContentClassifier,
-)
+from openchronicle.application.services.importers.storypack.interfaces import IContentClassifier
 from openchronicle.shared.logging_system import get_logger
 
 

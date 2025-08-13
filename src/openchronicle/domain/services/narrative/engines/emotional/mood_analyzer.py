@@ -828,7 +828,10 @@ class MoodAnalyzer:
         exclamation_count = text.count("!")
         word_count = len(text.split())
 
-        structure = f"sentences:{sentence_count},questions:{question_count},exclamations:{exclamation_count},words:{word_count}"
+        structure = (
+            f"sentences:{sentence_count},questions:{question_count},"
+            f"exclamations:{exclamation_count},words:{word_count}"
+        )
         return structure
 
     def _calculate_structure_similarity(

@@ -60,10 +60,14 @@ class ConsistencyOrchestrator:
         Returns:
             List of generated character memories
         """
+
+        def _raise_invalid_memory_event_error():
+            raise ValueError("Invalid memory event structure")
+
         try:
             # Validate memory event structure
             if not self._validate_memory_event(memory_event):
-                raise ValueError("Invalid memory event structure")
+                _raise_invalid_memory_event_error()
 
             # Generate memories from event
             new_memories = self.memory_validator.generate_memories_from_event(

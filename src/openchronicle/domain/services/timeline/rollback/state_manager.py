@@ -38,7 +38,8 @@ class StateManager:
         )
         self.memory_port = memory_port
         self.scene_orchestrator = (
-            scene_orchestrator if scene_orchestrator is not None else SceneOrchestrator(story_id, persistence_port=self.persistence)
+            scene_orchestrator if scene_orchestrator is not None else
+            SceneOrchestrator(story_id, persistence_port=self.persistence)
         )
         self.persistence.init_database(story_id)
 

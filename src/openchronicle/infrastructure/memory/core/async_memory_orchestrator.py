@@ -14,9 +14,7 @@ from typing import Any
 from ....shared.exceptions import CacheConnectionError
 from ....shared.exceptions import CacheError
 from ....shared.exceptions import InfrastructureError
-from ....shared.exceptions import (
-    MemoryError as MemorySystemError,  # Avoid conflict with built-in MemoryError
-)
+from ....shared.exceptions import MemoryError as MemorySystemError  # Avoid conflict with built-in MemoryError
 from .character import CharacterManager
 from .character import MoodTracker
 from .character import VoiceManager

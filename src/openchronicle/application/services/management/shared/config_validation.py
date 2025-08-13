@@ -136,7 +136,7 @@ class ValidationManager:
             # Test JSON serialization
             json.dumps(metadata)
         except (TypeError, ValueError) as e:
-            raise ManagementException(f"Metadata is not JSON-serializable: {e}")
+            raise ManagementException(f"Metadata is not JSON-serializable: {e}") from e
         else:
             return metadata
 

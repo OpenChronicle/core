@@ -147,7 +147,17 @@ class ModelResponseGenerator(IModelResponseGenerator):
                     model_name=adapter_name,
                 ),
                 cause=e,
-            )
+            ) from e
+
+    def _raise_fallback_chain_exhausted_error(self, last_error: Exception | None) -> None:
+        """Helper to raise fallback chain exhausted error."""
+        raise ModelError(
+            f"All adapters in fallback chain failed. Last error: {last_error}",
+            category="fallback_exhausted",
+            severity=ErrorSeverity.CRITICAL,
+            context=ErrorContext(operation="generate_with_fallback_chain"),
+            cause=last_error,
+        )
 
     async def generate_with_fallback_chain(
         self,
@@ -176,13 +186,7 @@ class ModelResponseGenerator(IModelResponseGenerator):
                 log_warning(f"Fallback adapter {adapter_name} failed: {e}")
                 continue
 
-        raise ModelError(
-            f"All adapters in fallback chain failed. Last error: {last_error}",
-            category="fallback_exhausted",
-            severity=ErrorSeverity.CRITICAL,
-            context=ErrorContext(operation="generate_with_fallback_chain"),
-            cause=last_error,
-        )
+        self._raise_fallback_chain_exhausted_error(last_error)
 
     def get_fallback_chain(self, adapter_name: str) -> list[str]:
         """Get fallback chain for specified adapter."""
@@ -218,14 +222,16 @@ class ModelLifecycleManager(IModelLifecycleManager):
     )
     async def initialize_adapter(self, adapter_name: str, max_retries: int = 2) -> bool:
         """Initialize a specific adapter with retry logic."""
+
+        def _raise_no_config_error(adapter_name: str):
+            raise ModelError(f"No configuration found for adapter {adapter_name}")
+
         for attempt in range(max_retries + 1):
             try:
                 # Get adapter configuration
                 config = self.config_manager.get_model_configuration(adapter_name)
                 if not config:
-                    raise ModelError(
-                        f"No configuration found for adapter {adapter_name}"
-                    )
+                    _raise_no_config_error(adapter_name)
 
                 # Initialize adapter (this would be adapter-specific logic)
                 # For now, we'll simulate initialization

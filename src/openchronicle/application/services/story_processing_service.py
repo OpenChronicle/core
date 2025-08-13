@@ -217,7 +217,8 @@ class StoryProcessingService:
         from openchronicle.domain.models.model_orchestrator import ModelOrchestrator
 
         model_manager = ModelOrchestrator()
-        policy = RetryPolicy(max_attempts=3, base_delay=0.4, retry_exceptions=(Exception,))  # TODO: narrow exception types
+        # TODO: narrow exception types for better error handling
+        policy = RetryPolicy(max_attempts=3, base_delay=0.4, retry_exceptions=(Exception,))
 
         async def _attempt():
             return await model_manager.generate_response(
@@ -258,9 +259,7 @@ class StoryProcessingService:
                 )
             else:
                 # Fallback for backward compatibility
-                from openchronicle.domain.ports.content_analysis_port import (
-                    IContentAnalysisPort,
-                )
+                from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
 
                 class MockContentAnalysisPort(IContentAnalysisPort):
                     async def generate_content_flags(
@@ -311,9 +310,7 @@ class StoryProcessingService:
         try:
             # Use the legacy scene orchestrator temporarily
             # TODO: Migrate to proper domain service once available
-            from openchronicle.domain.services.scenes.scene_orchestrator import (
-                SceneOrchestrator,
-            )
+            from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
 
             scene_orchestrator = SceneOrchestrator(story_id)
             scene_id = scene_orchestrator.save_scene(

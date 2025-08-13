@@ -525,7 +525,8 @@ def create_story_detail_template():
                                 {% endif %}
                                 {% if character.background %}
                                 <p class="card-text small text-muted">
-                                    {{ character.background[:100] }}{% if character.background|length > 100 %}...{% endif %}
+                                    {{ character.background[:100] }}{% if character.background|length > 100 %}
+                                    ...{% endif %}
                                 </p>
                                 {% endif %}
                             </div>
@@ -645,11 +646,13 @@ def create_status_template():
                             {% for component, status in health.components.items() %}
                             <tr>
                                 <td>
-                                    <i class="fas fa-{% if status == 'healthy' %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                    <i class="fas fa-{% if status == 'healthy' %}check-circle text-success
+                                    {% else %}times-circle text-danger{% endif %} me-2"></i>
                                     {{ component.replace('_', ' ').title() }}
                                 </td>
                                 <td>
-                                    <span class="badge {% if status == 'healthy' %}bg-success{% else %}bg-danger{% endif %}">
+                                    <span class="badge {% if status == 'healthy' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
                                         {{ status }}
                                     </span>
                                 </td>

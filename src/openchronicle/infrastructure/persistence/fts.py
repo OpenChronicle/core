@@ -92,7 +92,8 @@ class FTSManager:
                             )
                         else:
                             log_warning(
-                                f"FTS optimization query validation failed for {table}: {validation_result.error_message}"
+                                f"FTS optimization query validation failed for {table}: "
+                                f"{validation_result.error_message}"
                             )
                     except sqlite3.OperationalError as e:
                         print(f"Warning: Could not optimize FTS table {table}: {e}")

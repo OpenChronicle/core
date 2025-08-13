@@ -187,17 +187,17 @@ def database_optimize(
         console.print(f"❌ [red]Database optimization file access error: {e}[/red]")
         if verbose:
             console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except (ValueError, TypeError) as e:
         console.print(f"❌ [red]Database optimization parameter error: {e}[/red]")
         if verbose:
             console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except Exception as e:
         console.print(f"❌ [red]Database optimization error: {e}[/red]")
         if verbose:
             console.print_exception()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @database_app.command("health")
@@ -356,13 +356,13 @@ def database_health(
 
     except (OSError, IOError, PermissionError) as e:
         console.print(f"❌ [red]Database health check file access error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except (ValueError, TypeError) as e:
         console.print(f"❌ [red]Database health check parameter error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except Exception as e:
         console.print(f"❌ [red]Database health check error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def _format_file_size(size_bytes: int) -> str:

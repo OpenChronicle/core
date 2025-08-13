@@ -385,22 +385,22 @@ async def update_story(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid update data: {e!s}",
-        )
+        ) from e
     except ServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error updating story: {e!s}",
-        )
+        ) from e
     except (AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error updating story: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error updating story: {e!s}",
-        )
+        ) from e
 
 
 @app.get("/api/v1/stories", response_model=list[StoryResponse])
@@ -440,22 +440,22 @@ async def list_stories(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid pagination parameters: {e!s}",
-        )
+        ) from e
     except ServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service error listing stories: {e!s}",
-        )
+        ) from e
     except (AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error listing stories: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error listing stories: {e!s}",
-        )
+        ) from e
 
 
 # ================================
@@ -513,22 +513,22 @@ async def create_character(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
+        ) from e
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid character data: {e!s}",
-        )
+        ) from e
     except (AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error creating character: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create character: {e!s}",
-        )
+        ) from e
 
 
 @app.get("/api/v1/characters/{character_id}", response_model=CharacterResponse)
@@ -567,22 +567,22 @@ async def get_character(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
+        ) from e
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid character ID: {e!s}",
-        )
+        ) from e
     except (AttributeError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error getting character: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get character: {e!s}",
-        )
+        ) from e
 
 
 @app.get(
@@ -626,17 +626,17 @@ async def list_story_characters(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error listing characters: {e!s}",
-        )
+        ) from e
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list characters: {e!s}",
-        )
+        ) from e
 
 
 # ================================
@@ -686,17 +686,17 @@ async def generate_scene(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error generating scene: {e!s}",
-        )
+        ) from e
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate scene: {e!s}",
-        )
+        ) from e
 
 
 @app.get("/api/v1/stories/{story_id}/scenes", response_model=list[SceneResponse])
@@ -738,17 +738,17 @@ async def list_story_scenes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Data structure error listing scenes: {e!s}",
-        )
+        ) from e
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Network connectivity error: {e!s}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list scenes: {e!s}",
-        )
+        ) from e
 
 
 # ================================

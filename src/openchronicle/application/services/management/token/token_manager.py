@@ -70,7 +70,7 @@ class TokenManager:
 
         except Exception as e:
             log_error(f"Failed to initialize TokenManager: {e}")
-            raise TokenManagerException(f"Initialization failed: {e}")
+            raise TokenManagerException(f"Initialization failed: {e}") from e
 
     # =====================================================================
     # TOKENIZATION INTERFACE
@@ -314,4 +314,4 @@ class TokenManager:
             log_system_event("token_system", "Configuration updated")
         except Exception as e:
             log_error(f"Failed to update config: {e}")
-            raise TokenManagerException(f"Config update failed: {e}")
+            raise TokenManagerException(f"Config update failed: {e}") from e

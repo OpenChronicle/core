@@ -21,12 +21,8 @@ class RegistryAdapter(IRegistryPort):
         """Initialize registry adapter."""
         # Import here to avoid circular dependencies
         try:
-            from openchronicle.infrastructure.registry.registry_manager import (
-                RegistryManager,
-            )
-            from openchronicle.infrastructure.registry.schema_validation import (
-                validate_provider_config,
-            )
+            from openchronicle.infrastructure.registry.registry_manager import RegistryManager
+            from openchronicle.infrastructure.registry.schema_validation import validate_provider_config
 
             self.registry_manager = RegistryManager()
             self.validate_config_func = validate_provider_config

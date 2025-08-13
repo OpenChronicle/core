@@ -31,6 +31,13 @@ class LoreExtractor(ExtractionComponent):
 
     async def extract_data(self, content: str) -> dict[str, Any]:
         """Extract world-building and lore information from raw text content."""
+
+        def _raise_model_initialization_error(model):
+            raise ModelInitializationError(f"Failed to initialize adapter for model: {model}")
+
+        def _raise_model_not_found_error(model):
+            raise ModelNotFoundError(f"No adapter available for model: {model}")
+
         log_info(f"Extracting lore data from content ({len(content)} chars)")
 
         prompt = f"""Analyze this text and extract world-building/lore information. Return ONLY valid JSON.
@@ -64,11 +71,11 @@ Return empty object {{}} if no clear lore information found."""
             if model not in self.model_manager.adapters:
                 success = await self.model_manager.initialize_adapter(model)
                 if not success:
-                    raise ModelInitializationError(f"Failed to initialize adapter for model: {model}")
+                    _raise_model_initialization_error(model)
 
             adapter = self.model_manager.adapters.get(model)
             if not adapter:
-                raise ModelNotFoundError(f"No adapter available for model: {model}")
+                _raise_model_not_found_error(model)
 
             response = await adapter.generate_response(prompt)
 

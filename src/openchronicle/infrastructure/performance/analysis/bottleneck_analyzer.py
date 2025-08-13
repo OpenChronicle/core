@@ -14,9 +14,7 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-from openchronicle.domain.ports.performance_interface_port import (
-    IPerformanceInterfacePort,
-)
+from openchronicle.domain.ports.performance_interface_port import IPerformanceInterfacePort
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
@@ -437,7 +435,10 @@ class BottleneckAnalyzer(IBottleneckAnalyzer):
                     affected_operations=[operation_type],
                     frequency=len(metrics),
                     avg_impact=operations_per_hour * avg_duration,
-                    description=f"Operation {operation_type} has high frequency and duration: {operations_per_hour:.1f}/hr, {avg_duration:.2f}s avg",
+                    description=(
+                        f"Operation {operation_type} has high frequency and duration: "
+                        f"{operations_per_hour:.1f}/hr, {avg_duration:.2f}s avg"
+                    ),
                     recommendations=[
                         f"Consider caching for {operation_type} operations",
                         "Implement rate limiting if appropriate",

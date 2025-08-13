@@ -235,7 +235,10 @@ class MemoryState:
             "flags": [
                 {
                     "name": getattr(flag, "name", flag.get("name") if isinstance(flag, dict) else ""),
-                    "created": _serialize_dt(getattr(flag, "created", flag.get("created") if isinstance(flag, dict) else datetime.now(UTC))),
+                    "created": _serialize_dt(getattr(
+                        flag, "created",
+                        flag.get("created") if isinstance(flag, dict) else datetime.now(UTC)
+                    )),
                     "data": getattr(flag, "data", flag.get("data") if isinstance(flag, dict) else None),
                 }
                 for flag in self.flags
@@ -243,7 +246,10 @@ class MemoryState:
             "recent_events": [
                 {
                     "description": getattr(evt, "description", evt.get("description") if isinstance(evt, dict) else ""),
-                    "timestamp": _serialize_dt(getattr(evt, "timestamp", evt.get("timestamp") if isinstance(evt, dict) else datetime.now(UTC))),
+                    "timestamp": _serialize_dt(getattr(
+                        evt, "timestamp",
+                        evt.get("timestamp") if isinstance(evt, dict) else datetime.now(UTC)
+                    )),
                     "data": getattr(evt, "data", evt.get("data") if isinstance(evt, dict) else {}),
                 }
                 for evt in self.recent_events

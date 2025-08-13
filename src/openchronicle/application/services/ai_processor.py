@@ -107,9 +107,7 @@ class AIProcessor:
                 return await _attempt()
         else:
             # Fallback for backward compatibility
-            from openchronicle.domain.ports.model_management_port import (
-                IModelManagementPort,
-            )
+            from openchronicle.domain.ports.model_management_port import IModelManagementPort
 
             class MockModelManagementPort(IModelManagementPort):
                 async def generate_response(
@@ -170,9 +168,7 @@ class AIProcessor:
                 }
         else:
             # Fallback for backward compatibility
-            from openchronicle.domain.ports.content_analysis_port import (
-                IContentAnalysisPort,
-            )
+            from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
 
             class MockContentAnalysisPort(IContentAnalysisPort):
                 async def generate_content_flags(

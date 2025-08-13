@@ -129,7 +129,7 @@ class ImageFormatConverter:
             logger.exception("Format conversion failed")
             raise ImageValidationError(
                 f"Could not convert to {target_format.value}: {e}"
-            )
+            ) from e
 
     def resize_image(
         self, image_data: bytes, target_size: ImageSize, maintain_aspect: bool = True
@@ -166,7 +166,7 @@ class ImageFormatConverter:
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.exception("Image resize failed")
-            raise ImageValidationError(f"Could not resize image: {e}")
+            raise ImageValidationError(f"Could not resize image: {e}") from e
 
     def optimize_size(self, image_data: bytes, max_size_kb: int = 1024) -> bytes:
         """Optimize image size to stay under size limit"""
@@ -249,7 +249,7 @@ class ImageFormatConverter:
 
         except (OSError, ValueError, UnidentifiedImageError) as e:
             logger.exception("Thumbnail creation failed")
-            raise ImageValidationError(f"Could not create thumbnail: {e}")
+            raise ImageValidationError(f"Could not create thumbnail: {e}") from e
 
     def add_watermark(
         self,
@@ -381,7 +381,7 @@ class ImageFormatConverter:
         try:
             return base64.b64decode(base64_string)
         except (binascii.Error, ValueError) as e:
-            raise ImageValidationError(f"Invalid base64 image data: {e}")
+            raise ImageValidationError(f"Invalid base64 image data: {e}") from e
 
     def batch_convert(
         self,

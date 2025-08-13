@@ -123,7 +123,10 @@ class RecommendationEngine(RoutingComponent):
                 suggestions["actions"].append(
                     {
                         "type": "expand_options",
-                        "description": f"Limited model options for {content_type} - install additional models for redundancy",
+                        "description": (
+                            f"Limited model options for {content_type} - "
+                            "install additional models for redundancy"
+                        ),
                         "commands": self._get_install_commands(content_type),
                     }
                 )
@@ -136,7 +139,10 @@ class RecommendationEngine(RoutingComponent):
                     suggestions["actions"].append(
                         {
                             "type": "improve_quality",
-                            "description": f"Available models have low suitability scores (best: {best_score:.2f}) - consider better alternatives",
+                            "description": (
+                                f"Available models have low suitability scores (best: {best_score:.2f}) - "
+                                "consider better alternatives"
+                            ),
                             "commands": self._get_install_commands(content_type),
                             "current_best_score": best_score,
                         }

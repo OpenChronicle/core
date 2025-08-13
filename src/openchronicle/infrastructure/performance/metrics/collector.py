@@ -12,9 +12,7 @@ from typing import Any
 
 import psutil
 
-from openchronicle.domain.ports.performance_interface_port import (
-    IPerformanceInterfacePort,
-)
+from openchronicle.domain.ports.performance_interface_port import IPerformanceInterfacePort
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 

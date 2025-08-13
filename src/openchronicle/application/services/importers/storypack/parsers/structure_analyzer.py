@@ -9,12 +9,8 @@ Handles filesystem analysis and organization recommendations.
 from pathlib import Path
 from typing import Any
 
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ContentFile,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    IStructureAnalyzer,
-)
+from openchronicle.application.services.importers.storypack.interfaces import ContentFile
+from openchronicle.application.services.importers.storypack.interfaces import IStructureAnalyzer
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 

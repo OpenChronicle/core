@@ -16,9 +16,7 @@ from typing import Any
 
 from cachetools import TTLCache
 
-from openchronicle.infrastructure.persistence.async_database_orchestrator import (
-    AsyncDatabaseOrchestrator,
-)
+from openchronicle.infrastructure.persistence.async_database_orchestrator import AsyncDatabaseOrchestrator
 from openchronicle.shared.json_utilities import JSONUtilities
 
 

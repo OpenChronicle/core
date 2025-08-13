@@ -67,9 +67,9 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
             test_file.unlink()
         except (OSError, IOError, PermissionError) as e:
             # Handle file system errors during storage validation
-            raise ValueError(f"Storage path not writable due to file system error: {e}")
+            raise ValueError(f"Storage path not writable due to file system error: {e}") from e
         except Exception as e:
-            raise ValueError(f"Storage path validation failed: {e}")
+            raise ValueError(f"Storage path validation failed: {e}") from e
 
     def initialize_character(
         self, character_id: str, character_data: dict | None = None
@@ -261,10 +261,14 @@ class CharacterStorage(CharacterEngineBase, CharacterEventHandler):
 
     def import_character_data(self, character_data: dict[str, Any]) -> bool:
         """Import character data from external source."""
+
+        def _raise_missing_character_id_error():
+            raise ValueError("character_id is required")
+
         try:
             character_id = character_data.get("character_id")
             if not character_id:
-                raise ValueError("character_id is required")
+                _raise_missing_character_id_error()
 
             # Create or update character
             character = CharacterData.from_dict(character_data)

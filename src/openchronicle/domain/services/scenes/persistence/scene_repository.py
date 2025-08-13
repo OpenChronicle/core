@@ -20,12 +20,8 @@ from openchronicle.domain.errors.persistence_errors import SaveSceneError
 
 # Import domain interfaces (following dependency inversion principle)
 from openchronicle.domain.ports.persistence_port import IPersistencePort
-from openchronicle.shared.logging_system import (  # Replace prints with structured logging
-    log_error,
-)
-from openchronicle.shared.logging_system import (  # Replace prints with structured logging
-    log_info,
-)
+from openchronicle.shared.logging_system import log_error  # Replace prints with structured logging
+from openchronicle.shared.logging_system import log_info  # Replace prints with structured logging
 
 # Import shared scene models
 from ..shared.scene_models import SceneData

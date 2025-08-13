@@ -10,12 +10,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ImportContext,
-)
-from openchronicle.application.services.importers.storypack.interfaces import (
-    ITemplateEngine,
-)
+from openchronicle.application.services.importers.storypack.interfaces import ImportContext
+from openchronicle.application.services.importers.storypack.interfaces import ITemplateEngine
 from openchronicle.shared.logging_system import get_logger
 from openchronicle.shared.logging_system import log_system_event
 
