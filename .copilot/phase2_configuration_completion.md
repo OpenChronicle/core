@@ -5,12 +5,12 @@ Successfully enhanced OpenChronicle's configuration system with modern Pydantic-
 
 ## Achievements
 
-### ✅ Enhanced Configuration System (`src/openchronicle/shared/enhanced_config.py`)
-- **Pydantic v2 Integration**: Complete configuration system using `pydantic-settings`
-- **Environment Variable Support**: All settings can be overridden via `OPENCHRONICLE_*` environment variables
-- **Type Validation**: Automatic type validation and coercion for all configuration values
-- **Comprehensive Settings**: 8 configuration sections with detailed field validation
-- **Backward Compatibility**: Graceful fallback to existing configuration if Pydantic unavailable
+### ✅ Centralized Configuration System
+- **Typed Dataclasses + JSON**: Unified system (see `src/openchronicle/shared/centralized_config.py`)
+- **Environment Variable Support**: Settings can be overridden via environment variables
+- **Validation Layer**: Type safety through structured config objects
+- **Comprehensive Settings**: 8 configuration sections with field validation
+- **No Legacy Fallback**: Old enhanced module removed per no-compat policy
 
 ### ✅ Configuration Sections
 1. **PerformanceSettings**: Concurrent requests, timeouts, caching, batch processing
@@ -22,17 +22,11 @@ Successfully enhanced OpenChronicle's configuration system with modern Pydantic-
 7. **CLISettings**: Output formats, progress bars, editor preferences, table limits
 8. **UserPreferences**: Default stories, favorite models, recent files, aliases
 
-### ✅ Enhanced CLI Commands (`cli/commands/config/enhanced.py`)
-- **`config info`**: System information with Pydantic availability status
-- **`config list`**: Available configuration sections in rich table format
-- **`config show [section] [--key]`**: Display configuration with rich formatting
-- **`config set section key value [--type]`**: Set values with type validation
-- **`config validate`**: Comprehensive validation with detailed error reporting
-- **`config env`**: Environment variables display and examples
-- **`config backup/restore`**: Configuration backup and restore functionality
-- **`config migrate`**: Automatic migration from legacy to enhanced system
-- **`config test`**: Test the enhanced configuration system
-- **`config schema`**: Display configuration schema and field descriptions
+### ✅ Unified CLI Config Commands (`interfaces/cli/commands/config/__init__.py`)
+- **`config show [section]`**: Display current configuration
+- **`config set <scope> key value`**: Update CLI, preferences, or system settings
+- **`config export/import`**: Backup & restore configuration
+- **`config` operations** consolidated; deprecated `enhanced.py` removed
 
 ### ✅ Advanced Features
 - **Auto-Directory Creation**: Storage directories created automatically
