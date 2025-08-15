@@ -9,11 +9,14 @@ import hashlib
 import logging
 import re
 from collections import defaultdict
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
-from openchronicle.infrastructure.memory.engines.persistence.memory_repository import MemoryRepository
+from openchronicle.domain.models.memory_models import (
+    CharacterMemory as DomainCharacterMemory,
+    MemoryState,
+)
+from openchronicle.domain.ports.memory_port import IMemoryPort
 from openchronicle.shared.json_utilities import JSONUtilities
 
 
@@ -122,11 +125,11 @@ class MemoryValidator:
     and consistency checking for character memories.
     """
 
-    def __init__(self, config: dict | None = None):
+    def __init__(self, memory_port: IMemoryPort, config: dict | None = None):
         """Initialize memory validator."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
-        self.memory_repository = MemoryRepository()
+        self.memory_port = memory_port
 
         # Configuration
         self.consistency_threshold = self.config.get("consistency_threshold", 0.8)
@@ -462,7 +465,7 @@ class MemoryValidator:
         """Get all memories for a character from the repository."""
         try:
             # Load memory state from repository
-            memory_state = self.memory_repository.load_memory(story_id)
+            memory_state = self.memory_port.load_memory(story_id)
 
             # Extract character memories
             if character_id in memory_state.characters:
@@ -474,7 +477,6 @@ class MemoryValidator:
                 # Convert dialogue history to CharacterMemory objects
                 for dialogue in character.dialogue_history:
                     memory = CharacterMemory(
-                        memory_id=f"{character_id}_{len(memories)}",
                         character_id=character_id,
                         content=dialogue.get("content", ""),
                         memory_type="dialogue",
@@ -529,15 +531,12 @@ class MemoryValidator:
         """Save memory to repository."""
         try:
             # Load current memory state
-            memory_state = self.memory_repository.load_memory(story_id)
+            memory_state = self.memory_port.load_memory(story_id)
 
             # Ensure character exists in memory state
             if memory.character_id not in memory_state.characters:
-                # Import the infrastructure CharacterMemory model
-                from openchronicle.infrastructure.memory.shared.memory_models import (
-                    CharacterMemory as InfraCharacterMemory,
-                )
-                memory_state.characters[memory.character_id] = InfraCharacterMemory(name=memory.character_id)
+                # Use domain CharacterMemory model
+                memory_state.characters[memory.character_id] = DomainCharacterMemory(name=memory.character_id)
 
             # Convert domain memory to infrastructure format and add to dialogue history
             character = memory_state.characters[memory.character_id]
@@ -554,7 +553,7 @@ class MemoryValidator:
             character.dialogue_history.append(dialogue_entry)
 
             # Save updated memory state
-            success = self.memory_repository.save_memory(story_id, memory_state)
+            success = self.memory_port.save_memory(story_id, memory_state)
 
             if not success:
                 logger.warning(f"Failed to save memory for character {memory.character_id}")
@@ -575,14 +574,11 @@ class MemoryValidator:
         """Save compressed memory summary to repository."""
         try:
             # Load current memory state
-            memory_state = self.memory_repository.load_memory(story_id)
+            memory_state = self.memory_port.load_memory(story_id)
 
             # Ensure character exists
             if character_id not in memory_state.characters:
-                from openchronicle.infrastructure.memory.shared.memory_models import (
-                    CharacterMemory as InfraCharacterMemory,
-                )
-                memory_state.characters[character_id] = InfraCharacterMemory(name=character_id)
+                memory_state.characters[character_id] = DomainCharacterMemory(name=character_id)
 
             # Add compressed summary to character's background or create summary section
             character = memory_state.characters[character_id]
@@ -595,7 +591,7 @@ class MemoryValidator:
                 character.background = summary_entry
 
             # Save updated memory state
-            success = self.memory_repository.save_memory(story_id, memory_state)
+            success = self.memory_port.save_memory(story_id, memory_state)
 
             if not success:
                 logger.warning(f"Failed to save compressed memory for character {character_id}")
@@ -614,7 +610,7 @@ class MemoryValidator:
         """Delete old memories from repository based on memory content or index."""
         try:
             # Load current memory state
-            memory_state = self.memory_repository.load_memory(story_id)
+            memory_state = self.memory_port.load_memory(story_id)
 
             if character_id not in memory_state.characters:
                 logger.warning(f"Character {character_id} not found in memory state")
@@ -634,7 +630,7 @@ class MemoryValidator:
                 logger.info(f"Removed {memories_to_remove} old memories for character {character_id}")
 
             # Save updated memory state
-            success = self.memory_repository.save_memory(story_id, memory_state)
+            success = self.memory_port.save_memory(story_id, memory_state)
 
             if not success:
                 logger.warning(f"Failed to delete old memories for character {character_id}")

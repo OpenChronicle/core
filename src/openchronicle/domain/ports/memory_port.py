@@ -111,3 +111,28 @@ class IMemoryPort(ABC):
         Returns:
             True if successful, False otherwise
         """
+
+    @abstractmethod
+    def load_memory(self, story_id: str) -> Any:
+        """
+        Load full memory state for story validation.
+
+        Args:
+            story_id: Story identifier
+
+        Returns:
+            Memory state object
+        """
+
+    @abstractmethod
+    def save_memory(self, story_id: str, memory_state: Any) -> bool:
+        """
+        Save full memory state for story validation.
+
+        Args:
+            story_id: Story identifier
+            memory_state: Memory state object to save
+
+        Returns:
+            True if successful, False otherwise
+        """

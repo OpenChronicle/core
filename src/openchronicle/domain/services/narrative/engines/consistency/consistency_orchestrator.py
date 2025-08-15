@@ -8,9 +8,10 @@ for narrative consistency management across the OpenChronicle system.
 import logging
 from typing import Any
 
+from openchronicle.domain.ports.memory_port import IMemoryPort
 from openchronicle.shared.json_utilities import JSONUtilities
 
-from ...shared.narrative_state import NarrativeStateManager
+# from ...shared.narrative_state import NarrativeStateManager  # Temporarily disabled
 from .memory_validator import MemoryValidator
 from .state_tracker import StateTracker
 
@@ -26,17 +27,19 @@ class ConsistencyOrchestrator:
     to ensure narrative consistency across character memories and states.
     """
 
-    def __init__(self, config: dict | None = None):
+    def __init__(self, memory_port: IMemoryPort, config: dict | None = None):
         """Initialize consistency orchestrator with configuration."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
 
-        # Initialize components
-        self.memory_validator = MemoryValidator(config)
+        # Initialize components with injected dependencies
+        self.memory_validator = MemoryValidator(memory_port, config)
         self.state_tracker = StateTracker(config)
+        
         # Initialize components
         storage_dir = self.config.get("storage_dir", "storage/narrative_consistency")
-        self.narrative_state = NarrativeStateManager(storage_dir)
+        # Temporarily comment out narrative state manager due to import issue
+        # self.narrative_state = NarrativeStateManager(storage_dir)
 
         # Configuration settings
         self.retention_days = self.config.get("retention_days", 30)
