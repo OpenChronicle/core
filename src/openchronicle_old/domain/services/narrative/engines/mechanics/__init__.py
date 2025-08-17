@@ -1,0 +1,48 @@
+"""
+OpenChronicle Core - Narrative Mechanics Subsystem
+
+Modular mechanics system for narrative dice rolling, branching, and resolution.
+Extracted from NarrativeDiceEngine for improved maintainability.
+
+Author: OpenChronicle Development Team
+"""
+
+from .dice_engine import DiceEngine
+from .mechanics_models import (
+    CharacterPerformance,
+    DiceRoll,
+    DiceType,
+    DifficultyLevel,
+    MechanicsRequest,
+    MechanicsResult,
+    NarrativeBranch,
+    OutcomeType,
+    ResolutionConfig,
+    ResolutionResult,
+    ResolutionType,
+)
+from .mechanics_orchestrator import MechanicsOrchestrator
+from .narrative_branching import NarrativeBranchingEngine
+
+__all__ = [
+    # Data models
+    "DiceType",
+    "ResolutionType",
+    "DifficultyLevel",
+    "OutcomeType",
+    "DiceRoll",
+    "ResolutionResult",
+    "ResolutionConfig",
+    "NarrativeBranch",
+    "MechanicsRequest",
+    "MechanicsResult",
+    "CharacterPerformance",
+    # Components
+    "DiceEngine",
+    "NarrativeBranchingEngine",
+    "MechanicsOrchestrator",
+]
+
+# Version info
+__version__ = "1.0.0"
+__author__ = "OpenChronicle Development Team"

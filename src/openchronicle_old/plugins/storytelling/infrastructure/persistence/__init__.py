@@ -1,0 +1,3 @@
+"""
+Storytelling-specific persistence implementations.
+"""
