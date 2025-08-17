@@ -35,22 +35,22 @@ class StyleManager:
             "fantasy_portrait": {
                 "style_modifiers": [
                     "fantasy art",
-                    "detailed character portrait",
+                    "detailed subject portrait",
                     "high quality",
                     "dramatic lighting",
                 ],
-                "image_types": [ImageType.CHARACTER],
-                "description": "Fantasy character portrait with dramatic lighting",
+                "image_types": [ImageType.ENTITY],
+                "description": "Fantasy subject portrait with dramatic lighting",
             },
-            "cinematic_scene": {
+            "cinematic_frame": {
                 "style_modifiers": [
                     "cinematic composition",
                     "atmospheric lighting",
                     "detailed environment",
                     "fantasy setting",
                 ],
-                "image_types": [ImageType.SCENE, ImageType.LOCATION],
-                "description": "Cinematic scene with atmospheric elements",
+                "image_types": [ImageType.FRAME, ImageType.LOCATION],
+                "description": "Cinematic frame with atmospheric elements",
             },
             "detailed_item": {
                 "style_modifiers": [
@@ -70,8 +70,8 @@ class StyleManager:
                     "period appropriate",
                 ],
                 "image_types": [
-                    ImageType.CHARACTER,
-                    ImageType.SCENE,
+                    ImageType.ENTITY,
+                    ImageType.FRAME,
                     ImageType.LOCATION,
                     ImageType.ITEM,
                 ],
@@ -84,7 +84,7 @@ class StyleManager:
                     "realistic lighting",
                     "city environment",
                 ],
-                "image_types": [ImageType.SCENE, ImageType.LOCATION],
+                "image_types": [ImageType.FRAME, ImageType.LOCATION],
                 "description": "Modern urban environment",
             },
         }
@@ -102,8 +102,8 @@ class StyleManager:
     def get_default_style_modifiers(self, image_type: ImageType) -> list[str]:
         """Get default style modifiers for an image type"""
         defaults = {
-            ImageType.CHARACTER: ["high quality", "detailed", "portrait"],
-            ImageType.SCENE: ["high quality", "detailed", "landscape", "atmospheric"],
+            ImageType.ENTITY: ["high quality", "detailed", "portrait"],
+            ImageType.FRAME: ["high quality", "detailed", "landscape", "atmospheric"],
             ImageType.LOCATION: [
                 "high quality",
                 "detailed",
@@ -188,29 +188,29 @@ class StyleManager:
 
         return params
 
-    def should_auto_generate_character(
+    def should_auto_generate_entity(
         self,
-        character_name: str,
-        character_data: dict[str, Any],
+        entity_name: str,
+        entity_data: dict[str, Any],
         existing_images: list[Any],
     ) -> bool:
-        """Check if character portrait should be auto-generated"""
+        """Check if subject portrait should be auto-generated"""
 
-        if not self.auto_generate.get("character_portraits", False):
+        if not self.auto_generate.get("entity_portraits", False):
             return False
 
-        # Check if character already has a portrait
+        # Check if subject already has a portrait
         has_portrait = any(
-            img.image_type == ImageType.CHARACTER for img in existing_images
+            img.image_type == ImageType.ENTITY for img in existing_images
         )
 
         if has_portrait:
-            logger.info(f"Character {character_name} already has a portrait")
+            logger.info(f"Subject {entity_name} already has a portrait")
             return False
 
-        # Check character importance or other criteria
-        importance = character_data.get("importance", "normal")
-        min_importance = self.auto_generate.get("character_min_importance", "normal")
+        # Check subject importance or other criteria
+        importance = entity_data.get("importance", "normal")
+        min_importance = self.auto_generate.get("entity_min_importance", "normal")
 
         importance_levels = {"low": 1, "normal": 2, "high": 3, "critical": 4}
 
@@ -221,20 +221,20 @@ class StyleManager:
 
         return False
 
-    def should_auto_generate_scene(
+    def should_auto_generate_frame(
         self,
-        scene_id: str,
-        scene_data: dict[str, Any],
+        frame_id: str,
+        frame_data: dict[str, Any],
         context: dict[str, Any] | None = None,
     ) -> bool:
-        """Check if scene image should be auto-generated"""
+        """Check if frame image should be auto-generated"""
 
-        if not self.auto_generate.get("scene_images", False):
+        if not self.auto_generate.get("frame_images", False):
             return False
 
         # Check for trigger conditions
         triggers = self.auto_generate.get(
-            "scene_triggers", ["major_event", "new_location"]
+            "frame_triggers", ["major_event", "new_location"]
         )
 
         # Simple trigger detection (can be enhanced)
@@ -242,21 +242,21 @@ class StyleManager:
 
         if (
             "major_event" in triggers
-            and scene_data.get("importance", "normal") == "high"
+            and frame_data.get("importance", "normal") == "high"
         ):
             should_generate = True
 
-        if "new_location" in triggers and scene_data.get("new_location", False):
+        if "new_location" in triggers and frame_data.get("new_location", False):
             should_generate = True
 
-        if "character_introduction" in triggers and scene_data.get(
-            "new_character", False
+        if ("entity_introduction") in triggers and frame_data.get(
+            "new_entity", False
         ):
             should_generate = True
 
         # Context-based triggers
         if context:
-            if "scene_transition" in triggers and context.get(
+            if ("frame_transition") in triggers and context.get(
                 "location_changed", False
             ):
                 should_generate = True
@@ -273,8 +273,8 @@ class StyleManager:
 
         # Type-based recommendations
         type_recommendations = {
-            ImageType.CHARACTER: ImageSize.PORTRAIT_512,
-            ImageType.SCENE: ImageSize.LANDSCAPE_768,
+            ImageType.ENTITY: ImageSize.PORTRAIT_512,
+            ImageType.FRAME: ImageSize.LANDSCAPE_768,
             ImageType.LOCATION: ImageSize.LANDSCAPE_768,
             ImageType.ITEM: ImageSize.SQUARE_512,
         }
@@ -383,5 +383,5 @@ class StyleManager:
             "built_in_presets": total_presets - custom_presets,
             "presets_by_type": type_counts,
             "auto_generation_enabled": bool(self.auto_generate),
-            "available_triggers": list(self.auto_generate.get("scene_triggers", [])),
+            "available_triggers": list(self.auto_generate.get("frame_triggers", [])),
         }

@@ -20,7 +20,7 @@ class AsyncConnectionManager:
         self.config = config
 
     def _get_db_path(self, story_id: str, is_test: bool | None = None) -> str:
-        """Get database path for story."""
+        """Get database path for unit."""
         # Use shared DatabaseConfig to avoid hard-coded paths drifting from sync code
         base_path = self.config.get_base_path(is_test)
         base_dir = Path(base_path) / story_id

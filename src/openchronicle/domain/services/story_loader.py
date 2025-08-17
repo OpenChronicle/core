@@ -1,7 +1,11 @@
-"""TEMP re-export during migration to plugin-based architecture.
+"""Story Loader Shim (plugin-agnostic).
 
-This module exposes story loading utilities from the storytelling plugin to
-preserve import compatibility during Phase 1.
+All story loading logic lives in domain-specific plugins (e.g., storytelling).
+Core no longer re-exports plugin implementations. Use the plugin's own
+APIs or resolve through dependency injection.
+
+This module intentionally provides no runtime functionality to avoid
+plugin coupling from the core domain.
 """
 
-from openchronicle.plugins.storytelling.domain.services.story_loader import *  # type: ignore # noqa: F401,F403
+__all__: list[str] = []

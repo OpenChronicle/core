@@ -61,6 +61,46 @@ class ImageFormatConverter:
             ImageFormat.GIF,
         }
 
+    async def convert_image(
+        self,
+        source_path: Path,
+        target_path: Path,
+        target_format: str,
+        optimize: bool = True,
+    ) -> bool:
+        """Convert an image file on disk to a target format.
+
+        Returns True on success, False on failure. Uses existing conversion utilities.
+        """
+        try:
+            # Read source bytes
+            data = source_path.read_bytes()
+
+            # Map string to ImageFormat enum
+            fmt_str = target_format.upper()
+            if fmt_str == "JPG":
+                fmt_str = "JPEG"
+            try:
+                fmt = ImageFormat[fmt_str]
+            except KeyError:
+                # Fallback: try by value
+                fmt = ImageFormat(fmt_str)
+
+            # Optionally optimize size before/after conversion
+            converted = self.convert_format(data, fmt)
+            if optimize:
+                # Keep under ~1MB by default
+                converted = self.optimize_size(converted, max_size_kb=1024)
+
+            # Ensure output directory exists
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            target_path.write_bytes(converted)
+        except Exception:
+            logger.exception("Failed to convert image on disk")
+            return False
+        else:
+            return True
+
     def detect_format(self, image_data: bytes) -> ImageFormat | None:
         """Detect image format from binary data"""
         try:
@@ -109,7 +149,7 @@ class ImageFormatConverter:
                     img = background
 
                 # Prepare save parameters
-                save_kwargs = {"format": target_format.value}
+                save_kwargs: dict[str, Any] = {"format": target_format.value}
 
                 if target_format == ImageFormat.JPEG:
                     save_kwargs["quality"] = quality.value

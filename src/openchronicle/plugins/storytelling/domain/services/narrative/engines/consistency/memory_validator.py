@@ -9,12 +9,39 @@ import hashlib
 import logging
 import re
 from collections import defaultdict
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
-from openchronicle.infrastructure.memory.engines.persistence.memory_repository import MemoryRepository
 from openchronicle.shared.json_utilities import JSONUtilities
+
+
+# Plugin-local minimal memory state to avoid core infrastructure dependency
+class _CharacterRecord:
+    def __init__(self, name: str):
+        self.name = name
+        self.dialogue_history: list[dict[str, Any]] = []
+        self.background: str | None = None
+
+
+class _MemoryState:
+    def __init__(self):
+        self.characters: dict[str, _CharacterRecord] = {}
+
+
+class _RepositoryShim:
+    """Simple in-memory repository for validation operations (plugin-local)."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, _MemoryState] = {}
+
+    def load_memory(self, story_id: str) -> _MemoryState:
+        if story_id not in self._store:
+            self._store[story_id] = _MemoryState()
+        return self._store[story_id]
+
+    def save_memory(self, story_id: str, memory_state: _MemoryState) -> bool:
+        self._store[story_id] = memory_state
+        return True
 
 
 logger = logging.getLogger(__name__)
@@ -66,9 +93,7 @@ class CharacterMemory:
 
     def _generate_memory_id(self) -> str:
         """Generate unique memory ID."""
-        content_hash = hashlib.sha256(
-            f"{self.character_id}_{self.content}_{self.timestamp}".encode()
-        ).hexdigest()
+        content_hash = hashlib.sha256(f"{self.character_id}_{self.content}_{self.timestamp}".encode()).hexdigest()
         return f"mem_{content_hash[:16]}"
 
     def to_dict(self) -> dict:
@@ -126,7 +151,8 @@ class MemoryValidator:
         """Initialize memory validator."""
         self.config = config or {}
         self.json_utils = JSONUtilities()
-        self.memory_repository = MemoryRepository()
+        # Use plugin-local repository shim to avoid core infra coupling
+        self.memory_repository = _RepositoryShim()
 
         # Configuration
         self.consistency_threshold = self.config.get("consistency_threshold", 0.8)
@@ -135,9 +161,7 @@ class MemoryValidator:
 
         logger.info("MemoryValidator initialized")
 
-    def generate_memories_from_event(
-        self, character_id: str, event: MemoryEvent
-    ) -> list[dict[str, Any]]:
+    def generate_memories_from_event(self, character_id: str, event: MemoryEvent) -> list[dict[str, Any]]:
         """
         Generate character memories from a memory event.
 
@@ -240,25 +264,17 @@ class MemoryValidator:
             conflicts = []
 
             # Temporal consistency check
-            temporal_conflicts = self._check_temporal_consistency(
-                memory_obj, existing_memories
-            )
+            temporal_conflicts = self._check_temporal_consistency(memory_obj, existing_memories)
             conflicts.extend(temporal_conflicts)
 
             # Knowledge consistency check
-            knowledge_conflicts = self._check_knowledge_consistency(
-                memory_obj, existing_memories
-            )
+            knowledge_conflicts = self._check_knowledge_consistency(memory_obj, existing_memories)
             conflicts.extend(knowledge_conflicts)
 
             # Calculate overall consistency confidence
-            confidence = self._calculate_consistency_confidence(
-                memory_obj, existing_memories
-            )
+            confidence = self._calculate_consistency_confidence(memory_obj, existing_memories)
 
-            is_consistent = (
-                len(conflicts) == 0 and confidence >= self.consistency_threshold
-            )
+            is_consistent = len(conflicts) == 0 and confidence >= self.consistency_threshold
 
             return {
                 "is_consistent": is_consistent,
@@ -301,9 +317,7 @@ class MemoryValidator:
             # Calculate relevance scores
             scored_memories = []
             for memory in memories:
-                relevance = self._calculate_memory_relevance(
-                    memory, context, context_keywords
-                )
+                relevance = self._calculate_memory_relevance(memory, context, context_keywords)
                 scored_memories.append((memory, relevance))
 
             # Sort by relevance and return top results
@@ -444,9 +458,7 @@ class MemoryValidator:
                 memory = CharacterMemory.from_dict(memory_data)
                 self._save_memory(memory, story_id)
 
-            logger.info(
-                f"Imported {len(memories)} memories for character {character_id}"
-            )
+            logger.info(f"Imported {len(memories)} memories for character {character_id}")
 
         except (KeyError, AttributeError) as e:
             logger.exception("Memory import data structure error")
@@ -474,14 +486,13 @@ class MemoryValidator:
                 # Convert dialogue history to CharacterMemory objects
                 for dialogue in character.dialogue_history:
                     memory = CharacterMemory(
-                        memory_id=f"{character_id}_{len(memories)}",
                         character_id=character_id,
                         content=dialogue.get("content", ""),
                         memory_type="dialogue",
                         emotional_score=dialogue.get("emotional_score", 0.0),
                         importance=dialogue.get("importance", 0.5),
                         timestamp=datetime.fromisoformat(dialogue.get("timestamp", datetime.now().isoformat())),
-                        tags=dialogue.get("tags", [])
+                        tags=dialogue.get("tags", []),
                     )
                     memories.append(memory)
 
@@ -509,10 +520,7 @@ class MemoryValidator:
             all_memories = self._get_character_memories(character_id, story_id)
 
             # Filter by date
-            filtered_memories = [
-                memory for memory in all_memories
-                if memory.timestamp < date
-            ]
+            filtered_memories = [memory for memory in all_memories if memory.timestamp < date]
         except (AttributeError, KeyError) as e:
             logger.exception("Error accessing memory date data")
             return []
@@ -533,11 +541,7 @@ class MemoryValidator:
 
             # Ensure character exists in memory state
             if memory.character_id not in memory_state.characters:
-                # Import the infrastructure CharacterMemory model
-                from openchronicle.infrastructure.memory.shared.memory_models import (
-                    CharacterMemory as InfraCharacterMemory,
-                )
-                memory_state.characters[memory.character_id] = InfraCharacterMemory(name=memory.character_id)
+                memory_state.characters[memory.character_id] = _CharacterRecord(name=memory.character_id)
 
             # Convert domain memory to infrastructure format and add to dialogue history
             character = memory_state.characters[memory.character_id]
@@ -547,7 +551,7 @@ class MemoryValidator:
                 "emotional_score": memory.emotional_score,
                 "importance": memory.importance,
                 "timestamp": memory.timestamp.isoformat(),
-                "tags": memory.tags
+                "tags": memory.tags,
             }
 
             # Add to dialogue history
@@ -569,9 +573,7 @@ class MemoryValidator:
             logger.exception("Error saving memory")
             raise
 
-    def _save_compressed_memory(
-        self, character_id: str, summary: str, week: str, story_id: str = "default"
-    ) -> None:
+    def _save_compressed_memory(self, character_id: str, summary: str, week: str, story_id: str = "default") -> None:
         """Save compressed memory summary to repository."""
         try:
             # Load current memory state
@@ -579,10 +581,7 @@ class MemoryValidator:
 
             # Ensure character exists
             if character_id not in memory_state.characters:
-                from openchronicle.infrastructure.memory.shared.memory_models import (
-                    CharacterMemory as InfraCharacterMemory,
-                )
-                memory_state.characters[character_id] = InfraCharacterMemory(name=character_id)
+                memory_state.characters[character_id] = _CharacterRecord(name=character_id)
 
             # Add compressed summary to character's background or create summary section
             character = memory_state.characters[character_id]
@@ -682,9 +681,7 @@ class MemoryValidator:
         keywords = [word for word in words if word not in stop_words and len(word) > 2]
         return list(set(keywords))
 
-    def _calculate_memory_relevance(
-        self, memory: CharacterMemory, context: str, context_keywords: list[str]
-    ) -> float:
+    def _calculate_memory_relevance(self, memory: CharacterMemory, context: str, context_keywords: list[str]) -> float:
         """Calculate relevance score for memory."""
         relevance = 0.0
 
@@ -759,16 +756,10 @@ class MemoryValidator:
         for positive_words, negative_words in opposing_pairs:
             new_has_positive = any(word in new_keywords for word in positive_words)
             new_has_negative = any(word in new_keywords for word in negative_words)
-            existing_has_positive = any(
-                word in existing_keywords for word in positive_words
-            )
-            existing_has_negative = any(
-                word in existing_keywords for word in negative_words
-            )
+            existing_has_positive = any(word in existing_keywords for word in positive_words)
+            existing_has_negative = any(word in existing_keywords for word in negative_words)
 
-            if (new_has_positive and existing_has_negative) or (
-                new_has_negative and existing_has_positive
-            ):
+            if (new_has_positive and existing_has_negative) or (new_has_negative and existing_has_positive):
                 return MemoryConflict(
                     conflict_type="knowledge_contradiction",
                     severity=0.7,
@@ -781,9 +772,7 @@ class MemoryValidator:
 
         return None
 
-    def _detect_temporal_contradiction(
-        self, new_memory: CharacterMemory, existing_memory: CharacterMemory
-    ) -> bool:
+    def _detect_temporal_contradiction(self, new_memory: CharacterMemory, existing_memory: CharacterMemory) -> bool:
         """Detect temporal contradiction between memories."""
         # Simple temporal contradiction detection
         # This would be enhanced with more sophisticated logic
@@ -806,9 +795,7 @@ class MemoryValidator:
         avg_similarity = sum(similarities) / len(similarities)
         return min(avg_similarity + 0.3, 1.0)  # Boost confidence slightly
 
-    def _calculate_memory_similarity(
-        self, memory1: CharacterMemory, memory2: CharacterMemory
-    ) -> float:
+    def _calculate_memory_similarity(self, memory1: CharacterMemory, memory2: CharacterMemory) -> float:
         """Calculate similarity between two memories."""
         # Simple similarity based on keyword overlap
         keywords1 = set(self._extract_keywords(memory1.content))

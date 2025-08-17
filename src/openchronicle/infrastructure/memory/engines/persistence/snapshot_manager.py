@@ -32,7 +32,7 @@ class SnapshotManager:
         self.max_snapshots = 50
 
     def create_snapshot(self, story_id: str, scene_id: str) -> str:
-        """Create memory snapshot for current scene."""
+        """Create memory snapshot for current frame (legacy id retained)."""
         current_memory = self.repository.load_memory(story_id)
         snapshot_id = self.repository.create_snapshot(
             story_id, scene_id, current_memory
@@ -43,7 +43,7 @@ class SnapshotManager:
         return ""
 
     def restore_from_snapshot(self, story_id: str, scene_id: str) -> RollbackResult:
-        """Restore memory from specific snapshot with detailed results."""
+        """Restore memory from a specific snapshot point with detailed results."""
         try:
             # Load current memory for comparison
             current_memory = self.repository.load_memory(story_id)
@@ -54,7 +54,7 @@ class SnapshotManager:
             if not restored_memory:
                 return RollbackResult(
                     success=False,
-                    message=f"No snapshot found for scene {scene_id}",
+                    message=f"No snapshot found for frame {scene_id}",
                     restored_scene_id="",
                     changes_detected=[],
                     warnings=[],
@@ -69,7 +69,7 @@ class SnapshotManager:
             if success:
                 return RollbackResult(
                     success=True,
-                    message=f"Successfully restored memory from scene {scene_id}",
+                    message=f"Successfully restored memory from frame {scene_id}",
                     restored_scene_id=scene_id,
                     changes_detected=changes,
                     warnings=[],

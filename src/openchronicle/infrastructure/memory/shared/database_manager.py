@@ -68,7 +68,7 @@ class DatabaseManager:
             """
             )
 
-            # Character state table
+            # Entity state table (schema retains legacy names for compatibility)
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS character_states (
@@ -82,7 +82,7 @@ class DatabaseManager:
             """
             )
 
-            # World state table
+            # Environment/world state table (schema retains legacy names)
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS world_states (
@@ -242,7 +242,7 @@ class DatabaseManager:
 
         Args:
             story_id: Story identifier
-            character_id: Optional character filter
+            character_id: Optional participant filter
             memory_type: Optional memory type filter
             limit: Maximum number of entries to return
 
@@ -281,7 +281,7 @@ class DatabaseManager:
             story_id: Story identifier
             memory_type: Type of memory (e.g., 'event', 'dialogue', 'description')
             content: Memory content
-            character_id: Optional character identifier
+            character_id: Optional participant identifier
             importance_score: Importance score (0.0 to 1.0)
             metadata: Optional metadata JSON string
 
@@ -313,14 +313,14 @@ class DatabaseManager:
         self, story_id: str, character_id: str
     ) -> dict[str, Any] | None:
         """
-        Retrieve character state from database.
+    Retrieve entity state from database.
 
         Args:
             story_id: Story identifier
-            character_id: Character identifier
+            character_id: Participant/entity identifier
 
         Returns:
-            Character state dictionary or None if not found
+            Entity state dictionary or None if not found
         """
         query = "SELECT * FROM character_states WHERE story_id = ? AND character_id = ?"
         results = self.execute_query(query, (story_id, character_id))
@@ -331,12 +331,12 @@ class DatabaseManager:
         self, story_id: str, character_id: str, state_data: str
     ) -> None:
         """
-        Store character state in database.
+    Store entity state in database.
 
         Args:
             story_id: Story identifier
-            character_id: Character identifier
-            state_data: JSON-serialized character state
+            character_id: Participant/entity identifier
+            state_data: JSON-serialized entity state
         """
         query = """
             INSERT OR REPLACE INTO character_states

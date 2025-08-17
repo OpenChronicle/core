@@ -28,9 +28,9 @@ class CacheWarmingManager:
     async def warm_character_cache(
         self, story_id: str, character_names: list[str]
     ) -> dict[str, bool]:
-        """Warm cache with character data."""
+        """Warm cache with participant data."""
         self.logger.info(
-            f"Warming character cache for story {story_id}: {len(character_names)} characters"
+            f"Warming participant cache for unit {story_id}: {len(character_names)} participants"
         )
 
         results = {}
@@ -66,7 +66,7 @@ class CacheWarmingManager:
         return results
 
     async def _warm_single_character(self, story_id: str, character_name: str) -> bool:
-        """Warm cache for a single character."""
+        """Warm cache for a single participant."""
         try:
             start_time = time.time()
 
@@ -91,20 +91,22 @@ class CacheWarmingManager:
             new_avg = (current_avg + warming_time) / 2
             self.cache_manager.metrics.warming_metrics["avg_time_ms"] = new_avg
         except (AttributeError, KeyError) as e:
-            self.logger.exception("Data structure error during cache warming for")
+            self.logger.exception("Data structure error during cache warming for participant")
             return False
         except (ConnectionError, TimeoutError) as e:
-            self.logger.exception("Network error during cache warming for")
+            self.logger.exception("Network error during cache warming for participant")
             return False
         except Exception as e:
-            self.logger.exception("Cache warming failed for")
+            self.logger.exception("Cache warming failed for participant")
             return False
         else:
             return True
 
     async def warm_memory_snapshots(self, story_ids: list[str]) -> dict[str, bool]:
         """Warm cache with memory snapshots."""
-        self.logger.info(f"Warming memory snapshot cache for {len(story_ids)} stories")
+        self.logger.info(
+            f"Warming memory snapshot cache for {len(story_ids)} units"
+        )
 
         results = {}
         for story_id in story_ids:
@@ -125,13 +127,19 @@ class CacheWarmingManager:
                 results[story_id] = True
 
             except (AttributeError, KeyError) as e:
-                self.logger.exception("Data structure error warming memory snapshot for")
+                self.logger.exception(
+                    "Data structure error warming memory snapshot for unit"
+                )
                 results[story_id] = False
             except (ConnectionError, TimeoutError) as e:
-                self.logger.exception("Network error warming memory snapshot for")
+                self.logger.exception(
+                    "Network error warming memory snapshot for unit"
+                )
                 results[story_id] = False
             except Exception as e:
-                self.logger.exception("Failed to warm memory snapshot for")
+                self.logger.exception(
+                    "Failed to warm memory snapshot for unit"
+                )
                 results[story_id] = False
 
         return results

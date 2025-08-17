@@ -1,8 +1,8 @@
 """
 Memory Adapter - Implementation of IMemoryPort
 
-This adapter wraps the existing infrastructure memory functions
-to implement the domain interface for character memory operations.
+This adapter wraps existing infrastructure memory functions
+to implement the domain interface for participant memory operations.
 """
 
 from typing import Any
@@ -18,11 +18,11 @@ class MemoryAdapter(IMemoryPort):
         self, story_id: str, character_name: str, memory_data: dict[str, Any]
     ) -> bool:
         """
-        Store character memory data.
+    Store participant memory data.
 
         Args:
-            story_id: Story identifier
-            character_name: Character name
+            story_id: Unit identifier
+            character_name: Participant name
             memory_data: Memory data to store
 
         Returns:
@@ -48,11 +48,11 @@ class MemoryAdapter(IMemoryPort):
         self, story_id: str, character_name: str
     ) -> Optional[dict[str, Any]]:
         """
-        Retrieve character memory data.
+    Retrieve participant memory data.
 
         Args:
-            story_id: Story identifier
-            character_name: Character name
+            story_id: Unit identifier
+            character_name: Participant name
 
         Returns:
             Memory data if found, None otherwise
@@ -76,11 +76,11 @@ class MemoryAdapter(IMemoryPort):
         self, story_id: str, character_name: str, updates: dict[str, Any]
     ) -> bool:
         """
-        Update character memory data.
+    Update participant memory data.
 
         Args:
-            story_id: Story identifier
-            character_name: Character name
+            story_id: Unit identifier
+            character_name: Participant name
             updates: Memory updates to apply
 
         Returns:
@@ -103,11 +103,11 @@ class MemoryAdapter(IMemoryPort):
 
     def delete_memory(self, story_id: str, character_name: str) -> bool:
         """
-        Delete character memory data.
+    Delete participant memory data.
 
         Args:
-            story_id: Story identifier
-            character_name: Character name
+            story_id: Unit identifier
+            character_name: Participant name
 
         Returns:
             True if successful, False otherwise
@@ -129,13 +129,13 @@ class MemoryAdapter(IMemoryPort):
 
     def list_character_memories(self, story_id: str) -> list[str]:
         """
-        List all characters with memory data.
+    List all participants with memory data.
 
         Args:
-            story_id: Story identifier
+            story_id: Unit identifier
 
         Returns:
-            List of character names
+            List of participant names
         """
         try:
             from openchronicle.infrastructure.memory import MemoryOrchestrator

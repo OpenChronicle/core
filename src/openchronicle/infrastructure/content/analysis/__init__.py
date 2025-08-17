@@ -10,35 +10,19 @@ Components:
 - Orchestrator: Main coordination interface
 
 Usage:
-    from openchronicle.infrastructure.content.analysis import ContentAnalysisOrchestrator
-
-    analyzer = ContentAnalysisOrchestrator(model_manager)
-    result = await analyzer.process(content, context)
+    The orchestrator is now provided by plugins through domain ports; use ports.
 """
 
 # Component modules
-from . import detection
-from . import extraction
-from . import routing
-from . import shared
+from . import detection, extraction, routing, shared
 
 # Main components for direct access
-from .detection import ContentClassifier
-from .detection import KeywordDetector
-from .detection import TransformerAnalyzer
-from .extraction import CharacterExtractor
-from .extraction import LocationExtractor
-from .extraction import LoreExtractor
-from .orchestrator import ContentAnalysisOrchestrator
-from .routing import ContentRouter
-from .routing import ModelSelector
-from .routing import RecommendationEngine
-
+from .detection import ContentClassifier, KeywordDetector, TransformerAnalyzer
+from .extraction import CharacterExtractor, LocationExtractor, LoreExtractor
+from .routing import ContentRouter, ModelSelector, RecommendationEngine
 
 __version__ = "5.0.0"
 __all__ = [
-    # Main orchestrator
-    "ContentAnalysisOrchestrator",
     # Component modules
     "detection",
     "extraction",
@@ -55,4 +39,3 @@ __all__ = [
     "ContentRouter",
     "RecommendationEngine",
 ]
-

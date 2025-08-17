@@ -13,20 +13,13 @@ The interface layer is responsible for:
 - External integrations
 """
 
-from openchronicle.shared.exceptions import InfrastructureError
-from openchronicle.shared.exceptions import ApplicationError
+from openchronicle.shared.exceptions import ApplicationError, InfrastructureError
 
-from ..shared.logging_system import log_error
-from ..shared.logging_system import log_info
-from ..shared.logging_system import log_system_event
+from ..shared.logging_system import log_error, log_info, log_system_event
 from .api import app as api_app
 from .api import run_dev_server as run_api_server
-from .cli import cli
-from .events import create_event_app
-from .events import run_event_server
-from .web import create_web_app
-from .web import run_web_server
-
+from .events import create_event_app, run_event_server
+from .web import create_web_app, run_web_server
 
 __all__ = [
     # API interface
@@ -74,9 +67,7 @@ def run_all_servers(
         )
 
     def run_web():
-        uvicorn.run(
-            create_web_app(), host=host, port=web_port, reload=False, log_level="info"
-        )
+        uvicorn.run(create_web_app(), host=host, port=web_port, reload=False, log_level="info")
 
     def run_events():
         uvicorn.run(
@@ -96,10 +87,10 @@ def run_all_servers(
             "event_url": f"http://{host}:{event_port}",
         },
     )
-    log_info("API Server starting", context_tags=["interfaces","api"], host=host, port=api_port)
-    log_info("Web Interface starting", context_tags=["interfaces","web"], host=host, port=web_port)
-    log_info("Event Server starting", context_tags=["interfaces","events"], host=host, port=event_port)
-    log_info("CLI available via 'openchronicle' command", context_tags=["interfaces","cli"])
+    log_info("API Server starting", context_tags=["interfaces", "api"], host=host, port=api_port)
+    log_info("Web Interface starting", context_tags=["interfaces", "web"], host=host, port=web_port)
+    log_info("Event Server starting", context_tags=["interfaces", "events"], host=host, port=event_port)
+    log_info("CLI available via 'openchronicle' command", context_tags=["interfaces", "cli"])
 
     # Start processes
     processes = []
@@ -180,8 +171,7 @@ async def check_all_interfaces():
     Returns a comprehensive health status for the entire
     interface layer.
     """
-    from ..infrastructure import InfrastructureConfig
-    from ..infrastructure import InfrastructureContainer
+    from ..infrastructure import InfrastructureConfig, InfrastructureContainer
 
     health_status = {
         "interface_layer": "healthy",
@@ -202,9 +192,7 @@ async def check_all_interfaces():
 
     try:
         # Check infrastructure health
-        config = InfrastructureConfig(
-            storage_backend="filesystem", storage_path="storage", cache_type="memory"
-        )
+        config = InfrastructureConfig(storage_backend="filesystem", storage_path="storage", cache_type="memory")
         infrastructure = InfrastructureContainer(config)
         await infrastructure.initialize()
         infra_health = await infrastructure.health_check()

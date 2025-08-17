@@ -1,7 +1,7 @@
-"""TEMP re-export during migration to plugin-based architecture.
+"""Timeline Service Shim (plugin-agnostic).
 
-This module exposes timeline services from the storytelling plugin to
-preserve import compatibility during Phase 1.
+Timeline orchestration/services are provided by plugins. Core does not
+re-export plugin implementations. Use plugin APIs or DI to resolve them.
 """
 
-from openchronicle.plugins.storytelling.domain.services.timeline import *  # type: ignore # noqa: F401,F403
+__all__: list[str] = []

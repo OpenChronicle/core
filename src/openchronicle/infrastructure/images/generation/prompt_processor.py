@@ -2,8 +2,8 @@
 Prompt Processor - Intelligent prompt engineering and optimization
 
 Handles:
-- Character description to prompt conversion
-- Scene description to prompt conversion
+- Subject description to prompt conversion
+- Frame description to prompt conversion
 - Prompt optimization and enhancement
 - Context-aware prompt building
 """
@@ -27,7 +27,7 @@ class PromptProcessor:
     def build_character_prompt(
         self, character_name: str, character_data: dict[str, Any]
     ) -> str:
-        """Build optimized prompt for character portrait generation"""
+        """Build optimized prompt for subject portrait generation"""
 
         prompt_parts = []
 
@@ -55,8 +55,7 @@ class PromptProcessor:
         prompt = (
             ", ".join(prompt_parts) if prompt_parts else f"Portrait of {character_name}"
         )
-
-        return self._optimize_prompt(prompt, ImageType.CHARACTER)
+        return self._optimize_prompt(prompt, ImageType.ENTITY)
 
     def build_scene_prompt(
         self,
@@ -64,11 +63,10 @@ class PromptProcessor:
         scene_data: dict[str, Any],
         context: dict[str, Any] | None = None,
     ) -> str:
-        """Build optimized prompt for scene image generation"""
-
+        """Build optimized prompt for frame image generation"""
         prompt_parts = []
 
-        # Scene description
+        # Segment description
         if "description" in scene_data:
             prompt_parts.append(scene_data["description"])
 
@@ -80,14 +78,13 @@ class PromptProcessor:
         if "atmosphere" in scene_data:
             prompt_parts.append(scene_data["atmosphere"])
 
-        # Add context from memory or previous scenes
+        # Add context from memory or previous frames
         if context and "recent_events" in context:
             prompt_parts.append(f"Context: {context['recent_events']}")
 
         # Use fallback if no description available
-        prompt = ", ".join(prompt_parts) if prompt_parts else f"Scene {scene_id}"
-
-        return self._optimize_prompt(prompt, ImageType.SCENE)
+        prompt = ", ".join(prompt_parts) if prompt_parts else f"Frame {scene_id}"
+        return self._optimize_prompt(prompt, ImageType.FRAME)
 
     def build_location_prompt(
         self, location_name: str, location_data: dict[str, Any]
@@ -196,13 +193,13 @@ class PromptProcessor:
         """Get default style modifiers for image type"""
 
         type_defaults = {
-            ImageType.CHARACTER: [
-                "character portrait",
+            ImageType.ENTITY: [
+                "subject portrait",
                 "detailed face",
                 "high quality",
                 "fantasy art",
             ],
-            ImageType.SCENE: [
+            ImageType.FRAME: [
                 "detailed environment",
                 "atmospheric",
                 "cinematic composition",
@@ -258,9 +255,9 @@ class PromptProcessor:
                 )
 
         # Check for missing key elements
-        if "character" in prompt.lower() and "face" not in prompt.lower():
+        if ("entity") in prompt.lower() and "face" not in prompt.lower():
             validation_result["suggestions"].append(
-                "Consider adding facial description for character images"
+                "Consider adding facial description for subject images"
             )
 
         return validation_result
@@ -270,15 +267,15 @@ class PromptProcessor:
     ) -> list[str]:
         """Get suggestions for improving prompts"""
 
-        suggestions = []
+        suggestions: list[str] = []
 
-        if image_type == ImageType.CHARACTER:
+        if image_type == ImageType.ENTITY:
             if "appearance" not in base_data:
                 suggestions.append("Add appearance details (hair, eyes, clothing)")
             if "personality" not in base_data:
-                suggestions.append("Add personality traits that affect appearance")
+                suggestions.append("Add traits that affect appearance")
 
-        elif image_type == ImageType.SCENE:
+        elif image_type == ImageType.FRAME:
             if "location" not in base_data:
                 suggestions.append("Add location/setting details")
             if "atmosphere" not in base_data:

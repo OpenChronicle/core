@@ -5,7 +5,7 @@ A production-ready mock LLM adapter that users can configure in their model regi
 for development, prototyping, and demonstration purposes. This adapter provides
 realistic behavior and responses suitable for user-facing environments.
 
-Usage in config/models/user_models.json:
+Example config (user_models.json):
 {
     "mock_creative": {
         "provider": "mock",
@@ -103,23 +103,23 @@ class MockAdapter:
     def _load_response_templates(self):
         """Load realistic response templates for different scenarios."""
         self.templates = {
-            "story_continuation": [
-                "The {character} moved through the {setting}, {action}. {emotion_description}",
-                "As {time_period}, {character} found themselves {situation}. {dialogue}",
-                "{character}'s eyes {eye_action} as they {character_action}. {internal_thought}",
+            "content_continuation": [
+                "The {entity} moved through the {setting}, {action}. {emotion_description}",
+                "As {time_period}, {entity} found themselves {situation}. {dialogue}",
+                "{entity}'s eyes {eye_action} as they {entity_action}. {internal_thought}",
             ],
-            "character_dialogue": [
-                '"{quote}," {character} {dialogue_tag}, {body_language}.',
-                '{character} {emotion_verb}, "{quote}" {voice_description}.',
-                '"We need to {action}," {character} declared, {character_trait}.',
+            "entity_dialogue": [
+                '"{quote}," {entity} {dialogue_tag}, {body_language}.',
+                '{entity} {emotion_verb}, "{quote}" {voice_description}.',
+                '"We need to {action}," {entity} declared, {entity_trait}.',
             ],
-            "scene_description": [
+            "environment_setting": [
                 "The {location} was {atmosphere}. {sensory_detail} filled the air.",
                 "{weather} cast {lighting} across the {landscape}, creating {mood}.",
                 "In the distance, {distant_element} while {immediate_element}.",
             ],
-            "narrative_development": [
-                "This revelation changed everything. {consequence}",
+            "content_development": [
+                "This development changed key conditions. {consequence}",
                 "The stakes had never been higher. {tension_description}",
                 "A new path forward emerged. {opportunity_description}",
             ],
@@ -162,7 +162,7 @@ class MockAdapter:
 
         Args:
             prompt: The input prompt
-            **kwargs: Additional parameters (story_id, character_focus, etc.)
+            **kwargs: Additional parameters (unit_id, participant_focus, etc.)
 
         Returns:
             MockResponse with generated content
@@ -226,7 +226,7 @@ class MockAdapter:
 
         context = {
             "type": "general",
-            "focus": "narrative",
+            "focus": "content",
             "tone": "neutral",
             "characters": [],
             "requires_dialogue": False,
@@ -234,23 +234,14 @@ class MockAdapter:
         }
 
         # Detect content type
-        if any(word in prompt_lower for word in ["continue", "story", "narrative"]):
-            context["type"] = "story_continuation"
+        if any(word in prompt_lower for word in ["continue", "content", "compose"]):
+            context["type"] = "content_continuation"
         elif any(
-            word in prompt_lower for word in ["character", "dialogue", "said", "speak"]
+            word in prompt_lower for word in ["entity", "dialogue", "said", "speak"]
         ):
-            context["type"] = "character_interaction"
-            context["requires_dialogue"] = True
-        elif any(
-            word in prompt_lower
-            for word in ["describe", "scene", "setting", "environment"]
-        ):
-            context["type"] = "scene_description"
-        elif any(word in prompt_lower for word in ["what happens", "next", "then"]):
-            context["type"] = "narrative_development"
-            context["requires_action"] = True
+            context["type"] = "entity_interaction"
 
-        # Extract character mentions
+        # Extract participant mentions
         for char in self.content_library["characters"]:
             if char.lower() in prompt_lower:
                 context["characters"].append(char)
@@ -263,18 +254,18 @@ class MockAdapter:
         """Generate response based on analyzed context."""
         response_type = context["type"]
 
-        if response_type == "story_continuation":
+        if response_type == "unit_continuation":
             return self._generate_story_continuation(context)
-        if response_type == "character_interaction":
+        if response_type == "participant_interaction":
             return self._generate_character_interaction(context)
-        if response_type == "scene_description":
+        if response_type == "environment_description":
             return self._generate_scene_description(context)
-        if response_type == "narrative_development":
+        if response_type == "sequence_development":
             return self._generate_narrative_development(context)
         return self._generate_general_response(context, prompt)
 
     def _generate_story_continuation(self, context: dict[str, Any]) -> str:
-        """Generate story continuation based on personality."""
+        """Generate continuation based on personality and context."""
         if self.config.personality == "creative":
             return self._creative_story_response(context)
         if self.config.personality == "analytical":
@@ -285,25 +276,25 @@ class MockAdapter:
         return self._balanced_story_response(context)
 
     def _creative_story_response(self, context: dict[str, Any]) -> str:
-        """Generate creative, imaginative story content."""
+        """Generate creative, imaginative content."""
         # Ensure we have characters to choose from
-        characters = context.get("characters") or self.content_library["characters"]
-        character = random.choice(characters)
+        choices = context.get("characters") or self.content_library["characters"]
+        entity = random.choice(choices)
         setting = random.choice(self.content_library["settings"])
         emotion = random.choice(self.content_library["emotions"])
 
         creative_elements = [
-            f"In a moment that would change everything, {character} discovered "
+            f"In a moment that would change everything, {entity} discovered "
             f"something extraordinary in the {setting}.",
-            f"The {emotion} expression on {character}'s face told a story of its own.",
+            f"The {emotion} expression on {entity}'s face told a tale of its own.",
             "What happened next defied all expectations—the very air seemed to shimmer with possibility.",
-            f"Time seemed to slow as {character} realized the true significance of this moment.",
+            f"Time seemed to slow as {entity} realized the true significance of this moment.",
         ]
 
         return " ".join(random.sample(creative_elements, k=random.randint(2, 3)))
 
     def _analytical_story_response(self, context: dict[str, Any]) -> str:
-        """Generate logical, structured story content."""
+        """Generate logical, structured content."""
         return (
             "The sequence of events followed a clear pattern. First, the protagonist "
             "assessed their situation methodically. Then, they weighed their options "
@@ -313,43 +304,43 @@ class MockAdapter:
         )
 
     def _concise_story_response(self, context: dict[str, Any]) -> str:
-        """Generate brief, focused story content."""
-        characters = context.get("characters") or ["the protagonist"]
-        character = random.choice(characters)
+        """Generate brief, focused content."""
+        choices = context.get("characters") or ["the protagonist"]
+        entity = random.choice(choices)
         action = random.choice(self.content_library["actions"])
-        return f"{character} moved forward, {action}. The path ahead was clear."
+        return f"{entity} moved forward, {action}. The path ahead was clear."
 
     def _balanced_story_response(self, context: dict[str, Any]) -> str:
-        """Generate balanced story content with good pacing."""
-        characters = context.get("characters") or self.content_library["characters"]
-        character = random.choice(characters)
+        """Generate balanced content with good pacing."""
+        choices = context.get("characters") or self.content_library["characters"]
+        entity = random.choice(choices)
         setting = random.choice(self.content_library["settings"])
         emotion = random.choice(self.content_library["emotions"])
 
         return (
-            f"As {character} stepped into the {setting}, they felt {emotion}. "
+            f"As {entity} stepped into the {setting}, they felt {emotion}. "
             f"The events of the past few hours had led to this moment, and now "
             f"they faced a choice that would determine their future. "
             f"With careful consideration, they decided to move forward."
         )
 
     def _generate_character_interaction(self, context: dict[str, Any]) -> str:
-        """Generate character dialogue and interaction."""
-        characters = context.get("characters") or self.content_library["characters"]
-        character = random.choice(characters)
+        """Generate participant dialogue and interaction."""
+        choices = context.get("characters") or self.content_library["characters"]
+        entity = random.choice(choices)
         dialogue_tag = random.choice(self.content_library["dialogue_tags"])
 
         dialogue_options = [
-            f'"We need to find another way," {character} {dialogue_tag}.',
-            f'"I understand now," {character} replied thoughtfully.',
-            f'"This changes everything," {character} admitted.',
-            f'"Are you certain about this?" {character} asked carefully.',
+            f'"We need to find another way," {entity} {dialogue_tag}.',
+            f'"I understand now," {entity} replied thoughtfully.',
+            f'"This changes everything," {entity} admitted.',
+            f'"Are you certain about this?" {entity} asked carefully.',
         ]
 
         return random.choice(dialogue_options)
 
     def _generate_scene_description(self, context: dict[str, Any]) -> str:
-        """Generate environmental and scene descriptions."""
+        """Generate environmental and setting descriptions."""
         setting = random.choice(self.content_library["settings"])
 
         return (
@@ -373,8 +364,8 @@ class MockAdapter:
         """Generate general response for unspecified contexts."""
         return (
             "I understand your request. Based on the context provided, "
-            "I can help develop this narrative further with interesting "
-            "possibilities for character development and plot advancement."
+            "I can help develop this context further with interesting "
+            "possibilities for participant development and plot advancement."
         )
 
     def _adjust_response_quality(self, content: str) -> str:
@@ -393,7 +384,7 @@ class MockAdapter:
             sentences = content.split(". ")
             content = sentences[0] + "."
         elif self.config.response_length == "long":
-            content += " This opened new avenues for exploration within the narrative."
+            content += " This opened new avenues for exploration within the broader context."
 
         return content
 

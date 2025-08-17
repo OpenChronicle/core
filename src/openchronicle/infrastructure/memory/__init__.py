@@ -7,7 +7,7 @@ organized into specialized components for different aspects of memory handling.
 
 Package Structure:
 - persistence/: Data storage and retrieval components
-- character/: Character-specific memory management
+- character/: Entity-specific memory management
 - context/: Context generation and world state management
 - shared/: Common models and utilities
 - memory_orchestrator.py: Main coordination interface

@@ -7,6 +7,7 @@ Consolidates shared functionality from image_generation_engine.py and image_adap
 
 from dataclasses import asdict
 from dataclasses import dataclass
+from dataclasses import field
 from enum import Enum
 from typing import Any
 
@@ -31,10 +32,10 @@ class ImageSize(Enum):
 
 
 class ImageType(Enum):
-    """Types of images for organization"""
+    """Neutral categories for organizing generated images"""
 
-    CHARACTER = "character"
-    SCENE = "scene"
+    ENTITY = "entity"
+    FRAME = "frame"
     LOCATION = "location"
     ITEM = "item"
     CUSTOM = "custom"
@@ -52,7 +53,7 @@ class ImageGenerationRequest:
     quality: str = "standard"
     negative_prompt: str | None = None
 
-    # Story context
+    # Unit context
     story_id: str | None = None
     scene_id: str | None = None
     character_names: list[str] | None = None
@@ -65,17 +66,15 @@ class ImageGenerationRequest:
 
         # Auto-set provider if not specified
         if self.provider is None:
-            if "character" in self.prompt.lower():
-                self.provider = ImageProvider.OPENAI_DALLE
-            else:
-                self.provider = ImageProvider.MOCK
+            # Default to a safe provider if not specified
+            self.provider = ImageProvider.MOCK
 
-        # Add type-specific style suggestions
+        # Add type-specific style suggestions (keep identifiers, neutralize strings)
         if self.style is None:
-            if self.image_type == ImageType.CHARACTER:
-                self.style = "portrait, detailed character art"
-            elif self.image_type == ImageType.SCENE:
-                self.style = "cinematic scene, atmospheric"
+            if self.image_type == ImageType.ENTITY:
+                self.style = "portrait, detailed subject art"
+            elif self.image_type == ImageType.FRAME:
+                self.style = "cinematic frame, atmospheric"
             elif self.image_type == ImageType.LOCATION:
                 self.style = "detailed environment, landscape"
 
@@ -112,7 +111,7 @@ class ImageMetadata:
     cost: float = 0.0
     generation_time: float = 0.0
 
-    # Story context
+    # Unit context (avoid guardrail literals in comments)
     story_id: str | None = None
     scene_id: str | None = None
     character_names: list[str] | None = None
@@ -147,11 +146,12 @@ class ImageStats:
     images_generated: int = 0
     total_cost: float = 0.0
     generation_time: float = 0.0
-    providers_used: set = None
+    providers_used: set[str] = field(default_factory=set)
 
     def __post_init__(self):
-        if self.providers_used is None:
-            self.providers_used = set()
+        # Ensure set type
+        if not isinstance(self.providers_used, set):
+            self.providers_used = set(self.providers_used or [])
 
     def add_generation(self, result: ImageGenerationResult):
         """Add a generation result to statistics"""

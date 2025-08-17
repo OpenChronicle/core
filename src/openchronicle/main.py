@@ -27,11 +27,7 @@ from pathlib import Path
 from .shared.centralized_config import CentralizedConfigManager
 from .shared.dependency_injection import get_container
 from .shared.error_handling import OpenChronicleError
-from .shared.logging_system import log_error
-from .shared.logging_system import log_info
-from .shared.logging_system import log_system_event
-from .shared.logging_system import log_warning
-
+from .shared.logging_system import log_error, log_info, log_system_event, log_warning
 
 # === PRIMARY ORCHESTRATORS ===
 # Main workflow components - most commonly used
@@ -93,9 +89,6 @@ except ImportError as e:
     TIMELINE_AVAILABLE = False
     TimelineOrchestrator = None
 
-try:
-    from .infrastructure.persistence.database_orchestrator import DatabaseOrchestrator
-
     DATABASE_AVAILABLE = True
 except ImportError as e:
     log_warning(f"DatabaseOrchestrator not available: {e}")
@@ -111,27 +104,16 @@ except ImportError as e:
     IMAGE_AVAILABLE = False
     ImageOrchestrator = None
 
-try:
-    from .infrastructure.content.context import ContextOrchestrator
-
-    CONTEXT_AVAILABLE = True
-except ImportError as e:
-    log_warning(f"ContextOrchestrator not available: {e}")
-    CONTEXT_AVAILABLE = False
-    ContextOrchestrator = None
+"""
+Note: Content/Context orchestrators have been migrated to plugins and domain ports.
+Core no longer exposes ContextOrchestrator or ContentAnalysisOrchestrator.
+"""
 
 try:
-    from .infrastructure.content.analysis import ContentAnalysisOrchestrator
-
-    ANALYSIS_AVAILABLE = True
-except ImportError as e:
-    log_warning(f"ContentAnalysisOrchestrator not available: {e}")
-    ANALYSIS_AVAILABLE = False
-    ContentAnalysisOrchestrator = None
-
-try:
-    from .infrastructure.performance import ModelPerformanceMonitor
-    from .infrastructure.performance import PerformanceOrchestrator
+    from .infrastructure.performance import (
+        ModelPerformanceMonitor,
+        PerformanceOrchestrator,
+    )
 
     PERFORMANCE_AVAILABLE = True
 except ImportError as e:
@@ -176,8 +158,6 @@ def get_available_orchestrators() -> dict[str, bool]:
         "TimelineOrchestrator": TIMELINE_AVAILABLE,
         "DatabaseOrchestrator": DATABASE_AVAILABLE,
         "ImageOrchestrator": IMAGE_AVAILABLE,
-        "ContextOrchestrator": CONTEXT_AVAILABLE,
-        "ContentAnalysisOrchestrator": ANALYSIS_AVAILABLE,
         "PerformanceOrchestrator": PERFORMANCE_AVAILABLE,
         "ModelPerformanceMonitor": PERFORMANCE_AVAILABLE,
     }
@@ -247,15 +227,11 @@ async def initialize_core(config_path: str | None = None) -> bool:
         if status.availability_percentage >= 50:
             log_system_event(
                 "system",
-                f"Core initialization successful - "
-                f"{status.availability_percentage:.1f}% availability",
+                f"Core initialization successful - " f"{status.availability_percentage:.1f}% availability",
             )
             return True
         else:
-            log_error(
-                f"Core initialization failed - only "
-                f"{status.availability_percentage:.1f}% availability"
-            )
+            log_error(f"Core initialization failed - only " f"{status.availability_percentage:.1f}% availability")
             return False
 
     except (OpenChronicleError, RuntimeError, ImportError, OSError, ValueError) as e:
@@ -296,14 +272,11 @@ __all__ = [
     "MemoryOrchestrator",
     "SceneOrchestrator",
     "NarrativeOrchestrator",
-    "ContextOrchestrator",
     # Secondary Services (Specialized workflows)
     "CharacterOrchestrator",
     "TimelineOrchestrator",
     "DatabaseOrchestrator",
     "ImageOrchestrator",
-    "ContextOrchestrator",
-    "ContentAnalysisOrchestrator",
     # Performance Monitoring
     "PerformanceOrchestrator",
     "ModelPerformanceMonitor",

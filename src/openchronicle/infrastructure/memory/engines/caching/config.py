@@ -24,7 +24,7 @@ class ClusterNode:
 class PartitionConfig:
     """Cache partitioning configuration."""
 
-    partition_key_patterns: list[str]  # Patterns like "char:*", "scene:*"
+    partition_key_patterns: list[str]  # Patterns like "char:*", "frame:*"
     hash_algorithm: str = "sha256"
     replication_factor: int = 1
     consistency_level: str = "eventual"  # "eventual", "strong"

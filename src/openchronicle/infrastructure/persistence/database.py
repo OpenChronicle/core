@@ -21,12 +21,12 @@ _orchestrator = DatabaseOrchestrator()
 
 # Core database operations (maintaining original function signatures)
 def init_database(story_id: str, is_test=None):
-    """Initialize the database with required tables."""
+    """Initialize the database with required tables for a unit."""
     return _orchestrator.init_database(story_id, is_test)
 
 
 def get_connection(story_id: str, is_test=None):
-    """Get database connection for story."""
+    """Get database connection for a unit."""
     return _orchestrator.get_connection(story_id, is_test)
 
 
@@ -72,7 +72,10 @@ def get_fts_stats(story_id: str, is_test=None):
 # Migration operations
 def migrate_from_json(story_id: str):
     """Migrate data from JSON files to database."""
-    return _orchestrator.migrate_from_json(story_id)
+    # Removed from core; handled by plugins
+    raise ImportError(
+        "migrate_from_json is no longer available in core. Use plugin-provided migration managers."
+    )
 
 
 def cleanup_json_files(story_id: str):
@@ -88,7 +91,7 @@ def get_database_stats(story_id: str, is_test=None):
 
 
 def get_db_path(story_id: str, is_test=None):
-    """Get database file path for story."""
+    """Get database file path for a unit."""
     return _orchestrator.get_db_path(story_id, is_test)
 
 

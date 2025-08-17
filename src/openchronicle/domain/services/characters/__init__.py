@@ -1,7 +1,7 @@
-"""TEMP re-export during migration to plugin-based architecture.
+"""Characters Service Shim (plugin-agnostic).
 
-This module exposes characters services from the storytelling plugin to
-preserve import compatibility during Phase 1.
+Character-related services are provided by plugins. The core domain does not
+re-export plugin implementations. Access them via the plugin package or DI.
 """
 
-from openchronicle.plugins.storytelling.domain.services.characters import *  # type: ignore # noqa: F401,F403
+__all__: list[str] = []

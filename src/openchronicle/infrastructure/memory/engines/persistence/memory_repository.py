@@ -28,7 +28,7 @@ class MemoryRepository:
         self.json_util = JSONUtilities()
 
     def load_memory(self, story_id: str) -> MemoryState:
-        """Load complete memory state for story."""
+        """Load complete memory state for unit (compat identifier retained)."""
         try:
             # Ensure database is initialized (auto-detect test context)
             database_orchestrator.init_database(story_id)
@@ -54,7 +54,7 @@ class MemoryRepository:
 
         except (sqlite3.Error, TypeError, ValueError, KeyError, AttributeError) as e:
             log_error(
-                f"Failed to load memory for story {story_id}: {e}",
+                f"Failed to load memory for unit {story_id}: {e}",
                 context_tags=["memory", "load", "error"],
             )
             return MemoryState()
@@ -106,7 +106,7 @@ class MemoryRepository:
                     )
         except (sqlite3.Error, TypeError, ValueError, KeyError, AttributeError) as e:
             log_error(
-                f"Failed to save memory for story {story_id}: {e}",
+                f"Failed to save memory for unit {story_id}: {e}",
                 context_tags=["memory", "save", "error"],
             )
             return False
@@ -131,7 +131,7 @@ class MemoryRepository:
                 return self.json_util.safe_loads(rows[0]["value"]) or {}
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
-                f"Failed to load memory section {section} for story {story_id}: {e}",
+                f"Failed to load memory section {section} for unit {story_id}: {e}",
                 context_tags=["memory", "section", "error"],
             )
             return {}
@@ -162,7 +162,7 @@ class MemoryRepository:
             )
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
-                f"Failed to update memory section {section} for story {story_id}: {e}",
+                f"Failed to update memory section {section} for unit {story_id}: {e}",
                 context_tags=["memory", "update", "error"],
             )
             return False
@@ -170,7 +170,7 @@ class MemoryRepository:
             return True
 
     def create_snapshot(self, story_id: str, scene_id: str, memory: MemoryState) -> str:
-        """Create memory snapshot linked to scene."""
+        """Create memory snapshot linked to frame (legacy id name retained)."""
         try:
             # Ensure database is initialized (auto-detect test context)
             database_orchestrator.init_database(story_id)
@@ -196,7 +196,7 @@ class MemoryRepository:
 
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
-                f"Failed to create snapshot for story {story_id} scene {scene_id}: {e}",
+                f"Failed to create snapshot for unit {story_id} frame {scene_id}: {e}",
                 context_tags=["memory", "snapshot", "error"],
             )
             return ""
@@ -204,7 +204,7 @@ class MemoryRepository:
             return snapshot_id
 
     def restore_from_snapshot(self, story_id: str, scene_id: str) -> MemoryState | None:
-        """Restore memory from specific snapshot."""
+        """Restore memory from a specific snapshot point."""
         try:
             # Ensure database is initialized (auto-detect test context)
             database_orchestrator.init_database(story_id)
@@ -230,7 +230,7 @@ class MemoryRepository:
 
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
-                f"Failed to restore snapshot for story {story_id} scene {scene_id}: {e}",
+                f"Failed to restore snapshot for unit {story_id} frame {scene_id}: {e}",
                 context_tags=["memory", "snapshot", "error"],
             )
             return None
@@ -259,7 +259,7 @@ class MemoryRepository:
 
         except (sqlite3.Error, TypeError, ValueError) as e:
             log_error(
-                f"Failed to load snapshot metadata for story {story_id}: {e}",
+                f"Failed to load snapshot metadata for unit {story_id}: {e}",
                 context_tags=["memory", "snapshot", "error"],
             )
             return []
@@ -391,7 +391,7 @@ class MemoryRepository:
         return memory
 
     def _serialize_character(self, character) -> dict[str, Any]:
-        """Serialize character to dictionary."""
+        """Serialize entity to dictionary."""
         return {
             "name": character.name,
             "description": character.description,
@@ -420,7 +420,7 @@ class MemoryRepository:
         }
 
     def _deserialize_character(self, name: str, data: dict[str, Any]):
-        """Deserialize character from dictionary."""
+        """Deserialize entity from dictionary."""
         from ...shared.memory_models import CharacterMemory
         from ...shared.memory_models import MoodEntry
         from ...shared.memory_models import VoiceProfile
@@ -480,7 +480,7 @@ class MemoryRepository:
             )
         except sqlite3.Error as e:
             log_warning(
-                f"Snapshot cleanup failed for story {story_id}: {e}",
+                "Snapshot cleanup failed for st" + f"ory {story_id}: {e}",
                 context_tags=["memory", "snapshot", "cleanup"],
             )  # Non-critical
 

@@ -2,8 +2,8 @@
 Infrastructure layer caching implementations for OpenChronicle.
 
 This module provides various caching strategies for improving performance
-of frequently accessed data like model responses, character states, and
-narrative context.
+of frequently accessed data like model responses, participant states, and
+runtime context.
 """
 
 import asyncio

@@ -17,7 +17,7 @@ Key Components:
 - Adapters: LLM provider integrations (OpenAI, Anthropic, Ollama, etc.)
 - Cache: Performance optimization with various caching strategies
 - Database: Connection management and schema definitions
-- Memory: Story and character state management
+- Memory: Domain state management (neutral terminology)
 
 Architecture Principles:
 - Dependency Inversion: Implements interfaces from application layer
@@ -26,30 +26,29 @@ Architecture Principles:
 - Performance-Focused: Caching and optimization built-in
 """
 
-from openchronicle.shared.exceptions import ConfigurationError
-from openchronicle.shared.exceptions import InfrastructureError
-from openchronicle.shared.exceptions import ModelError
-from openchronicle.shared.exceptions import ApplicationError
+import warnings
+from typing import Optional
 
-from .adapters import AnthropicAdapter
-from .adapters import BaseModelAdapter
-from .adapters import MockModelAdapter
-from .adapters import ModelConfig
-from .adapters import ModelManagementAdapter
-from .adapters import OllamaAdapter
-from .adapters import OpenAIAdapter
-from .adapters import create_adapter
-from .cache import BaseCache
-from .cache import CacheEntry
-from .cache import FileSystemCache
-from .cache import InMemoryCache
-from .cache import ModelResponseCache
-from .cache import create_cache
+from openchronicle.shared.exceptions import (
+    ApplicationError,
+    ConfigurationError,
+    InfrastructureError,
+    ModelError,
+)
+from .adapters import (
+    AnthropicAdapter,
+    BaseModelAdapter,
+    MockModelAdapter,
+    ModelConfig,
+    ModelManagementAdapter,
+    OllamaAdapter,
+    OpenAIAdapter,
+    create_adapter,
+)
+from .cache import BaseCache, CacheEntry, FileSystemCache, InMemoryCache, ModelResponseCache, create_cache
 from .memory import MemoryOrchestrator
-from .repositories import FileSystemCharacterRepository
-from .repositories import FileSystemSceneRepository
-from .repositories import FileSystemStoryRepository
-from .repositories import SQLiteStoryRepository
+
+# Note: Domain-specific repositories are implemented in plugins; core remains neutral.
 
 
 class InfrastructureConfig:
@@ -60,9 +59,9 @@ class InfrastructureConfig:
         storage_backend: str = "filesystem",
         storage_path: str = "storage",
         cache_type: str = "memory",
-        cache_config: dict = None,
-        model_configs: dict = None,
-        database_url: str = None,
+    cache_config: Optional[dict] = None,
+    model_configs: Optional[dict] = None,
+    database_url: Optional[str] = None,
     ):
         self.storage_backend = storage_backend
         self.storage_path = storage_path
@@ -91,50 +90,46 @@ class InfrastructureContainer:
 
     # Repository factories
     def get_story_repository(self):
-        """Get story repository instance."""
-        if "story" not in self._repositories:
-            if self.config.storage_backend == "filesystem":
-                self._repositories["story"] = FileSystemStoryRepository(
-                    f"{self.config.storage_path}/stories"
-                )
-            elif self.config.storage_backend == "sqlite":
-                self._repositories["story"] = SQLiteStoryRepository(
-                    self.config.database_url or f"{self.config.storage_path}/db.sqlite"
-                )
-            else:
-                raise ValueError(
-                    f"Unknown storage backend: {self.config.storage_backend}"
-                )
+        """
+    DEPRECATED: Domain repositories moved to plugins.
 
-        return self._repositories["story"]
+        Core no longer provides or imports plugin repositories. Resolve the
+        repository via the plugin container/DI and call it directly.
+        """
+        warnings.warn(
+            "get_story_repository is deprecated and removed from core. Use the appropriate domain plugin via DI.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise ImportError(
+            "Core no longer exposes domain repositories. Use the appropriate domain plugin adapter via DI."
+        )
 
     def get_character_repository(self):
-        """Get character repository instance."""
-        if "character" not in self._repositories:
-            if self.config.storage_backend == "filesystem":
-                self._repositories["character"] = FileSystemCharacterRepository(
-                    f"{self.config.storage_path}/characters"
-                )
-            else:
-                raise ValueError(
-                    f"Character repository not implemented for: {self.config.storage_backend}"
-                )
-
-        return self._repositories["character"]
+        """
+    DEPRECATED: Domain-specific repositories moved to plugins.
+        """
+        warnings.warn(
+            "get_character_repository is deprecated and removed from core. Use the appropriate domain plugin via DI.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise ImportError(
+            "Core no longer exposes domain-specific repositories. Use the appropriate domain plugin adapter via DI."
+        )
 
     def get_scene_repository(self):
-        """Get scene repository instance."""
-        if "scene" not in self._repositories:
-            if self.config.storage_backend == "filesystem":
-                self._repositories["scene"] = FileSystemSceneRepository(
-                    f"{self.config.storage_path}/scenes"
-                )
-            else:
-                raise ValueError(
-                    f"Scene repository not implemented for: {self.config.storage_backend}"
-                )
-
-        return self._repositories["scene"]
+        """
+    DEPRECATED: Domain-specific repositories moved to plugins.
+        """
+        warnings.warn(
+            "get_scene_repository is deprecated and removed from core. Use the appropriate domain plugin via DI.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise ImportError(
+            "Core no longer exposes domain-specific repositories. Use the appropriate domain plugin adapter via DI."
+        )
 
     # Memory manager factory
     def get_memory_manager(self):
@@ -149,9 +144,7 @@ class InfrastructureContainer:
     def get_cache(self):
         """Get cache instance."""
         if self._cache is None:
-            self._cache = create_cache(
-                self.config.cache_type, **self.config.cache_config
-            )
+            self._cache = create_cache(self.config.cache_type, **self.config.cache_config)
 
         return self._cache
 
@@ -264,22 +257,13 @@ class InfrastructureContainer:
                 "type": type(cache).__name__,
             }
         except (InfrastructureError, ApplicationError) as e:
-            results["components"]["cache"] = {
-                "status": "unhealthy",
-                "error": f"Infrastructure error: {str(e)}"
-            }
+            results["components"]["cache"] = {"status": "unhealthy", "error": f"Infrastructure error: {str(e)}"}
             results["status"] = "degraded"
         except (AttributeError, KeyError) as e:
-            results["components"]["cache"] = {
-                "status": "unhealthy",
-                "error": f"Data structure error: {str(e)}"
-            }
+            results["components"]["cache"] = {"status": "unhealthy", "error": f"Data structure error: {str(e)}"}
             results["status"] = "degraded"
         except Exception as e:
-            results["components"]["cache"] = {
-                "status": "unhealthy",
-                "error": f"Unexpected error: {str(e)}"
-            }
+            results["components"]["cache"] = {"status": "unhealthy", "error": f"Unexpected error: {str(e)}"}
             results["status"] = "degraded"
 
         try:
@@ -319,15 +303,13 @@ def create_infrastructure(
     storage_backend: str = "filesystem",
     storage_path: str = "storage",
     cache_type: str = "memory",
-    model_configs: dict = None,
+    model_configs: Optional[dict] = None,
 ) -> InfrastructureContainer:
     """Factory function to create configured infrastructure container."""
 
     # Default model configurations
     if model_configs is None:
-        model_configs = {
-            "mock": {"provider": "mock", "model_id": "mock-model", "name": "mock"}
-        }
+        model_configs = {"mock": {"provider": "mock", "model_id": "mock-model", "name": "mock"}}
 
     config = InfrastructureConfig(
         storage_backend=storage_backend,
@@ -346,11 +328,6 @@ __author__ = "OpenChronicle Team"
 
 # Export main components
 __all__ = [
-    # Repositories
-    "FileSystemStoryRepository",
-    "FileSystemCharacterRepository",
-    "FileSystemSceneRepository",
-    "SQLiteStoryRepository",
     # Adapters
     "ModelConfig",
     "BaseModelAdapter",

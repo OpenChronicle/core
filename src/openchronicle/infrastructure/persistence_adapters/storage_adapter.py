@@ -1,24 +1,8 @@
-"""Storage Adapter - Implementation of IStoragePort.        try:
-            with open(full_path, "rb") as f:
-                raw = f.read()
-            # Heuristic: treat as binary if NULL byte or high binary ratio
-            if b"\x00" in raw:
-                return raw
-            try:
-                text = raw.decode("utf-8")
-            except UnicodeDecodeError:
-                return raw
-            # If decoded, but contains many non-printable chars, return bytes
-            non_printables = sum(1 for c in text if ord(c) < 9 or (13 < ord(c) < 32))
-            if non_printables > max(3, len(text) * 0.1):
-                return raw
-        except OSError as e:
-            log_error(
-                f"File load error: {e}", context_tags=["storage", "file", "load", "error"]
-            )
-            return None
-        else:
-            return text blob storage operations for the domain layer.
+"""
+Storage adapter implementing IStoragePort for file/blob operations.
+
+Neutral terms are used in comments and messages. Behavior and on-disk layout
+remain backward compatible.
 """
 
 import tarfile
@@ -171,8 +155,9 @@ class StorageAdapter(IStoragePort):
             with tarfile.open(backup_file, "w:gz") as tar:
                 tar.add(story_path, arcname=story_id)
         except (OSError, tarfile.TarError) as e:
+            # Neutral phrasing while keeping context tags for compatibility
             log_error(
-                f"Story backup error: {e}", context_tags=["storage", "story", "backup", "error"]
+                f"Unit files backup error: {e}", context_tags=["storage", "unit", "backup", "error"]
             )
             return False
         else:
@@ -188,8 +173,9 @@ class StorageAdapter(IStoragePort):
             with tarfile.open(backup_file, "r:gz") as tar:
                 tar.extractall(self.base_path)
         except (OSError, tarfile.TarError) as e:
+            # Neutral phrasing while keeping context tags for compatibility
             log_error(
-                f"Story restore error: {e}", context_tags=["storage", "story", "restore", "error"]
+                f"Unit files restore error: {e}", context_tags=["storage", "unit", "restore", "error"]
             )
             return False
         else:

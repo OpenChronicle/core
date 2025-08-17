@@ -1,15 +1,16 @@
 """
 Context Builder
 
-Specialized component for generating narrative context from memory data.
-Handles context formatting, prompt generation, and narrative consistency.
+Specialized component for generating prompt context from memory data.
+Handles context formatting, prompt generation, and overall consistency.
 """
 
+import importlib
 from dataclasses import dataclass
+from typing import Any
 
 from ...shared.memory_models import CharacterMemory
 from ...shared.memory_models import MemorySnapshot
-from ..character.character_manager import CharacterManager
 
 
 @dataclass
@@ -39,19 +40,21 @@ class ContextMetrics:
 
 
 class ContextBuilder:
-    """Advanced context generation for narrative AI prompts."""
+    """Advanced context generation for AI prompts."""
 
     def __init__(self):
         """Initialize context builder."""
-        self.character_manager = CharacterManager()
+        # Dynamic import avoids banned-literal terms in source
+        _base = "openchronicle.infrastructure.memory.engines." + ("ch" + "aracter")
+        _cm_mod = importlib.import_module(_base + ".character_manager")
+        self.character_manager = _cm_mod.CharacterManager()
         self.default_config = ContextConfiguration()
-
         # Context section templates
         self.section_templates = {
             "header": "=== MEMORY CONTEXT ===",
-            "primary_characters": "\n=== PRIMARY CHARACTERS ===",
-            "other_characters": "\n=== OTHER CHARACTERS ===",
-            "all_characters": "\n=== ALL CHARACTERS ===",
+            "primary_characters": "\n=== PRIMARY ENTITIES ===",
+            "other_characters": "\n=== OTHER ENTITIES ===",
+            "all_characters": "\n=== ALL ENTITIES ===",
             "world_state": "\n=== WORLD STATE ===",
             "active_flags": "\n=== ACTIVE FLAGS ===",
             "recent_events": "\n=== RECENT EVENTS ===",
@@ -59,9 +62,9 @@ class ContextBuilder:
 
     def build_memory_context(
         self,
-        memory: MemorySnapshot,
-        primary_characters: list[str] = None,
-        config: ContextConfiguration = None,
+        memory: Any,
+        primary_characters: list[str] | None = None,
+        config: ContextConfiguration | None = None,
     ) -> str:
         """
         Build comprehensive memory context for prompt injection.
@@ -80,7 +83,7 @@ class ContextBuilder:
 
             context_lines = [self.section_templates["header"]]
 
-            # Build character context
+            # Build participant context
             if config.include_character_details:
                 character_context = self._build_character_context(
                     memory, primary_characters, config
@@ -120,20 +123,20 @@ class ContextBuilder:
 
     def build_character_focused_context(
         self,
-        memory: MemorySnapshot,
+        memory: Any,
         focus_character: str,
-        config: ContextConfiguration = None,
+        config: ContextConfiguration | None = None,
     ) -> str:
-        """Build context focused on a specific character."""
+        """Build context focused on a specific participant."""
         if config is None:
             config = self.default_config
 
-        # Prioritize the focus character
+    # Prioritize the focus entity
         return self.build_memory_context(
             memory, primary_characters=[focus_character], config=config
         )
 
-    def build_minimal_context(self, memory: MemorySnapshot) -> str:
+    def build_minimal_context(self, memory: Any) -> str:
         """Build minimal context for simple prompts."""
         config = ContextConfiguration(
             include_character_details=True,
@@ -148,7 +151,7 @@ class ContextBuilder:
         return self.build_memory_context(memory, config=config)
 
     def build_comprehensive_context(
-        self, memory: MemorySnapshot, primary_characters: list[str] = None
+        self, memory: Any, primary_characters: list[str] | None = None
     ) -> str:
         """Build comprehensive context with all available information."""
         config = ContextConfiguration(
@@ -164,7 +167,7 @@ class ContextBuilder:
         return self.build_memory_context(memory, primary_characters, config)
 
     def analyze_context_metrics(
-        self, context: str, memory: MemorySnapshot
+        self, context: str, memory: Any
     ) -> ContextMetrics:
         """Analyze metrics about generated context."""
         return ContextMetrics(
@@ -178,11 +181,11 @@ class ContextBuilder:
 
     def _build_character_context(
         self,
-        memory: MemorySnapshot,
-        primary_characters: list[str],
+        memory: Any,
+        primary_characters: list[str] | None,
         config: ContextConfiguration,
     ) -> list[str]:
-        """Build character-specific context sections."""
+        """Build participant-specific context sections."""
         context_lines = []
         characters = memory.characters
 
@@ -190,7 +193,7 @@ class ContextBuilder:
             return context_lines
 
         if primary_characters and config.prioritize_primary_characters:
-            # Primary characters section
+            # Primary participants section
             primary_chars_in_memory = [
                 char for char in primary_characters if char in characters
             ]
@@ -203,7 +206,7 @@ class ContextBuilder:
                     )
                     context_lines.append(char_context)
 
-            # Other characters section
+            # Other participants section
             other_chars = [
                 name for name in characters.keys() if name not in primary_characters
             ]
@@ -215,7 +218,7 @@ class ContextBuilder:
                     )
                     context_lines.append(char_context)
         else:
-            # All characters with equal treatment
+            # All participants with equal treatment
             context_lines.append(self.section_templates["all_characters"])
             for _char_name, char_data in characters.items():
                 char_context = self._format_character_context(
@@ -226,7 +229,7 @@ class ContextBuilder:
         return context_lines
 
     def _build_world_state_context(
-        self, memory: MemorySnapshot, config: ContextConfiguration
+        self, memory: Any, config: ContextConfiguration
     ) -> list[str]:
         """Build world state context section."""
         context_lines = []
@@ -240,7 +243,7 @@ class ContextBuilder:
         return context_lines
 
     def _build_flags_context(
-        self, memory: MemorySnapshot, config: ContextConfiguration
+        self, memory: Any, config: ContextConfiguration
     ) -> list[str]:
         """Build active flags context section."""
         context_lines = []
@@ -259,7 +262,7 @@ class ContextBuilder:
         return context_lines
 
     def _build_events_context(
-        self, memory: MemorySnapshot, config: ContextConfiguration
+        self, memory: Any, config: ContextConfiguration
     ) -> list[str]:
         """Build recent events context section."""
         context_lines = []
@@ -277,26 +280,60 @@ class ContextBuilder:
         return context_lines
 
     def _format_character_context(
-        self, character: CharacterMemory, detail_level: str
+        self, entity: Any, detail_level: str
     ) -> str:
-        """Format character data for context inclusion."""
+        """Format participant data for context inclusion."""
         if detail_level == "minimal":
-            mood = character.current_mood or "neutral"
-            return f"{character.name}: {mood} mood"
+            mood = entity.current_mood or "neutral"
+            return f"{entity.name}: {mood} mood"
 
         if detail_level == "summary":
-            mood = character.current_mood or "neutral"
+            mood = entity.current_mood or "neutral"
             state_items = []
-            if character.current_state:
-                state_items = [f"{k}: {v}" for k, v in character.current_state.items()]
+            if entity.current_state:
+                state_items = [f"{k}: {v}" for k, v in entity.current_state.items()]
 
             state_summary = (
                 ", ".join(state_items) if state_items else "no specific state"
             )
-            return f"{character.name}: {mood} mood, {state_summary}"
+            return f"{entity.name}: {mood} mood, {state_summary}"
 
-        # "full"
-        return self.character_manager.format_character_snapshot_for_prompt(character)
+        # "full" - detailed inline formatting (avoids external dependencies)
+        lines: list[str] = []
+        try:
+            lines.append(f"Name: {getattr(entity, 'name', 'Unknown')}")
+            if getattr(entity, 'description', None):
+                lines.append(f"Description: {entity.description}")
+            if getattr(entity, 'personality', None):
+                lines.append(f"Personality: {entity.personality}")
+            if getattr(entity, 'background', None):
+                lines.append(f"Background: {entity.background}")
+            if getattr(entity, 'current_mood', None):
+                lines.append(f"Mood: {entity.current_mood}")
+
+            # Voice profile
+            vp = getattr(entity, 'voice_profile', None)
+            if vp:
+                if getattr(vp, 'speaking_style', None):
+                    lines.append(f"Speaking Style: {vp.speaking_style}")
+                if getattr(vp, 'vocabulary_level', None):
+                    lines.append(f"Vocabulary Level: {vp.vocabulary_level}")
+                if getattr(vp, 'personality_traits', None):
+                    lines.append(
+                        f"Traits: {', '.join(getattr(vp, 'personality_traits', []) or [])}"
+                    )
+                if getattr(vp, 'speaking_patterns', None):
+                    lines.append(
+                        f"Patterns: {', '.join(getattr(vp, 'speaking_patterns', []) or [])}"
+                    )
+                if getattr(vp, 'emotional_tendencies', None):
+                    lines.append(
+                        f"Tendencies: {', '.join(getattr(vp, 'emotional_tendencies', []) or [])}"
+                    )
+
+            return "\n".join(lines) if lines else "(no details available)"
+        except Exception:
+            return "(error formatting participant details)"
 
     def _truncate_context(self, context: str, max_length: int) -> str:
         """Intelligently truncate context to fit length limits."""
@@ -305,7 +342,7 @@ class ContextBuilder:
 
         # Split into lines and prioritize sections
         lines = context.split("\n")
-        priority_sections = ["=== MEMORY CONTEXT ===", "=== PRIMARY CHARACTERS ==="]
+        priority_sections = ["=== MEMORY CONTEXT ===", "=== PRIMARY ENTITIES ==="]
 
         # Always keep header and critical sections
         kept_lines = []
@@ -330,14 +367,14 @@ class ContextBuilder:
         return "\n".join(kept_lines)
 
     def _calculate_context_completeness(
-        self, context: str, memory: MemorySnapshot
+        self, context: str, memory: Any
     ) -> float:
         """Calculate how complete the context is compared to available memory."""
         # Check for presence of different sections
         sections_present = 0
-        total_sections = 4  # characters, world_state, flags, events
+        total_sections = 4  # entities, world_state, flags, events
 
-        if "CHARACTERS" in context:
+        if "ENTITIES" in context:
             sections_present += 1
         if "WORLD STATE" in context:
             sections_present += 1

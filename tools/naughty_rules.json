@@ -1,0 +1,82 @@
+[
+  {
+    "id": "NC01",
+    "severity": "error",
+    "name": "Split-token dodge via concatenation/join/f-string",
+    "pattern": "(?s)(?:'[^']*'|\\\"[^\\\"]*\\\")\\s*(?:\\+|%|\\.format|\\bjoin\\s*\\(|\\bf['\\\"])",
+    "recommendation": "Do not assemble sensitive identifiers dynamically. Use explicit constants or imports.",
+    "autofix": true
+  },
+  {
+    "id": "NC02",
+    "severity": "error",
+    "name": "Dynamic getattr/setattr using computed name",
+    "pattern": "\\b(getattr|setattr)\\s*\\(\\s*[^,]+,\\s*(?:[^'\\\"]|['\\\"][^'\\\"]*['\\\"]\\s*\\+\\s*['\\\"][^'\\\"]*['\\\"])",
+    "recommendation": "Avoid computed attribute names for identifiers; use direct references or mapping dicts.",
+    "autofix": false
+  },
+  {
+    "id": "NC03",
+    "severity": "error",
+    "name": "Dynamic import with constructed string",
+    "pattern": "\\b(__import__|importlib\\.import_module)\\s*\\(\\s*[^'\\\"]",
+    "recommendation": "Avoid dynamic imports built from expressions. Import explicit modules.",
+    "autofix": false
+  },
+  {
+    "id": "NC04",
+    "severity": "error",
+    "name": "eval/exec/compile with constructed code",
+    "pattern": "\\b(eval|exec|compile)\\s*\\(",
+    "recommendation": "Remove eval/exec/compile; use safe alternatives.",
+    "autofix": false
+  },
+  {
+    "id": "NC05",
+    "severity": "warning",
+    "name": "Obfuscated string construction (chr/map/bytes/base64/rot13/hex)",
+    "pattern": "(?:''\\.join\\(\\s*map\\(\\s*chr)|(?:base64\\.b64decode\\s*\\()|(?:codecs\\.decode\\s*\\([^,]+,\\s*['\\\"]rot_?13['\\\"]\\))|(?:bytes\\.fromhex\\s*\\()|(?:\\\\x[0-9A-Fa-f]{2})",
+    "recommendation": "Avoid obfuscation; build literals directly.",
+    "autofix": false
+  },
+  {
+    "id": "NC06",
+    "severity": "warning",
+    "name": "globals()/locals()/vars() key access with computed name",
+    "pattern": "\\b(globals|locals|vars)\\s*\\(\\s*\\)\\s*\\[\\s*[^'\\\"][^\\]]*\\]",
+    "recommendation": "Avoid resolving symbols via globals/locals with computed names.",
+    "autofix": false
+  },
+  {
+    "id": "NC07",
+    "severity": "warning",
+    "name": "Subprocess with shell=True",
+    "pattern": "subprocess\\.(run|Popen)\\([^)]*shell\\s*=\\s*True",
+    "recommendation": "Avoid shell=True; pass a list of args or sandbox in plugin layer.",
+    "autofix": false
+  },
+  {
+    "id": "NC08",
+    "severity": "warning",
+    "name": "Bare except swallowing (pass/return/log)",
+    "pattern": "except\\s*:\\s*\\n\\s*(pass|return\\b|logger\\.(debug|info|warning)\\()",
+    "recommendation": "Catch specific exceptions and handle appropriately.",
+    "autofix": false
+  },
+  {
+    "id": "NC09",
+    "severity": "warning",
+    "name": "Guardrail suppression comments without scope",
+    "pattern": "#\\s*(noqa|fmt:\\s*off|type:\\s*ignore)(?!-NEXTLINE)",
+    "recommendation": "Avoid blanket suppressions; use next-line or fix the code.",
+    "autofix": false
+  },
+  {
+    "id": "NC10",
+    "severity": "warning",
+    "name": "Regex-based reconstruction using literal concatenation",
+    "pattern": "re\\.sub\\([^)]*(?:'[^']*'\\s*\\+\\s*'[^']*'|\\\"[^\\\"]*\\\"\\s*\\+\\s*\\\"[^\\\"]*\\\")[^)]*\\)",
+    "recommendation": "Avoid using regex substitutions to assemble forbidden tokens; use explicit constants.",
+    "autofix": false
+  }
+]

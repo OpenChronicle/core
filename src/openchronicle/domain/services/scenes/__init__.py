@@ -1,7 +1,7 @@
-"""TEMP re-export during migration to plugin-based architecture.
+"""Scenes Service Shim (plugin-agnostic).
 
-This module exposes scenes services from the storytelling plugin to
-preserve import compatibility during Phase 1.
+Scene-related services are implemented by plugins. The core domain no longer
+re-exports plugin implementations. Resolve via plugin package or DI.
 """
 
-from openchronicle.plugins.storytelling.domain.services.scenes import *  # type: ignore # noqa: F401,F403
+__all__: list[str] = []

@@ -448,6 +448,23 @@ class ImageAdapterRegistry:
             }
         return info
 
+    async def generate_image(
+        self,
+        request: ImageGenerationRequest,
+        preferred_provider: ImageProvider | None = None,
+    ) -> ImageGenerationResult:
+        """Generate an image using a suitable adapter.
+
+        Picks an adapter based on preferred_provider when provided, otherwise
+        falls back to the first available adapter.
+        """
+        adapter = self.get_adapter(preferred_provider)
+        if not adapter:
+            return ImageGenerationResult(
+                success=False, error_message="No available image adapters"
+            )
+        return await adapter.generate_image(request)
+
 
 def create_image_registry(config: dict[str, Any]) -> ImageAdapterRegistry:
     """Create and configure an image adapter registry"""

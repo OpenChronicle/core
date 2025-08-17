@@ -15,39 +15,24 @@ from rich.console import Console
 from openchronicle.interfaces.cli.support.config_manager import ConfigManager
 from openchronicle.interfaces.cli.support.output_manager import OutputManager
 from openchronicle.shared.centralized_config import CentralizedConfigManager
-from openchronicle.shared.logging_system import log_error
-from openchronicle.shared.logging_system import log_info
-from openchronicle.shared.logging_system import log_warning
+from openchronicle.shared.logging_system import log_error, log_info, log_warning
 
-
-# Import command modules
+# Import core system command modules (plugin-agnostic commands)
 commands_imported = {}
-try:
-    from openchronicle.interfaces.cli.commands.story import story_app
-
-    commands_imported["story"] = story_app
-except ImportError as e:
-    log_warning(
-        f"Story commands not available: {e}", context_tags=["cli", "import", "story"]
-    )
 
 try:
     from openchronicle.interfaces.cli.commands.models import models_app
 
     commands_imported["models"] = models_app
 except ImportError as e:
-    log_warning(
-        f"Models commands not available: {e}", context_tags=["cli", "import", "models"]
-    )
+    log_warning(f"Models commands not available: {e}", context_tags=["cli", "import", "models"])
 
 try:
     from openchronicle.interfaces.cli.commands.system import system_app
 
     commands_imported["system"] = system_app
 except ImportError as e:
-    log_warning(
-        f"System commands not available: {e}", context_tags=["cli", "import", "system"]
-    )
+    log_warning(f"System commands not available: {e}", context_tags=["cli", "import", "system"])
 
 try:
     # Use unified config commands
@@ -55,27 +40,14 @@ try:
 
     commands_imported["config"] = config_app
 except ImportError as e:
-    log_warning(
-        f"Config commands not available: {e}", context_tags=["cli", "import", "config"]
-    )
-
-try:
-    from openchronicle.interfaces.cli.commands.test import test_app
-
-    commands_imported["test"] = test_app
-except ImportError as e:
-    log_warning(
-        f"Test commands not available: {e}", context_tags=["cli", "import", "test"]
-    )
+    log_warning(f"Config commands not available: {e}", context_tags=["cli", "import", "config"])
 
 try:
     from openchronicle.interfaces.cli.commands.bookmarks import bookmarks_app
 
     commands_imported["bookmarks"] = bookmarks_app
 except ImportError as e:
-    log_warning(
-        f"Bookmarks commands not available: {e}", context_tags=["cli", "import", "bookmarks"]
-    )
+    log_warning(f"Bookmarks commands not available: {e}", context_tags=["cli", "import", "bookmarks"])
 
 COMMANDS_AVAILABLE = len(commands_imported) > 0
 
@@ -89,9 +61,7 @@ app = typer.Typer(
 )
 
 # Global options
-output_format = typer.Option(
-    "rich", "--format", "-f", help="Output format: rich, json, plain, table"
-)
+output_format = typer.Option("rich", "--format", "-f", help="Output format: rich, json, plain, table")
 
 quiet_mode = typer.Option(False, "--quiet", "-q", help="Suppress non-essential output")
 
@@ -185,23 +155,37 @@ def main(
 # Add command groups if available
 if COMMANDS_AVAILABLE:
     try:
-        if "story" in commands_imported:
-            app.add_typer(commands_imported["story"], name="story")
         if "models" in commands_imported:
             app.add_typer(commands_imported["models"], name="models")
         if "system" in commands_imported:
             app.add_typer(commands_imported["system"], name="system")
         if "config" in commands_imported:
             app.add_typer(commands_imported["config"], name="config")
-        if "test" in commands_imported:
-            app.add_typer(commands_imported["test"], name="test")
         if "bookmarks" in commands_imported:
             app.add_typer(commands_imported["bookmarks"], name="bookmarks")
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
         log_warning(
-            f"Error adding command groups: {e}",
+            f"Error adding core command groups: {e}",
             context_tags=["cli", "commands", "error"],
         )
+
+
+def _wire_plugin_cli(app):
+    """Hook for plugin CLI registration (no core discovery).
+
+    Plugins should call register_cli(app) from their own bootstrap paths.
+    Core does not import plugin discovery to preserve boundaries.
+    """
+    log_info("Plugin CLI wiring hook ready (plugins self-register if present)", context_tags=["cli", "plugin"])
+
+
+def run():
+    """Main entry point that builds facade and wires plugin CLIs."""
+    # Build facades/containers is handled by plugin bootstrap if present
+    _wire_plugin_cli(app)  # allow plugins to self-register
+
+    # Run the CLI
+    app()
 
 
 # Placeholder for command groups (will be implemented next)
@@ -251,9 +235,7 @@ def status():
     config_path = Path.cwd() / "config"
 
     if not core_path.exists():
-        output_manager.error(
-            "Core directory not found. Are you in the OpenChronicle root?"
-        )
+        output_manager.error("Core directory not found. Are you in the OpenChronicle root?")
         return
 
     if not config_path.exists():
@@ -286,10 +268,8 @@ def status():
         {"item": "Python Version", "value": sys.version.split()[0], "status": "✅"},
     ]
 
-    output_manager.table(
-        status_data, title="OpenChronicle Status", headers=["item", "value", "status"]
-    )
+    output_manager.table(status_data, title="OpenChronicle Status", headers=["item", "value", "status"])
 
 
 if __name__ == "__main__":
-    app()
+    run()

@@ -1,7 +1,7 @@
 """TEMP re-export during migration to plugin-based architecture.
 
-This module exposes the ResponsePlanner from the storytelling plugin to
+This module exposes response planner from the storytelling plugin to
 preserve import compatibility during Phase 1.
 """
 
-from openchronicle.plugins.storytelling.domain.services.narrative.engines.response.response_planner import *  # type: ignore # noqa: F401,F403
+from openchronicle.domain.services.narrative import *  # type: ignore # noqa: F401,F403

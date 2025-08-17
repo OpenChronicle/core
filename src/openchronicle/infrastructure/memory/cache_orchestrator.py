@@ -372,7 +372,7 @@ class DistributedMultiTierCache(MultiTierCache):
         memory_results = await self.warming_manager.warm_memory_snapshots(story_ids)
         results["memory_snapshots"] = memory_results
 
-        # Warm character data
+    # Warm participant data
         character_results = {}
         for story_id, names in character_names.items():
             story_results = await self.warming_manager.warm_character_cache(

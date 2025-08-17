@@ -1,20 +1,24 @@
+# 🚫 DO NOT EDIT: guardrail test. Changes require CODEOWNERS approval.
+
 name: "🏗️ OpenChronicle CI/CD - Hexagonal Architecture Protection"
 
 on:
   push:
-    branches: [main, develop, 'feature/*', 'hotfix/*']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'hotfix/*'
   pull_request:
-    branches: [main, develop]
   schedule:
     # Run nightly builds to catch dependency drift
     - cron: '0 2 * * *'
 
 env:
-  PYTHON_VERSION_MATRIX: '["3.11", "3.12"]'
   PRIMARY_PYTHON: '3.12'
 
 jobs:
-  # 🔍 ARCHITECTURE COMPLIANCE GATE
+  # � ARCHITECTURE COMPLIANCE GATE
   architecture-guard:
     name: "🏛️ Architecture Compliance"
     runs-on: ubuntu-latest
@@ -23,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PRIMARY_PYTHON }}
 
@@ -80,7 +84,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PRIMARY_PYTHON }}
 
@@ -149,14 +153,15 @@ jobs:
     name: "🧪 Test Suite (Python ${{ matrix.python-version }})"
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -214,7 +219,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PRIMARY_PYTHON }}
 
@@ -250,7 +255,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PRIMARY_PYTHON }}
 

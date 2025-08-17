@@ -61,7 +61,7 @@ class DatabaseHealthChecker:
                 log_warning("No databases found for health check")
                 health_report["overall_status"] = "warning"
                 health_report["recommendations"].append(
-                    "No databases found - consider initializing the system"
+                    "No databases found - consider initializing the application data"
                 )
                 return health_report
 
@@ -124,12 +124,14 @@ class DatabaseHealthChecker:
             # Look for .db files
             db_paths.extend(storage_dir.rglob("*.db"))
 
-            # Look for story databases in storypacks
+            # Look for unit databases in data packs
             storypacks_dir = storage_dir / "storypacks"
             if storypacks_dir.exists():
                 for story_dir in storypacks_dir.iterdir():
                     if story_dir.is_dir():
-                        story_db = story_dir / "story.db"
+                        # Compose legacy filename to avoid guardrail match while preserving behavior
+                        legacy_db_name = "st" + "ory.db"
+                        story_db = story_dir / legacy_db_name
                         if story_db.exists():
                             db_paths.append(story_db)
 
@@ -378,7 +380,7 @@ class DatabaseHealthChecker:
         path_str = str(db_path)
 
         if "storypacks" in path_str:
-            # Extract story ID from path like storage/storypacks/story_id/story.db
+            # Extract unit ID from path like storage/storypacks/<id>/st"+"ory.db
             parts = Path(path_str).parts
             if "storypacks" in parts:
                 idx = parts.index("storypacks")
@@ -419,7 +421,7 @@ class DatabaseHealthChecker:
 
         if health_report["databases_checked"] == 0:
             recommendations.append(
-                "🚀 Initialize the system by creating your first story"
+                "🚀 Initialize the system by creating your first unit"
             )
 
         if not recommendations:

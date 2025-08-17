@@ -7,12 +7,14 @@ instances with correct dependency injection for different environments.
 
 from typing import Any
 
-from openchronicle.application.services.story_processing_service import StoryProcessingConfig
-from openchronicle.application.services.story_processing_service import StoryProcessingService
-from openchronicle.domain.services import CharacterService
-from openchronicle.domain.services import MemoryService
-from openchronicle.domain.services import SceneService
-from openchronicle.domain.services import StoryService
+from openchronicle.domain.services import (
+    CharacterService,
+    MemoryService,
+    SceneService,
+    StoryService,
+)
+
+from .story_processing_service import StoryProcessingConfig, StoryProcessingService
 
 
 class StoryProcessingServiceFactory:
@@ -48,16 +50,16 @@ class StoryProcessingServiceFactory:
         Returns:
             Configured StoryProcessingService with production adapters
         """
-        from openchronicle.application.services.model_orchestrator_factory import ModelOrchestratorFactory
-        from openchronicle.infrastructure.adapters.content_analysis_adapter import ContentAnalysisAdapter
-        from openchronicle.infrastructure.adapters.context_adapter import ContextAdapter
+        from ...infrastructure.adapters.content_adapter import (
+            StorytellingContentAdapter,
+        )
+        from ...infrastructure.adapters.context_adapter import (
+            StorytellingContextAdapter,
+        )
 
-        # Create production adapters
-        context_port = ContextAdapter()
-
-        # Create model orchestrator for content analysis
-        model_orchestrator = ModelOrchestratorFactory.create_production_orchestrator()
-        content_analysis_port = ContentAnalysisAdapter(model_orchestrator)
+        # Create production adapters using plugin-local implementations
+        context_port = StorytellingContextAdapter()
+        content_analysis_port = StorytellingContentAdapter()
 
         return StoryProcessingService(
             story_service=story_service,

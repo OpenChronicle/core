@@ -34,8 +34,8 @@ class ImageStorageManager:
 
         # Set up naming configuration
         self.naming_config = naming_config or {
-            "character_prefix": "char",
-            "scene_prefix": "scene",
+            "entity_prefix": "ent",
+            "frame_prefix": "frame",
             "location_prefix": "loc",
             "item_prefix": "item",
             "custom_prefix": "img",
@@ -111,8 +111,8 @@ class ImageStorageManager:
         """Generate a unique image ID based on type and context"""
         # Get prefix based on type
         prefix_map = {
-            ImageType.CHARACTER: self.naming_config["character_prefix"],
-            ImageType.SCENE: self.naming_config["scene_prefix"],
+            ImageType.ENTITY: self.naming_config.get("entity_prefix", "ent"),
+            ImageType.FRAME: self.naming_config.get("frame_prefix", "frame"),
             ImageType.LOCATION: self.naming_config["location_prefix"],
             ImageType.ITEM: self.naming_config["item_prefix"],
             ImageType.CUSTOM: self.naming_config["custom_prefix"],
@@ -153,8 +153,8 @@ class ImageStorageManager:
         """Get the file path for an image"""
         # Determine subdirectory based on type
         subdir_map = {
-            ImageType.CHARACTER: "characters",
-            ImageType.SCENE: "scenes",
+            ImageType.ENTITY: "entities",
+            ImageType.FRAME: "frames",
             ImageType.LOCATION: "locations",
             ImageType.ITEM: "items",
             ImageType.CUSTOM: "custom",
@@ -207,15 +207,17 @@ class ImageStorageManager:
         if not valid:
             raise ImageValidationError(f"Invalid file path: {error}")
 
+        # Ensure there is something to store before attempting IO
+        if not result.image_data and not result.image_path:
+            raise ImageValidationError("No image data or path in result")
+
         try:
             # Store the image file
             if result.image_data:
                 with open(file_path, "wb") as f:
                     f.write(result.image_data)
-            elif result.image_path:
-                shutil.copy2(result.image_path, file_path)
             else:
-                raise ImageValidationError("No image data or path in result")
+                shutil.copy2(result.image_path, file_path)
 
             # Create metadata
             metadata = ImageMetadata(

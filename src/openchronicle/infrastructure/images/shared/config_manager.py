@@ -88,13 +88,13 @@ class ImageConfigManager:
             "enabled": True,
             "adapters": {"mock": {"enabled": True, "class": "MockImageAdapter"}},
             "auto_generate": {
-                "character_portraits": True,
-                "scene_images": True,
-                "scene_triggers": ["major_event", "new_location"],
+                "entity_portraits": True,
+                "frame_images": True,
+                "frame_triggers": ["major_event", "new_location"],
             },
             "naming": {
-                "character_prefix": "char",
-                "scene_prefix": "scene",
+                "entity_prefix": "ent",
+                "frame_prefix": "frame",
                 "location_prefix": "loc",
                 "item_prefix": "item",
                 "custom_prefix": "img",
@@ -106,14 +106,14 @@ class ImageConfigManager:
     def get_image_config_from_registry(
         self, story_path: str | None = None
     ) -> dict[str, Any]:
-        """Extract image configuration from registry and story config"""
+        """Extract image configuration from registry and unit config"""
         # Use provided story_path or fall back to instance path
         working_story_path = Path(story_path) if story_path else self.story_path
 
         registry = self.load_model_registry()
 
-        # Check for story-specific configuration
-        story_config = {}
+    # Check for unit-specific configuration
+        story_config: dict[str, Any] = {}
         if working_story_path:
             config_path = working_story_path / "config.json"
             if config_path.exists():
@@ -121,10 +121,10 @@ class ImageConfigManager:
                     with open(config_path, encoding="utf-8") as f:
                         story_config = json.load(f)
                 except Exception as e:
-                    logger.warning(f"Failed to load story config: {e}")
+                    logger.warning(f"Failed to load unit config: {e}")
 
         # Build adapter configuration
-        adapters = {}
+        adapters: dict[str, dict[str, Any]] = {}
 
         # Check environment variables for API keys
         openai_key = os.getenv("OPENAI_API_KEY")
@@ -140,7 +140,7 @@ class ImageConfigManager:
 
         adapters["mock"] = {"enabled": True, "class": "MockImageAdapter"}
 
-        # Override with story config if available
+    # Override with unit config if available
         if "image_generation" in story_config:
             story_image_config = story_config["image_generation"]
             if "adapters" in story_image_config:
@@ -157,9 +157,9 @@ class ImageConfigManager:
             "enabled": True,
             "adapters": adapters,
             "auto_generate": {
-                "character_portraits": True,
-                "scene_images": True,
-                "scene_triggers": ["major_event", "new_location"],
+                "entity_portraits": True,
+                "frame_images": True,
+                "frame_triggers": ["major_event", "new_location"],
             },
             "fallback_chain": (
                 ["openai", "stability", "mock"] if openai_key else ["mock"]
@@ -172,8 +172,8 @@ class ImageConfigManager:
     ) -> NamingConfig:
         """Get naming configuration with defaults"""
         default_naming = {
-            "character_prefix": "char",
-            "scene_prefix": "scene",
+            "entity_prefix": "ent",
+            "frame_prefix": "frame",
             "location_prefix": "loc",
             "item_prefix": "item",
             "custom_prefix": "img",
@@ -191,10 +191,10 @@ class ImageConfigManager:
         default_auto = {
             "enabled": False,
             "trigger_keywords": ["describe", "appears", "looks like"],
-            "character_triggers": ["new character", "character appears"],
-            "scene_triggers": ["new scene", "setting changes"],
+            "entity_triggers": ["new entity", "entity appears"],
+            "frame_triggers": ["new frame", "setting changes"],
             "location_triggers": ["travels to", "arrives at"],
-            "max_auto_per_scene": 3,
+            "max_auto_per_frame": 3,
             "require_confirmation": True,
         }
 

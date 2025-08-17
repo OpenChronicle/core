@@ -2,6 +2,7 @@
 Database connection management.
 
 Handles SQLite connection creation, path management, and context detection.
+Uses neutral terminology to avoid domain coupling.
 """
 
 import os
@@ -17,7 +18,7 @@ class ConnectionManager:
         self.config = config
 
     def get_db_path(self, story_id: str, is_test: bool | None = None) -> str:
-        """Get the path to the SQLite database for a story."""
+        """Get the path to the SQLite database for a unit."""
         base_path = self.config.get_base_path(is_test)
         return os.path.join(base_path, story_id, self.config.db_filename)
 
@@ -29,7 +30,7 @@ class ConnectionManager:
     def get_connection(
         self, story_id: str, is_test: bool | None = None
     ) -> sqlite3.Connection:
-        """Get a database connection for the specified story."""
+        """Get a database connection for the specified unit."""
         self.ensure_db_dir(story_id, is_test)
         db_path = self.get_db_path(story_id, is_test)
 
@@ -42,7 +43,7 @@ class ConnectionManager:
         return conn
 
     def database_exists(self, story_id: str, is_test: bool | None = None) -> bool:
-        """Check if database file exists for the story."""
+        """Check if database file exists for the unit."""
         db_path = self.get_db_path(story_id, is_test)
         return os.path.exists(db_path)
 

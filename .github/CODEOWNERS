@@ -4,3 +4,10 @@
 # Critical architecture and orchestration
 /src/openchronicle/**  @OpenChronicle/maintainers
 /core/**               @OpenChronicle/maintainers
+
+# Guardrail files must be approved by you
+/tests/architecture/*       @CarlDog
+/.github/workflows/*        @CarlDog
+/pytest.ini                 @CarlDog
+/.pre-commit-config.yaml    @CarlDog
+/tests/contracts/**         @CarlDog

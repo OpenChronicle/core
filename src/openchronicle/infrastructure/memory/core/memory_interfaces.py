@@ -2,7 +2,7 @@
 Memory Management Interface Segregation
 
 Following SOLID principles, this module splits the large MemoryOrchestrator
-into focused, single-responsibility interfaces.
+into focused, single-responsibility interfaces using neutral terminology.
 
 Phase 2 Week 11-12: Interface Segregation & Architecture Cleanup
 """
@@ -128,43 +128,43 @@ class IMemoryPersistence(ABC):
 
     @abstractmethod
     async def load_current_memory(self, story_id: str) -> dict[str, Any]:
-        """Load current memory state for story."""
+        """Load current memory state for a unit."""
 
     @abstractmethod
     async def save_current_memory(
         self, story_id: str, memory_data: dict[str, Any]
     ) -> bool:
-        """Save current memory state for story."""
+        """Save current memory state for a unit."""
 
     @abstractmethod
     async def archive_memory_snapshot(
         self, story_id: str, scene_id: str, snapshot: MemorySnapshot
     ) -> bool:
-        """Archive memory snapshot for specific scene."""
+    """Archive memory snapshot for a specific segment."""
 
     @abstractmethod
     async def restore_memory_from_snapshot(
         self, story_id: str, scene_id: str
     ) -> dict[str, Any]:
-        """Restore memory state from archived snapshot."""
+    """Restore memory state from archived snapshot."""
 
     @abstractmethod
     async def get_memory_history(
         self, story_id: str, limit: int = 50
     ) -> list[MemorySnapshot]:
-        """Get memory history for story."""
+    """Get memory history for a unit."""
 
     @abstractmethod
     async def delete_memory_data(self, story_id: str) -> bool:
-        """Delete all memory data for story."""
+    """Delete all memory data for a unit."""
 
     @abstractmethod
     async def backup_memory_data(self, story_id: str, backup_path: str) -> bool:
-        """Backup memory data to specified path."""
+    """Backup memory data to specified path."""
 
     @abstractmethod
     async def restore_memory_data(self, story_id: str, backup_path: str) -> bool:
-        """Restore memory data from backup."""
+    """Restore memory data from backup."""
 
 
 class ICharacterMemoryManager(ABC):
@@ -178,29 +178,29 @@ class ICharacterMemoryManager(ABC):
     async def get_character_memory(
         self, story_id: str, character_name: str
     ) -> CharacterMemory:
-        """Get complete character memory."""
+    """Get complete entity memory."""
 
     @abstractmethod
     async def update_character_memory(
         self, story_id: str, character_name: str, updates: dict[str, Any]
     ) -> CharacterMemory:
-        """Update character memory with new information."""
+    """Update entity memory with new information."""
 
     @abstractmethod
     async def create_character_memory(
         self, story_id: str, character_name: str, initial_data: dict[str, Any]
     ) -> CharacterMemory:
-        """Create new character memory."""
+    """Create new entity memory."""
 
     @abstractmethod
     async def delete_character_memory(self, story_id: str, character_name: str) -> bool:
-        """Delete character memory."""
+    """Delete entity memory."""
 
     @abstractmethod
     async def update_character_mood(
         self, story_id: str, character_name: str, new_mood: str, reason: str
     ) -> bool:
-        """Update character's current mood."""
+    """Update entity's current mood."""
 
     @abstractmethod
     async def update_character_relationship(
@@ -210,13 +210,13 @@ class ICharacterMemoryManager(ABC):
         other_character: str,
         relationship_data: dict[str, Any],
     ) -> bool:
-        """Update relationship between characters."""
+    """Update relationship between entities."""
 
     @abstractmethod
     async def add_character_experience(
         self, story_id: str, character_name: str, experience: dict[str, Any]
     ) -> bool:
-        """Add new experience to character memory."""
+    """Add new experience to entity memory."""
 
     @abstractmethod
     def get_character_voice_profile(
@@ -300,31 +300,31 @@ class IMemoryContextBuilder(ABC):
     async def build_scene_context(
         self, story_id: str, context_request: MemoryContext
     ) -> str:
-        """Build memory context for scene generation."""
+    """Build memory context for scene generation."""
 
     @abstractmethod
     async def build_character_context(
         self, story_id: str, character_name: str, context_request: MemoryContext
     ) -> str:
-        """Build memory context focused on specific character."""
+    """Build memory context focused on specific character."""
 
     @abstractmethod
     async def build_world_context(
         self, story_id: str, context_request: MemoryContext
     ) -> str:
-        """Build memory context focused on world state."""
+    """Build memory context focused on world state."""
 
     @abstractmethod
     async def build_full_context(
         self, story_id: str, context_request: MemoryContext
     ) -> str:
-        """Build comprehensive memory context."""
+    """Build comprehensive memory context."""
 
     @abstractmethod
     async def get_recent_events(
         self, story_id: str, limit: int = 10, importance_threshold: float = 0.0
     ) -> list[dict[str, Any]]:
-        """Get recent events filtered by importance."""
+    """Get recent events filtered by importance."""
 
     @abstractmethod
     async def add_recent_event(
@@ -334,13 +334,13 @@ class IMemoryContextBuilder(ABC):
         importance: float = 1.0,
         event_type: str = "general",
     ) -> bool:
-        """Add new event to recent events."""
+    """Add new event to recent events."""
 
     @abstractmethod
     def prioritize_context_elements(
         self, elements: list[dict[str, Any]], max_length: int
     ) -> list[dict[str, Any]]:
-        """Prioritize context elements by importance and relevance."""
+    """Prioritize context elements by importance and relevance."""
 
 
 class IMemoryFlagManager(ABC):
@@ -358,35 +358,35 @@ class IMemoryFlagManager(ABC):
         description: str,
         flag_type: str = "general",
     ) -> bool:
-        """Add memory flag."""
+    """Add memory flag."""
 
     @abstractmethod
     async def remove_memory_flag(self, story_id: str, flag_name: str) -> bool:
-        """Remove memory flag."""
+    """Remove memory flag."""
 
     @abstractmethod
     async def has_memory_flag(self, story_id: str, flag_name: str) -> bool:
-        """Check if memory flag exists."""
+    """Check if memory flag exists."""
 
     @abstractmethod
     async def get_active_flags(
         self, story_id: str, flag_type: str | None = None
     ) -> list[str]:
-        """Get list of active flags, optionally filtered by type."""
+    """Get list of active flags, optionally filtered by type."""
 
     @abstractmethod
     async def update_flag_description(
         self, story_id: str, flag_name: str, new_description: str
     ) -> bool:
-        """Update flag description."""
+    """Update flag description."""
 
     @abstractmethod
     async def get_flag_info(self, story_id: str, flag_name: str) -> dict[str, Any]:
-        """Get detailed information about specific flag."""
+    """Get detailed information about specific flag."""
 
     @abstractmethod
     async def clear_flags_by_type(self, story_id: str, flag_type: str) -> int:
-        """Clear all flags of specific type."""
+    """Clear all flags of specific type."""
 
 
 # === Composite Interface (Facade Pattern) ===
@@ -428,21 +428,21 @@ class IMemoryOrchestrator(ABC):
     # Convenience methods that delegate to appropriate interfaces
     @abstractmethod
     async def load_current_memory(self, story_id: str) -> dict[str, Any]:
-        """Convenience method for loading memory."""
+    """Convenience method for loading memory."""
 
     @abstractmethod
     async def update_character_memory(
         self, story_id: str, character_name: str, updates: dict[str, Any]
     ) -> dict[str, Any]:
-        """Convenience method for character memory updates."""
+    """Convenience method for character memory updates."""
 
     @abstractmethod
     async def build_scene_context(self, story_id: str, scene_id: str) -> str:
-        """Convenience method for building scene context."""
+    """Convenience method for building scene context."""
 
     @abstractmethod
     async def get_memory_summary(self, story_id: str) -> dict[str, Any]:
-        """Get comprehensive memory summary for display."""
+    """Get comprehensive memory summary for display."""
 
 
 # === Service Discovery Interface ===

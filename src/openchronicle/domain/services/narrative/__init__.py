@@ -1,8 +1,7 @@
-"""TEMP re-export during migration to plugin-based architecture.
+"""Narrative Service Shim (plugin-agnostic).
 
-All narrative services have been relocated to the first-party storytelling plugin.
-This module re-exports from the plugin to preserve import compatibility during
-Phase 1 without changing behavior. Remove after migration completes.
+Narrative engines and services live in plugins. Core does not re-export
+plugin implementations. Resolve narrative services via plugins or DI.
 """
 
-from openchronicle.plugins.storytelling.domain.services.narrative import *  # noqa: F401,F403
+__all__: list[str] = []

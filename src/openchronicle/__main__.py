@@ -7,20 +7,20 @@ from openchronicle import __version__
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="openchronicle", description="OpenChronicle CLI"
-    )
-    parser.add_argument("--version", action="store_true", help="Print version and exit")
-    args = parser.parse_args(argv)
+    # Check only for --version flag, pass everything else to typer CLI
+    if argv is None:
+        argv = sys.argv[1:]
 
-    if args.version:
+    if "--version" in argv:
         from rich.console import Console
+
         Console().print(__version__)
         return 0
 
-    # Run modern CLI app directly when no simple flag used
-    from openchronicle.interfaces.cli.main import app as cli_app
-    cli_app()
+    # Run modern CLI app directly for all other commands
+    from openchronicle.interfaces.cli.main import run as cli_run
+
+    cli_run()
     return 0
 
 

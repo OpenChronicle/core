@@ -12,20 +12,22 @@ Extracted from legacy main.py to fit hexagonal architecture.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from openchronicle.domain.entities import Story
-from openchronicle.domain.services import CharacterService
-from openchronicle.domain.services import MemoryService
-from openchronicle.domain.services import SceneService
-from openchronicle.domain.services import StoryService
-from openchronicle.shared.exceptions import ModelError
+from openchronicle.domain.services import (
+    CharacterService,
+    MemoryService,
+    SceneService,
+    StoryService,
+)
 from openchronicle.shared.error_handling import NarrativeError
-from openchronicle.shared.exceptions import ApplicationError
-from openchronicle.shared.exceptions import ValidationError
+from openchronicle.shared.exceptions import (
+    ApplicationError,
+    ModelError,
+    ValidationError,
+)
 from openchronicle.shared.retry_policy import RetryPolicy
-
 
 if TYPE_CHECKING:
     from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
@@ -105,34 +107,24 @@ class StoryProcessingService:
             raise ValueError(f"Story not found: {story_id}")
 
         # 2. Build context with analysis
-        await self.logging_service.log_info(
-            f"Building context for story input: {user_input[:50]}..."
-        )
+        await self.logging_service.log_info(f"Building context for story input: {user_input[:50]}...")
         context = await self._build_context_with_analysis(user_input, story)
 
         # 3. Determine routing parameters
         routing = context.get("routing", {})
         adapter_name = preferred_adapter or routing.get("adapter", "openai")
         tokens = max_tokens or routing.get("max_tokens", self.config.default_max_tokens)
-        temp = temperature or routing.get(
-            "temperature", self.config.default_temperature
-        )
+        temp = temperature or routing.get("temperature", self.config.default_temperature)
 
-        await self.logging_service.log_info(
-            f"Using adapter: {adapter_name}, tokens: {tokens}, temperature: {temp}"
-        )
+        await self.logging_service.log_info(f"Using adapter: {adapter_name}, tokens: {tokens}, temperature: {temp}")
 
         # 4. Generate AI response
-        ai_response = await self._generate_ai_response(
-            context["full_context"], story_id, adapter_name, tokens, temp
-        )
+        ai_response = await self._generate_ai_response(context["full_context"], story_id, adapter_name, tokens, temp)
 
         # 5. Generate content flags
         content_flags = []
         if self.config.enable_content_flags and context.get("analysis"):
-            content_flags = await self._generate_content_flags(
-                story_id, context["analysis"], ai_response
-            )
+            content_flags = await self._generate_content_flags(story_id, context["analysis"], ai_response)
 
         # 6. Log the scene
         scene_id = None
@@ -147,9 +139,7 @@ class StoryProcessingService:
 
         # 7. Update memory with recent event
         if self.config.enable_memory_updates:
-            await self.memory_service.add_recent_event(
-                story_id, f"User: {user_input}", importance=1.0
-            )
+            await self.memory_service.add_recent_event(story_id, f"User: {user_input}", importance=1.0)
 
         return {
             "ai_response": ai_response,
@@ -163,15 +153,11 @@ class StoryProcessingService:
             "temperature_used": temp,
         }
 
-    async def _build_context_with_analysis(
-        self, user_input: str, story: Story
-    ) -> dict[str, Any]:
+    async def _build_context_with_analysis(self, user_input: str, story: Story) -> dict[str, Any]:
         """Build context with intelligent analysis."""
         if self.context_port is not None:
             # Use injected port
-            return await self.context_port.build_context_with_analysis(
-                user_input, story.to_dict()
-            )
+            return await self.context_port.build_context_with_analysis(user_input, story.to_dict())
         else:
             # Fallback for backward compatibility
             from openchronicle.domain.ports.context_port import IContextPort
@@ -180,30 +166,16 @@ class StoryProcessingService:
                 async def build_context_with_analysis(
                     self, user_input: str, story_data: dict[str, Any]
                 ) -> dict[str, Any]:
-                    return {
-                        "user_input": user_input,
-                        "story_data": story_data,
-                        "context_type": "mock"
-                    }
+                    return {"user_input": user_input, "story_data": story_data, "context_type": "mock"}
 
-                async def build_basic_context(
-                    self, user_input: str, story_data: dict[str, Any]
-                ) -> dict[str, Any]:
-                    return {
-                        "user_input": user_input,
-                        "story_data": story_data,
-                        "context_type": "basic_mock"
-                    }
+                async def build_basic_context(self, user_input: str, story_data: dict[str, Any]) -> dict[str, Any]:
+                    return {"user_input": user_input, "story_data": story_data, "context_type": "basic_mock"}
 
-                async def extract_context_metadata(
-                    self, context: dict[str, Any]
-                ) -> dict[str, Any]:
+                async def extract_context_metadata(self, context: dict[str, Any]) -> dict[str, Any]:
                     return {"mock": True}
 
             mock_port = MockContextPort()
-            return await mock_port.build_context_with_analysis(
-                user_input, story.to_dict()
-            )
+            return await mock_port.build_context_with_analysis(user_input, story.to_dict())
 
     async def _generate_ai_response(
         self,
@@ -231,43 +203,33 @@ class StoryProcessingService:
 
         try:
             ai_response = await policy.run(_attempt)
-            await self.logging_service.log_info(
-                f"Generated AI response: {ai_response[:100]}..."
-            )
+            await self.logging_service.log_info(f"Generated AI response: {ai_response[:100]}...")
         except (ModelError, NarrativeError) as e:  # Model/narrative failures after retries
-            await self.logging_service.log_error(
-                f"Model/narrative error after retries: {e}"
-            )
+            await self.logging_service.log_error(f"Model/narrative error after retries: {e}")
             return f"[Model error after retries: {e}]"
         except Exception as e:  # Final unexpected failure after retries
-            await self.logging_service.log_error(
-                f"Unexpected AI generation failure after retries: {e}"
-            )
+            await self.logging_service.log_error(f"Unexpected AI generation failure after retries: {e}")
             return f"[Unexpected error generating response after retries: {e}]"
         else:
             return ai_response
 
-    async def _generate_content_flags(
-        self, story_id: str, analysis: dict[str, Any], ai_response: str
-    ) -> list:
+    async def _generate_content_flags(self, story_id: str, analysis: dict[str, Any], ai_response: str) -> list:
         """Generate content flags from analysis and AI response."""
         try:
             if self.content_analysis_port is not None:
                 # Use injected port
-                content_flags = await self.content_analysis_port.generate_content_flags(
-                    analysis, ai_response
-                )
+                content_flags = await self.content_analysis_port.generate_content_flags(analysis, ai_response)
             else:
                 # Fallback for backward compatibility
-                from openchronicle.domain.ports.content_analysis_port import IContentAnalysisPort
+                from openchronicle.domain.ports.content_analysis_port import (
+                    IContentAnalysisPort,
+                )
 
                 class MockContentAnalysisPort(IContentAnalysisPort):
                     async def generate_content_flags(
                         self, analysis: dict[str, Any], content: str
                     ) -> list[dict[str, Any]]:
-                        return [
-                            {"name": "mock_flag", "value": "test", "type": "content"}
-                        ]
+                        return [{"name": "mock_flag", "value": "test", "type": "content"}]
 
                     async def analyze_content_sentiment(self, content: str) -> dict[str, Any]:
                         return {"sentiment": "neutral", "confidence": 0.5}
@@ -276,19 +238,13 @@ class StoryProcessingService:
                         return ["general"]
 
                 mock_port = MockContentAnalysisPort()
-                content_flags = await mock_port.generate_content_flags(
-                    analysis, ai_response
-                )
+                content_flags = await mock_port.generate_content_flags(analysis, ai_response)
 
             # Add flags to memory
             for flag in content_flags:
-                await self.memory_service.add_memory_flag(
-                    story_id, flag["name"], flag["value"], flag_type="content"
-                )
+                await self.memory_service.add_memory_flag(story_id, flag["name"], flag["value"], flag_type="content")
 
-            await self.logging_service.log_info(
-                f"Generated {len(content_flags)} content flags"
-            )
+            await self.logging_service.log_info(f"Generated {len(content_flags)} content flags")
         except (ApplicationError, ValidationError) as e:
             await self.logging_service.log_error(f"Service/validation error in content flag generation: {e}")
             return []
@@ -310,7 +266,9 @@ class StoryProcessingService:
         try:
             # Use the legacy scene orchestrator temporarily
             # TODO: Migrate to proper domain service once available
-            from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
+            from openchronicle.domain.services.scenes.scene_orchestrator import (
+                SceneOrchestrator,
+            )
 
             scene_orchestrator = SceneOrchestrator(story_id)
             scene_id = scene_orchestrator.save_scene(

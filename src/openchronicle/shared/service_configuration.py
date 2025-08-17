@@ -7,17 +7,13 @@ Replaces manual dependency wiring in orchestrator __init__ methods.
 Part of Phase 2, Week 5-6: Dependency Injection Framework
 """
 
-from typing import Any
-from typing import List
+from typing import Any, List
 
 # Import the DI container and interfaces
-from .dependency_injection import DIContainer
-from .dependency_injection import get_container
-from .logging_system import log_error
-from .logging_system import log_info
+from .dependency_injection import DIContainer, get_container
 
 # Import utilities
-from .logging_system import log_system_event
+from .logging_system import log_error, log_info, log_system_event
 from .service_interfaces import *
 
 
@@ -79,9 +75,7 @@ class ServiceConfigurator:
 
                 log_warning(message, **kwargs)
 
-        self.container.register_singleton(
-            ILogger, OpenChronicleLogger, "OpenChronicle logging system adapter"
-        )
+        self.container.register_singleton(ILogger, OpenChronicleLogger, "OpenChronicle logging system adapter")
 
         self._registered_services.add("ILogger")
 
@@ -90,17 +84,19 @@ class ServiceConfigurator:
         log_info("Configuring configuration services")
 
         try:
-            from openchronicle.domain.models.configuration_manager import ConfigurationManager
-            from openchronicle.infrastructure.adapters.registry_adapter import RegistryAdapter
+            from openchronicle.domain.models.configuration_manager import (
+                ConfigurationManager,
+            )
+            from openchronicle.infrastructure.adapters.registry_adapter import (
+                RegistryAdapter,
+            )
 
             # Create wrapper that implements interface
             class ConfigurationManagerAdapter(IConfigurationManager):
                 def __init__(self):
                     # Provide proper registry_port dependency
                     registry_port = RegistryAdapter()
-                    self._config_manager = ConfigurationManager(
-                        registry_port=registry_port
-                    )
+                    self._config_manager = ConfigurationManager(registry_port=registry_port)
 
                 def get_config(self, section: str) -> dict[str, Any]:
                     if hasattr(self._config_manager, "config"):
@@ -127,7 +123,9 @@ class ServiceConfigurator:
         log_info("Configuring database services")
 
         try:
-            from openchronicle.infrastructure.persistence.database_orchestrator import DatabaseOrchestrator
+            from openchronicle.infrastructure.persistence.database_orchestrator import (
+                DatabaseOrchestrator,
+            )
 
             # Create wrapper that implements interface
             class DatabaseOrchestratorAdapter(IDatabaseOrchestrator):
@@ -173,9 +171,7 @@ class ServiceConfigurator:
                     max_retries: int = 2,
                     graceful_degradation: bool = True,
                 ) -> bool:
-                    return await self._orchestrator.initialize_adapter(
-                        name, max_retries, graceful_degradation
-                    )
+                    return await self._orchestrator.initialize_adapter(name, max_retries, graceful_degradation)
 
                 async def generate_response(
                     self,
@@ -184,9 +180,7 @@ class ServiceConfigurator:
                     story_id: str | None = None,
                     **kwargs,
                 ) -> str:
-                    return await self._orchestrator.generate_response(
-                        prompt, adapter_name, story_id, **kwargs
-                    )
+                    return await self._orchestrator.generate_response(prompt, adapter_name, story_id, **kwargs)
 
             self.container.register_singleton(
                 IModelOrchestrator,
@@ -204,27 +198,23 @@ class ServiceConfigurator:
         log_info("Configuring memory management services")
 
         try:
-            from openchronicle.infrastructure.memory.memory_orchestrator import MemoryOrchestrator
+            from openchronicle.infrastructure.memory.memory_orchestrator import (
+                MemoryOrchestrator,
+            )
 
             # Create wrapper that implements interface
             class MemoryOrchestratorAdapter(IMemoryOrchestrator):
                 def __init__(self):
                     self._orchestrator = MemoryOrchestrator()
 
-                async def get_character_memory(
-                    self, character_id: str
-                ) -> dict[str, Any]:
+                async def get_character_memory(self, character_id: str) -> dict[str, Any]:
                     if hasattr(self._orchestrator, "get_character_memory"):
                         return self._orchestrator.get_character_memory(character_id)
                     return {}
 
-                async def create_scene_context(
-                    self, story_id: str, scene_data: dict[str, Any]
-                ) -> dict[str, Any]:
+                async def create_scene_context(self, story_id: str, scene_data: dict[str, Any]) -> dict[str, Any]:
                     if hasattr(self._orchestrator, "create_scene_context"):
-                        return self._orchestrator.create_scene_context(
-                            story_id, scene_data
-                        )
+                        return self._orchestrator.create_scene_context(story_id, scene_data)
                     return {}
 
             self.container.register_singleton(
@@ -239,43 +229,17 @@ class ServiceConfigurator:
             log_error(f"Could not register memory services: {e}")
 
     def _configure_content_analysis_services(self):
-        """Configure content analysis services."""
-        log_info("Configuring content analysis services")
-
-        try:
-            from openchronicle.infrastructure.content.context.orchestrator import ContextOrchestrator
-
-            # Create wrapper that implements interface
-            class ContextOrchestratorAdapter(IContextOrchestrator):
-                def __init__(self):
-                    self._orchestrator = ContextOrchestrator()
-
-                async def build_context_with_analysis(
-                    self, content: str, story_id: str
-                ) -> dict[str, Any]:
-                    if hasattr(self._orchestrator, "build_context_with_analysis"):
-                        return await self._orchestrator.build_context_with_analysis(
-                            content, story_id
-                        )
-                    return {}
-
-            self.container.register_singleton(
-                IContextOrchestrator,
-                ContextOrchestratorAdapter,
-                "Context orchestration service",
-            )
-
-            self._registered_services.add("IContextOrchestrator")
-
-        except ImportError as e:
-            log_error(f"Could not register content analysis services: {e}")
+        """Configure content analysis services (provided by plugins)."""
+        log_info("Skipping core content/context orchestrator wiring; handled by plugins via domain ports")
 
     def _configure_scene_services(self):
         """Configure scene management services."""
         log_info("Configuring scene management services")
 
         try:
-            from openchronicle.domain.services.scenes.scene_orchestrator import SceneOrchestrator
+            from openchronicle.domain.services.scenes.scene_orchestrator import (
+                SceneOrchestrator,
+            )
 
             # Create wrapper that implements interface
             class SceneOrchestratorAdapter(ISceneOrchestrator):
@@ -288,9 +252,7 @@ class ServiceConfigurator:
                         self._orchestrators[story_id] = SceneOrchestrator(story_id)
                     return self._orchestrators[story_id]
 
-                async def generate_scene(
-                    self, story_id: str, user_input: str
-                ) -> dict[str, Any]:
+                async def generate_scene(self, story_id: str, user_input: str) -> dict[str, Any]:
                     orchestrator = self._get_orchestrator(story_id)
                     if hasattr(orchestrator, "generate_scene"):
                         return await orchestrator.generate_scene(user_input)
@@ -312,16 +274,16 @@ class ServiceConfigurator:
         log_info("Configuring narrative services")
 
         try:
-            from openchronicle.domain.services.narrative.narrative_orchestrator import NarrativeOrchestrator
+            from openchronicle.domain.services.narrative.narrative_orchestrator import (
+                NarrativeOrchestrator,
+            )
 
             # Create wrapper that implements interface
             class NarrativeOrchestratorAdapter(INarrativeOrchestrator):
                 def __init__(self):
                     self._orchestrator = NarrativeOrchestrator()
 
-                async def process_narrative_request(
-                    self, story_id: str, request: dict[str, Any]
-                ) -> dict[str, Any]:
+                async def process_narrative_request(self, story_id: str, request: dict[str, Any]) -> dict[str, Any]:
                     # Implementation depends on NarrativeOrchestrator API
                     return {}
 

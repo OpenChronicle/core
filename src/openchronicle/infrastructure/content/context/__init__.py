@@ -4,14 +4,9 @@ Context Building System
 Context orchestrator for building contextual information for AI model generation
 by coordinating memory, content analysis, and narrative systems.
 
-Usage:
-    from openchronicle.infrastructure.content.context import ContextOrchestrator
-
-    orchestrator = ContextOrchestrator()
-    context = await orchestrator.build_context(story_data, config)
+Note: The unified ContextOrchestrator has moved behind plugin/domain ports.
+This package remains for backwards import stability during transition but does
+not expose a concrete orchestrator.
 """
 
-from .orchestrator import ContextOrchestrator
-
-
-__all__ = ["ContextOrchestrator"]
+__all__: list[str] = []

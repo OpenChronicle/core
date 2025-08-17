@@ -2,12 +2,12 @@
 Context Management Components
 
 This package provides specialized components for context generation and world state
-management in the OpenChronicle narrative AI engine.
+management in the OpenChronicle runtime AI engine.
 
 Components:
-- ContextBuilder: Advanced context generation for narrative AI prompts
+- ContextBuilder: Advanced context generation for runtime AI prompts
 - WorldStateManager: World state, events, and flags management
-- SceneContextManager: Scene-specific context and narrative continuity
+- SceneContextManager: Frame-specific context and runtime continuity
 
 Usage:
     from .context_builder import ContextBuilder, ContextConfiguration, ContextMetrics
@@ -19,9 +19,9 @@ from .context_builder import ContextBuilder
 from .context_builder import ContextConfiguration
 from .context_builder import ContextMetrics
 from .scene_context_manager import ContextContinuity
-from .scene_context_manager import SceneContext
-from .scene_context_manager import SceneContextManager
-from .scene_context_manager import SceneTransition
+from .scene_context_manager import SceneContext as FrameContext
+from .scene_context_manager import SceneContextManager as FrameContextManager
+from .scene_context_manager import SceneTransition as FrameTransition
 from .world_state_manager import EventFilter
 from .world_state_manager import WorldStateAnalysis
 from .world_state_manager import WorldStateManager
@@ -34,9 +34,9 @@ __all__ = [
     "ContextContinuity",
     "ContextMetrics",
     "EventFilter",
-    "SceneContext",
-    "SceneContextManager",
-    "SceneTransition",
+    "FrameContext",
+    "FrameContextManager",
+    "FrameTransition",
     "WorldStateAnalysis",
     "WorldStateManager",
     "WorldStateUpdate",

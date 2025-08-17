@@ -1,0 +1,14 @@
+name: Naughty List PRO
+on:
+  pull_request:
+    branches: [ "**" ]
+jobs:
+  naughty:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Run Copilot Naughty List PRO (global)
+        run: |
+          python tools/copilot_naughty_list_pro.py --paths . --fail-on-findings --output text

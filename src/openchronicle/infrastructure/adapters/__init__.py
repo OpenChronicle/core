@@ -35,7 +35,7 @@ class ModelConfig:
     temperature: float = 0.7
     timeout: int = 30
     rate_limit: int = 60  # requests per minute
-    fallback_models: list[str] = None
+    fallback_models: list[str] | None = None
 
     def __post_init__(self):
         if self.fallback_models is None:
@@ -74,27 +74,26 @@ class BaseModelAdapter(ABC):
         self._request_times.append(now)
 
     def _format_context_for_model(self, context: NarrativeContext) -> str:
-        """Format narrative context into a prompt for the model."""
+        """Format runtime context into a prompt for the model."""
         prompt_parts = []
-
-        # Story context
-        prompt_parts.append(f"Story ID: {context.story_id}")
+        # Context identifier
+        prompt_parts.append(f"Context ID: {context.story_id}")
 
         # Memory state summary
         if context.memory_state:
             if context.memory_state.character_memories:
-                prompt_parts.append("Characters present:")
+                prompt_parts.append("Participants present:")
                 for char_id, _memory in context.memory_state.character_memories.items():
                     if char_id in context.participant_ids:
-                        character = context.characters.get(char_id)
-                        if character:
+                        participant = context.characters.get(char_id)
+                        if participant:
                             prompt_parts.append(
-                                f"- {character.name}: {character.description}"
+                                f"- {participant.name}: {participant.description}"
                             )
 
-        # Scene context
+        # Context type
         if context.scene_type:
-            prompt_parts.append(f"Scene type: {context.scene_type}")
+            prompt_parts.append(f"Context type: {context.scene_type}")
 
         if context.location:
             prompt_parts.append(f"Location: {context.location}")
@@ -128,13 +127,14 @@ class MockModelAdapter(BaseModelAdapter):
         await asyncio.sleep(0.1)
 
         # Generate a mock response based on prompt content
-        if "character" in prompt.lower():
-            return "The character responds thoughtfully, considering their motivations and the current situation."
-        if "action" in prompt.lower():
-            return "A dramatic action unfolds, changing the course of the narrative."
-        if "dialogue" in prompt.lower():
-            return '"This is an interesting development," the character remarks with intrigue.'
-        return "The story continues to unfold in unexpected ways, revealing new depths to the narrative."
+        lower = prompt.lower()
+        if "entity" in lower:
+            return "The entity responds thoughtfully, considering relevant factors and the current state."
+        if "action" in lower:
+            return "A significant change unfolds, affecting subsequent steps."
+        if "dialogue" in lower:
+            return '"This is an interesting development," the agent remarks with intrigue.'
+        return "The process continues with additional detail, revealing useful context."
 
 
 class OpenAIAdapter(BaseModelAdapter):
@@ -179,8 +179,6 @@ class OpenAIAdapter(BaseModelAdapter):
                 temperature=temperature or self.config.temperature,
                 timeout=self.config.timeout,
             )
-
-            return response.choices[0].message.content
         except ImportError as e:
             self.logger.exception("OpenAI package not available")
             raise ModelError(f"OpenAI client not available: {e}") from e
@@ -190,6 +188,9 @@ class OpenAIAdapter(BaseModelAdapter):
         except Exception as e:
             self.logger.exception("OpenAI API error")
             raise ModelError(f"OpenAI API failed: {e}") from e
+        else:
+            content = response.choices[0].message.content  # type: ignore[attr-defined]
+            return content or ""
 
 
 class AnthropicAdapter(BaseModelAdapter):
@@ -231,8 +232,6 @@ class AnthropicAdapter(BaseModelAdapter):
                 max_tokens=max_tokens or self.config.max_tokens,
                 temperature=temperature or self.config.temperature,
             )
-
-            return response.content[0].text
         except ImportError as e:
             self.logger.exception("Anthropic package not available")
             raise ModelError(f"Anthropic client not available: {e}") from e
@@ -242,6 +241,17 @@ class AnthropicAdapter(BaseModelAdapter):
         except Exception as e:
             self.logger.exception("Anthropic API error")
             raise ModelError(f"Anthropic API failed: {e}") from e
+        else:
+            # Safely extract text from response content blocks
+            text_out = ""
+            try:
+                for block in getattr(response, "content", []) or []:
+                    t = getattr(block, "text", None)
+                    if isinstance(t, str):
+                        text_out += t
+            except Exception:
+                pass
+            return text_out or ""
 
 
 class OllamaAdapter(BaseModelAdapter):
@@ -266,7 +276,7 @@ class OllamaAdapter(BaseModelAdapter):
         await self._check_rate_limit()
 
         try:
-            import aiohttp
+            import aiohttp  # type: ignore
 
             async with aiohttp.ClientSession() as session:
                 payload = {
@@ -298,6 +308,9 @@ class OllamaAdapter(BaseModelAdapter):
             self.logger.exception("Ollama API error")
             raise ModelError(f"Ollama API failed: {e}") from e
 
+        # Fallback return to satisfy all code paths
+        return ""
+
 
 class ModelManagementAdapter(IModelManagementPort):
     """Implementation of the model management port interface."""
@@ -323,29 +336,31 @@ class ModelManagementAdapter(IModelManagementPort):
         start_time = time.time()
 
         # Determine models to try
-        models_to_try = []
+        models_to_try: list[str] = []
         if model_preference and model_preference in self.adapters:
             models_to_try.append(model_preference)
             models_to_try.extend(self.fallback_chains.get(model_preference, []))
         else:
-            # Use first available model
+            # Use first available model(s)
             models_to_try = list(self.adapters.keys())
 
         if not models_to_try:
+            generation_time = time.time() - start_time
             return ModelResponse(
-                success=False,
                 content="",
                 model_name="none",
+                provider="none",
+                timestamp=datetime.now(),
                 tokens_used=0,
-                generation_time=0.0,
-                error="No models available",
+                generation_time=generation_time,
+                finish_reason="error: no models available",
             )
 
         # Format the context into a prompt
-        prompt = self._format_narrative_prompt(context)
+        prompt = self._format_runtime_prompt(context)
 
         # Try models in order
-        last_error = None
+        last_error: str | None = None
         for model_name in models_to_try:
             if model_name not in self.adapters:
                 continue
@@ -367,7 +382,7 @@ class ModelManagementAdapter(IModelManagementPort):
                 )
 
             except ModelError as e:
-                # Re-raise domain errors
+                # Domain-level errors; try next model
                 last_error = str(e)
                 self.logger.warning(f"Model {model_name} failed with domain error: {e}")
                 continue
@@ -388,37 +403,37 @@ class ModelManagementAdapter(IModelManagementPort):
             finish_reason=f"error: {last_error}",
         )
 
-    def _format_narrative_prompt(self, context: NarrativeContext) -> str:
-        """Format narrative context into a comprehensive prompt."""
+    def _format_runtime_prompt(self, context: NarrativeContext) -> str:
+        """Format runtime context into a comprehensive prompt."""
         prompt_parts = [
-            "You are a creative narrative AI assistant helping to generate an interactive story.",
+            "You are a helpful AI assistant supporting an interactive experience.",
             "",
             "Context:",
         ]
 
-        # Add character information
+        # Add participant information
         if context.characters and context.participant_ids:
-            prompt_parts.append("Characters involved:")
+            prompt_parts.append("Participants involved:")
             for char_id in context.participant_ids:
-                character = context.characters.get(char_id)
-                if character:
+                participant = context.characters.get(char_id)
+                if participant:
                     prompt_parts.extend(
                         [
-                            f"- {character.name}: {character.description}",
-                            f"  Personality: {character.personality_traits}",
-                            f"  Current emotional state: {character.emotional_state}",
+                            f"- {participant.name}: {participant.description}",
+                            f"  Personality: {participant.personality_traits}",
+                            f"  Current emotional state: {participant.emotional_state}",
                         ]
                     )
 
-        # Add memory context
+        # Add recent context
         if context.memory_state and context.memory_state.recent_events:
-            prompt_parts.append("\nRecent story events:")
+            prompt_parts.append("\nRecent events:")
             for event in context.memory_state.recent_events[-3:]:  # Last 3 events
                 prompt_parts.append(f"- {event}")
 
-        # Add scene details
+        # Add step details
         if context.scene_type:
-            prompt_parts.append(f"\nScene type: {context.scene_type}")
+            prompt_parts.append(f"\nStep type: {context.scene_type}")
 
         if context.location:
             prompt_parts.append(f"Location: {context.location}")
@@ -430,23 +445,23 @@ class ModelManagementAdapter(IModelManagementPort):
                 "User input:",
                 context.user_input,
                 "",
-                "Please generate a creative, engaging response that:",
+                "Please generate a helpful, engaging response that:",
             ]
         )
 
         # Add guidelines
         guidelines = [
-            "- Maintains character consistency and personality",
-            "- Advances the narrative meaningfully",
+            "- Maintains participant consistency",
+            "- Progresses the interaction meaningfully",
             "- Responds appropriately to the user's input",
-            "- Creates engaging dialogue and descriptions",
-            "- Keeps the story immersive and entertaining",
+            "- Creates engaging conversation and descriptions",
+            "- Keeps the experience immersive and coherent",
         ]
 
-        if context.scene_type == "dialogue":
-            guidelines.append("- Focuses on character dialogue and interaction")
+        if context.scene_type == "dialog":
+            guidelines.append("- Focuses on participant conversation and interaction")
         elif context.scene_type == "action":
-            guidelines.append("- Emphasizes action and dynamic scenes")
+            guidelines.append("- Emphasizes action and dynamic steps")
 
         prompt_parts.extend(guidelines)
         prompt_parts.append("\nResponse:")
@@ -455,7 +470,7 @@ class ModelManagementAdapter(IModelManagementPort):
 
     def _estimate_tokens(self, text: str) -> int:
         """Rough token estimation (actual tokenization varies by model)."""
-        # Rough approximation: 1 token ≈ 4 characters for English text
+    # Rough approximation: 1 token ≈ 4 chars for English text
         return len(text) // 4
 
 

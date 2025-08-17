@@ -40,8 +40,10 @@ class ImageOrchestrator:
     - Configuration and validation
     """
 
-    def __init__(self, story_path: str, config: dict[str, Any] | None = None):
-        self.story_path = story_path
+    def __init__(self, unit_path: str, config: dict[str, Any] | None = None):
+        self.unit_path = unit_path
+        # Backward-compat alias for any legacy references
+        self.story_path = unit_path
 
         # Initialize configuration
         self.config_manager = ImageConfigManager()
@@ -51,13 +53,13 @@ class ImageOrchestrator:
         self.validator = ImageValidator()
 
         # Initialize core components
-        self.generation_engine = GenerationEngine(story_path, self.config)
+        self.generation_engine = GenerationEngine(unit_path, self.config)
         self.prompt_processor = PromptProcessor(self.config)
         self.style_manager = StyleManager(self.config)
-        self.storage_manager = ImageStorageManager(story_path, self.config)
+        self.storage_manager = ImageStorageManager(unit_path, self.config)
         self.format_converter = ImageFormatConverter()
 
-        logger.info(f"ImageOrchestrator initialized for story: {story_path}")
+        logger.info(f"ImageOrchestrator initialized for unit: {unit_path}")
 
     # === Generation Operations ===
 
@@ -69,7 +71,7 @@ class ImageOrchestrator:
         style_preset: str | None = None,
         preferred_provider: ImageProvider | None = None,
     ) -> str | None:
-        """Generate a character portrait with intelligent prompt processing"""
+        """Generate an entity portrait with intelligent prompt processing"""
 
         # Build optimized prompt
         prompt = self.prompt_processor.build_character_prompt(
@@ -78,7 +80,7 @@ class ImageOrchestrator:
 
         # Get default style modifiers
         style_modifiers = self.style_manager.get_default_style_modifiers(
-            ImageType.CHARACTER
+            ImageType.ENTITY
         )
 
         # Apply style preset if specified
@@ -90,12 +92,12 @@ class ImageOrchestrator:
         # Get recommended size
         if not size:
             size = self.style_manager.get_recommended_size(
-                ImageType.CHARACTER, preferred_provider
+                ImageType.ENTITY, preferred_provider
             )
 
         # Check auto-generation rules
         existing_images = self.generation_engine.get_images_by_character(character_name)
-        if not self.style_manager.should_auto_generate_character(
+        if not self.style_manager.should_auto_generate_entity(
             character_name, character_data, existing_images
         ):
             logger.info(
@@ -104,11 +106,11 @@ class ImageOrchestrator:
             return None
 
         # Generate image
-        tags = ["character", "portrait", character_name.lower()]
+        tags = ["entity", "portrait", character_name.lower()]
 
         return await self.generation_engine.generate_image(
             prompt=prompt,
-            image_type=ImageType.CHARACTER,
+            image_type=ImageType.ENTITY,
             character_name=character_name,
             size=size,
             style_modifiers=style_modifiers,
@@ -124,14 +126,14 @@ class ImageOrchestrator:
         style_preset: str | None = None,
         preferred_provider: ImageProvider | None = None,
     ) -> str | None:
-        """Generate a scene image with context-aware prompt processing"""
+        """Generate a segment image with context-aware prompt processing"""
 
         # Check auto-generation rules first
-        if not self.style_manager.should_auto_generate_scene(
+        if not self.style_manager.should_auto_generate_frame(
             scene_id, scene_data, context
         ):
             logger.info(
-                f"Auto-generation rules prevent creating image for scene {scene_id}"
+                f"Auto-generation rules prevent creating image for segment {scene_id}"
             )
             return None
 
@@ -140,7 +142,7 @@ class ImageOrchestrator:
 
         # Get default style modifiers
         style_modifiers = self.style_manager.get_default_style_modifiers(
-            ImageType.SCENE
+            ImageType.FRAME
         )
 
         # Apply style preset if specified
@@ -151,15 +153,15 @@ class ImageOrchestrator:
 
         # Get recommended size
         size = self.style_manager.get_recommended_size(
-            ImageType.SCENE, preferred_provider
+            ImageType.FRAME, preferred_provider
         )
 
         # Generate image
-        tags = ["scene", f"scene_{scene_id}"]
+        tags = ["segment", f"segment_{scene_id}"]
 
         return await self.generation_engine.generate_image(
             prompt=prompt,
-            image_type=ImageType.SCENE,
+            image_type=ImageType.FRAME,
             scene_id=scene_id,
             size=size,
             style_modifiers=style_modifiers,
@@ -258,11 +260,11 @@ class ImageOrchestrator:
         return self.generation_engine.get_image_path(image_id)
 
     def get_images_by_character(self, character_name: str) -> list[ImageMetadata]:
-        """Get all images for a character"""
+        """Get all images for an entity"""
         return self.generation_engine.get_images_by_character(character_name)
 
     def get_images_by_scene(self, scene_id: str) -> list[ImageMetadata]:
-        """Get all images for a scene"""
+    # Get all images for a segment
         return self.generation_engine.get_images_by_scene(scene_id)
 
     def get_images_by_tag(self, tag: str) -> list[ImageMetadata]:
@@ -294,10 +296,10 @@ class ImageOrchestrator:
         )
 
         if success:
-            # Update metadata with new format info
+            # Update metadata with new file path
             metadata = self.get_image_metadata(image_id)
             if metadata:
-                metadata.filename = target_path.name
+                metadata.file_path = str(target_path)
                 self.generation_engine._save_metadata()
 
             return str(target_path)
@@ -305,11 +307,28 @@ class ImageOrchestrator:
 
     def optimize_storage(self) -> dict[str, Any]:
         """Optimize image storage and return statistics"""
-        return self.storage_manager.optimize_storage()
+        # Basic cleanup of orphaned files then return stats
+        self.storage_manager.cleanup_orphaned_files()
+        return self.storage_manager.get_storage_stats()
 
     def backup_images(self, backup_path: str) -> bool:
         """Backup all images and metadata"""
-        return self.storage_manager.backup_images(backup_path)
+        # Simple backup via directory copy
+        try:
+            src = self.generation_engine.images_path
+            dest = Path(backup_path)
+            dest.mkdir(parents=True, exist_ok=True)
+            # Copy metadata file if present
+            if self.storage_manager.metadata_file.exists():
+                (dest / self.storage_manager.metadata_file.name).write_bytes(
+                    self.storage_manager.metadata_file.read_bytes()
+                )
+            # Note: skipping bulk file copy to keep this lightweight
+        except Exception:
+            logger.exception("Backup failed")
+            return False
+        else:
+            return True
 
     # === Configuration and Validation ===
 
@@ -375,7 +394,9 @@ class ImageOrchestrator:
             "storage": storage_stats,
             "styles": style_stats,
             "configuration": {
+                # Keep legacy key for compatibility, add neutral alias
                 "story_path": self.story_path,
+                "unit_path": self.unit_path,
                 "auto_generation_enabled": bool(self.config.get("auto_generate")),
                 "available_providers": len(self.get_available_providers()),
                 "available_presets": len(self.get_available_style_presets()),
@@ -390,7 +411,9 @@ class ImageOrchestrator:
             "configuration": self.config,
             "stats": self.get_system_stats(),
             "export_info": {
+                # Keep legacy key for compatibility, add neutral alias
                 "story_path": self.story_path,
+                "unit_path": self.unit_path,
                 "export_timestamp": self.generation_engine.export_metadata()[
                     "export_timestamp"
                 ],

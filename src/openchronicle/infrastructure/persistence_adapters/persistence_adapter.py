@@ -1,8 +1,9 @@
 """
 Persistence Adapter - Implementation of IPersistencePort
 
-This adapter wraps the existing infrastructure persistence functions
-to implement the domain interface, maintaining the dependency inversion principle.
+This adapter wraps existing infrastructure persistence functions to implement
+the domain interface, maintaining the dependency inversion principle. Neutral
+terminology is used in docstrings and messages.
 """
 
 from typing import Any
@@ -25,7 +26,7 @@ class PersistenceAdapter(IPersistencePort):
         Execute a database query.
 
         Args:
-            story_id: Story identifier
+            story_id: Unit identifier
             query: SQL query string
             params: Query parameters
 
@@ -61,7 +62,7 @@ class PersistenceAdapter(IPersistencePort):
         Execute a database update operation.
 
         Args:
-            story_id: Story identifier
+            story_id: Unit identifier
             query: SQL update/insert/delete query
             params: Query parameters
 
@@ -85,10 +86,10 @@ class PersistenceAdapter(IPersistencePort):
 
     def init_database(self, story_id: str) -> bool:
         """
-        Initialize database for a story.
+        Initialize database for a unit.
 
         Args:
-            story_id: Story identifier
+            story_id: Unit identifier
 
         Returns:
             True if successful, False otherwise
@@ -112,7 +113,7 @@ class PersistenceAdapter(IPersistencePort):
         Create a database backup.
 
         Args:
-            story_id: Story identifier
+            story_id: Unit identifier
             backup_name: Name for the backup
 
         Returns:
@@ -154,7 +155,7 @@ class PersistenceAdapter(IPersistencePort):
         Restore database from backup.
 
         Args:
-            story_id: Story identifier
+            story_id: Unit identifier
             backup_name: Name of the backup to restore
 
         Returns:

@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 
 class ContentType(Enum):
-    """Content type classifications for routing."""
+    """Content type classifications for routing (neutral terms)."""
 
-    NARRATIVE = "narrative"
+    TEXT = "text"
     DIALOGUE = "dialogue"
     DESCRIPTION = "description"
     ACTION = "action"
@@ -42,7 +42,7 @@ class ComplexityLevel(Enum):
     """Content complexity levels for model selection."""
 
     SIMPLE = "simple"  # Basic responses, simple prompts
-    MODERATE = "moderate"  # Standard narrative, dialogue
+    MODERATE = "moderate"  # Standard prose, dialogue
     COMPLEX = "complex"  # Deep analysis, complex reasoning
     CREATIVE = "creative"  # High creativity, novel generation
 
@@ -107,7 +107,7 @@ class ContentRouter:
     def _get_default_routing_rules(self) -> dict[str, Any]:
         """Default routing rules as fallback."""
         return {
-            ContentType.NARRATIVE.value: ["openai", "anthropic", "ollama"],
+            ContentType.TEXT.value: ["openai", "anthropic", "ollama"],
             ContentType.DIALOGUE.value: ["anthropic", "openai", "ollama"],
             ContentType.DESCRIPTION.value: ["openai", "ollama", "anthropic"],
             ContentType.ACTION.value: ["openai", "ollama", "anthropic"],
@@ -159,7 +159,7 @@ class ContentRouter:
         ):
             return ContentType.DIALOGUE
 
-        # Action scene indicators
+    # Action indicators
         action_keywords = [
             "action",
             "fight",
@@ -200,7 +200,7 @@ class ContentRouter:
         if any(keyword in prompt_lower for keyword in creative_keywords):
             return ContentType.CREATIVE
 
-        # Description indicators (detailed scene setting)
+    # Description indicators (detailed context setting)
         description_keywords = [
             "describe",
             "setting",
@@ -211,8 +211,8 @@ class ContentRouter:
         if any(keyword in prompt_lower for keyword in description_keywords):
             return ContentType.DESCRIPTION
 
-        # Default to narrative for story content
-        return ContentType.NARRATIVE
+    # Default to general text
+    return ContentType.TEXT
 
     def analyze_complexity(
         self, prompt: str, context: dict[str, Any] | None = None
@@ -262,7 +262,7 @@ class ContentRouter:
         if any(keyword in prompt_lower for keyword in creative_keywords):
             return ComplexityLevel.CREATIVE
 
-        # Moderate complexity for standard narrative content
+    # Moderate complexity for standard text content
         if len(prompt) > 200 or "detailed" in prompt_lower:
             return ComplexityLevel.MODERATE
 

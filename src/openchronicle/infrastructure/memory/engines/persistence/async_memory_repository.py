@@ -45,14 +45,14 @@ class AsyncMemoryRepository:
         self._lock_lock = asyncio.Lock()  # Lock to manage the locks dict
 
     async def _get_story_lock(self, story_id: str) -> asyncio.Lock:
-        """Get or create a lock for a specific story."""
+        """Get or create a lock for a specific unit (compat id retained)."""
         async with self._lock_lock:
             if story_id not in self._story_locks:
                 self._story_locks[story_id] = asyncio.Lock()
             return self._story_locks[story_id]
 
     async def load_memory(self, story_id: str) -> dict[str, Any]:
-        """Load complete memory state for story with caching."""
+        """Load complete memory state for unit with caching."""
         cache_key = f"memory_{story_id}"
 
         # Check cache first
@@ -105,7 +105,7 @@ class AsyncMemoryRepository:
 
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError, KeyError) as e:
             logger.exception(
-                f"Failed to load memory for story {story_id}",
+                f"Failed to load memory for unit {story_id}",
                 exc_info=False,
             )
             return self._get_default_memory()
@@ -220,8 +220,8 @@ class AsyncMemoryRepository:
     async def update_character_memory(
         self, story_id: str, character_name: str, updates: dict[str, Any]
     ) -> bool:
-        """Update character memory with cache invalidation and concurrency protection."""
-        # Use per-story locking to prevent race conditions in concurrent updates
+    """Update character memory with cache invalidation and concurrency protection."""
+    # Use per-unit locking to prevent race conditions in concurrent updates
         story_lock = await self._get_story_lock(story_id)
 
         async with story_lock:
@@ -350,7 +350,7 @@ class AsyncMemoryRepository:
             return success
 
     async def create_memory_snapshot(self, story_id: str, scene_id: str) -> bool:
-        """Create memory snapshot for rollback capability."""
+        """Create memory snapshot for rollback capability (frame-linked)."""
         try:
             # Load current memory
             memory = await self.load_memory(story_id)
@@ -372,7 +372,7 @@ class AsyncMemoryRepository:
 
         except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as e:
             logger.exception(
-                f"Failed to create memory snapshot for story {story_id} scene {scene_id}",
+                f"Failed to create memory snapshot for unit {story_id} frame {scene_id}",
                 exc_info=False,
             )
             return False
@@ -412,8 +412,8 @@ class AsyncMemoryRepository:
             KeyError,
         ) as e:
             logger.exception(
-                f"Failed to restore memory snapshot for story {story_id} "
-                f"scene {scene_id}",
+                f"Failed to restore memory snapshot for unit {story_id} "
+                f"frame {scene_id}",
                 exc_info=False,
             )
             return False
@@ -440,9 +440,9 @@ class AsyncMemoryRepository:
         }
 
     def clear_cache(self, story_id: str | None = None):
-        """Clear caches, optionally for specific story."""
+        """Clear caches, optionally for specific unit."""
         if story_id:
-            # Clear specific story caches
+            # Clear specific unit caches
             keys_to_remove = []
             for key in self.memory_cache:
                 if key.endswith(story_id):
@@ -474,7 +474,7 @@ class AsyncMemoryRepository:
         self.cache_stats = {"hits": 0, "misses": 0, "evictions": 0}
 
     def _invalidate_cache(self, story_id: str):
-        """Invalidate all caches for a story."""
+        """Invalidate all caches for a unit."""
         self.clear_cache(story_id)
 
     def _get_default_memory(self) -> dict[str, Any]:
