@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+from typing import Any
+
+from openchronicle_core.core.application.runtime.container import CoreContainer
+from openchronicle_core.core.application.use_cases import create_project, list_projects, register_agent, run_task, show_task
+
+
+def _parse_json(value: str) -> dict[str, Any]:
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return {"raw": value}
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="oc", description="OpenChronicle v2 minimal CLI")
+    sub = parser.add_subparsers(dest="command")
+
+    init_cmd = sub.add_parser("init-project", help="Create a project")
+    init_cmd.add_argument("name")
+
+    sub.add_parser("list-projects", help="List projects")
+
+    reg_cmd = sub.add_parser("register-agent", help="Register an agent")
+    reg_cmd.add_argument("project_id")
+    reg_cmd.add_argument("name")
+    reg_cmd.add_argument("--role", default="worker")
+    reg_cmd.add_argument("--provider", default="")
+    reg_cmd.add_argument("--model", default="")
+
+    run_cmd = sub.add_parser("run-task", help="Submit and run a task")
+    run_cmd.add_argument("project_id")
+    run_cmd.add_argument("task_type")
+    run_cmd.add_argument("payload", help="JSON payload or plain text")
+    run_cmd.add_argument("--agent-id", dest="agent_id", default=None)
+
+    show_cmd = sub.add_parser("show-task", help="Show task timeline")
+    show_cmd.add_argument("task_id")
+
+    args = parser.parse_args(argv)
+    container = CoreContainer()
+    orchestrator = container.orchestrator
+
+    if args.command == "init-project":
+        project = create_project.execute(orchestrator, args.name)
+        print(project)
+        return 0
+
+    if args.command == "list-projects":
+        projects = list_projects.execute(orchestrator)
+        for p in projects:
+            print(f"{p.id}\t{p.name}")
+        return 0
+
+    if args.command == "register-agent":
+        agent = register_agent.execute(
+            orchestrator,
+            project_id=args.project_id,
+            name=args.name,
+            role=args.role,
+            provider=args.provider,
+            model=args.model,
+        )
+        print(agent)
+        return 0
+
+    if args.command == "run-task":
+        payload = _parse_json(args.payload)
+        task = run_task.submit(orchestrator, args.project_id, args.task_type, payload)
+
+        async def _run():
+            result = await run_task.execute(orchestrator, task.id, agent_id=args.agent_id)
+            print(result)
+        asyncio.run(_run())
+        return 0
+
+    if args.command == "show-task":
+        events = show_task.timeline(orchestrator, args.task_id)
+        for e in events:
+            print(f"{e.created_at.isoformat()} {e.type} {e.payload}")
+        return 0
+
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
