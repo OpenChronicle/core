@@ -89,13 +89,9 @@ class OrchestratorService:
         if task is None:
             raise ValueError(f"Task not found: {task_id}")
 
-        self.storage.update_task_status(task.id, TaskStatus.RUNNING.value)
         start_event = Event(
             project_id=task.project_id, task_id=task.id, agent_id=agent_id, type="task_started", payload={}
         )
-        self.emit_event(start_event)
-
-        # Create execution span
         span = Span(
             task_id=task.id,
             agent_id=agent_id,
@@ -103,72 +99,72 @@ class OrchestratorService:
             start_event_id=start_event.id,
             status=SpanStatus.STARTED,
         )
-        self.storage.add_span(span)
 
-        try:
-            # Route task execution through handlers (built-in → TaskHandlerRegistry → LLM fallback)
-            builtin_handler = self._builtin_handlers.get(task.type)
-            if builtin_handler is not None:
-                result = await builtin_handler(task, agent_id=agent_id)
+        handler_error: Exception | None = None
+        handler_result: Any | None = None
+
+        with self.storage.transaction():
+            self.storage.update_task_status(task.id, TaskStatus.RUNNING.value)
+            self.emit_event(start_event)
+            self.storage.add_span(span)
+
+            try:
+                handler_result = await self._dispatch_task(task, agent_id)
+            except Exception as exc:
+                handler_error = exc
+
+            if handler_error is None:
+                complete_event = Event(
+                    project_id=task.project_id,
+                    task_id=task.id,
+                    agent_id=agent_id,
+                    type="task_completed",
+                    payload={"result": handler_result},
+                )
+                self.emit_event(complete_event)
+
+                result_json = (
+                    json.dumps(handler_result)
+                    if isinstance(handler_result, dict)
+                    else json.dumps({"value": handler_result})
+                )
+                self.storage.update_task_result(task.id, result_json, TaskStatus.COMPLETED.value)
+
+                span.end_event_id = complete_event.id
+                span.status = SpanStatus.COMPLETED
+                span.ended_at = complete_event.created_at
+                self.storage.update_span(span)
             else:
-                registry_handler = self.handler_registry.get(task.type)
-                if registry_handler is not None:
-                    result = await registry_handler(task, {"agent_id": agent_id, "emit_event": self.emit_event})
-                else:
-                    # Default LLM fallback for unhandled task types
-                    prompt = task.payload.get("prompt") or task.payload.get("text") or ""
-                    result = await self.llm.generate_async(prompt, model=None, parameters=None)
+                failed_event = Event(
+                    project_id=task.project_id,
+                    task_id=task.id,
+                    agent_id=agent_id,
+                    type="task_failed",
+                    payload={
+                        "exception_type": type(handler_error).__name__,
+                        "message": str(handler_error)[:500],
+                    },
+                )
+                self.emit_event(failed_event)
 
-            complete_event = Event(
-                project_id=task.project_id,
-                task_id=task.id,
-                agent_id=agent_id,
-                type="task_completed",
-                payload={"result": result},
-            )
-            self.emit_event(complete_event)
+                error_json = json.dumps(
+                    {
+                        "exception_type": type(handler_error).__name__,
+                        "message": str(handler_error)[:500],
+                        "failed_event_id": failed_event.id,
+                    }
+                )
+                self.storage.update_task_error(task.id, error_json, TaskStatus.FAILED.value)
 
-            # Persist result and update status
-            result_json = json.dumps(result) if isinstance(result, dict) else json.dumps({"value": result})
-            self.storage.update_task_result(task.id, result_json, TaskStatus.COMPLETED.value)
+                span.status = SpanStatus.FAILED
+                span.end_event_id = failed_event.id
+                span.ended_at = failed_event.created_at
+                self.storage.update_span(span)
 
-            # Complete span
-            span.end_event_id = complete_event.id
-            span.status = SpanStatus.COMPLETED
-            span.ended_at = complete_event.created_at
-            self.storage.update_span(span)
+        if handler_error is not None:
+            raise handler_error
 
-            return result
-        except Exception as e:
-            # Emit task_failed event
-            failed_event = Event(
-                project_id=task.project_id,
-                task_id=task.id,
-                agent_id=agent_id,
-                type="task_failed",
-                payload={
-                    "exception_type": type(e).__name__,
-                    "message": str(e)[:500],  # Truncate long error messages
-                },
-            )
-            self.emit_event(failed_event)
-
-            # Persist error and update task status
-            error_json = json.dumps(
-                {
-                    "exception_type": type(e).__name__,
-                    "message": str(e)[:500],
-                    "failed_event_id": failed_event.id,
-                }
-            )
-            self.storage.update_task_error(task.id, error_json, TaskStatus.FAILED.value)
-
-            # Mark span as failed with proper linkage
-            span.status = SpanStatus.FAILED
-            span.end_event_id = failed_event.id
-            span.ended_at = failed_event.created_at
-            self.storage.update_span(span)
-            raise
+        return handler_result
 
     def record_resource(self, resource: Resource) -> None:
         self.storage.add_resource(resource)
@@ -266,6 +262,18 @@ class OrchestratorService:
         if len(cleaned) <= 160:
             return cleaned
         return cleaned[:150].rsplit(" ", 1)[0] + "..."
+
+    async def _dispatch_task(self, task: Task, agent_id: str | None) -> Any:
+        builtin_handler = self._builtin_handlers.get(task.type)
+        if builtin_handler is not None:
+            return await builtin_handler(task, agent_id=agent_id)
+
+        registry_handler = self.handler_registry.get(task.type)
+        if registry_handler is not None:
+            return await registry_handler(task, {"agent_id": agent_id, "emit_event": self.emit_event})
+
+        prompt = task.payload.get("prompt") or task.payload.get("text") or ""
+        return await self.llm.generate_async(prompt, model=None, parameters=None)
 
     def _merge_summaries(self, summaries: list[str]) -> str:
         if not summaries:

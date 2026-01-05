@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any, Protocol
 
 from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, Task
@@ -16,6 +18,9 @@ class StoragePort(ABC):
 
     @abstractmethod
     def init_schema(self) -> None: ...
+
+    @abstractmethod
+    def transaction(self) -> AbstractContextManager[Any]: ...
 
     # Projects
     @abstractmethod
@@ -79,3 +84,6 @@ class StoragePort(ABC):
 
     @abstractmethod
     def get_span(self, span_id: str) -> Span | None: ...
+
+    @abstractmethod
+    def recover_stale_tasks(self, emit_event: Callable[[Event], None] | None = None) -> list[str]: ...

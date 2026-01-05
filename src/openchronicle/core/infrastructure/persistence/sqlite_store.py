@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,17 +16,52 @@ class SqliteStore(StoragePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(self.db_path)
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        self._transaction_depth = 0
+        self._configure_connection()
 
     def init_schema(self) -> None:
         cur = self._conn.cursor()
         for stmt in schema.ALL_TABLES:
             cur.execute(stmt)
-        self._conn.commit()
+        self._commit_if_needed()
         self._ensure_parent_task_column()
         self._ensure_task_result_columns()
         self._ensure_indexes()
+        # Ensure crash recovery runs even for reused databases
+        self.recover_stale_tasks()
+
+    @contextmanager
+    def transaction(self) -> Iterator[sqlite3.Connection]:
+        """Context manager for SQLite transactions with savepoint nesting."""
+
+        is_outer = self._transaction_depth == 0
+        savepoint_name = None
+
+        if is_outer:
+            self._conn.execute("BEGIN")
+        else:
+            savepoint_name = f"sp_{self._transaction_depth + 1}"
+            self._conn.execute(f"SAVEPOINT {savepoint_name}")
+
+        self._transaction_depth += 1
+
+        try:
+            yield self._conn
+            if is_outer:
+                self._conn.commit()
+            else:
+                self._conn.execute(f"RELEASE SAVEPOINT {savepoint_name}")
+        except Exception:
+            if is_outer:
+                self._conn.rollback()
+            else:
+                self._conn.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}")
+                self._conn.execute(f"RELEASE SAVEPOINT {savepoint_name}")
+            raise
+        finally:
+            self._transaction_depth -= 1
 
     # Projects
     def add_project(self, project: Project) -> None:
@@ -33,7 +70,7 @@ class SqliteStore(StoragePort):
             "INSERT INTO projects (id, name, metadata, created_at) VALUES (?, ?, ?, ?)",
             (project.id, project.name, json.dumps(project.metadata), project.created_at.isoformat()),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def list_projects(self) -> list[Project]:
         cur = self._conn.cursor()
@@ -61,7 +98,7 @@ class SqliteStore(StoragePort):
                 agent.created_at.isoformat(),
             ),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def list_agents(self, project_id: str) -> list[Agent]:
         cur = self._conn.cursor()
@@ -92,7 +129,7 @@ class SqliteStore(StoragePort):
                 task.updated_at.isoformat(),
             ),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def update_task_status(self, task_id: str, status: str) -> None:
         cur = self._conn.cursor()
@@ -101,7 +138,7 @@ class SqliteStore(StoragePort):
             "UPDATE tasks SET status=?, updated_at=? WHERE id=?",
             (status, updated_at, task_id),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def update_task_result(self, task_id: str, result_json: str, status: str) -> None:
         cur = self._conn.cursor()
@@ -110,7 +147,7 @@ class SqliteStore(StoragePort):
             "UPDATE tasks SET result_json=?, status=?, updated_at=? WHERE id=?",
             (result_json, status, updated_at, task_id),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def update_task_error(self, task_id: str, error_json: str, status: str) -> None:
         cur = self._conn.cursor()
@@ -119,7 +156,7 @@ class SqliteStore(StoragePort):
             "UPDATE tasks SET error_json=?, status=?, updated_at=? WHERE id=?",
             (error_json, status, updated_at, task_id),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def get_task(self, task_id: str) -> Task | None:
         cur = self._conn.cursor()
@@ -154,7 +191,7 @@ class SqliteStore(StoragePort):
                 event.hash,
             ),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def list_events(self, task_id: str) -> list[Event]:
         cur = self._conn.cursor()
@@ -179,7 +216,7 @@ class SqliteStore(StoragePort):
                 resource.created_at.isoformat(),
             ),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def list_resources(self, project_id: str) -> list[Resource]:
         cur = self._conn.cursor()
@@ -205,7 +242,7 @@ class SqliteStore(StoragePort):
                 span.ended_at.isoformat() if span.ended_at else None,
             ),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def update_span(self, span: Span) -> None:
         cur = self._conn.cursor()
@@ -220,7 +257,7 @@ class SqliteStore(StoragePort):
                 span.id,
             ),
         )
-        self._conn.commit()
+        self._commit_if_needed()
 
     def list_spans(self, task_id: str) -> list[Span]:
         cur = self._conn.cursor()
@@ -308,12 +345,22 @@ class SqliteStore(StoragePort):
     def _parse_dt(self, value: str) -> datetime:
         return datetime.fromisoformat(value)
 
+    def _configure_connection(self) -> None:
+        self._conn.execute("PRAGMA foreign_keys = ON;")
+        self._conn.execute("PRAGMA journal_mode = WAL;")
+        self._conn.execute("PRAGMA synchronous = NORMAL;")
+        self._conn.execute("PRAGMA busy_timeout = 5000;")
+
+    def _commit_if_needed(self) -> None:
+        if self._transaction_depth == 0:
+            self._conn.commit()
+
     def _ensure_parent_task_column(self) -> None:
         cur = self._conn.cursor()
         columns = [row[1] for row in cur.execute("PRAGMA table_info(tasks)").fetchall()]
         if "parent_task_id" not in columns:
             cur.execute("ALTER TABLE tasks ADD COLUMN parent_task_id TEXT")
-            self._conn.commit()
+            self._commit_if_needed()
 
     def _ensure_task_result_columns(self) -> None:
         """Migrate existing databases to add result_json and error_json columns."""
@@ -323,11 +370,72 @@ class SqliteStore(StoragePort):
             cur.execute("ALTER TABLE tasks ADD COLUMN result_json TEXT")
         if "error_json" not in columns:
             cur.execute("ALTER TABLE tasks ADD COLUMN error_json TEXT")
-        self._conn.commit()
+        self._commit_if_needed()
 
     def _ensure_indexes(self) -> None:
         """Create indexes for query performance optimization."""
         cur = self._conn.cursor()
         for index_stmt in schema.INDEXES:
             cur.execute(index_stmt)
-        self._conn.commit()
+        self._commit_if_needed()
+
+    def _append_event_with_hash(self, event: Event) -> None:
+        existing = self.list_events(event.task_id) if event.task_id else []
+        if existing:
+            event.prev_hash = existing[-1].hash
+        event.compute_hash()
+        self.append_event(event)
+
+    def recover_stale_tasks(self, emit_event: Callable[[Event], None] | None = None) -> list[str]:
+        """Mark lingering running tasks as failed and close their spans."""
+
+        cur = self._conn.cursor()
+        rows = cur.execute(
+            "SELECT * FROM tasks WHERE status=? ORDER BY created_at ASC, id ASC",
+            (TaskStatus.RUNNING.value,),
+        ).fetchall()
+
+        recovered: list[str] = []
+        for row in rows:
+            task = self._row_to_task(row)
+            failure_event = Event(
+                project_id=task.project_id,
+                task_id=task.id,
+                agent_id=task.agent_id,
+                type="task_failed",
+                payload={
+                    "reason": "crash_recovery",
+                    "message": "Task marked failed after unexpected termination",
+                },
+            )
+
+            with self.transaction():
+                if emit_event:
+                    emit_event(failure_event)
+                else:
+                    self._append_event_with_hash(failure_event)
+
+                error_json = json.dumps(
+                    {
+                        "reason": "crash_recovery",
+                        "message": "Task marked failed after unexpected termination",
+                        "failed_event_id": failure_event.id,
+                    }
+                )
+                updated_at = failure_event.created_at.isoformat()
+                cur.execute(
+                    "UPDATE tasks SET status=?, error_json=?, updated_at=? WHERE id=?",
+                    (TaskStatus.FAILED.value, error_json, updated_at, task.id),
+                )
+
+                spans = self.list_spans(task.id)
+                for span in spans:
+                    if span.end_event_id is None or span.status == SpanStatus.STARTED:
+                        span.status = SpanStatus.FAILED
+                        span.end_event_id = failure_event.id
+                        span.ended_at = failure_event.created_at
+                        self.update_span(span)
+
+                recovered.append(task.id)
+
+        return recovered
