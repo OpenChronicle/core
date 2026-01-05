@@ -541,6 +541,13 @@ temp_storypack_*
 .pytest_cache/
 *.pytest_cache/
 
+# Mypy type checker cache
+.mypy_cache/
+*.mypy_cache/
+
+# Ruff linter cache
+.ruff_cache/
+
 # OS-specific files
 .DS_Store
 .DS_Store?

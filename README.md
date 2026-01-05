@@ -4,7 +4,7 @@ This branch introduces a fresh orchestration core intended for a manager/supervi
 
 Key points:
 
-- New source root: `src/openchronicle_core/`
+- New source root: `src/openchronicle/`
 - Plugins root: `plugins/`
 - V1 snapshot: `v1.reference/` (read-only reference)
 

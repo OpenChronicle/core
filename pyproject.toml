@@ -24,7 +24,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [project.scripts]
-oc = "openchronicle_core.interfaces.cli.main:main"
+oc = "openchronicle.interfaces.cli.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -33,7 +33,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-openchronicle_core = ["**/*.sql"]
+openchronicle = ["**/*.sql"]
 
 [tool.ruff]
 target-version = "py311"
@@ -64,7 +64,7 @@ unfixable = []
 "tests/**/*.py" = ["B", "SIM"]  # Less strict for tests
 
 [tool.ruff.lint.isort]
-known-first-party = ["openchronicle_core"]
+known-first-party = ["openchronicle"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -4,8 +4,8 @@ from typing import Any
 
 import pytest
 
-from openchronicle_core.core.application.runtime.task_handler_registry import TaskHandlerRegistry
-from openchronicle_core.core.domain.models.project import Task
+from openchronicle.core.application.runtime.task_handler_registry import TaskHandlerRegistry
+from openchronicle.core.domain.models.project import Task
 
 
 async def _dummy(task: Task, ctx: dict[str, Any] | None) -> str:

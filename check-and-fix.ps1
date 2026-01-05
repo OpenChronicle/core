@@ -25,10 +25,11 @@ Write-Host "`n📝 Formatting code with Ruff..." -ForegroundColor Cyan
 & $pythonCmd -m ruff format src tests plugins
 
 Write-Host "`n🔍 Running mypy type checking..." -ForegroundColor Cyan
-& $pythonCmd -m mypy src tests plugins --config-file=openchronicle-core/mypy.ini
+& $pythonCmd -m mypy src tests plugins
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Mypy found type errors that need manual fixing" -ForegroundColor Red
     exit 1
-} else {
+}
+else {
     Write-Host "✅ All checks passed!" -ForegroundColor Green
 }

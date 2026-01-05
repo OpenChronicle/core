@@ -10,7 +10,7 @@
 ## Layout
 
 ```text
-src/openchronicle_core/
+src/openchronicle/
   core/
     domain/ (models, ports, services)
     application/ (use cases, runtime wiring)

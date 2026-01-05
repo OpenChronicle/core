@@ -13,4 +13,4 @@ Purpose:
 
 Replacement:
 
-- The new orchestration core lives under `src/openchronicle_core/` with plugins under `plugins/`.
+- The new orchestration core lives under `src/openchronicle/` with plugins under `plugins/`.

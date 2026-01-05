@@ -107,7 +107,7 @@ Add to `.vscode/settings.json`:
 
 - **Markdownlint settings**: `.markdownlint.json`
 - **Ruff settings**: `pyproject.toml` → `[tool.ruff]`
-- **Mypy settings**: `openchronicle-core/mypy.ini` and `pyproject.toml` → `[tool.mypy]`
+- **Mypy settings**: `pyproject.toml` → `[tool.mypy]`
 
 ## Workflow
 

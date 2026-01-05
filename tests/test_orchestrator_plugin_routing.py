@@ -5,13 +5,13 @@ from typing import Any
 
 import pytest
 
-from openchronicle_core.core.application.runtime.plugin_loader import PluginLoader
-from openchronicle_core.core.application.runtime.task_handler_registry import TaskHandlerRegistry
-from openchronicle_core.core.domain.models.project import TaskStatus
-from openchronicle_core.core.domain.ports.llm_port import LLMPort
-from openchronicle_core.core.domain.services.orchestrator import OrchestratorService
-from openchronicle_core.core.infrastructure.logging.event_logger import EventLogger
-from openchronicle_core.core.infrastructure.persistence.sqlite_store import SqliteStore
+from openchronicle.core.application.runtime.plugin_loader import PluginLoader
+from openchronicle.core.application.runtime.task_handler_registry import TaskHandlerRegistry
+from openchronicle.core.domain.models.project import TaskStatus
+from openchronicle.core.domain.ports.llm_port import LLMPort
+from openchronicle.core.domain.services.orchestrator import OrchestratorService
+from openchronicle.core.infrastructure.logging.event_logger import EventLogger
+from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
 
 
 class FakeLLM(LLMPort):

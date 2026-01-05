@@ -4,9 +4,9 @@ import asyncio
 import hashlib
 from typing import Any
 
-from openchronicle_core.core.application.runtime.task_handler_registry import TaskHandlerRegistry
-from openchronicle_core.core.domain.models.project import Event, Task
-from openchronicle_core.core.domain.ports.plugin_port import PluginRegistry
+from openchronicle.core.application.runtime.task_handler_registry import TaskHandlerRegistry
+from openchronicle.core.domain.models.project import Event, Task
+from openchronicle.core.domain.ports.plugin_port import PluginRegistry
 
 
 def _hash_text(text: str) -> str:
