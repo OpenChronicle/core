@@ -44,6 +44,9 @@ class StoragePort(ABC):
     @abstractmethod
     def get_task(self, task_id: str) -> Task | None: ...
 
+    @abstractmethod
+    def list_tasks_by_project(self, project_id: str) -> list[Task]: ...
+
     # Events
     @abstractmethod
     def append_event(self, event: Event) -> None: ...

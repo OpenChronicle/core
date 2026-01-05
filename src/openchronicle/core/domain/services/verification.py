@@ -19,6 +19,17 @@ class VerificationResult:
     error_message: str | None = None
 
 
+@dataclass
+class ProjectVerificationResult:
+    """Result of project-wide verification."""
+
+    success: bool
+    total_tasks: int
+    passed_tasks: int
+    failed_tasks: int
+    failures: list[dict[str, Any]]  # List of failed task details
+
+
 class VerificationService:
     """Verifies the integrity of event hash chains."""
 
@@ -82,3 +93,43 @@ class VerificationService:
             prev_hash = event.hash
 
         return VerificationResult(success=True, total_events=total, verified_events=verified)
+
+    def verify_project(self, project_id: str) -> ProjectVerificationResult:
+        """
+        Verify hash chains for all tasks in a project.
+
+        Returns:
+            ProjectVerificationResult with summary of verification status.
+        """
+        tasks = self.storage.list_tasks_by_project(project_id)
+
+        if not tasks:
+            return ProjectVerificationResult(success=True, total_tasks=0, passed_tasks=0, failed_tasks=0, failures=[])
+
+        total = len(tasks)
+        passed = 0
+        failures = []
+
+        for task in tasks:
+            result = self.verify_task_chain(task.id)
+            if result.success:
+                passed += 1
+            else:
+                failures.append(
+                    {
+                        "task_id": task.id,
+                        "task_type": task.type,
+                        "error_message": result.error_message,
+                        "first_mismatch_event_id": result.first_mismatch.get("event_id")
+                        if result.first_mismatch
+                        else None,
+                        "first_mismatch_index": result.first_mismatch.get("event_index")
+                        if result.first_mismatch
+                        else None,
+                    }
+                )
+
+        failed = total - passed
+        return ProjectVerificationResult(
+            success=(failed == 0), total_tasks=total, passed_tasks=passed, failed_tasks=failed, failures=failures
+        )

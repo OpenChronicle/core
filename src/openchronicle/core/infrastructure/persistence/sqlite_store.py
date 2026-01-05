@@ -104,6 +104,14 @@ class SqliteStore(StoragePort):
         row = cur.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
         return self._row_to_task(row) if row else None
 
+    def list_tasks_by_project(self, project_id: str) -> list[Task]:
+        cur = self._conn.cursor()
+        rows = cur.execute(
+            "SELECT * FROM tasks WHERE project_id=? ORDER BY created_at ASC, id ASC",
+            (project_id,),
+        ).fetchall()
+        return [self._row_to_task(r) for r in rows]
+
     # Events
     def append_event(self, event: Event) -> None:
         cur = self._conn.cursor()

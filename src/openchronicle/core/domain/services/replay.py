@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 
 from openchronicle.core.domain.ports.storage_port import StoragePort
-from openchronicle.core.domain.services.verification import VerificationService
+from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
 
 
 class ReplayMode(str, Enum):
@@ -26,7 +26,7 @@ class ReplayResult:
     success: bool
     task_id: str
     reconstructed_output: Any = None
-    verification_details: dict[str, Any] | None = None
+    verification_result: VerificationResult | None = None  # Direct VerificationResult for verify mode
     error_message: str | None = None
 
 
@@ -78,12 +78,7 @@ class ReplayService:
             mode=ReplayMode.VERIFY.value,
             success=verification.success,
             task_id=task_id,
-            verification_details={
-                "total_events": verification.total_events,
-                "verified_events": verification.verified_events,
-                "first_mismatch": verification.first_mismatch,
-                "error_message": verification.error_message,
-            },
+            verification_result=verification,
             error_message=verification.error_message if not verification.success else None,
         )
 

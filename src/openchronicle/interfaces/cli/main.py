@@ -16,7 +16,10 @@ from openchronicle.core.application.use_cases import (
 from openchronicle.core.domain.models.project import Agent
 from openchronicle.core.domain.services.orchestrator import OrchestratorService
 from openchronicle.core.domain.services.replay import ReplayMode, ReplayService
-from openchronicle.core.domain.services.verification import VerificationService
+from openchronicle.core.domain.services.verification import (
+    VerificationResult,
+    VerificationService,
+)
 
 
 def _parse_json(value: str) -> dict[str, Any]:
@@ -39,6 +42,24 @@ def _ensure_demo_agents(orchestrator: OrchestratorService, project_id: str) -> t
     worker1 = _ensure_agent(orchestrator, project_id, "Worker 1", "worker")
     worker2 = _ensure_agent(orchestrator, project_id, "Worker 2", "worker")
     return supervisor, worker1, worker2
+
+
+def _print_verification_result(result: VerificationResult) -> None:
+    """Unified printing for verification results (used by verify-task and replay-task --mode verify)."""
+    if result.success:
+        print("✓ Hash chain verified successfully")
+        print(f"  Total events: {result.total_events}")
+        print(f"  Verified events: {result.verified_events}")
+    else:
+        print("✗ Hash chain verification failed")
+        print(f"  Error: {result.error_message}")
+        if result.first_mismatch:
+            print(f"  First mismatch at event {result.first_mismatch.get('event_index')}:")
+            print(f"    Event ID: {result.first_mismatch.get('event_id')}")
+            print(f"    Event type: {result.first_mismatch.get('event_type')}")
+            for key, value in result.first_mismatch.items():
+                if key not in ["event_index", "event_id", "event_type"]:
+                    print(f"    {key}: {value}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -74,6 +95,9 @@ def main(argv: list[str] | None = None) -> int:
 
     verify_cmd = sub.add_parser("verify-task", help="Verify task event hash chain")
     verify_cmd.add_argument("task_id")
+
+    verify_project_cmd = sub.add_parser("verify-project", help="Verify all tasks in a project")
+    verify_project_cmd.add_argument("project_id")
 
     replay_cmd = sub.add_parser("replay-task", help="Replay task execution")
     replay_cmd.add_argument("task_id")
@@ -154,21 +178,33 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "verify-task":
         verification_service = VerificationService(container.storage)
         result = verification_service.verify_task_chain(args.task_id)
+        _print_verification_result(result)
+        return 0 if result.success else 1
 
-        if result.success:
-            print("✓ Hash chain verified successfully")
-            print(f"  Total events: {result.total_events}")
-            print(f"  Verified events: {result.verified_events}")
+    if args.command == "verify-project":
+        verification_service = VerificationService(container.storage)
+        project_result = verification_service.verify_project(args.project_id)
+
+        print(f"Project verification: {args.project_id}")
+        print(f"  Total tasks: {project_result.total_tasks}")
+        print(f"  Passed: {project_result.passed_tasks}")
+        print(f"  Failed: {project_result.failed_tasks}")
+
+        if project_result.failures:
+            print("\nFailed tasks:")
+            for failure in project_result.failures:
+                print(f"  - Task: {failure['task_id']} (type: {failure['task_type']})")
+                if failure["first_mismatch_event_id"]:
+                    print(
+                        f"    First mismatch: event {failure['first_mismatch_index']} (id: {failure['first_mismatch_event_id']})"
+                    )
+                if failure["error_message"]:
+                    print(f"    Error: {failure['error_message']}")
+
+        if project_result.success:
+            print("\n✓ All tasks verified successfully")
             return 0
-        print("✗ Hash chain verification failed")
-        print(f"  Error: {result.error_message}")
-        if result.first_mismatch:
-            print(f"  First mismatch at event {result.first_mismatch.get('event_index')}:")
-            print(f"    Event ID: {result.first_mismatch.get('event_id')}")
-            print(f"    Event type: {result.first_mismatch.get('event_type')}")
-            for key, value in result.first_mismatch.items():
-                if key not in ["event_index", "event_id", "event_type"]:
-                    print(f"    {key}: {value}")
+        print("\n✗ Some tasks failed verification")
         return 1
 
     if args.command == "replay-task":
@@ -182,24 +218,11 @@ def main(argv: list[str] | None = None) -> int:
         replay_result = replay_service.replay_task(args.task_id, mode)
 
         if args.mode == "verify":
-            # Verify mode - show verification results
-            if replay_result.success:
-                print("✓ Hash chain verified successfully")
-                if replay_result.verification_details:
-                    print(f"  Total events: {replay_result.verification_details.get('total_events')}")
-                    print(f"  Verified events: {replay_result.verification_details.get('verified_events')}")
-                return 0
-            print("✗ Hash chain verification failed")
-            if replay_result.verification_details and replay_result.verification_details.get("error_message"):
-                print(f"  Error: {replay_result.verification_details['error_message']}")
-            if replay_result.verification_details and replay_result.verification_details.get("first_mismatch"):
-                mismatch = replay_result.verification_details["first_mismatch"]
-                print(f"  First mismatch at event {mismatch.get('event_index')}:")
-                print(f"    Event ID: {mismatch.get('event_id')}")
-                print(f"    Event type: {mismatch.get('event_type')}")
-                for key, value in mismatch.items():
-                    if key not in ["event_index", "event_id", "event_type"]:
-                        print(f"    {key}: {value}")
+            # Verify mode - show verification results using unified function
+            if replay_result.verification_result:
+                _print_verification_result(replay_result.verification_result)
+                return 0 if replay_result.success else 1
+            print("✗ Verification failed - no result available")
             return 1
         if args.mode == "replay-events":
             # Replay events mode - show reconstructed output
