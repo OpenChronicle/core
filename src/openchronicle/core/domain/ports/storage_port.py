@@ -105,3 +105,16 @@ class StoragePort(ABC):
 
     @abstractmethod
     def sum_tokens_by_project(self, project_id: str, since: str | None = None) -> dict[str, int]: ...
+
+    # Task Tree Navigation
+    @abstractmethod
+    def list_child_tasks(self, parent_task_id: str) -> list[Task]: ...
+
+    @abstractmethod
+    def get_task_latest_routing(self, task_id: str) -> dict[str, Any] | None: ...
+
+    @abstractmethod
+    def get_task_usage_totals(self, task_id: str) -> dict[str, Any]: ...
+
+    @abstractmethod
+    def get_task_worker_plan(self, task_id: str) -> dict[str, Any] | None: ...

@@ -15,12 +15,16 @@ dependencies = []
 openai = [
 	"openai>=1.0.0",
 ]
+ollama = [
+	"httpx>=0.25.0",
+]
 dev = [
 	"pytest>=7",
 	"pytest-asyncio>=0.23",
 	"mypy>=1.8",
 	"ruff>=0.1.0",
 	"openai>=1.0.0",
+	"httpx>=0.25.0",
 ]
 
 [tool.pytest.ini_options]
@@ -86,4 +90,8 @@ strict_equality = true
 
 [[tool.mypy.overrides]]
 module = "openai.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "httpx.*"
 ignore_missing_imports = true

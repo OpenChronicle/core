@@ -123,6 +123,11 @@ def main(argv: list[str] | None = None) -> int:
     usage_cmd.add_argument("project_id")
     usage_cmd.add_argument("--limit", type=int, default=20, help="Number of recent calls to show")
 
+    tree_cmd = sub.add_parser("task-tree", help="Show task tree with routing and usage")
+    tree_cmd.add_argument("task_id")
+    tree_cmd.add_argument("--depth", type=int, default=2, help="Tree depth (default: 2 for parent + children)")
+    tree_cmd.add_argument("--show-reasons", action="store_true", help="Show routing reasons")
+
     args = parser.parse_args(argv)
     container = CoreContainer()
     orchestrator = container.orchestrator
@@ -428,6 +433,89 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {call.created_at} | {call.provider}/{call.model} | {tokens_str} | {latency_str}")
         else:
             print("\nNo usage data available yet")
+
+        return 0
+
+    if args.command == "task-tree":
+        # Get the task
+        task_maybe = container.storage.get_task(args.task_id)
+        if not task_maybe:
+            print(f"Error: Task not found: {args.task_id}")
+            return 1
+        task = task_maybe
+
+        # Print parent task header
+        print(f"Task: {task.id}")
+        print(f"  Type:       {task.type}")
+        print(f"  Status:     {task.status.value}")
+        print(f"  Agent:      {task.agent_id or 'N/A'}")
+        print(f"  Created:    {task.created_at.isoformat()}")
+        print(f"  Updated:    {task.updated_at.isoformat()}")
+        print(f"  Result:     {'Yes' if task.result_json else 'No'}")
+        print(f"  Error:      {'Yes' if task.error_json else 'No'}")
+
+        # Get worker plan if available
+        worker_plan = container.storage.get_task_worker_plan(args.task_id)
+        if worker_plan:
+            print("  Worker Plan:")
+            print(f"    Modes:     {worker_plan['worker_modes']}")
+            print(f"    Rationale: {worker_plan['rationale']}")
+            print(f"    Count:     {worker_plan['worker_count']}")
+
+        # Get routing for parent
+        routing = container.storage.get_task_latest_routing(args.task_id)
+        if routing:
+            print("  Routing:")
+            print(f"    Provider:  {routing['provider']}")
+            print(f"    Model:     {routing['model']}")
+            print(f"    Mode:      {routing['mode']}")
+            if args.show_reasons and routing["reasons"]:
+                print(f"    Reasons:   {', '.join(routing['reasons'][:5])}")
+
+        # Get usage for parent
+        usage = container.storage.get_task_usage_totals(args.task_id)
+        if usage["calls"] > 0:
+            print("  Usage:")
+            print(f"    Calls:     {usage['calls']}")
+            print(
+                f"    Tokens:    {usage['total_tokens']:,} (in:{usage['input_tokens']:,}, out:{usage['output_tokens']:,})"
+            )
+            if usage["avg_latency_ms"] > 0:
+                print(f"    Avg Latency: {usage['avg_latency_ms']}ms")
+
+        # Get and display children
+        children = container.storage.list_child_tasks(args.task_id)
+        if children:
+            print(f"\nChild Tasks ({len(children)}):")
+            for idx, child in enumerate(children):
+                print(f"\n  [{idx}] {child.id}")
+                print(f"      Type:       {child.type}")
+                print(f"      Status:     {child.status.value}")
+                print(f"      Agent:      {child.agent_id or 'N/A'}")
+                print(f"      Result:     {'Yes' if child.result_json else 'No'}")
+
+                # Get desired_quality from payload if present
+                if "desired_quality" in child.payload:
+                    print(f"      Desired:    {child.payload['desired_quality']}")
+
+                # Get routing for child
+                child_routing = container.storage.get_task_latest_routing(child.id)
+                if child_routing:
+                    print(
+                        f"      Routed:     {child_routing['provider']}/{child_routing['model']} ({child_routing['mode']})"
+                    )
+                    if args.show_reasons and child_routing["reasons"]:
+                        reasons_str = ", ".join(child_routing["reasons"][:3])
+                        if len(child_routing["reasons"]) > 3:
+                            reasons_str += f", ... (+{len(child_routing['reasons']) - 3} more)"
+                        print(f"      Reasons:    {reasons_str}")
+
+                # Get usage for child
+                child_usage = container.storage.get_task_usage_totals(child.id)
+                if child_usage["calls"] > 0:
+                    print(f"      Usage:      {child_usage['total_tokens']:,} tokens, {child_usage['calls']} calls")
+        else:
+            print("\nNo child tasks found.")
 
         return 0
 

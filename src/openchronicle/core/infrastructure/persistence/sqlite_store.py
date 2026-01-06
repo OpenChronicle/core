@@ -6,6 +6,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from openchronicle.core.domain.models.project import (
     Agent,
@@ -563,4 +564,86 @@ class SqliteStore(StoragePort):
             "input_tokens": row["input"],
             "output_tokens": row["output"],
             "total_tokens": row["total"],
+        }
+
+    # Task tree query helpers
+    def list_child_tasks(self, parent_task_id: str) -> list[Task]:
+        """List all child tasks for a given parent task, ordered deterministically."""
+        cur = self._conn.cursor()
+        rows = cur.execute(
+            "SELECT * FROM tasks WHERE parent_task_id=? ORDER BY created_at ASC, id ASC",
+            (parent_task_id,),
+        ).fetchall()
+        return [self._row_to_task(r) for r in rows]
+
+    def get_task_latest_routing(self, task_id: str) -> dict[str, Any] | None:
+        """Get the latest routing decision for a task from llm.routed events."""
+        cur = self._conn.cursor()
+        row = cur.execute(
+            """
+            SELECT payload FROM events
+            WHERE task_id=? AND type='llm.routed'
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (task_id,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        payload = json.loads(row["payload"])
+        return {
+            "provider": payload.get("provider_selected") or payload.get("provider"),
+            "model": payload.get("model_selected") or payload.get("model"),
+            "mode": payload.get("mode"),
+            "reasons": payload.get("reasons", []),
+        }
+
+    def get_task_usage_totals(self, task_id: str) -> dict[str, Any]:
+        """Get aggregated LLM usage totals for a task."""
+        cur = self._conn.cursor()
+        row = cur.execute(
+            """
+            SELECT
+                COUNT(*) as calls,
+                COALESCE(SUM(input_tokens), 0) as input_tokens,
+                COALESCE(SUM(output_tokens), 0) as output_tokens,
+                COALESCE(SUM(total_tokens), 0) as total_tokens,
+                COALESCE(AVG(latency_ms), 0) as avg_latency_ms
+            FROM llm_usage
+            WHERE task_id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+
+        return {
+            "calls": row["calls"],
+            "input_tokens": row["input_tokens"],
+            "output_tokens": row["output_tokens"],
+            "total_tokens": row["total_tokens"],
+            "avg_latency_ms": int(row["avg_latency_ms"]),
+        }
+
+    def get_task_worker_plan(self, task_id: str) -> dict[str, Any] | None:
+        """Get the worker plan from supervisor.worker_plan event for a task."""
+        cur = self._conn.cursor()
+        row = cur.execute(
+            """
+            SELECT payload FROM events
+            WHERE task_id=? AND type='supervisor.worker_plan'
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (task_id,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        payload = json.loads(row["payload"])
+        return {
+            "worker_modes": payload.get("worker_modes", []),
+            "rationale": payload.get("rationale"),
+            "worker_count": payload.get("worker_count"),
         }
