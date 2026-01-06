@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Literal
 
+from openchronicle.core.application.policies.rate_limiter import RateLimitTimeoutError
 from openchronicle.core.domain.exceptions import BudgetExceededError
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
-from openchronicle.core.infrastructure.rate_limiter import RateLimitTimeoutError
 
 ErrorClass = Literal["constraint", "transient", "refusal", "permanent"]
 

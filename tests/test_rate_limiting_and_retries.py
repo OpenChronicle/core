@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from openchronicle.core.application.policies.rate_limiter import RateLimitTimeoutError
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.project import TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMProviderError, LLMResponse
 from openchronicle.core.domain.ports.llm_port import LLMUsage as LLMUsageModel
-from openchronicle.core.infrastructure.rate_limiter import RateLimitTimeoutError
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ async def test_rpm_rate_limiting_waits(
     def mock_sleep(seconds: float) -> None:
         pass  # Don't actually sleep
 
-    with patch("openchronicle.core.infrastructure.rate_limiter.time.sleep", mock_sleep):
+    with patch("openchronicle.core.application.policies.rate_limiter.time.sleep", mock_sleep):
 
         async def mock_complete_async(*args: Any, **kwargs: Any) -> LLMResponse:
             return LLMResponse(
@@ -113,7 +113,7 @@ async def test_rate_limiting_timeout(
     project2 = container2.orchestrator.create_project("Timeout Test")
     agent2 = container2.orchestrator.register_agent(project_id=project2.id, name="Worker", role="worker")
 
-    with patch("openchronicle.core.infrastructure.rate_limiter.time.sleep"):  # Prevent actual sleeping
+    with patch("openchronicle.core.application.policies.rate_limiter.time.sleep"):  # Prevent actual sleeping
 
         async def mock_complete_async(*args: Any, **kwargs: Any) -> LLMResponse:
             return LLMResponse(
