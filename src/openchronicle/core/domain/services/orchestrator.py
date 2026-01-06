@@ -247,19 +247,8 @@ class OrchestratorService:
 
     async def _run_worker_summarize(self, task: Task, agent_id: str | None) -> str:
         text = task.payload.get("text") or ""
-        if not self._llm_enabled():
-            summary = self._simple_summarize(text)
-            self.emit_event(
-                Event(
-                    project_id=task.project_id,
-                    task_id=task.id,
-                    agent_id=agent_id,
-                    type="worker.generated_summary",
-                    payload={"text_hash": self._hash_text(text), "summary": summary},
-                )
-            )
-            return summary
 
+        # Always use the injected LLM adapter (which may be stub or real based on provider selection)
         messages = [
             {"role": "system", "content": "Summarize the provided text succinctly."},
             {"role": "user", "content": text},
@@ -276,7 +265,7 @@ class OrchestratorService:
             agent_id=agent_id,
             type="llm.requested",
             payload={
-                "provider": "openai",
+                "provider": getattr(self.llm, "model", "unknown"),
                 "model": llm_model,
                 "max_output_tokens": max_tokens,
                 "temperature": temperature,
@@ -354,15 +343,6 @@ class OrchestratorService:
             )
         )
         return llm_summary
-
-    def _simple_summarize(self, text: str) -> str:
-        cleaned = " ".join(text.split())
-        if len(cleaned) <= 160:
-            return cleaned
-        return cleaned[:150].rsplit(" ", 1)[0] + "..."
-
-    def _llm_enabled(self) -> bool:
-        return bool(os.getenv("OPENAI_API_KEY"))
 
     def _llm_model(self) -> str:
         from typing import cast

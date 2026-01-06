@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 from typing import Any
 
 from openchronicle.core.application.runtime.container import CoreContainer
@@ -215,15 +214,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "demo-summary":
-        if args.use_openai and not os.getenv("OPENAI_API_KEY"):
-            print("OPENAI_API_KEY is not set; cannot use OpenAI")
-            return 1
+        # Handle provider override from --use-openai flag
+        from openchronicle.core.infrastructure.llm.provider_selector import ProviderType
 
-        supervisor, worker1, worker2 = _ensure_demo_agents(orchestrator, args.project_id)
-        task = run_task.submit(orchestrator, args.project_id, "analysis.summary", {"text": args.text})
+        provider_override: ProviderType | None = "openai" if args.use_openai else None
+
+        # Create a new container with the provider override
+        demo_container = CoreContainer(db_path=str(container.storage.db_path), provider_override=provider_override)
+
+        supervisor, worker1, worker2 = _ensure_demo_agents(demo_container.orchestrator, args.project_id)
+        task = run_task.submit(demo_container.orchestrator, args.project_id, "analysis.summary", {"text": args.text})
 
         async def _run_demo() -> None:
-            result = await run_task.execute(orchestrator, task.id, agent_id=supervisor.id)
+            result = await run_task.execute(demo_container.orchestrator, task.id, agent_id=supervisor.id)
             print(json.dumps(result, indent=2))
             print(f"task_id: {task.id}")
 

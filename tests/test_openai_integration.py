@@ -48,14 +48,14 @@ class _FakeLLMFailure(LLMPort):
 
 
 @pytest.mark.asyncio
-async def test_worker_summarize_falls_back_without_key(tmp_path: Path, monkeypatch: Any) -> None:
-    """Without OPENAI_API_KEY, worker summarize keeps stub behavior and no llm events."""
+async def test_worker_summarize_uses_stub_by_default(tmp_path: Path, monkeypatch: Any) -> None:
+    """Without OC_LLM_PROVIDER or override, uses stub adapter."""
 
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    container = CoreContainer(db_path=str(tmp_path / "no-key.db"))
+    monkeypatch.delenv("OC_LLM_PROVIDER", raising=False)
+    container = CoreContainer(db_path=str(tmp_path / "stub-default.db"))
     orchestrator = container.orchestrator
 
-    project = orchestrator.create_project("NoKey")
+    project = orchestrator.create_project("StubDefault")
     worker = orchestrator.register_agent(project_id=project.id, name="Worker", role="worker")
 
     task = orchestrator.submit_task(project.id, "analysis.worker.summarize", {"text": "Hello world"})
@@ -64,17 +64,22 @@ async def test_worker_summarize_falls_back_without_key(tmp_path: Path, monkeypat
     assert result == "Hello world"
 
     events = container.storage.list_events(task.id)
-    assert all(not e.type.startswith("llm.") for e in events)
+    event_types = [e.type for e in events]
+    assert "llm.requested" in event_types
+    assert "llm.completed" in event_types
+
+    # Check that provider is stub
+    completed = next(e for e in events if e.type == "llm.completed")
+    assert completed.payload.get("provider") == "stub"
 
     stored = container.storage.get_task(task.id)
     assert stored is not None and stored.status == TaskStatus.COMPLETED
 
 
 @pytest.mark.asyncio
-async def test_worker_summarize_uses_llm_when_key_and_adapter(tmp_path: Path, monkeypatch: Any) -> None:
-    """With OPENAI_API_KEY and fake adapter, llm events and usage are recorded."""
+async def test_worker_summarize_uses_injected_fake_adapter(tmp_path: Path, monkeypatch: Any) -> None:
+    """With injected fake adapter, llm events and usage are recorded."""
 
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     fake_llm = _FakeLLMSuccess(content="summarized text")
     container = CoreContainer(db_path=str(tmp_path / "llm-success.db"), llm=fake_llm)
     orchestrator = container.orchestrator
@@ -105,10 +110,9 @@ async def test_worker_summarize_uses_llm_when_key_and_adapter(tmp_path: Path, mo
 
 
 @pytest.mark.asyncio
-async def test_worker_summarize_llm_failure_marks_task_failed(tmp_path: Path, monkeypatch: Any) -> None:
+async def test_worker_summarize_llm_failure_marks_task_failed(tmp_path: Path) -> None:
     """LLM provider errors emit llm.failed and fail the task atomically."""
 
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     fake_llm = _FakeLLMFailure()
     container = CoreContainer(db_path=str(tmp_path / "llm-fail.db"), llm=fake_llm)
     orchestrator = container.orchestrator

@@ -6,17 +6,28 @@ from openchronicle.core.application.runtime.plugin_loader import PluginLoader
 from openchronicle.core.application.runtime.task_handler_registry import TaskHandlerRegistry
 from openchronicle.core.domain.ports.llm_port import LLMPort
 from openchronicle.core.domain.services.orchestrator import OrchestratorService
-from openchronicle.core.infrastructure.llm.openai_adapter import OpenAIAdapter
+from openchronicle.core.infrastructure.llm.provider_selector import LLMProviderSelector, ProviderType
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
 
 
 class CoreContainer:
-    def __init__(self, db_path: str = "data/openchronicle.db", llm: LLMPort | None = None) -> None:
+    def __init__(
+        self,
+        db_path: str = "data/openchronicle.db",
+        llm: LLMPort | None = None,
+        provider_override: ProviderType | None = None,
+    ) -> None:
         self.storage = SqliteStore(db_path=db_path)
         self.storage.init_schema()
         self.event_logger = EventLogger(self.storage)
-        self.llm = llm or OpenAIAdapter()
+
+        # Use explicit provider selection logic
+        if llm is None:
+            provider_type = LLMProviderSelector.get_provider_type(provider_override)
+            llm = LLMProviderSelector.create_provider(provider_type)
+
+        self.llm = llm
         self.handler_registry = TaskHandlerRegistry()
         self.plugin_loader = PluginLoader(handler_registry=self.handler_registry)
         self.plugin_loader.load_plugins()

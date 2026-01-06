@@ -11,7 +11,7 @@ if TYPE_CHECKING:  # pragma: no cover
 try:
     import openai
 except ImportError:  # pragma: no cover - optional dependency
-    openai = None  # type: ignore[assignment]
+    openai = None  # type: ignore[assignment,unused-ignore]
 
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
 
