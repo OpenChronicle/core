@@ -52,7 +52,7 @@ oc demo-summary <project_id> "Your text here" --use-openai
 ### Environment Variables
 
 | Variable | Values | Default | Description |
-|----------|--------|---------|-------------|
+| -------- | ------ | ------- | ----------- |
 | `OC_LLM_PROVIDER` | `stub`, `openai` | `stub` | Selects LLM provider |
 | `OPENAI_API_KEY` | API key string | - | Required when using OpenAI provider |
 | `OPENAI_MODEL` | Model name | `gpt-4o-mini` | OpenAI model to use |
