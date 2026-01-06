@@ -5,7 +5,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager
 from typing import Any, Protocol
 
-from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, Task
+from openchronicle.core.domain.models.project import Agent, Event, LLMUsage, Project, Resource, Span, Task
 
 
 class Page(Protocol):
@@ -87,3 +87,18 @@ class StoragePort(ABC):
 
     @abstractmethod
     def recover_stale_tasks(self, emit_event: Callable[[Event], None] | None = None) -> list[str]: ...
+
+    # LLM Usage
+    @abstractmethod
+    def insert_llm_usage(self, usage: LLMUsage) -> None: ...
+
+    @abstractmethod
+    def list_llm_usage_by_project(
+        self, project_id: str, limit: int | None = None, offset: int = 0
+    ) -> list[LLMUsage]: ...
+
+    @abstractmethod
+    def sum_tokens_by_task(self, task_id: str) -> dict[str, int]: ...
+
+    @abstractmethod
+    def sum_tokens_by_project(self, project_id: str, since: str | None = None) -> dict[str, int]: ...

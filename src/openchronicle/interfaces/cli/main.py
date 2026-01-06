@@ -113,6 +113,10 @@ def main(argv: list[str] | None = None) -> int:
     explain_cmd = sub.add_parser("explain-task", help="Show detailed task execution trace")
     explain_cmd.add_argument("task_id")
 
+    usage_cmd = sub.add_parser("usage", help="Show LLM usage statistics")
+    usage_cmd.add_argument("project_id")
+    usage_cmd.add_argument("--limit", type=int, default=20, help="Number of recent calls to show")
+
     args = parser.parse_args(argv)
     container = CoreContainer()
     orchestrator = container.orchestrator
@@ -366,6 +370,49 @@ def main(argv: list[str] | None = None) -> int:
             if len(result_str) > 500:
                 result_str = result_str[:500] + "\n  ..."
             print(f"  {result_str}")
+
+        return 0
+
+    if args.command == "usage":
+        # Get project-level totals
+        project_totals = container.storage.sum_tokens_by_project(args.project_id)
+
+        # Get recent calls
+        recent_calls = container.storage.list_llm_usage_by_project(args.project_id, limit=args.limit)
+
+        print(f"LLM Usage for project: {args.project_id}")
+        print("\nTotals:")
+        print(f"  Input tokens:  {project_totals.get('input_tokens') or 0:,}")
+        print(f"  Output tokens: {project_totals.get('output_tokens') or 0:,}")
+        print(f"  Total tokens:  {project_totals.get('total_tokens') or 0:,}")
+
+        # Group by provider/model for breakdown
+        if recent_calls:
+            provider_model_stats: dict[tuple[str, str], dict[str, int]] = {}
+            for call in recent_calls:
+                key = (call.provider, call.model)
+                if key not in provider_model_stats:
+                    provider_model_stats[key] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "count": 0}
+                provider_model_stats[key]["input_tokens"] += call.input_tokens or 0
+                provider_model_stats[key]["output_tokens"] += call.output_tokens or 0
+                provider_model_stats[key]["total_tokens"] += call.total_tokens or 0
+                provider_model_stats[key]["count"] += 1
+
+            print(f"\nBreakdown by provider/model (last {args.limit} calls):")
+            for (provider, model), stats in provider_model_stats.items():
+                print(f"  {provider}/{model}:")
+                print(f"    Calls: {stats['count']}")
+                print(f"    Input:  {stats['input_tokens']:,}")
+                print(f"    Output: {stats['output_tokens']:,}")
+                print(f"    Total:  {stats['total_tokens']:,}")
+
+            print(f"\nRecent calls (last {min(len(recent_calls), args.limit)}):")
+            for call in recent_calls[: args.limit]:
+                latency_str = f"{call.latency_ms}ms" if call.latency_ms else "N/A"
+                tokens_str = f"in:{call.input_tokens or 0} out:{call.output_tokens or 0} total:{call.total_tokens or 0}"
+                print(f"  {call.created_at} | {call.provider}/{call.model} | {tokens_str} | {latency_str}")
+        else:
+            print("\nNo usage data available yet")
 
         return 0
 

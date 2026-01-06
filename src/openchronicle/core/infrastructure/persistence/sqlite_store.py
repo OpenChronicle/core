@@ -7,7 +7,17 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, SpanStatus, Task, TaskStatus
+from openchronicle.core.domain.models.project import (
+    Agent,
+    Event,
+    LLMUsage,
+    Project,
+    Resource,
+    Span,
+    SpanStatus,
+    Task,
+    TaskStatus,
+)
 from openchronicle.core.domain.ports.storage_port import StoragePort
 from openchronicle.core.infrastructure.persistence import schema
 
@@ -342,6 +352,22 @@ class SqliteStore(StoragePort):
             ended_at=self._parse_dt(row["ended_at"]) if row["ended_at"] else None,
         )
 
+    def _row_to_llm_usage(self, row: sqlite3.Row) -> LLMUsage:
+        return LLMUsage(
+            id=row["id"],
+            created_at=self._parse_dt(row["created_at"]),
+            project_id=row["project_id"],
+            task_id=row["task_id"],
+            agent_id=row["agent_id"],
+            provider=row["provider"],
+            model=row["model"],
+            request_id=row["request_id"],
+            input_tokens=row["input_tokens"],
+            output_tokens=row["output_tokens"],
+            total_tokens=row["total_tokens"],
+            latency_ms=row["latency_ms"],
+        )
+
     def _parse_dt(self, value: str) -> datetime:
         return datetime.fromisoformat(value)
 
@@ -439,3 +465,97 @@ class SqliteStore(StoragePort):
                 recovered.append(task.id)
 
         return recovered
+
+    # LLM Usage
+    def insert_llm_usage(self, usage: LLMUsage) -> None:
+        """Record an LLM API call for usage tracking and budget enforcement."""
+        cur = self._conn.cursor()
+        # Handle both datetime and string created_at
+        created_at_str = usage.created_at if isinstance(usage.created_at, str) else usage.created_at.isoformat()
+        cur.execute(
+            """
+            INSERT INTO llm_usage (
+                id, created_at, project_id, task_id, agent_id, provider, model,
+                request_id, input_tokens, output_tokens, total_tokens, latency_ms
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                usage.id,
+                created_at_str,
+                usage.project_id,
+                usage.task_id,
+                usage.agent_id,
+                usage.provider,
+                usage.model,
+                usage.request_id,
+                usage.input_tokens,
+                usage.output_tokens,
+                usage.total_tokens,
+                usage.latency_ms,
+            ),
+        )
+        self._commit_if_needed()
+
+    def list_llm_usage_by_project(self, project_id: str, limit: int | None = None, offset: int = 0) -> list[LLMUsage]:
+        """List LLM usage records for a project, ordered by created_at DESC then id."""
+        cur = self._conn.cursor()
+        sql = """
+            SELECT * FROM llm_usage
+            WHERE project_id = ?
+            ORDER BY created_at DESC, id DESC
+        """
+        params: list[str | int] = [project_id]
+
+        if limit is not None:
+            sql += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+        rows = cur.execute(sql, params).fetchall()
+        return [self._row_to_llm_usage(r) for r in rows]
+
+    def sum_tokens_by_task(self, task_id: str) -> dict[str, int]:
+        """Sum token usage for a task. Returns dict with input/output/total counts."""
+        cur = self._conn.cursor()
+        row = cur.execute(
+            """
+            SELECT
+                COALESCE(SUM(input_tokens), 0) as input,
+                COALESCE(SUM(output_tokens), 0) as output,
+                COALESCE(SUM(total_tokens), 0) as total
+            FROM llm_usage
+            WHERE task_id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+
+        return {
+            "input_tokens": row["input"],
+            "output_tokens": row["output"],
+            "total_tokens": row["total"],
+        }
+
+    def sum_tokens_by_project(self, project_id: str, since: str | None = None) -> dict[str, int]:
+        """Sum token usage for a project with optional time window."""
+        cur = self._conn.cursor()
+
+        sql = """
+            SELECT
+                COALESCE(SUM(input_tokens), 0) as input,
+                COALESCE(SUM(output_tokens), 0) as output,
+                COALESCE(SUM(total_tokens), 0) as total
+            FROM llm_usage
+            WHERE project_id = ?
+        """
+        params: list[str] = [project_id]
+
+        if since:
+            sql += " AND created_at >= ?"
+            params.append(since)
+
+        row = cur.execute(sql, params).fetchone()
+
+        return {
+            "input_tokens": row["input"],
+            "output_tokens": row["output"],
+            "total_tokens": row["total"],
+        }

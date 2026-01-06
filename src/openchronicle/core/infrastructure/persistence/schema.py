@@ -81,6 +81,25 @@ CREATE TABLE IF NOT EXISTS spans (
 );
 """
 
+LLM_USAGE_TABLE = """
+CREATE TABLE IF NOT EXISTS llm_usage (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    agent_id TEXT,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    request_id TEXT,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    total_tokens INTEGER,
+    latency_ms INTEGER,
+    FOREIGN KEY(project_id) REFERENCES projects(id),
+    FOREIGN KEY(task_id) REFERENCES tasks(id)
+);
+"""
+
 # Performance indexes for common queries
 INDEXES = [
     # Tasks: optimize project queries with ordering
@@ -95,6 +114,12 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_events_task_created ON events(task_id, created_at, id)",
     # Spans: optimize task span queries with ordering
     "CREATE INDEX IF NOT EXISTS idx_spans_task_created ON spans(task_id, created_at, id)",
+    # LLM Usage: optimize project queries with ordering
+    "CREATE INDEX IF NOT EXISTS idx_llm_usage_project_created ON llm_usage(project_id, created_at, id)",
+    # LLM Usage: optimize task queries with ordering
+    "CREATE INDEX IF NOT EXISTS idx_llm_usage_task_created ON llm_usage(task_id, created_at, id)",
+    # LLM Usage: optimize agent queries with ordering
+    "CREATE INDEX IF NOT EXISTS idx_llm_usage_agent_created ON llm_usage(agent_id, created_at, id)",
 ]
 
-ALL_TABLES = [PROJECTS_TABLE, AGENTS_TABLE, TASKS_TABLE, EVENTS_TABLE, RESOURCES_TABLE, SPANS_TABLE]
+ALL_TABLES = [PROJECTS_TABLE, AGENTS_TABLE, TASKS_TABLE, EVENTS_TABLE, RESOURCES_TABLE, SPANS_TABLE, LLM_USAGE_TABLE]

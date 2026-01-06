@@ -12,6 +12,18 @@ from openchronicle.core.domain.models.project import Agent, Event, Project, Reso
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry
 from openchronicle.core.domain.ports.storage_port import StoragePort
+from openchronicle.core.domain.services.usage_tracker import UsageTracker
+
+
+class BudgetExceededError(Exception):
+    """Raised when a task exceeds its token budget."""
+
+    def __init__(self, limit: int, current: int, provider: str, model: str) -> None:
+        self.limit = limit
+        self.current = current
+        self.provider = provider
+        self.model = model
+        super().__init__(f"Task token budget exceeded: {current} >= {limit}")
 
 
 class OrchestratorService:
@@ -28,6 +40,7 @@ class OrchestratorService:
         self.plugins = plugins
         self.handler_registry = handler_registry
         self.emit_event = emit_event
+        self.usage_tracker = UsageTracker(storage)
         self._builtin_handlers = {
             "analysis.summary": self._run_analysis_summary,
             "analysis.worker.summarize": self._run_worker_summarize,
@@ -259,6 +272,50 @@ class OrchestratorService:
         max_tokens = 256
         temperature = 0.2
 
+        # Budget enforcement: check if task has exceeded token limit
+        max_tokens_per_task_str = os.getenv("OC_MAX_TOKENS_PER_TASK")
+        if max_tokens_per_task_str:
+            max_tokens_per_task = int(max_tokens_per_task_str)
+            current_totals = self.usage_tracker.get_task_token_totals(task.id)
+            current_total_tokens = current_totals.get("total_tokens") or 0
+
+            if current_total_tokens >= max_tokens_per_task:
+                provider = getattr(self.llm, "provider", "unknown")
+                self.emit_event(
+                    Event(
+                        project_id=task.project_id,
+                        task_id=task.id,
+                        agent_id=agent_id,
+                        type="llm.budget_exceeded",
+                        payload={
+                            "limit": max_tokens_per_task,
+                            "current": current_total_tokens,
+                            "provider": provider,
+                            "model": llm_model,
+                        },
+                    )
+                )
+                raise BudgetExceededError(max_tokens_per_task, current_total_tokens, provider, llm_model)
+
+        # Output token clamping
+        max_output_tokens_per_call_str = os.getenv("OC_MAX_OUTPUT_TOKENS_PER_CALL")
+        if max_output_tokens_per_call_str:
+            max_output_tokens_per_call = int(max_output_tokens_per_call_str)
+            if max_tokens > max_output_tokens_per_call:
+                self.emit_event(
+                    Event(
+                        project_id=task.project_id,
+                        task_id=task.id,
+                        agent_id=agent_id,
+                        type="llm.request_clamped",
+                        payload={
+                            "requested_max_tokens": max_tokens,
+                            "clamped_max_tokens": max_output_tokens_per_call,
+                        },
+                    )
+                )
+                max_tokens = max_output_tokens_per_call
+
         requested_event = Event(
             project_id=task.project_id,
             task_id=task.id,
@@ -330,6 +387,14 @@ class OrchestratorService:
                 type="llm.completed",
                 payload=completed_payload,
             )
+        )
+
+        # Record usage to database
+        self.usage_tracker.record_call(
+            project_id=task.project_id,
+            task_id=task.id,
+            agent_id=agent_id or "",
+            response=response,
         )
 
         llm_summary: str = str(response.content)

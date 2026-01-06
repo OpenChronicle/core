@@ -55,6 +55,9 @@ def test_fresh_database_has_all_indexes(fresh_db: SqliteStore) -> None:
         "idx_tasks_updated",
         "idx_events_task_created",
         "idx_spans_task_created",
+        "idx_llm_usage_project_created",
+        "idx_llm_usage_task_created",
+        "idx_llm_usage_agent_created",
     }
 
     assert index_names == expected, f"Missing or unexpected indexes. Got {index_names}, expected {expected}"
@@ -75,6 +78,9 @@ def test_migration_creates_indexes_on_existing_db(migrated_db: SqliteStore) -> N
         "idx_tasks_updated",
         "idx_events_task_created",
         "idx_spans_task_created",
+        "idx_llm_usage_project_created",
+        "idx_llm_usage_task_created",
+        "idx_llm_usage_agent_created",
     }
 
     assert index_names == expected
@@ -140,6 +146,9 @@ def test_index_creation_is_idempotent(tmp_path: Path) -> None:
         "idx_tasks_updated",
         "idx_events_task_created",
         "idx_spans_task_created",
+        "idx_llm_usage_project_created",
+        "idx_llm_usage_task_created",
+        "idx_llm_usage_agent_created",
     }
 
     assert index_names == expected

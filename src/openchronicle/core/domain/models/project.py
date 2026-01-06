@@ -118,3 +118,21 @@ class Span:
     status: SpanStatus = SpanStatus.STARTED
     created_at: datetime = field(default_factory=_utc_now)
     ended_at: datetime | None = None
+
+
+@dataclass
+class LLMUsage:
+    """Records LLM API call usage metrics for token accounting and budgets."""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: datetime | str = field(default_factory=_utc_now)
+    project_id: str = ""
+    task_id: str = ""
+    agent_id: str | None = None
+    provider: str = ""
+    model: str = ""
+    request_id: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+    latency_ms: int | None = None

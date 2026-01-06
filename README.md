@@ -57,3 +57,62 @@ oc demo-summary <project_id> "Your text here" --use-openai
 | `OPENAI_API_KEY` | API key string | - | Required when using OpenAI provider |
 | `OPENAI_MODEL` | Model name | `gpt-4o-mini` | OpenAI model to use |
 | `OPENAI_BASE_URL` | URL string | - | Optional custom API endpoint |
+| `OC_MAX_TOKENS_PER_TASK` | Integer | - | Budget limit: blocks LLM calls if task exceeds this total token count |
+| `OC_MAX_OUTPUT_TOKENS_PER_CALL` | Integer | - | Clamps max_output_tokens for each LLM request to this value |
+
+## Usage Tracking and Token Budgets
+
+OpenChronicle automatically tracks LLM usage metrics (input/output/total tokens, latency) for all API calls and stores them in the database.
+
+### View Usage Statistics
+
+```bash
+# Show usage for a project
+oc usage <project_id>
+
+# Show only the N most recent calls
+oc usage <project_id> --limit 10
+```
+
+The usage command displays:
+
+- Total token counts (input/output/total)
+- Breakdown by provider and model
+- List of recent API calls with timestamps and latency
+
+### Token Budgets
+
+Set budget limits to control LLM costs and prevent runaway token usage:
+
+#### Per-Task Budget
+
+Prevents a single task from exceeding a total token limit:
+
+```bash
+export OC_MAX_TOKENS_PER_TASK=10000
+oc demo-summary <project_id> "Your text"
+```
+
+If the task has already consumed 10,000+ tokens, subsequent LLM calls will:
+
+- Raise a `BudgetExceededError`
+- Emit an `llm.budget_exceeded` event
+- Mark the task as failed
+
+#### Per-Call Output Clamping
+
+Limits the maximum output tokens for each individual LLM request:
+
+```bash
+export OC_MAX_OUTPUT_TOKENS_PER_CALL=500
+oc demo-summary <project_id> "Your text"
+```
+
+Any LLM request with `max_output_tokens > 500` will be clamped to 500. The system emits an `llm.request_clamped` event when this occurs.
+
+### Budget Events
+
+Budget enforcement emits the following events for observability:
+
+- `llm.budget_exceeded`: Task exceeded `OC_MAX_TOKENS_PER_TASK` limit
+- `llm.request_clamped`: Output tokens were clamped due to `OC_MAX_OUTPUT_TOKENS_PER_CALL`
