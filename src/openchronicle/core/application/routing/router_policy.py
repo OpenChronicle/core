@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from openchronicle.core.application.routing.pool_config import PoolConfig, ProviderCandidate, load_pool_config
+
 
 @dataclass
 class RouteDecision:
@@ -14,6 +16,7 @@ class RouteDecision:
     model: str
     mode: str  # "fast" or "quality"
     reasons: list[str]
+    candidates: list[tuple[str, str, int]] | None = None  # [(provider, model, weight), ...]
 
 
 class RouterPolicy:
@@ -21,6 +24,7 @@ class RouterPolicy:
     Deterministic routing policy for selecting LLM provider and model.
 
     Routes based on:
+    - Provider pools (multi-provider with weighted selection)
     - Agent tags (fast/quality hints)
     - Explicit quality preference
     - Budget constraints (downgrade to fast if low)
@@ -33,7 +37,7 @@ class RouterPolicy:
         # Provider selection
         self.default_provider = os.getenv("OC_LLM_PROVIDER", "stub")
 
-        # Model selection
+        # Model selection (legacy single-provider)
         self.model_fast = os.getenv("OC_LLM_MODEL_FAST") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.model_quality = os.getenv("OC_LLM_MODEL_QUALITY") or os.getenv("OPENAI_MODEL", "gpt-4o")
 
@@ -45,6 +49,9 @@ class RouterPolicy:
 
         # Rate limit downgrade
         self.downgrade_on_rate_limit = os.getenv("OC_LLM_DOWNGRADE_ON_RATE_LIMIT", "1") == "1"
+
+        # Load pool configuration
+        self.pool_config: PoolConfig = load_pool_config()
 
     def route(
         self,
@@ -61,6 +68,8 @@ class RouterPolicy:
         """
         Route LLM call to appropriate provider and model.
 
+        Supports both pool-based routing (when pools configured) and legacy single-provider mode.
+
         Args:
             task_type: Type of task being executed
             agent_role: Role of agent (worker/supervisor/manager)
@@ -73,29 +82,22 @@ class RouterPolicy:
             rpm_limit: RPM limit if rate limiting enabled
 
         Returns:
-            RouteDecision with provider, model, mode, and reasons
+            RouteDecision with provider, model, mode, reasons, and optional candidates
         """
         reasons: list[str] = []
         agent_tags = agent_tags or []
 
-        # Step 1: Determine provider
-        provider = provider_preference or self.default_provider
-        if provider_preference:
-            reasons.append(f"provider_override:{provider_preference}")
-        else:
-            reasons.append(f"default_provider:{provider}")
-
-        # Step 2: Determine desired mode from hints
+        # Step 1: Determine desired mode from hints
         mode = self._determine_mode(agent_tags, desired_quality, reasons)
 
-        # Step 3: Budget-aware downgrade
+        # Step 2: Budget-aware downgrade
         if max_tokens_per_task is not None and current_task_tokens is not None:
             remaining = max_tokens_per_task - current_task_tokens
             if remaining < self.low_budget_threshold and mode == "quality":
                 mode = "fast"
                 reasons.append(f"low_budget_downgrade:remaining={remaining}")
 
-        # Step 4: Rate-limit-aware downgrade
+        # Step 3: Rate-limit-aware downgrade
         if (
             self.downgrade_on_rate_limit
             and mode == "quality"
@@ -104,7 +106,20 @@ class RouterPolicy:
             mode = "fast"
             reasons.append("rate_limit_downgrade")
 
-        # Step 5: Select model based on mode
+        # Step 4: Choose provider and model (pool-based or legacy)
+        pool = self.pool_config.fast_pool if mode == "fast" else self.pool_config.quality_pool
+
+        if pool:
+            # Pool-based routing
+            return self._route_from_pool(pool, mode, reasons, provider_preference)
+
+        # Legacy single-provider routing
+        provider = provider_preference or self.default_provider
+        if provider_preference:
+            reasons.append(f"provider_override:{provider_preference}")
+        else:
+            reasons.append(f"default_provider:{provider}")
+
         model = self._select_model(mode, provider, reasons)
 
         return RouteDecision(
@@ -112,6 +127,59 @@ class RouterPolicy:
             model=model,
             mode=mode,
             reasons=reasons,
+        )
+
+    def _route_from_pool(
+        self,
+        pool: list[ProviderCandidate],
+        mode: str,
+        reasons: list[str],
+        provider_preference: str | None,
+    ) -> RouteDecision:
+        """
+        Route from a provider pool using weighted selection.
+
+        Args:
+            pool: List of provider candidates
+            mode: Routing mode (fast/quality)
+            reasons: List to append routing reasons to
+            provider_preference: Optional provider override
+
+        Returns:
+            RouteDecision with selected provider, model, and candidate list
+        """
+        if not pool:
+            # Fallback to legacy if pool is empty
+            provider = provider_preference or self.default_provider
+            reasons.append(f"empty_pool_fallback:{provider}")
+            model = self._select_model(mode, provider, reasons)
+            return RouteDecision(provider=provider, model=model, mode=mode, reasons=reasons)
+
+        # Apply provider override if specified
+        if provider_preference:
+            filtered = [c for c in pool if c.provider == provider_preference]
+            if filtered:
+                pool = filtered
+                reasons.append(f"provider_override:{provider_preference}")
+            else:
+                reasons.append(f"provider_override_not_in_pool:{provider_preference}")
+
+        # Sort by weight (desc), then provider name, then model name for determinism
+        sorted_candidates = sorted(pool, key=lambda c: (-c.weight, c.provider, c.model))
+
+        # Select top candidate
+        primary = sorted_candidates[0]
+        reasons.append(f"pool_selection:{primary.provider}:{primary.model}:weight={primary.weight}")
+
+        # Build candidate list for debugging/events
+        candidates = [(c.provider, c.model, c.weight) for c in sorted_candidates]
+
+        return RouteDecision(
+            provider=primary.provider,
+            model=primary.model,
+            mode=mode,
+            reasons=reasons,
+            candidates=candidates,
         )
 
     def _determine_mode(

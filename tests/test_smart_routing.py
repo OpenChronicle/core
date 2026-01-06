@@ -573,3 +573,339 @@ class TestModePropagation:
         for routed_event in routed_events:
             assert routed_event.payload["mode"] == "quality"
             assert any("mode_from_agent_tags:quality" in r for r in routed_event.payload.get("reasons", []))
+
+
+class TestProviderPools:
+    """Test multi-provider pool routing with weighted selection and fallback."""
+
+    @pytest.mark.asyncio
+    async def test_weighted_selection_prefers_higher_weight(self, tmp_path: Any, fake_storage: MagicMock) -> None:
+        """Test that RouterPolicy selects provider with higher weight."""
+        # Set up pool config: ollama with weight 100, openai with weight 20
+        pool_env = {
+            "OC_LLM_FAST_POOL": "ollama:llama3.1,openai:gpt-4o-mini",
+            "OC_LLM_QUALITY_POOL": "openai:gpt-4o,ollama:mixtral",
+            "OC_LLM_PROVIDER_WEIGHTS": "ollama:100,openai:20",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+
+        try:
+            router = RouterPolicy()
+
+            # Route in fast mode
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                agent_tags=[],
+                desired_quality="fast",
+            )
+
+            # Should select ollama due to higher weight
+            assert decision.provider == "ollama"
+            assert decision.model == "llama3.1"
+            assert decision.mode == "fast"
+            assert decision.candidates is not None
+            assert len(decision.candidates) == 2
+
+            # Verify candidates are sorted by weight (ollama first)
+            providers = [c[0] for c in decision.candidates]
+            assert providers[0] == "ollama"
+            assert providers[1] == "openai"
+
+            # Route in quality mode
+            decision_q = router.route(
+                task_type="test",
+                agent_role="worker",
+                agent_tags=[],
+                desired_quality="quality",
+            )
+
+            # Should select ollama due to higher weight (even though openai listed first in pool)
+            assert decision_q.provider == "ollama"
+            assert decision_q.model == "mixtral"
+            assert decision_q.mode == "quality"
+
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_constraint_error(self, tmp_path: Any, fake_storage: MagicMock) -> None:
+        """Test that constraint errors trigger fallback to next provider."""
+        from openchronicle.core.domain.exceptions import BudgetExceededError
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini,ollama:llama3.1",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100,ollama:50",
+            "OC_LLM_MAX_FALLBACKS": "1",
+            "OC_LLM_FALLBACK_ON_CONSTRAINT": "1",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+
+        try:
+            # Create orchestrator with fallback support
+            fake_llm = FakeLLMAdapter(provider="stub", model="stub-model")
+            plugins = MagicMock()
+            handler_registry = MagicMock()
+            handler_registry.get = MagicMock(return_value=None)
+            emitted_events: list[Any] = []
+
+            def capture_event(event: Any) -> None:
+                emitted_events.append(event)
+
+            orch = OrchestratorService(
+                storage=fake_storage,
+                llm=fake_llm,  # type: ignore[arg-type]
+                plugins=plugins,
+                handler_registry=handler_registry,
+                emit_event=capture_event,
+            )
+
+            # Mock _create_provider_adapter to return adapters that fail first, succeed second
+            call_count = [0]
+
+            async def mock_adapter_call(provider: str, model: str) -> LLMResponse:
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    # First call (openai) raises constraint error
+                    raise BudgetExceededError(1000, 1100, provider, model)
+                # Second call (ollama fallback) succeeds
+                return LLMResponse(
+                    content=f"Success from {provider}:{model}",
+                    provider=provider,
+                    model=model,
+                    usage=LLMUsage(input_tokens=10, output_tokens=20, total_tokens=30),
+                    latency_ms=100,
+                )
+
+            # Manually execute fallback logic
+            from openchronicle.core.application.routing.fallback_executor import FallbackExecutor
+            from openchronicle.core.application.routing.router_policy import RouteDecision
+
+            fallback_exec = FallbackExecutor(pool_config=orch.router.pool_config, emit_event=capture_event)
+
+            decision = RouteDecision(
+                provider="openai",
+                model="gpt-4o-mini",
+                mode="fast",
+                reasons=["test"],
+                candidates=[("openai", "gpt-4o-mini", 100), ("ollama", "llama3.1", 50)],
+            )
+
+            response = await fallback_exec.execute_with_fallback(
+                primary_decision=decision,
+                llm_call=mock_adapter_call,
+                project_id="proj1",
+                task_id="task1",
+                agent_id="agent1",
+            )
+
+            # Verify fallback succeeded
+            assert response.provider == "ollama"
+            assert response.model == "llama3.1"
+            assert call_count[0] == 2
+
+            # Verify events
+            fallback_events = [e for e in emitted_events if e.type == "llm.fallback_selected"]
+            assert len(fallback_events) == 1
+            assert fallback_events[0].payload["from_provider"] == "openai"
+            assert fallback_events[0].payload["to_provider"] == "ollama"
+            assert fallback_events[0].payload["reason_class"] == "constraint"
+
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_transient_error(self, tmp_path: Any, fake_storage: MagicMock) -> None:
+        """Test that transient errors trigger fallback when enabled."""
+        from openchronicle.core.domain.ports.llm_port import LLMProviderError
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini,ollama:llama3.1",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100,ollama:50",
+            "OC_LLM_MAX_FALLBACKS": "1",
+            "OC_LLM_FALLBACK_ON_TRANSIENT": "1",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+
+        try:
+            fake_llm = FakeLLMAdapter()
+            plugins = MagicMock()
+            handler_registry = MagicMock()
+            handler_registry.get = MagicMock(return_value=None)
+            emitted_events: list[Any] = []
+
+            orch = OrchestratorService(
+                storage=fake_storage,
+                llm=fake_llm,  # type: ignore[arg-type]
+                plugins=plugins,
+                handler_registry=handler_registry,
+                emit_event=emitted_events.append,
+            )
+
+            call_count = [0]
+
+            async def mock_adapter_call(provider: str, model: str) -> LLMResponse:
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    # First call raises transient error (429)
+                    raise LLMProviderError("Rate limited", status_code=429, error_code="rate_limit")
+                return LLMResponse(
+                    content=f"Success from {provider}:{model}",
+                    provider=provider,
+                    model=model,
+                    usage=LLMUsage(input_tokens=10, output_tokens=20, total_tokens=30),
+                    latency_ms=100,
+                )
+
+            from openchronicle.core.application.routing.fallback_executor import FallbackExecutor
+            from openchronicle.core.application.routing.router_policy import RouteDecision
+
+            fallback_exec = FallbackExecutor(pool_config=orch.router.pool_config, emit_event=emitted_events.append)
+
+            decision = RouteDecision(
+                provider="openai",
+                model="gpt-4o-mini",
+                mode="fast",
+                reasons=["test"],
+                candidates=[("openai", "gpt-4o-mini", 100), ("ollama", "llama3.1", 50)],
+            )
+
+            response = await fallback_exec.execute_with_fallback(
+                primary_decision=decision,
+                llm_call=mock_adapter_call,
+                project_id="proj1",
+                task_id="task1",
+                agent_id="agent1",
+            )
+
+            assert response.provider == "ollama"
+            assert call_count[0] == 2
+
+            fallback_events = [e for e in emitted_events if e.type == "llm.fallback_selected"]
+            assert len(fallback_events) == 1
+            assert fallback_events[0].payload["reason_class"] == "transient"
+
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    @pytest.mark.asyncio
+    async def test_no_fallback_on_refusal_by_default(self, tmp_path: Any, fake_storage: MagicMock) -> None:
+        """Test that refusal errors do NOT trigger fallback by default."""
+        from openchronicle.core.domain.ports.llm_port import LLMProviderError
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini,ollama:llama3.1",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100,ollama:50",
+            "OC_LLM_MAX_FALLBACKS": "1",
+            "OC_LLM_FALLBACK_ON_REFUSAL": "0",  # Default: do not fallback on refusal
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+
+        try:
+            fake_llm = FakeLLMAdapter()
+            plugins = MagicMock()
+            handler_registry = MagicMock()
+            handler_registry.get = MagicMock(return_value=None)
+            emitted_events: list[Any] = []
+
+            orch = OrchestratorService(
+                storage=fake_storage,
+                llm=fake_llm,  # type: ignore[arg-type]
+                plugins=plugins,
+                handler_registry=handler_registry,
+                emit_event=emitted_events.append,
+            )
+
+            async def mock_adapter_call(provider: str, model: str) -> LLMResponse:
+                # Raise refusal error
+                raise LLMProviderError(
+                    "Content policy violation",
+                    status_code=400,
+                    error_code="content_policy_violation",
+                )
+
+            from openchronicle.core.application.routing.fallback_executor import FallbackExecutor
+            from openchronicle.core.application.routing.router_policy import RouteDecision
+
+            fallback_exec = FallbackExecutor(pool_config=orch.router.pool_config, emit_event=emitted_events.append)
+
+            decision = RouteDecision(
+                provider="openai",
+                model="gpt-4o-mini",
+                mode="fast",
+                reasons=["test"],
+                candidates=[("openai", "gpt-4o-mini", 100), ("ollama", "llama3.1", 50)],
+            )
+
+            # Should raise without fallback
+            with pytest.raises(LLMProviderError) as exc_info:
+                await fallback_exec.execute_with_fallback(
+                    primary_decision=decision,
+                    llm_call=mock_adapter_call,
+                    project_id="proj1",
+                    task_id="task1",
+                    agent_id="agent1",
+                )
+
+            assert "Content policy violation" in str(exc_info.value)
+
+            # Verify no fallback occurred
+            fallback_events = [e for e in emitted_events if e.type == "llm.fallback_selected"]
+            assert len(fallback_events) == 0
+
+            # Verify llm.refused emitted
+            refused_events = [e for e in emitted_events if e.type == "llm.refused"]
+            assert len(refused_events) == 1
+            assert refused_events[0].payload["error_class"] == "refusal"
+
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    @pytest.mark.asyncio
+    async def test_deterministic_pool_routing(self, tmp_path: Any, fake_storage: MagicMock) -> None:
+        """Test that pool routing is deterministic for same inputs."""
+        pool_env = {
+            "OC_LLM_FAST_POOL": "ollama:llama3.1,openai:gpt-4o-mini",
+            "OC_LLM_PROVIDER_WEIGHTS": "ollama:100,openai:100",  # Same weight, determinism by name
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+
+        try:
+            router1 = RouterPolicy()
+            router2 = RouterPolicy()
+
+            decision1 = router1.route(
+                task_type="test",
+                agent_role="worker",
+                agent_tags=[],
+                desired_quality="fast",
+            )
+
+            decision2 = router2.route(
+                task_type="test",
+                agent_role="worker",
+                agent_tags=[],
+                desired_quality="fast",
+            )
+
+            # Same decision both times
+            assert decision1.provider == decision2.provider
+            assert decision1.model == decision2.model
+            assert decision1.mode == decision2.mode
+
+            # With same weight, should prefer "ollama" alphabetically (unless openai sorts first)
+            # Let's verify consistent ordering
+            assert decision1.candidates == decision2.candidates
+
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)

@@ -7,8 +7,10 @@ import time
 from collections.abc import Callable
 from typing import Any
 
+from openchronicle.core.application.routing.fallback_executor import FallbackExecutor
 from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.runtime.task_handler_registry import TaskHandlerRegistry
+from openchronicle.core.domain.exceptions import BudgetExceededError
 from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, SpanStatus, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry
@@ -21,17 +23,6 @@ from openchronicle.core.infrastructure.rate_limiter import (
     estimate_tokens,
 )
 from openchronicle.core.infrastructure.retry_policy import RetryAttempt, RetryConfig, RetryPolicy
-
-
-class BudgetExceededError(Exception):
-    """Raised when a task exceeds its token budget."""
-
-    def __init__(self, limit: int, current: int, provider: str, model: str) -> None:
-        self.limit = limit
-        self.current = current
-        self.provider = provider
-        self.model = model
-        super().__init__(f"Task token budget exceeded: {current} >= {limit}")
 
 
 class OrchestratorService:
@@ -74,6 +65,12 @@ class OrchestratorService:
 
         # Initialize router policy
         self.router = RouterPolicy()
+
+        # Initialize fallback executor
+        self.fallback_executor = FallbackExecutor(
+            pool_config=self.router.pool_config,
+            emit_event=emit_event,
+        )
 
         self._builtin_handlers = {
             "analysis.summary": self._run_analysis_summary,
@@ -347,20 +344,27 @@ class OrchestratorService:
         )
 
         # Emit routing decision event
+        route_payload: dict[str, Any] = {
+            "provider_selected": route_decision.provider,
+            "model_selected": route_decision.model,
+            "mode": route_decision.mode,
+            "reasons": route_decision.reasons,
+            "task_type": task.type,
+            "agent_id": agent_id,
+        }
+        if route_decision.candidates:
+            route_payload["candidates_considered"] = [
+                {"provider": p, "model": m, "weight": w} for p, m, w in route_decision.candidates
+            ]
+            route_payload["weights_used"] = {p: w for p, _, w in route_decision.candidates}
+
         self.emit_event(
             Event(
                 project_id=task.project_id,
                 task_id=task.id,
                 agent_id=agent_id,
                 type="llm.routed",
-                payload={
-                    "provider_selected": route_decision.provider,
-                    "model_selected": route_decision.model,
-                    "mode": route_decision.mode,
-                    "reasons": route_decision.reasons,
-                    "task_type": task.type,
-                    "agent_id": agent_id,
-                },
+                payload=route_payload,
             )
         )
 
@@ -478,7 +482,7 @@ class OrchestratorService:
         )
         self.emit_event(requested_event)
 
-        # Step 5: Call adapter with retry policy
+        # Step 5: Call adapter with retry + fallback
         start = time.perf_counter()
 
         # Define retry callbacks
@@ -516,43 +520,40 @@ class OrchestratorService:
                 )
             )
 
-        async def llm_call() -> Any:
-            return await self.llm.complete_async(
-                messages,
-                model=llm_model,
-                max_output_tokens=max_tokens,
-                temperature=temperature,
-            )
+        # Create async callable for fallback executor
+        async def llm_call_with_provider(provider_name: str, model_name: str) -> Any:
+            """Execute LLM call with specific provider and model, including retry logic."""
+            # Use injected adapter if provider matches or if pools are not configured
+            if provider_name == route_decision.provider and not route_decision.candidates:
+                # Legacy path: use injected adapter
+                adapter = self.llm
+            else:
+                # Pool path: create adapter dynamically
+                adapter = self._create_provider_adapter(provider_name, model_name)
+
+            async def single_call() -> Any:
+                return await adapter.complete_async(
+                    messages,
+                    model=model_name,
+                    max_output_tokens=max_tokens,
+                    temperature=temperature,
+                )
+
+            return await self.retry_policy.execute(single_call, on_retry=on_retry, on_exhausted=on_exhausted)
 
         try:
-            response = await self.retry_policy.execute(llm_call, on_retry=on_retry, on_exhausted=on_exhausted)
-        except Exception as exc:  # noqa: BLE001
-            # Step 6a: On failure after retries
-            latency_ms = int((time.perf_counter() - start) * 1000)
-            error_payload = {
-                "provider": provider,
-                "model": llm_model,
-                "latency_ms": latency_ms,
-                "error_type": type(exc).__name__,
-                "message": str(exc)[:500],
-            }
-            if isinstance(exc, LLMProviderError):
-                if exc.status_code is not None:
-                    error_payload["status_code"] = exc.status_code
-                if exc.error_code is not None:
-                    error_payload["error_code"] = exc.error_code
-            self.emit_event(
-                Event(
-                    project_id=task.project_id,
-                    task_id=task.id,
-                    agent_id=agent_id,
-                    type="llm.failed",
-                    payload=error_payload,
-                )
+            response = await self.fallback_executor.execute_with_fallback(
+                primary_decision=route_decision,
+                llm_call=llm_call_with_provider,
+                project_id=task.project_id,
+                task_id=task.id,
+                agent_id=agent_id,
             )
+        except Exception:
+            # Fallback executor already emitted llm.failed/llm.refused
             raise
 
-        # Step 6b: On success
+        # Step 6: On success
         latency_ms = int((time.perf_counter() - start) * 1000)
         completed_payload = {
             "provider": response.provider,
@@ -601,6 +602,48 @@ class OrchestratorService:
         from typing import cast
 
         return os.getenv("OPENAI_MODEL") or cast(str, getattr(self.llm, "model", "gpt-4o-mini"))
+
+    def _create_provider_adapter(self, provider: str, model: str) -> LLMPort:
+        """
+        Create a provider adapter dynamically for fallback execution.
+
+        Args:
+            provider: Provider name (stub/openai/ollama)
+            model: Model name
+
+        Returns:
+            LLMPort adapter instance
+
+        Raises:
+            LLMProviderError: If provider cannot be created
+        """
+        if provider == "stub":
+            from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
+
+            return StubLLMAdapter()
+
+        if provider == "openai":
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise LLMProviderError(
+                    "OPENAI_API_KEY required for OpenAI provider",
+                    status_code=401,
+                    error_code="missing_api_key",
+                )
+            from openchronicle.core.infrastructure.llm.openai_adapter import OpenAIAdapter
+
+            return OpenAIAdapter(api_key=api_key)
+
+        if provider == "ollama":
+            from openchronicle.core.infrastructure.llm.ollama_adapter import OllamaAdapter
+
+            return OllamaAdapter(model=model)
+
+        raise LLMProviderError(
+            f"Unknown provider: {provider}",
+            status_code=None,
+            error_code="unknown_provider",
+        )
 
     async def _dispatch_task(self, task: Task, agent_id: str | None) -> Any:
         builtin_handler = self._builtin_handlers.get(task.type)
