@@ -7,6 +7,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.runtime.task_handler_registry import TaskHandlerRegistry
 from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, SpanStatus, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
@@ -70,6 +71,9 @@ class OrchestratorService:
             max_retry_sleep_ms=int(max_retry_sleep_ms_str) if max_retry_sleep_ms_str else 2000,
         )
         self.retry_policy = RetryPolicy(retry_config)
+
+        # Initialize router policy
+        self.router = RouterPolicy()
 
         self._builtin_handlers = {
             "analysis.summary": self._run_analysis_summary,
@@ -291,6 +295,60 @@ class OrchestratorService:
     async def _run_worker_summarize(self, task: Task, agent_id: str | None) -> str:
         text = task.payload.get("text") or ""
 
+        # Get agent details for routing
+        agent = self.storage.get_agent(agent_id) if agent_id else None
+        agent_tags = agent.tags if agent else []
+        agent_role = agent.role if agent else "worker"
+
+        # Extract desired_quality hint from task payload if provided
+        desired_quality = task.payload.get("desired_quality")
+
+        # Prepare for routing decisions
+        max_tokens_per_task_str = os.getenv("OC_MAX_TOKENS_PER_TASK")
+        max_tokens_per_task = int(max_tokens_per_task_str) if max_tokens_per_task_str else None
+        current_totals = self.usage_tracker.get_task_token_totals(task.id)
+        current_total_tokens = current_totals.get("total_tokens") or 0
+
+        # Check if rate limiting was recently triggered (look for recent rate_limited events)
+        recent_events = self.storage.list_events(task.id)
+        rate_limit_triggered = any(e.type == "llm.rate_limited" for e in recent_events[-5:] if recent_events)
+        rpm_limit_str = os.getenv("OC_LLM_RPM_LIMIT")
+        rpm_limit = int(rpm_limit_str) if rpm_limit_str else None
+
+        # Step 0: Route to provider and model
+        route_decision = self.router.route(
+            task_type=task.type,
+            agent_role=agent_role,
+            agent_tags=agent_tags,
+            desired_quality=desired_quality,
+            provider_preference=None,  # Could be passed from CLI
+            current_task_tokens=current_total_tokens,
+            max_tokens_per_task=max_tokens_per_task,
+            rate_limit_triggered=rate_limit_triggered,
+            rpm_limit=rpm_limit,
+        )
+
+        # Emit routing decision event
+        self.emit_event(
+            Event(
+                project_id=task.project_id,
+                task_id=task.id,
+                agent_id=agent_id,
+                type="llm.routed",
+                payload={
+                    "provider_selected": route_decision.provider,
+                    "model_selected": route_decision.model,
+                    "mode": route_decision.mode,
+                    "reasons": route_decision.reasons,
+                    "task_type": task.type,
+                    "agent_id": agent_id,
+                },
+            )
+        )
+
+        # Use routed model
+        llm_model = route_decision.model
+
         # Always use the injected LLM adapter (which may be stub or real based on provider selection)
         messages = [
             {"role": "system", "content": "Summarize the provided text succinctly."},
@@ -298,34 +356,27 @@ class OrchestratorService:
         ]
         input_concat = "".join(m.get("content", "") for m in messages)
         input_hash = self._hash_text(input_concat)
-        llm_model = self._llm_model()
         max_tokens = 256
         temperature = 0.2
 
         # Step 1: Budget enforcement - check if task has exceeded token limit
-        max_tokens_per_task_str = os.getenv("OC_MAX_TOKENS_PER_TASK")
-        if max_tokens_per_task_str:
-            max_tokens_per_task = int(max_tokens_per_task_str)
-            current_totals = self.usage_tracker.get_task_token_totals(task.id)
-            current_total_tokens = current_totals.get("total_tokens") or 0
-
-            if current_total_tokens >= max_tokens_per_task:
-                provider = getattr(self.llm, "provider", "unknown")
-                self.emit_event(
-                    Event(
-                        project_id=task.project_id,
-                        task_id=task.id,
-                        agent_id=agent_id,
-                        type="llm.budget_exceeded",
-                        payload={
-                            "limit": max_tokens_per_task,
-                            "current": current_total_tokens,
-                            "provider": provider,
-                            "model": llm_model,
-                        },
-                    )
+        if max_tokens_per_task is not None and current_total_tokens >= max_tokens_per_task:
+            provider = route_decision.provider
+            self.emit_event(
+                Event(
+                    project_id=task.project_id,
+                    task_id=task.id,
+                    agent_id=agent_id,
+                    type="llm.budget_exceeded",
+                    payload={
+                        "limit": max_tokens_per_task,
+                        "current": current_total_tokens,
+                        "provider": provider,
+                        "model": llm_model,
+                    },
                 )
-                raise BudgetExceededError(max_tokens_per_task, current_total_tokens, provider, llm_model)
+            )
+            raise BudgetExceededError(max_tokens_per_task, current_total_tokens, provider, llm_model)
 
         # Output token clamping
         max_output_tokens_per_call_str = os.getenv("OC_MAX_OUTPUT_TOKENS_PER_CALL")
@@ -350,7 +401,7 @@ class OrchestratorService:
         estimated_input_tokens = estimate_tokens(input_concat)
 
         # Step 3: Rate limiter acquire
-        provider = getattr(self.llm, "provider", "unknown")
+        provider = route_decision.provider
         try:
             rate_limit_info = self.rate_limiter.acquire(
                 provider=provider,

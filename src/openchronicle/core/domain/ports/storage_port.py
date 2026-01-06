@@ -37,6 +37,9 @@ class StoragePort(ABC):
     def add_agent(self, agent: Agent) -> None: ...
 
     @abstractmethod
+    def get_agent(self, agent_id: str) -> Agent | None: ...
+
+    @abstractmethod
     def list_agents(self, project_id: str) -> list[Agent]: ...
 
     # Tasks

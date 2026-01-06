@@ -110,6 +110,11 @@ class SqliteStore(StoragePort):
         )
         self._commit_if_needed()
 
+    def get_agent(self, agent_id: str) -> Agent | None:
+        cur = self._conn.cursor()
+        row = cur.execute("SELECT * FROM agents WHERE id=?", (agent_id,)).fetchone()
+        return self._row_to_agent(row) if row else None
+
     def list_agents(self, project_id: str) -> list[Agent]:
         cur = self._conn.cursor()
         rows = cur.execute(
