@@ -17,6 +17,7 @@ dev = [
 	"pytest-asyncio>=0.23",
 	"mypy>=1.8",
 	"ruff>=0.1.0",
+	"openai>=1.0.0",
 ]
 
 [tool.pytest.ini_options]
@@ -79,3 +80,7 @@ warn_unused_ignores = true
 warn_no_return = true
 check_untyped_defs = true
 strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "openai.*"
+ignore_missing_imports = true
