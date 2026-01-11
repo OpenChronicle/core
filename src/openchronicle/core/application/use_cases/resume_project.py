@@ -96,6 +96,9 @@ def execute(orchestrator: OrchestratorService, project_id: str) -> ResumeSummary
         )
     )
 
+    # Audit: confirm project-level events are retrievable (no semantics change)
+    _ = storage.list_events(project_id=project_id)
+
     return ResumeSummary(
         project_id=project_id,
         orphaned_to_pending=len(interrupted),

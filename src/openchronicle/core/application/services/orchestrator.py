@@ -391,7 +391,7 @@ class OrchestratorService:
         current_total_tokens = current_totals.get("total_tokens") or 0
 
         # Check if rate limiting was recently triggered (look for recent rate_limited events)
-        recent_events = self.storage.list_events(task.id)
+        recent_events = self.storage.list_events(task_id=task.id)
         rate_limit_triggered = any(e.type == "llm.rate_limited" for e in recent_events[-5:] if recent_events)
         rpm_limit_str = os.getenv("OC_LLM_RPM_LIMIT")
         rpm_limit = int(rpm_limit_str) if rpm_limit_str else None

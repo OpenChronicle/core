@@ -109,7 +109,7 @@ class ReplayService:
                 pass
 
         # Fallback: reconstruct from events
-        events = self.storage.list_events(task_id)
+        events = self.storage.list_events(task_id=task_id)
 
         # Find the task_completed event
         completion_event = None
@@ -143,7 +143,7 @@ class ReplayService:
         This is a simplified implementation that traces the execution path.
         """
         task = self.storage.get_task(task_id)
-        events = self.storage.list_events(task_id)
+        events = self.storage.list_events(task_id=task_id)
         spans = self.storage.list_spans(task_id)
 
         # Reconstruct execution trace

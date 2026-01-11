@@ -9,7 +9,7 @@ class EventLogger:
         self.storage = storage
 
     def append(self, event: Event) -> None:
-        existing = self.storage.list_events(event.task_id) if event.task_id else []
+        existing = self.storage.list_events(task_id=event.task_id) if event.task_id else []
         if existing:
             event.prev_hash = existing[-1].hash
         event.compute_hash()

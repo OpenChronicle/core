@@ -5,4 +5,4 @@ from openchronicle.core.domain.models.project import Event
 
 
 def timeline(orchestrator: OrchestratorService, task_id: str) -> list[Event]:
-    return orchestrator.storage.list_events(task_id)
+    return orchestrator.storage.list_events(task_id=task_id)

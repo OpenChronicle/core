@@ -209,12 +209,28 @@ class SqliteStore(StoragePort):
         )
         self._commit_if_needed()
 
-    def list_events(self, task_id: str) -> list[Event]:
+    def list_events(self, task_id: str | None = None, *, project_id: str | None = None) -> list[Event]:
+        """List events filtered by project and/or task with deterministic ordering.
+
+        Ordering: created_at ASC, then id ASC.
+        """
         cur = self._conn.cursor()
-        rows = cur.execute(
-            "SELECT * FROM events WHERE task_id=? ORDER BY created_at ASC, id ASC",
-            (task_id,),
-        ).fetchall()
+        sql = "SELECT * FROM events"
+        params: list[str] = []
+        conditions: list[str] = []
+
+        if project_id is not None:
+            conditions.append("project_id = ?")
+            params.append(project_id)
+        if task_id is not None:
+            conditions.append("task_id = ?")
+            params.append(task_id)
+
+        if conditions:
+            sql += " WHERE " + " AND ".join(conditions)
+
+        sql += " ORDER BY created_at ASC, id ASC"
+        rows = cur.execute(sql, params).fetchall()
         return [self._row_to_event(r) for r in rows]
 
     # Resources
@@ -412,7 +428,7 @@ class SqliteStore(StoragePort):
         self._commit_if_needed()
 
     def _append_event_with_hash(self, event: Event) -> None:
-        existing = self.list_events(event.task_id) if event.task_id else []
+        existing = self.list_events(task_id=event.task_id) if event.task_id else []
         if existing:
             event.prev_hash = existing[-1].hash
         event.compute_hash()

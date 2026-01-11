@@ -43,7 +43,7 @@ class VerificationService:
         Returns:
             VerificationResult with success status and details of any mismatch.
         """
-        events = self.storage.list_events(task_id)
+        events = self.storage.list_events(task_id=task_id)
 
         if not events:
             return VerificationResult(
