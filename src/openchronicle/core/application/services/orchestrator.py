@@ -14,6 +14,7 @@ from openchronicle.core.application.policies.rate_limiter import (
     RateLimitTimeoutError,
     estimate_tokens,
 )
+from openchronicle.core.application.policies.retry_controller import RetryController
 from openchronicle.core.application.policies.retry_policy import RetryAttempt, RetryConfig, RetryPolicy
 from openchronicle.core.application.routing.fallback_executor import FallbackExecutor
 from openchronicle.core.application.routing.router_policy import RouterPolicy
@@ -22,6 +23,7 @@ from openchronicle.core.application.services.llm_execution import execute_with_e
 from openchronicle.core.domain.exceptions import BudgetExceededError
 from openchronicle.core.domain.models.execution_record import LLMExecutionRecord
 from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, SpanStatus, Task, TaskStatus
+from openchronicle.core.domain.models.retry_policy import TaskRetryPolicy
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry
 from openchronicle.core.domain.ports.storage_port import StoragePort
@@ -133,6 +135,27 @@ class OrchestratorService:
         self.emit_event(event)
         return task
 
+    def get_retry_policy(self, task: Task) -> TaskRetryPolicy:
+        """Get retry policy for a task (from task payload or default to no retry)."""
+        # Check if task payload specifies a retry policy
+        retry_config = task.payload.get("retry_policy")
+        if retry_config and isinstance(retry_config, dict):
+            max_attempts = retry_config.get("max_attempts", 1)
+            retry_on_errors = retry_config.get("retry_on_errors")
+            backoff_seconds = retry_config.get("backoff_seconds", 0)
+            return TaskRetryPolicy(
+                max_attempts=max_attempts,
+                retry_on_errors=retry_on_errors,
+                backoff_seconds=backoff_seconds,
+            )
+        # Default: retries disabled
+        return TaskRetryPolicy.no_retry()
+
+    def _count_prior_attempts(self, task_id: str) -> int:
+        """Count number of prior attempts for a task from events."""
+        events = self.storage.list_events(task_id)
+        return sum(1 for e in events if e.type == "task_started")
+
     async def execute_task(self, task_id: str, agent_id: str | None = None) -> Any:
         task = self.storage.get_task(task_id)
         if task is None:
@@ -235,6 +258,38 @@ class OrchestratorService:
                 span.end_event_id = failed_event.id
                 span.ended_at = failed_event.created_at
                 self.storage.update_span(span)
+
+                # Check retry policy to decide whether to retry
+                retry_policy = self.get_retry_policy(task)
+                prior_attempts = self._count_prior_attempts(task.id)
+                error_code = provider_ctx.get("error_code") if provider_ctx else None
+
+                if RetryController.should_retry(
+                    task_id=task.id,
+                    attempt_id=attempt_id,
+                    error_code=error_code,
+                    policy=retry_policy,
+                    prior_attempts=prior_attempts,
+                ):
+                    # Retry allowed: emit task.retry_scheduled event
+                    retry_event = Event(
+                        project_id=task.project_id,
+                        task_id=task.id,
+                        agent_id=agent_id,
+                        type="task.retry_scheduled",
+                        payload={
+                            "task_id": task.id,
+                            "failed_attempt_id": attempt_id,
+                            "prior_attempts": prior_attempts,
+                            "max_attempts": retry_policy.max_attempts,
+                            "error_code": error_code,
+                            "backoff_seconds": retry_policy.backoff_seconds,
+                            "reason": "policy",
+                        },
+                    )
+                    self.emit_event(retry_event)
+                    # Note: Actual retry execution will occur naturally via orchestration
+                    # (not automatically triggered in this batch)
 
         if handler_error is not None:
             raise handler_error
