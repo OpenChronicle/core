@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from openchronicle.core.infrastructure.llm.llm_facade import (
+from openchronicle.core.infrastructure.llm.provider_facade import (
     create_provider_aware_llm,
     extract_providers_from_routing_config,
 )
