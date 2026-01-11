@@ -184,6 +184,20 @@ class OrchestratorService:
                 span.ended_at = complete_event.created_at
                 self.storage.update_span(span)
             else:
+                # Extract provider-related context if available
+                provider_ctx: dict[str, Any] = {}
+                from openchronicle.core.domain.ports.llm_port import LLMProviderError
+
+                if isinstance(handler_error, LLMProviderError):
+                    if handler_error.error_code is not None:
+                        provider_ctx["error_code"] = handler_error.error_code
+                    if handler_error.provider is not None:
+                        provider_ctx["provider"] = handler_error.provider
+                    if handler_error.hint is not None:
+                        provider_ctx["hint"] = handler_error.hint
+                    if handler_error.configured_providers:
+                        provider_ctx["configured_providers"] = handler_error.configured_providers
+
                 failed_event = Event(
                     project_id=task.project_id,
                     task_id=task.id,
@@ -192,17 +206,21 @@ class OrchestratorService:
                     payload={
                         "exception_type": type(handler_error).__name__,
                         "message": str(handler_error)[:500],
+                        **provider_ctx,
                     },
                 )
                 self.emit_event(failed_event)
 
-                error_json = json.dumps(
-                    {
-                        "exception_type": type(handler_error).__name__,
-                        "message": str(handler_error)[:500],
-                        "failed_event_id": failed_event.id,
-                    }
-                )
+                error_payload: dict[str, Any] = {
+                    "exception_type": type(handler_error).__name__,
+                    "message": str(handler_error)[:500],
+                    "failed_event_id": failed_event.id,
+                }
+                # Mirror provider context into persisted error_json
+                if provider_ctx:
+                    error_payload.update(provider_ctx)
+
+                error_json = json.dumps(error_payload)
                 self.storage.update_task_error(task.id, error_json, TaskStatus.FAILED.value)
 
                 span.status = SpanStatus.FAILED

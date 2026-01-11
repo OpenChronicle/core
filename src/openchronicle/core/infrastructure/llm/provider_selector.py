@@ -5,6 +5,11 @@ from __future__ import annotations
 import os
 from typing import Literal
 
+from openchronicle.core.domain.error_codes import (
+    INVALID_PROVIDER,
+    MISSING_API_KEY,
+    MISSING_PACKAGE,
+)
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 
 ProviderType = Literal["stub", "openai"]
@@ -63,7 +68,7 @@ class LLMProviderSelector:
                 raise LLMProviderError(
                     "OPENAI_API_KEY environment variable is required when OC_LLM_PROVIDER=openai",
                     status_code=401,
-                    error_code="missing_api_key",
+                    error_code=MISSING_API_KEY,
                 )
 
             try:
@@ -72,12 +77,10 @@ class LLMProviderSelector:
                 raise LLMProviderError(
                     "OpenAI adapter requires the openai package. Install with: pip install openchronicle-core[openai]",
                     status_code=None,
-                    error_code="missing_package",
+                    error_code=MISSING_PACKAGE,
                 ) from exc
 
             return OpenAIAdapter(api_key=api_key)
 
         # This should never happen due to type checking, but be defensive
-        raise LLMProviderError(
-            f"Unknown provider type: {provider_type}", status_code=None, error_code="invalid_provider"
-        )
+        raise LLMProviderError(f"Unknown provider type: {provider_type}", status_code=None, error_code=INVALID_PROVIDER)

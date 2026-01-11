@@ -5,6 +5,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from openchronicle.core.domain.error_codes import (
+    PROVIDER_NOT_CONFIGURED,
+    PROVIDER_REQUIRED,
+)
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse
 
 
@@ -100,7 +104,7 @@ class ProviderAwareLLMFacade(LLMPort):
                 raise LLMProviderError(
                     f"Provider parameter is required. Available providers: {available}",
                     status_code=None,
-                    error_code="provider_required",
+                    error_code=PROVIDER_REQUIRED,
                     configured_providers=list(self._adapters.keys()),
                     hint="Set OC_LLM_PROVIDER to configure a default provider, or ensure routing provides a provider parameter.",
                 )
@@ -112,7 +116,7 @@ class ProviderAwareLLMFacade(LLMPort):
             raise LLMProviderError(
                 f"Provider '{provider}' not configured. Available: {', '.join(self._adapters.keys())}",
                 status_code=None,
-                error_code="provider_not_configured",
+                error_code=PROVIDER_NOT_CONFIGURED,
                 provider=provider,
                 configured_providers=list(self._adapters.keys()),
                 hint=hint,

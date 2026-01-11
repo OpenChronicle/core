@@ -6,6 +6,11 @@ from typing import Any
 
 import httpx
 
+from openchronicle.core.domain.error_codes import (
+    CONNECTION_ERROR,
+    TIMEOUT,
+    UNKNOWN_ERROR,
+)
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
 
 
@@ -59,7 +64,7 @@ class OllamaAdapter(LLMPort):
             raise LLMProviderError(
                 f"Ollama request timed out: {exc}",
                 status_code=None,
-                error_code="timeout",
+                error_code=TIMEOUT,
             ) from exc
         except httpx.HTTPStatusError as exc:
             raise LLMProviderError(
@@ -71,13 +76,13 @@ class OllamaAdapter(LLMPort):
             raise LLMProviderError(
                 f"Ollama connection error: {exc}",
                 status_code=None,
-                error_code="connection_error",
+                error_code=CONNECTION_ERROR,
             ) from exc
         except Exception as exc:
             raise LLMProviderError(
                 f"Ollama unexpected error: {exc}",
                 status_code=None,
-                error_code="unknown",
+                error_code=UNKNOWN_ERROR,
             ) from exc
 
         latency_ms = int((time.perf_counter() - start) * 1000)
