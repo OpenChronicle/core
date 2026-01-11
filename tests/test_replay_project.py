@@ -385,14 +385,24 @@ class TestReplayServiceTaskStatusCounting:
         e1.compute_hash()
         db.append_event(e1)
 
+        e1_5 = Event(
+            project_id=project.id,
+            task_id=task1.id,
+            type="task.started",
+            payload={"attempt_id": "attempt_1"},
+            created_at=fixed_time(1),
+        )
+        e1_5.compute_hash()
+        db.append_event(e1_5)
+
         e2 = Event(
             project_id=project.id,
             task_id=task1.id,
             type="task.completed",
-            payload={"result": "ok"},
+            payload={"result": "ok", "attempt_id": "attempt_1"},
             created_at=fixed_time(2),
         )
-        e2.prev_hash = e1.hash
+        e2.prev_hash = e1_5.hash
         e2.compute_hash()
         db.append_event(e2)
 
@@ -407,14 +417,24 @@ class TestReplayServiceTaskStatusCounting:
         e3.compute_hash()
         db.append_event(e3)
 
+        e3_5 = Event(
+            project_id=project.id,
+            task_id=task2.id,
+            type="task.started",
+            payload={"attempt_id": "attempt_2"},
+            created_at=fixed_time(3),
+        )
+        e3_5.compute_hash()
+        db.append_event(e3_5)
+
         e4 = Event(
             project_id=project.id,
             task_id=task2.id,
             type="task.failed",
-            payload={"error": "timeout"},
+            payload={"error": "timeout", "attempt_id": "attempt_2"},
             created_at=fixed_time(4),
         )
-        e4.prev_hash = e3.hash
+        e4.prev_hash = e3_5.hash
         e4.compute_hash()
         db.append_event(e4)
 

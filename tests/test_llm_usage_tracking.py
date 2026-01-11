@@ -202,7 +202,7 @@ async def test_budget_exceeded_blocks_llm_call(
 
     # Try to execute task - should raise BudgetExceededError
     with pytest.raises(BudgetExceededError) as exc_info:
-        await container.orchestrator._run_worker_summarize(task, agent_id)
+        await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     # Verify LLM was NOT called
     assert not llm_called
@@ -249,7 +249,7 @@ async def test_output_token_clamping(
     assert task is not None
 
     # Execute - default max_tokens in orchestrator is 256
-    await container.orchestrator._run_worker_summarize(task, agent_id)
+    await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     # Verify clamped value was passed
     assert actual_max_tokens == 100
@@ -287,7 +287,7 @@ async def test_usage_recording_after_successful_call(
     assert task is not None
 
     # Execute
-    result = await container.orchestrator._run_worker_summarize(task, agent_id)
+    result = await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     assert result == "test summary"
 
@@ -419,7 +419,7 @@ def test_no_budget_allows_call(
     # Execute - should not raise
     import asyncio
 
-    result = asyncio.run(container.orchestrator._run_worker_summarize(task, agent_id))
+    result = asyncio.run(container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call"))
 
     assert llm_called
     assert result == "allowed"

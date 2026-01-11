@@ -51,7 +51,7 @@ async def test_execution_record_emitted_on_success(
     task = container.storage.get_task(task_id)
     assert task is not None
 
-    result = await container.orchestrator._run_worker_summarize(task, agent_id)
+    result = await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_id_for_direct_call")
     assert isinstance(result, str)
 
     # Verify exactly one normalized execution record emitted
@@ -109,7 +109,7 @@ async def test_execution_record_emitted_on_refusal(
     assert task is not None
 
     with pytest.raises(Exception):
-        await container.orchestrator._run_worker_summarize(task, agent_id)
+        await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     # Verify exactly one normalized execution record emitted
     events = container.storage.list_events(task_id)
@@ -146,7 +146,7 @@ async def test_execution_id_correlates_events_on_success(
     task = container.storage.get_task(task_id)
     assert task is not None
 
-    result = await container.orchestrator._run_worker_summarize(task, agent_id)
+    result = await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_id_for_direct_call")
     assert isinstance(result, str)
 
     # Get all LLM events
@@ -200,7 +200,7 @@ async def test_execution_id_correlates_events_on_refusal(
     assert task is not None
 
     with pytest.raises(Exception):
-        await container.orchestrator._run_worker_summarize(task, agent_id)
+        await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     # Get all LLM events
     events = container.storage.list_events(task_id)

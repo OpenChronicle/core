@@ -138,8 +138,15 @@ class OrchestratorService:
         if task is None:
             raise ValueError(f"Task not found: {task_id}")
 
+        # Generate attempt_id for this execution attempt
+        attempt_id = uuid4().hex
+
         start_event = Event(
-            project_id=task.project_id, task_id=task.id, agent_id=agent_id, type="task_started", payload={}
+            project_id=task.project_id,
+            task_id=task.id,
+            agent_id=agent_id,
+            type="task_started",
+            payload={"attempt_id": attempt_id},
         )
         span = Span(
             task_id=task.id,
@@ -158,7 +165,7 @@ class OrchestratorService:
             self.storage.add_span(span)
 
             try:
-                handler_result = await self._dispatch_task(task, agent_id)
+                handler_result = await self._dispatch_task(task, agent_id, attempt_id)
             except Exception as exc:
                 handler_error = exc
 
@@ -168,7 +175,7 @@ class OrchestratorService:
                     task_id=task.id,
                     agent_id=agent_id,
                     type="task_completed",
-                    payload={"result": handler_result},
+                    payload={"result": handler_result, "attempt_id": attempt_id},
                 )
                 self.emit_event(complete_event)
 
@@ -206,6 +213,7 @@ class OrchestratorService:
                     payload={
                         "exception_type": type(handler_error).__name__,
                         "message": str(handler_error)[:500],
+                        "attempt_id": attempt_id,
                         **provider_ctx,
                     },
                 )
@@ -252,7 +260,7 @@ class OrchestratorService:
             raise ValueError("Not enough worker agents registered")
         return workers[:count]
 
-    async def _run_analysis_summary(self, task: Task, agent_id: str | None) -> dict[str, Any]:
+    async def _run_analysis_summary(self, task: Task, agent_id: str | None, attempt_id: str) -> dict[str, Any]:
         text = task.payload.get("text") or ""
         text_hash = self._hash_text(text)
         self.emit_event(
@@ -372,7 +380,7 @@ class OrchestratorService:
         )
         return {"summary": final_summary, "worker_summaries": worker_results}
 
-    async def _run_worker_summarize(self, task: Task, agent_id: str | None) -> str:
+    async def _run_worker_summarize(self, task: Task, agent_id: str | None, attempt_id: str) -> str:
         text = task.payload.get("text") or ""
 
         # Get agent details for routing
@@ -681,13 +689,15 @@ class OrchestratorService:
             outcome="completed",
             error_code=None,
         )
+        payload = record.to_payload()
+        payload["attempt_id"] = attempt_id  # Add attempt_id to execution record
         self.emit_event(
             Event(
                 project_id=task.project_id,
                 task_id=task.id,
                 agent_id=agent_id,
                 type="llm.execution_recorded",
-                payload=record.to_payload(),
+                payload=payload,
             )
         )
 
@@ -716,14 +726,16 @@ class OrchestratorService:
 
         return os.getenv("OPENAI_MODEL") or cast(str, getattr(self.llm, "model", "gpt-4o-mini"))
 
-    async def _dispatch_task(self, task: Task, agent_id: str | None) -> Any:
+    async def _dispatch_task(self, task: Task, agent_id: str | None, attempt_id: str) -> Any:
         builtin_handler = self._builtin_handlers.get(task.type)
         if builtin_handler is not None:
-            return await builtin_handler(task, agent_id=agent_id)
+            return await builtin_handler(task, agent_id=agent_id, attempt_id=attempt_id)
 
         registry_handler = self.handler_registry.get(task.type)
         if registry_handler is not None:
-            return await registry_handler(task, {"agent_id": agent_id, "emit_event": self.emit_event})
+            return await registry_handler(
+                task, {"agent_id": agent_id, "attempt_id": attempt_id, "emit_event": self.emit_event}
+            )
 
         prompt = task.payload.get("prompt") or task.payload.get("text") or ""
         return await self.llm.generate_async(prompt, model=None, parameters=None)

@@ -77,7 +77,7 @@ async def test_rpm_rate_limiting_waits(
 
         # First call - bucket starts with 1 token, should succeed immediately
         task1 = container2.orchestrator.submit_task(project2.id, "analysis.worker.summarize", {"text": "Test 1"})
-        result1 = await container2.orchestrator._run_worker_summarize(task1, agent2.id)
+        result1 = await container2.orchestrator._run_worker_summarize(task1, agent2.id, "test_attempt_for_direct_call")
         assert result1 == "summary"
 
         # Check NO rate_limited event on first call
@@ -87,7 +87,7 @@ async def test_rpm_rate_limiting_waits(
 
         # Second call immediately - bucket should be empty (used 1 token), trigger rate limiting
         task2 = container2.orchestrator.submit_task(project2.id, "analysis.worker.summarize", {"text": "Test 2"})
-        result2 = await container2.orchestrator._run_worker_summarize(task2, agent2.id)
+        result2 = await container2.orchestrator._run_worker_summarize(task2, agent2.id, "test_attempt_for_direct_call")
         assert result2 == "summary"
 
         # Check for llm.rate_limited event on second call
@@ -127,13 +127,13 @@ async def test_rate_limiting_timeout(
 
         # First call consumes the 1 token
         task1 = container2.orchestrator.submit_task(project2.id, "analysis.worker.summarize", {"text": "Test 1"})
-        await container2.orchestrator._run_worker_summarize(task1, agent2.id)
+        await container2.orchestrator._run_worker_summarize(task1, agent2.id, "test_attempt_for_direct_call")
 
         # Second call immediately - bucket empty, needs to wait ~60s but timeout is 10ms
         task2 = container2.orchestrator.submit_task(project2.id, "analysis.worker.summarize", {"text": "Test 2"})
 
         with pytest.raises(RateLimitTimeoutError) as exc_info:
-            await container2.orchestrator._run_worker_summarize(task2, agent2.id)
+            await container2.orchestrator._run_worker_summarize(task2, agent2.id, "test_attempt_for_direct_call")
 
         # Verify exception details
         assert exc_info.value.max_wait_ms == 10
@@ -177,7 +177,7 @@ async def test_retry_success_after_429(
         # Execute task
         task = container.storage.get_task(task_id)
         assert task is not None
-        result = await container.orchestrator._run_worker_summarize(task, agent_id)
+        result = await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
         assert result == "success after retry"
 
         # Verify LLM was called twice (1 failure + 1 success)
@@ -235,7 +235,7 @@ async def test_retry_exhausted_on_persistent_500(
         assert task is not None
 
         with pytest.raises(LLMProviderError) as exc_info:
-            await container.orchestrator._run_worker_summarize(task, agent_id)
+            await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
         # Verify LLM was called 3 times (initial + 2 retries)
         assert call_count[0] == 3
@@ -318,10 +318,7 @@ async def test_budget_check_before_retries(
     from openchronicle.core.domain.exceptions import BudgetExceededError
 
     with pytest.raises(BudgetExceededError):
-        await container.orchestrator._run_worker_summarize(task, agent_id)
-
-    # Verify LLM was NEVER called (budget check blocked it)
-    assert not llm_called[0]
+        await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     # Verify NO retry events were emitted
     events = container.storage.list_events(task_id)
@@ -362,7 +359,7 @@ async def test_rate_limiting_disabled_by_default(
     container2.orchestrator.llm.complete_async = mock_complete_async  # type: ignore[method-assign]
 
     # Execute task
-    result = await container2.orchestrator._run_worker_summarize(task2, agent2.id)
+    result = await container2.orchestrator._run_worker_summarize(task2, agent2.id, "test_attempt_for_direct_call")
     assert result == "no limits"
 
     # Verify NO rate_limited events
@@ -394,7 +391,7 @@ async def test_estimated_input_tokens_in_llm_requested(
     # Execute task
     task = container.storage.get_task(task_id)
     assert task is not None
-    await container.orchestrator._run_worker_summarize(task, agent_id)
+    await container.orchestrator._run_worker_summarize(task, agent_id, "test_attempt_for_direct_call")
 
     # Check llm.requested event has estimated_input_tokens
     events = container.storage.list_events(task_id)

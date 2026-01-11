@@ -17,6 +17,16 @@ from openchronicle.core.application.observability.execution_index import (
 
 
 @dataclass
+class TaskAttempt:
+    """Represents a single execution attempt of a task."""
+
+    attempt_id: str
+    started: bool = False
+    terminal: bool = False
+    status: str = "pending"  # pending, running, completed, failed, cancelled
+
+
+@dataclass
 class ProjectStateView:
     """
     Derived view of current project state reconstructed from events.
