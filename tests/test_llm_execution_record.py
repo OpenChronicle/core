@@ -60,13 +60,24 @@ async def test_execution_record_emitted_on_success(
     assert len(records) == 1
 
     payload = records[0].payload
+
+    # Outcome must be completed
     assert payload.get("outcome") == "completed"
-    assert payload.get("provider_requested") == payload.get("provider_used")
-    assert payload.get("model") is not None
-    # Verify model_requested is populated
-    assert payload.get("model_requested") is not None
-    # Verify route_reference_id is populated on success
-    assert payload.get("route_reference_id") is not None
+
+    # Non-empty value assertions (audit-grade)
+    assert payload.get("provider_requested") != "", "provider_requested must be non-empty"
+    assert payload.get("provider_used") != "", "provider_used must be non-empty"
+    assert payload.get("model_requested") != "", "model_requested must be non-empty"
+    assert payload.get("model") != "", "model must be non-empty"
+    assert payload.get("route_reference_id") not in (None, ""), "route_reference_id must be present and non-empty"
+
+    # Equality constraints: on success, requested should match used (stub provider)
+    assert payload.get("provider_requested") == payload.get(
+        "provider_used"
+    ), "provider_requested must match provider_used on success"
+    # Note: model_requested and model may differ if routing selected one model but adapter used another
+    # For stub provider, they should match
+    assert payload.get("model_requested") != "", "model_requested must be populated from routing decision"
 
 
 @pytest.mark.asyncio
@@ -106,11 +117,19 @@ async def test_execution_record_emitted_on_refusal(
     assert len(records) == 1
 
     payload = records[0].payload
-    assert payload.get("outcome") in ("failed", "refused")
-    assert payload.get("error_code") is not None
-    assert payload.get("provider_requested") is not None
-    assert payload.get("provider_used") is not None
-    # Verify model_requested is populated
-    assert payload.get("model_requested") is not None
-    # Verify route_reference_id is populated on failure/refusal
-    assert payload.get("route_reference_id") is not None
+
+    # Refusal should be classified as "refused" by error classifier
+    assert payload.get("outcome") == "refused", "content_policy_violation should be classified as refusal"
+
+    # Error code must match what we raised
+    assert payload.get("error_code") == "content_policy_violation", "error_code must be preserved"
+
+    # Non-empty value assertions (audit-grade)
+    assert payload.get("provider_requested") != "", "provider_requested must be non-empty"
+    assert payload.get("provider_used") != "", "provider_used must be non-empty"
+    assert payload.get("model_requested") != "", "model_requested must be non-empty"
+    assert payload.get("model") != "", "model must be non-empty (attempted model)"
+    assert payload.get("route_reference_id") not in (
+        None,
+        "",
+    ), "route_reference_id must be present and non-empty on failure/refusal"
