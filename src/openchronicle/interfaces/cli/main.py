@@ -11,6 +11,7 @@ from openchronicle.core.application.use_cases import (
     create_project,
     list_projects,
     register_agent,
+    resume_project,
     run_task,
     show_task,
 )
@@ -127,6 +128,12 @@ def main(argv: list[str] | None = None) -> int:
     tree_cmd.add_argument("task_id")
     tree_cmd.add_argument("--depth", type=int, default=2, help="Tree depth (default: 2 for parent + children)")
     tree_cmd.add_argument("--show-reasons", action="store_true", help="Show routing reasons")
+
+    resume_cmd = sub.add_parser("resume-project", help="Resume incomplete tasks in a project")
+    resume_cmd.add_argument("project_id")
+    resume_cmd.add_argument(
+        "--continue", dest="continue_exec", action="store_true", help="Continue execution after resume"
+    )
 
     args = parser.parse_args(argv)
     container = CoreContainer()
@@ -520,6 +527,41 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"      Usage:      {child_usage['total_tokens']:,} tokens, {child_usage['calls']} calls")
         else:
             print("\nNo child tasks found.")
+
+        return 0
+
+    if args.command == "resume-project":
+        # Resume the project (transition orphaned tasks)
+        summary = resume_project.execute(orchestrator, args.project_id)
+
+        print(f"Project resumed: {summary.project_id}")
+        print(f"  Tasks moved RUNNING → PENDING: {summary.orphaned_to_pending}")
+        print("  Current status counts:")
+        print(f"    PENDING:   {summary.pending}")
+        print(f"    RUNNING:   {summary.running}")
+        print(f"    COMPLETED: {summary.completed}")
+        print(f"    FAILED:    {summary.failed}")
+
+        # If --continue flag is set, execute pending tasks
+        if args.continue_exec and summary.pending > 0:
+            print(f"\nContinuing execution of {summary.pending} pending task(s)...")
+
+            # Get all pending tasks
+            tasks = [t for t in container.storage.list_tasks_by_project(args.project_id) if t.status.value == "pending"]
+
+            # Sort deterministically
+            tasks_sorted = sorted(tasks, key=lambda t: (t.created_at, t.id))
+
+            async def _continue_execution() -> None:
+                for task in tasks_sorted:
+                    print(f"\nExecuting task: {task.id} (type: {task.type})")
+                    try:
+                        result = await run_task.execute(orchestrator, task.id, agent_id=task.agent_id)
+                        print(f"  ✓ Completed: {str(result)[:100]}")
+                    except Exception as e:
+                        print(f"  ✗ Failed: {str(e)[:100]}")
+
+            asyncio.run(_continue_execution())
 
         return 0
 
