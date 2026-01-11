@@ -4,12 +4,20 @@ Application-level LLM execution boundary.
 This module enforces routing discipline: all LLM calls in the Application layer
 must be anchored to a routing decision. This prevents accidental provider selection
 or bypassing of the routing system.
+
+Optional budget enforcement gate ensures projects stay within defined constraints.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from openchronicle.core.application.routing.router_policy import RouteDecision
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMResponse
+
+if TYPE_CHECKING:
+    from openchronicle.core.application.policies.budget_gate import BudgetGate
+    from openchronicle.core.domain.models.budget_policy import BudgetPolicy
 
 
 async def execute_with_route(
@@ -18,6 +26,9 @@ async def execute_with_route(
     messages: list[dict[str, str]],
     max_output_tokens: int | None = None,
     temperature: float | None = None,
+    budget_gate: BudgetGate | None = None,
+    project_id: str | None = None,
+    budget_policy: BudgetPolicy | None = None,
 ) -> LLMResponse:
     """
     Execute an LLM call with a routing decision.
@@ -25,18 +36,24 @@ async def execute_with_route(
     This is the canonical way for Application code to call LLMs.
     It enforces that a routing decision has been made before execution.
 
+    Optionally enforces budget constraints before attempting the call.
+
     Args:
         llm: The LLM port (infrastructure adapter)
         route_decision: The routing decision from RouterPolicy
         messages: The conversation messages
         max_output_tokens: Maximum tokens to generate
         temperature: Sampling temperature
+        budget_gate: Optional budget enforcement gate
+        project_id: Required if budget_gate is provided
+        budget_policy: Optional budget policy; if provided, must have budget_gate set
 
     Returns:
         LLMResponse from the selected provider
 
     Raises:
         ValueError: If route_decision is missing or invalid
+        BudgetExceededError: If budget policy is violated
         LLMProviderError: If the LLM call fails
 
     Note:
@@ -51,6 +68,10 @@ async def execute_with_route(
 
     if not route_decision.model:
         raise ValueError("route_decision.model is required - model must be explicitly selected")
+
+    # Check budget before attempting LLM call
+    if budget_gate is not None and budget_policy is not None and project_id is not None:
+        budget_gate.check(project_id, budget_policy, max_output_tokens)
 
     # Pass through to infrastructure with explicit provider from routing
     return await llm.complete_async(
@@ -69,12 +90,17 @@ async def execute_with_explicit_provider(
     messages: list[dict[str, str]],
     max_output_tokens: int | None = None,
     temperature: float | None = None,
+    budget_gate: BudgetGate | None = None,
+    project_id: str | None = None,
+    budget_policy: BudgetPolicy | None = None,
 ) -> LLMResponse:
     """
     Execute an LLM call with explicitly provided provider and model.
 
     This is used within fallback/retry scenarios where the provider and model
     have been determined by routing logic and are being passed explicitly.
+
+    Optionally enforces budget constraints before attempting the call.
 
     Args:
         llm: The LLM port (infrastructure adapter)
@@ -83,12 +109,16 @@ async def execute_with_explicit_provider(
         messages: The conversation messages
         max_output_tokens: Maximum tokens to generate
         temperature: Sampling temperature
+        budget_gate: Optional budget enforcement gate
+        project_id: Required if budget_gate is provided
+        budget_policy: Optional budget policy; if provided, must have budget_gate set
 
     Returns:
         LLMResponse from the specified provider
 
     Raises:
         ValueError: If provider or model is missing/empty
+        BudgetExceededError: If budget policy is violated
         LLMProviderError: If the LLM call fails
 
     Note:
@@ -101,6 +131,10 @@ async def execute_with_explicit_provider(
 
     if not model:
         raise ValueError("model is required and must be explicitly specified")
+
+    # Check budget before attempting LLM call
+    if budget_gate is not None and budget_policy is not None and project_id is not None:
+        budget_gate.check(project_id, budget_policy, max_output_tokens)
 
     # Pass through to infrastructure with explicit provider
     return await llm.complete_async(
