@@ -202,12 +202,22 @@ LLM calls follow this order of operations:
 
 ## Docker (CLI-first)
 
-The published Docker setup keeps runtime state outside the image so you can upgrade without losing data.
+The Docker setup separates **immutable core** (application code in `src/` baked into the image) from **persistent userland** (data, config, plugins, and outputs mounted on the host).
+
+**Immutable core** (in image):
+
+- Application code (`src/`)
+- Python runtime and dependencies
+- CLI entrypoint
+
+**Persistent userland** (host-mounted):
 
 - `/data`: SQLite DB (`OC_DB_PATH`, default `/data/openchronicle.db` in Docker)
 - `/config`: Optional config files (`OC_CONFIG_DIR`), loaded only if you provide them
 - `/plugins`: Optional plugins (`OC_PLUGIN_DIR`), loaded explicitly via the existing plugin loader
-- `v1.reference/` is intentionally excluded: `.dockerignore` strips it from the build context and the Dockerfile only copies `src/`, `plugins/`, and project metadata.
+- `/output`: Reserved for future artifact exports (`OC_OUTPUT_DIR`, default `/output` in Docker); currently empty unless user tools write there
+
+Note: `v1.reference/` is intentionally excluded: `.dockerignore` strips it from the build context and the Dockerfile only copies `src/`, `plugins/`, and project metadata.
 
 ### Quick start with docker run
 
@@ -216,9 +226,11 @@ docker run --rm \
   -v "$PWD/data:/data" \
   -v "$PWD/config:/config" \
   -v "$PWD/plugins:/plugins" \
+  -v "$PWD/output:/output" \
   -e OC_DB_PATH=/data/openchronicle.db \
   -e OC_CONFIG_DIR=/config \
   -e OC_PLUGIN_DIR=/plugins \
+  -e OC_OUTPUT_DIR=/output \
   openchronicle-core:latest --help
 ```
 
@@ -229,7 +241,7 @@ docker compose run --rm openchronicle --help
 docker compose run --rm openchronicle smoke-live "Hello" --provider stub
 ```
 
-Compose mounts persistent named volumes for `/data` and `/config`, and bind-mounts the repo's `./plugins` into `/plugins` so bundled/demo plugins are available immediately. If you prefer an empty, persisted plugins volume, swap `./plugins:/plugins` for a named volume in `docker-compose.yml`. Add environment overrides in `.env` (see `.env.example`); config files in `/config` are optional, env vars remain primary.
+Compose mounts persistent named volumes for `/data`, `/config`, and `/output`, and bind-mounts the repo's `./plugins` into `/plugins` so bundled/demo plugins are available immediately. If you prefer an empty, persisted plugins volume, swap `./plugins:/plugins` for a named volume in `docker-compose.yml`. Add environment overrides in `.env` (see `.env.example`); config files in `/config` are optional, env vars remain primary.
 
 ### Docker Persistence
 
@@ -238,7 +250,11 @@ Compose mounts persistent named volumes for `/data` and `/config`, and bind-moun
   1. Create host folders:
 
     ```powershell
-    New-Item -ItemType Directory -Force -Path C:\Docker\openchronicle\data, C:\Docker\openchronicle\config, C:\Docker\openchronicle\plugins | Out-Null
+    New-Item -ItemType Directory -Force -Path `
+      C:\Docker\openchronicle\data, `
+      C:\Docker\openchronicle\config, `
+      C:\Docker\openchronicle\plugins, `
+      C:\Docker\openchronicle\output | Out-Null
     ```
 
   1. Copy overlay:

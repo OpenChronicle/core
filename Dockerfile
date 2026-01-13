@@ -5,7 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     OC_DB_PATH=/data/openchronicle.db \
     OC_CONFIG_DIR=/config \
-    OC_PLUGIN_DIR=/plugins
+    OC_PLUGIN_DIR=/plugins \
+    OC_OUTPUT_DIR=/output
 
 WORKDIR /app
 
@@ -18,6 +19,6 @@ COPY plugins ./plugins
 RUN pip install --no-cache-dir .
 
 # Prepare persistent mount points
-RUN mkdir -p /data /config /plugins
+RUN mkdir -p /data /config /plugins /output
 
 ENTRYPOINT ["oc"]

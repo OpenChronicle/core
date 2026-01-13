@@ -6,13 +6,16 @@ services:
       - OC_DB_PATH=/data/openchronicle.db
       - OC_CONFIG_DIR=/config
       - OC_PLUGIN_DIR=/plugins
+      - OC_OUTPUT_DIR=/output
     env_file:
       - .env
     volumes:
       - oc-data:/data
       - oc-config:/config
       - ./plugins:/plugins
+      - oc-output:/output
 
 volumes:
   oc-data:
   oc-config:
+  oc-output:

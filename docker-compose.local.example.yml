@@ -8,3 +8,4 @@ services:
       - "C:/Docker/openchronicle/data:/data"
       - "C:/Docker/openchronicle/config:/config"
       - "C:/Docker/openchronicle/plugins:/plugins"
+      - "C:/Docker/openchronicle/output:/output"

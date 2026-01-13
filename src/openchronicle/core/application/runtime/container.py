@@ -19,19 +19,23 @@ class CoreContainer:
         db_path: str | None = None,
         config_dir: str | None = None,
         plugin_dir: str | None = None,
+        output_dir: str | None = None,
         llm: LLMPort | None = None,
     ) -> None:
         db_path_str = db_path if db_path is not None else os.getenv("OC_DB_PATH", "data/openchronicle.db")
         config_dir_str = config_dir if config_dir is not None else os.getenv("OC_CONFIG_DIR", "config")
         plugin_dir_str = plugin_dir if plugin_dir is not None else os.getenv("OC_PLUGIN_DIR", "plugins")
+        output_dir_str = output_dir if output_dir is not None else os.getenv("OC_OUTPUT_DIR", "output")
 
         db_path_resolved = Path(db_path_str)
         config_dir_resolved = Path(config_dir_str)
         plugin_dir_resolved = Path(plugin_dir_str)
+        output_dir_resolved = Path(output_dir_str)
 
         db_path_resolved.parent.mkdir(parents=True, exist_ok=True)
         config_dir_resolved.mkdir(parents=True, exist_ok=True)
         plugin_dir_resolved.mkdir(parents=True, exist_ok=True)
+        output_dir_resolved.mkdir(parents=True, exist_ok=True)
 
         self.storage = SqliteStore(db_path=str(db_path_resolved))
         self.storage.init_schema()
