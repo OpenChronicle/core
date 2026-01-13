@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 from openchronicle.core.application.runtime.plugin_loader import PluginLoader
@@ -14,10 +16,24 @@ from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteSto
 class CoreContainer:
     def __init__(
         self,
-        db_path: str = "data/openchronicle.db",
+        db_path: str | None = None,
+        config_dir: str | None = None,
+        plugin_dir: str | None = None,
         llm: LLMPort | None = None,
     ) -> None:
-        self.storage = SqliteStore(db_path=db_path)
+        db_path_str = db_path if db_path is not None else os.getenv("OC_DB_PATH", "data/openchronicle.db")
+        config_dir_str = config_dir if config_dir is not None else os.getenv("OC_CONFIG_DIR", "config")
+        plugin_dir_str = plugin_dir if plugin_dir is not None else os.getenv("OC_PLUGIN_DIR", "plugins")
+
+        db_path_resolved = Path(db_path_str)
+        config_dir_resolved = Path(config_dir_str)
+        plugin_dir_resolved = Path(plugin_dir_str)
+
+        db_path_resolved.parent.mkdir(parents=True, exist_ok=True)
+        config_dir_resolved.mkdir(parents=True, exist_ok=True)
+        plugin_dir_resolved.mkdir(parents=True, exist_ok=True)
+
+        self.storage = SqliteStore(db_path=str(db_path_resolved))
         self.storage.init_schema()
         self.event_logger = EventLogger(self.storage)
 
@@ -28,7 +44,7 @@ class CoreContainer:
 
         self.llm = llm
         self.handler_registry = TaskHandlerRegistry()
-        self.plugin_loader = PluginLoader(handler_registry=self.handler_registry)
+        self.plugin_loader = PluginLoader(plugins_dir=str(plugin_dir_resolved), handler_registry=self.handler_registry)
         self.plugin_loader.load_plugins()
         self.orchestrator = OrchestratorService(
             storage=self.storage,

@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  openchronicle:
+    build: .
+    entrypoint: ["oc"]
+    environment:
+      - OC_DB_PATH=/data/openchronicle.db
+      - OC_CONFIG_DIR=/config
+      - OC_PLUGIN_DIR=/plugins
+    env_file:
+      - .env
+    volumes:
+      - oc-data:/data
+      - oc-config:/config
+      - oc-plugins:/plugins
+
+volumes:
+  oc-data:
+  oc-config:
+  oc-plugins:

@@ -64,6 +64,9 @@ oc demo-summary <project_id> "Your text here" --use-openai
 | `OC_LLM_MAX_WAIT_MS` | Integer | `5000` | Maximum wait time for rate limiting before failing |
 | `OC_LLM_MAX_RETRIES` | Integer | `2` | Maximum retry attempts for transient LLM failures |
 | `OC_LLM_MAX_RETRY_SLEEP_MS` | Integer | `2000` | Maximum sleep duration per retry attempt |
+| `OC_DB_PATH` | path | `data/openchronicle.db` (dev) or `/data/openchronicle.db` (Docker) | SQLite database location |
+| `OC_CONFIG_DIR` | path | `config` (dev) or `/config` (Docker) | Optional configuration directory |
+| `OC_PLUGIN_DIR` | path | `plugins` (dev) or `/plugins` (Docker) | Plugin directory (explicit loading only) |
 
 ## Usage Tracking and Token Budgets
 
@@ -196,3 +199,33 @@ LLM calls follow this order of operations:
 4. **API Call**: Execute with retry policy (automatic retries on transient failures)
 5. **Success**: Emit `llm.completed` event and record usage to database
 6. **Failure**: Emit `llm.failed` and `llm.retry_exhausted` events, fail task cleanly
+
+## Docker (CLI-first)
+
+The published Docker setup keeps runtime state outside the image so you can upgrade without losing data.
+
+- `/data`: SQLite DB (`OC_DB_PATH`, default `/data/openchronicle.db` in Docker)
+- `/config`: Optional config files (`OC_CONFIG_DIR`), loaded only if you provide them
+- `/plugins`: Optional plugins (`OC_PLUGIN_DIR`), loaded explicitly via the existing plugin loader
+
+### Quick start with docker run
+
+```bash
+docker run --rm \
+  -v "$PWD/data:/data" \
+  -v "$PWD/config:/config" \
+  -v "$PWD/plugins:/plugins" \
+  -e OC_DB_PATH=/data/openchronicle.db \
+  -e OC_CONFIG_DIR=/config \
+  -e OC_PLUGIN_DIR=/plugins \
+  openchronicle-core:latest --help
+```
+
+### Using docker compose
+
+```bash
+docker compose run --rm openchronicle --help
+docker compose run --rm openchronicle smoke-live "Hello" --provider stub
+```
+
+Compose mounts three persistent volumes (`oc-data`, `oc-config`, `oc-plugins`) onto `/data`, `/config`, `/plugins` respectively. Add environment overrides in `.env` (see `.env.example`); config files in `/config` are optional, env vars remain primary.
