@@ -234,17 +234,31 @@ Compose mounts persistent named volumes for `/data` and `/config`, and bind-moun
 ### Docker Persistence
 
 - Default compose uses named volumes for `/data` and `/config` (recommended for portability). These persist across container updates.
-- If you need host bind mounts:
-  - Windows (PowerShell): use absolute `C:/...` paths, and ensure the drive/folder is shared in Docker Desktop → Settings → Resources → File sharing.
-  - WSL: use relative repo paths like `./docker/data:/data` and `./docker/config:/config` when running compose inside WSL; avoid Windows-style paths from within WSL.
-  - Use an explicit local file instead of auto-overrides: copy `docker-compose.local.example.yml` to `docker-compose.local.yml`, edit paths, and invoke:
+- Windows host persistence (bind mounts on C:):
+  1. Create host folders:
 
-    ```bash
-    docker compose -f docker-compose.yml -f docker-compose.local.yml run --rm openchronicle --help
+    ```powershell
+    New-Item -ItemType Directory -Force -Path C:\Docker\openchronicle\data, C:\Docker\openchronicle\config, C:\Docker\openchronicle\plugins | Out-Null
     ```
 
+  1. Copy overlay:
+
+    ```powershell
+    Copy-Item docker-compose.local.example.yml docker-compose.local.yml
+    ```
+
+  1. Run with overlay:
+
+    ```powershell
+    docker compose -f docker-compose.yml -f docker-compose.local.yml run --rm openchronicle list-projects
+    ```
+
+  1. Confirm DB on host: `C:\Docker\openchronicle\data\openchronicle.db`
+
+  - `/plugins` is host-mounted; drop plugins into `C:\Docker\openchronicle\plugins`.
+  - `/config` is host-mounted; edit configs live under `C:\Docker\openchronicle\config`.
   - Verify the mount is active (should show a bind, not an internal ext4 volume):
 
     ```bash
-    docker compose run --rm openchronicle sh -lc "mount | grep ' /data '"
+    docker compose -f docker-compose.yml -f docker-compose.local.yml run --rm openchronicle sh -lc "mount | grep ' /data '"
     ```
