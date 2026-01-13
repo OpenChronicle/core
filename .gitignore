@@ -564,6 +564,7 @@ desktop.ini
 *.swo
 *~
 
-# Docker overrides
+# Docker overrides and local data
+.docker/
 docker-compose.override.yml
 docker-compose.local.yml
