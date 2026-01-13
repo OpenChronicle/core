@@ -207,6 +207,7 @@ The published Docker setup keeps runtime state outside the image so you can upgr
 - `/data`: SQLite DB (`OC_DB_PATH`, default `/data/openchronicle.db` in Docker)
 - `/config`: Optional config files (`OC_CONFIG_DIR`), loaded only if you provide them
 - `/plugins`: Optional plugins (`OC_PLUGIN_DIR`), loaded explicitly via the existing plugin loader
+- `v1.reference/` is intentionally excluded: `.dockerignore` strips it from the build context and the Dockerfile only copies `src/`, `plugins/`, and project metadata.
 
 ### Quick start with docker run
 
@@ -228,4 +229,4 @@ docker compose run --rm openchronicle --help
 docker compose run --rm openchronicle smoke-live "Hello" --provider stub
 ```
 
-Compose mounts three persistent volumes (`oc-data`, `oc-config`, `oc-plugins`) onto `/data`, `/config`, `/plugins` respectively. Add environment overrides in `.env` (see `.env.example`); config files in `/config` are optional, env vars remain primary.
+Compose mounts persistent named volumes for `/data` and `/config`, and bind-mounts the repo's `./plugins` into `/plugins` so bundled/demo plugins are available immediately. If you prefer an empty, persisted plugins volume, swap `./plugins:/plugins` for a named volume in `docker-compose.yml`. Add environment overrides in `.env` (see `.env.example`); config files in `/config` are optional, env vars remain primary.

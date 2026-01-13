@@ -13,9 +13,8 @@ services:
     volumes:
       - oc-data:/data
       - oc-config:/config
-      - oc-plugins:/plugins
+      - ./plugins:/plugins
 
 volumes:
   oc-data:
   oc-config:
-  oc-plugins:

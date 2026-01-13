@@ -1,0 +1,20 @@
+# Never ship historical reference
+v1.reference/
+
+# VCS / caches
+.git/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.pyc
+
+# Local state
+data/
+*.db
+.env
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
