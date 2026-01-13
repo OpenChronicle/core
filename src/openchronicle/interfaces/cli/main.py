@@ -11,6 +11,7 @@ from openchronicle.core.application.use_cases import (
     continue_project,
     create_project,
     diagnose_runtime,
+    init_config,
     list_projects,
     register_agent,
     resume_project,
@@ -75,8 +76,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="oc", description="OpenChronicle v2 minimal CLI")
     sub = parser.add_subparsers(dest="command")
 
-    init_cmd = sub.add_parser("init-project", help="Create a project")
-    init_cmd.add_argument("name")
+    init_project_cmd = sub.add_parser("init-project", help="Create a project")
+    init_project_cmd.add_argument("name")
+
+    init_config_cmd = sub.add_parser("init-config", help="Initialize model configuration with examples")
+    init_config_cmd.add_argument(
+        "--config-dir",
+        default=None,
+        help="Configuration directory (default: OC_CONFIG_DIR env var or 'config')",
+    )
 
     sub.add_parser("list-projects", help="List projects")
 
@@ -163,6 +171,32 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "init-project":
         project = create_project.execute(orchestrator, args.name)
         print(project)
+        return 0
+
+    if args.command == "init-config":
+        import os
+
+        config_dir = args.config_dir or os.getenv("OC_CONFIG_DIR", "config")
+        result = init_config.execute(config_dir)
+
+        print(f"\nConfiguration initialized at: {result['config_dir']}")
+        print(f"Models directory: {result['models_dir']}")
+        print()
+
+        created_files = result["created"]
+        if isinstance(created_files, list) and created_files:
+            print(f"Created {result['created_count']} model config(s):")
+            for filename in created_files:
+                print(f"  - {filename}")
+        else:
+            print("No new configs created (all examples already exist)")
+
+        skipped_files = result["skipped"]
+        if isinstance(skipped_files, list) and skipped_files:
+            print(f"\nSkipped {result['skipped_count']} existing config(s):")
+            for filename in skipped_files:
+                print(f"  - {filename}")
+
         return 0
 
     if args.command == "list-projects":

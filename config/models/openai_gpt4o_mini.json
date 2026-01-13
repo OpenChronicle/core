@@ -1,0 +1,14 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "display_name": "OpenAI GPT-4o Mini",
+  "description": "OpenAI's GPT-4o-mini model (cost-effective)",
+  "api_config": {
+    "endpoint": "https://api.openai.com/v1/chat/completions",
+    "default_base_url": "https://api.openai.com/v1",
+    "timeout": 30,
+    "auth_header": "Authorization",
+    "auth_format": "Bearer {api_key}"
+  },
+  "api_key_file": "secrets/openai_api_key"
+}
