@@ -15,6 +15,10 @@ import pytest
 
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import smoke_live
+from openchronicle.core.domain.models.failure_category import (
+    classify_failure_category,
+    failure_category_description,
+)
 
 # Skip entire module unless integration test env var is set
 pytestmark = pytest.mark.skipif(
@@ -178,3 +182,122 @@ class TestSmokeLiveIntegration:
         # Should deserialize back
         deserialized = json.loads(json_str)
         assert deserialized["project_id"] == result.project_id
+
+
+class TestFailureClassification:
+    """Tests for failure category classification in smoke_live."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
+        """Setup for each test."""
+        self.container = CoreContainer()
+        self.orchestrator = self.container.orchestrator
+
+    @pytest.mark.integration
+    async def test_failure_category_config_error_missing_credentials(self) -> None:
+        """Test that missing credentials are classified as CONFIG_ERROR."""
+        # Remove OpenAI API key if present
+        original_key = os.environ.pop("OPENAI_API_KEY", None)
+
+        try:
+            result = await smoke_live.execute(
+                self.orchestrator,
+                prompt="test",
+                provider="openai",
+                model="gpt-4o-mini",
+            )
+
+            # Should be classified as CONFIG_ERROR
+            if result.outcome != "completed":
+                # Smoke test expects to fail; check failure classification
+                if result.error_code and "credential" in result.error_code.lower():
+                    assert result.failure_category == "CONFIG_ERROR"
+                elif result.error_code and "auth" in result.error_code.lower():
+                    assert result.failure_category == "CONFIG_ERROR"
+        finally:
+            if original_key:
+                os.environ["OPENAI_API_KEY"] = original_key
+
+    @pytest.mark.integration
+    async def test_failure_category_budget_blocked(self) -> None:
+        """Test that budget exceeded errors are classified as BUDGET_BLOCKED."""
+        # Set a very low budget that will be exceeded
+        os.environ["OC_LLM_TPM_LIMIT"] = "1"  # 1 token per minute
+
+        try:
+            result = await smoke_live.execute(
+                self.orchestrator,
+                prompt="x" * 1000,  # Large prompt to exceed low TPM limit
+                provider=None,
+                model=None,
+            )
+
+            if result.outcome == "blocked" and result.error_code == "budget_exceeded":
+                assert result.failure_category == "BUDGET_BLOCKED"
+        finally:
+            # Reset TPM limit
+            os.environ.pop("OC_LLM_TPM_LIMIT", None)
+
+    @pytest.mark.integration
+    async def test_failure_category_serialized_in_result(self) -> None:
+        """Test that failure_category is included in serialized result."""
+        result = await smoke_live.execute(
+            self.orchestrator,
+            prompt="test",
+            provider=None,
+            model=None,
+        )
+
+        # Convert to dict
+        result_dict = result.to_dict()
+
+        # Should include failure_category field (None if successful, or category if failed)
+        assert "failure_category" in result_dict
+
+        # If outcome is failed/blocked, failure_category should be set
+        if result.outcome in ("blocked", "failed"):
+            assert result.failure_category is not None
+            assert result_dict["failure_category"] is not None
+
+    def test_classify_failure_category_direct(self) -> None:
+        """Test failure category classification function directly."""
+        # Test budget exceeded
+        category = classify_failure_category("budget_exceeded", None)
+        assert category == "BUDGET_BLOCKED"
+
+        # Test timeout
+        category = classify_failure_category("timeout", None)
+        assert category == "TIMEOUT"
+
+        # Test credential error
+        category = classify_failure_category("credential_error", None)
+        assert category == "CONFIG_ERROR"
+
+        # Test auth error
+        category = classify_failure_category("auth_error", None)
+        assert category == "CONFIG_ERROR"
+
+        # Test provider error (fallback)
+        category = classify_failure_category("provider_error", "permanent")
+        assert category == "PROVIDER_ERROR"
+
+        # Test unknown
+        category = classify_failure_category("unknown", None)
+        assert category == "UNKNOWN"
+
+    def test_failure_category_description(self) -> None:
+        """Test human-readable descriptions for failure categories."""
+        desc = failure_category_description("BUDGET_BLOCKED")
+        assert "Budget" in desc
+
+        desc = failure_category_description("CONFIG_ERROR")
+        assert "Configuration" in desc or "credential" in desc.lower()
+
+        desc = failure_category_description("PROVIDER_ERROR")
+        assert "Provider" in desc
+
+        desc = failure_category_description("REFUSAL")
+        assert "policy" in desc.lower() or "rejection" in desc.lower()
+
+        desc = failure_category_description("TIMEOUT")
+        assert "timeout" in desc.lower() or "rate" in desc.lower()

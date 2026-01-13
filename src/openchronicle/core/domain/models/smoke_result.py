@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from openchronicle.core.domain.models.failure_category import FailureCategory
+
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
@@ -31,6 +33,7 @@ class SmokeResult:
     outcome: str = ""  # "completed", "blocked", "failed", "refused"
     error_code: str | None = None  # Error code if failed/blocked
     error_message: str | None = None  # Human-readable error message
+    failure_category: FailureCategory | None = None  # Failure classification (PROVIDER_ERROR, BUDGET_BLOCKED, etc.)
     prompt_tokens: int | None = None  # Input tokens
     completion_tokens: int | None = None  # Output tokens
     total_tokens: int | None = None  # Total tokens
@@ -51,6 +54,7 @@ class SmokeResult:
             "outcome": self.outcome,
             "error_code": self.error_code,
             "error_message": self.error_message,
+            "failure_category": self.failure_category,
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
             "total_tokens": self.total_tokens,

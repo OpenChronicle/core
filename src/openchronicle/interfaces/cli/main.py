@@ -20,6 +20,7 @@ from openchronicle.core.application.use_cases import (
 from openchronicle.core.application.use_cases.replay_project import (
     ReplayService as ProjectReplayService,
 )
+from openchronicle.core.domain.models.failure_category import failure_category_description
 from openchronicle.core.domain.models.project import Agent
 from openchronicle.core.domain.services.replay import ReplayMode
 from openchronicle.core.domain.services.replay import ReplayService as DomainReplayService
@@ -636,6 +637,9 @@ def main(argv: list[str] | None = None) -> int:
                 print()
                 print("OUTCOME")
                 print(f"Outcome:            {result.outcome}")
+                if result.failure_category:
+                    category_desc = failure_category_description(result.failure_category)
+                    print(f"Failure Category:   {result.failure_category} ({category_desc})")
                 if result.error_code:
                     print(f"Error Code:         {result.error_code}")
                 if result.error_message:

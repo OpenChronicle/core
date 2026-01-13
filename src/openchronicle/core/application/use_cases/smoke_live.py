@@ -20,6 +20,7 @@ from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.services.llm_execution import execute_with_route
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.domain.exceptions import BudgetExceededError
+from openchronicle.core.domain.models.failure_category import classify_failure_category
 from openchronicle.core.domain.models.project import Event, TaskStatus
 from openchronicle.core.domain.models.smoke_result import SmokeResult
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
@@ -137,6 +138,7 @@ async def execute(
     outcome = "completed"
     error_code = None
     error_message = None
+    failure_category = None
     prompt_tokens = None
     completion_tokens = None
     total_tokens = None
@@ -206,6 +208,7 @@ async def execute(
         outcome = "blocked"
         error_code = "budget_exceeded"
         error_message = str(exc)
+        failure_category = classify_failure_category(error_code, None)
 
         orchestrator.emit_event(
             Event(
@@ -234,6 +237,9 @@ async def execute(
         if "api" in error_message.lower() or "key" in error_message.lower():
             error_message = f"[{error_code}] Provider credential or configuration issue"
 
+        # Classify failure
+        failure_category = classify_failure_category(error_code, None)
+
         orchestrator.emit_event(
             Event(
                 project_id=project_id,
@@ -258,6 +264,7 @@ async def execute(
         outcome = "failed"
         error_code = "unexpected_error"
         error_message = str(exc)[:500]  # Truncate to prevent leaking sensitive data
+        failure_category = classify_failure_category(error_code, None)
 
         orchestrator.emit_event(
             Event(
@@ -290,6 +297,7 @@ async def execute(
         outcome=outcome,
         error_code=error_code,
         error_message=error_message,
+        failure_category=failure_category,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
