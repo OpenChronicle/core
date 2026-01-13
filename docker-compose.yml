@@ -9,6 +9,6 @@ services:
     env_file:
       - .env
     volumes:
-      - "D:/Docker/openchronicle/data:/data"
-      - "D:/Docker/openchronicle/config:/config"
-      - "D:/Docker/openchronicle/plugins:/plugins"
+      - "C:/microSD/Docker/data:/data"
+      - "C:/microSD/Docker/config:/config"
+      - "C:/microSD/Docker/plugins:/plugins"
