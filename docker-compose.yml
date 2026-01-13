@@ -9,6 +9,10 @@ services:
     env_file:
       - .env
     volumes:
-      - "C:/microSD/Docker/data:/data"
-      - "C:/microSD/Docker/config:/config"
-      - "C:/microSD/Docker/plugins:/plugins"
+      - oc-data:/data
+      - oc-config:/config
+      - ./plugins:/plugins
+
+volumes:
+  oc-data:
+  oc-config:
