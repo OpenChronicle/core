@@ -31,6 +31,9 @@ dev = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+markers = [
+	"integration: mark test as an integration test that requires env vars to run",
+]
 
 [project.scripts]
 oc = "openchronicle.interfaces.cli.main:main"

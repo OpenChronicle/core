@@ -15,6 +15,7 @@ from openchronicle.core.application.use_cases import (
     resume_project,
     run_task,
     show_task,
+    smoke_live,
 )
 from openchronicle.core.application.use_cases.replay_project import (
     ReplayService as ProjectReplayService,
@@ -143,6 +144,12 @@ def main(argv: list[str] | None = None) -> int:
     replay_project_cmd = sub.add_parser("replay-project", help="Show derived project state from events")
     replay_project_cmd.add_argument("--project-id", required=True, help="Project identifier")
     replay_project_cmd.add_argument("--show-llm", action="store_true", help="Show LLM execution summaries")
+
+    smoke_cmd = sub.add_parser("smoke-live", help="Smoke test: minimal end-to-end LLM call with real provider")
+    smoke_cmd.add_argument("--provider", default=None, help="Force provider (optional override)")
+    smoke_cmd.add_argument("--model", default=None, help="Force model (optional override)")
+    smoke_cmd.add_argument("--prompt", default=None, help="Custom prompt (optional)")
+    smoke_cmd.add_argument("--json", action="store_true", help="Output result as JSON")
 
     args = parser.parse_args(argv)
     container = CoreContainer()
@@ -595,6 +602,56 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"    ... and {len(state_view.llm_executions) - 10} more")
 
         return 0
+
+    if args.command == "smoke-live":
+        # Run smoke test with optional provider/model overrides
+        async def _smoke() -> int:
+            result = await smoke_live.execute(
+                orchestrator,
+                prompt=args.prompt,
+                provider=args.provider,
+                model=args.model,
+            )
+
+            if args.json:
+                # Output JSON result
+                print(json.dumps(result.to_dict(), indent=2))
+            else:
+                # Output human-readable result
+                print("\n" + "=" * 60)
+                print("SMOKE TEST RESULT")
+                print("=" * 60)
+                print(f"Project ID:       {result.project_id}")
+                print(f"Task ID:          {result.task_id}")
+                print(f"Execution ID:     {result.execution_id}")
+                print(f"Attempt ID:       {result.attempt_id}")
+                print()
+                print("PROVIDER & MODEL")
+                provider_line = f"Provider Requested: {result.provider_requested or '(default)'}"
+                print(provider_line)
+                print(f"Provider Used:      {result.provider_used}")
+                model_line = f"Model Requested:    {result.model_requested or '(default)'}"
+                print(model_line)
+                print(f"Model Used:         {result.model_used}")
+                print()
+                print("OUTCOME")
+                print(f"Outcome:            {result.outcome}")
+                if result.error_code:
+                    print(f"Error Code:         {result.error_code}")
+                if result.error_message:
+                    print(f"Error Message:      {result.error_message}")
+                print()
+                print("TOKEN USAGE")
+                print(f"Prompt Tokens:      {result.prompt_tokens or 'N/A'}")
+                print(f"Completion Tokens:  {result.completion_tokens or 'N/A'}")
+                print(f"Total Tokens:       {result.total_tokens or 'N/A'}")
+                if result.latency_ms:
+                    print(f"Latency (ms):       {result.latency_ms}")
+                print("=" * 60)
+
+            return 0 if result.outcome == "completed" else 1
+
+        return asyncio.run(_smoke())
 
     parser.print_help()
     return 0
