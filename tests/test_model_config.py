@@ -85,7 +85,15 @@ def test_env_used_when_inline_absent() -> None:
 
         _write_config(
             models_dir / "model.json",
-            {"provider": "openai", "model": "gpt", "api_config": {"api_key_env": "CUSTOM_KEY"}},
+            {
+                "provider": "openai",
+                "model": "gpt",
+                "api_config": {
+                    "api_key_env": "CUSTOM_KEY",
+                    "auth_format": "Bearer {api_key}",
+                    "auth_header": "Authorization",
+                },
+            },
         )
 
         loader = ModelConfigLoader(tmpdir)
@@ -103,7 +111,14 @@ def test_missing_api_key_errors_on_use() -> None:
         models_dir = Path(tmpdir) / "models"
         models_dir.mkdir(parents=True)
 
-        _write_config(models_dir / "model.json", {"provider": "openai", "model": "gpt", "api_config": {}})
+        _write_config(
+            models_dir / "model.json",
+            {
+                "provider": "openai",
+                "model": "gpt",
+                "api_config": {"auth_format": "Bearer {api_key}", "auth_header": "Authorization"},
+            },
+        )
 
         loader = ModelConfigLoader(tmpdir)
         # Loading does not raise
@@ -112,6 +127,25 @@ def test_missing_api_key_errors_on_use() -> None:
         with mock.patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ConfigError, match="API key not configured"):
                 loader.resolve("openai", "gpt")
+
+
+def test_allows_no_api_key_when_not_required() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        models_dir = Path(tmpdir) / "models"
+        models_dir.mkdir(parents=True)
+
+        _write_config(
+            models_dir / "model.json",
+            {
+                "provider": "ollama",
+                "model": "mixtral",
+                "api_config": {},
+            },
+        )
+
+        loader = ModelConfigLoader(tmpdir)
+        resolved = loader.resolve("ollama", "mixtral")
+        assert resolved.api_key is None
 
 
 def test_repr_masks_api_key() -> None:

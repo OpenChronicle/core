@@ -139,8 +139,16 @@ class ModelConfigLoader:
                     if env_val:
                         resolved_api_key = env_val
 
-        # Only fail when the model is actually resolved/used
-        if resolved_api_key is None:
+        auth_header = api_cfg.get("auth_header")
+        auth_format = api_cfg.get("auth_format")
+        requires_api_key = False
+        if isinstance(auth_format, str) and "{api_key}" in auth_format:
+            requires_api_key = True
+        if auth_header:
+            requires_api_key = True
+
+        # Only fail when the model is actually resolved/used AND key is required
+        if requires_api_key and resolved_api_key is None:
             raise ConfigError(
                 f"API key not configured for provider={cfg.provider!r}, model={cfg.model!r}. "
                 "Set api_config.api_key or provide the expected environment variable."
@@ -152,8 +160,8 @@ class ModelConfigLoader:
             endpoint=api_cfg.get("endpoint"),
             base_url=api_cfg.get("default_base_url"),
             timeout=api_cfg.get("timeout"),
-            auth_header=api_cfg.get("auth_header"),
-            auth_format=api_cfg.get("auth_format"),
+            auth_header=auth_header,
+            auth_format=auth_format,
             api_key=resolved_api_key,
             filename=cfg.filename,
             display_name=cfg.display_name,

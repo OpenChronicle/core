@@ -98,11 +98,21 @@ class ProviderAwareLLMFacade(LLMPort):
                     hint="Set OC_LLM_PROVIDER to configure a default provider, or ensure routing provides a provider parameter.",
                 )
 
-        # Static adapter path (legacy/testing)
-        if provider in self._adapters:
-            adapter = self._adapters[provider]
+        adapter: LLMPort
+
+        # Config-driven providers: always resolve per (provider, model)
+        if provider in self._adapter_factories and self._config_loader is not None:
+            try:
+                resolved_config = self._config_loader.resolve(provider, model)
+            except ConfigError as exc:  # pragma: no cover - exercised in tests via control paths
+                raise LLMProviderError(str(exc), status_code=None, error_code="config_error") from exc
+
+            adapter = self._get_adapter(provider, resolved_config)
         else:
-            if provider not in self._adapter_factories or self._config_loader is None:
+            # Legacy/testing providers must be explicitly present in static adapters
+            if provider in self._adapters:
+                adapter = self._adapters[provider]
+            else:
                 hint = self._generate_configuration_hint(provider)
                 raise LLMProviderError(
                     f"Provider '{provider}' not configured. Available: {', '.join(available)}",
@@ -112,13 +122,6 @@ class ProviderAwareLLMFacade(LLMPort):
                     configured_providers=available,
                     hint=hint,
                 )
-
-            try:
-                resolved_config = self._config_loader.resolve(provider, model)
-            except ConfigError as exc:  # pragma: no cover - exercised in tests via control paths
-                raise LLMProviderError(str(exc), status_code=None, error_code="config_error") from exc
-
-            adapter = self._get_adapter(provider, resolved_config)
 
         return await adapter.complete_async(
             messages,
@@ -136,16 +139,14 @@ class ProviderAwareLLMFacade(LLMPort):
         factory = self._adapter_factories[provider]
         adapter = factory(cfg)
         self._adapter_cache[cache_key] = adapter
-        # Expose in legacy adapter map for backward compatibility
-        self._adapters.setdefault(provider, adapter)
         return adapter
 
     def _generate_configuration_hint(self, provider: str) -> str:
         if provider == "openai":
-            return "Ensure a model config exists in <OC_CONFIG_DIR>/models with api_config.api_key or OPENAI_API_KEY."
+            return "Ensure OpenAI is configured via model configs in <OC_CONFIG_DIR>/models or add it to OC_LLM_FAST_POOL/OC_LLM_QUALITY_POOL."
         if provider == "ollama":
-            return "Ensure an Ollama model config is enabled in <OC_CONFIG_DIR>/models."
-        return "Add an enabled model config file under <OC_CONFIG_DIR>/models for this provider."
+            return "Ensure Ollama is in routing wiring or add an enabled model config in <OC_CONFIG_DIR>/models."
+        return "Add the provider to routing pools (OC_LLM_FAST_POOL, OC_LLM_QUALITY_POOL) or create model configs in <OC_CONFIG_DIR>/models."
 
     def complete(
         self,
@@ -206,36 +207,32 @@ def create_provider_aware_llm(
         elif provider == "ollama":
             adapter_factories[provider] = _make_ollama_adapter
 
-    # Instantiate adapters eagerly when configs resolve (maintains _adapters behavior)
-    for provider in sorted(loader.providers()):
-        if provider not in adapter_factories:
-            continue
-        # Choose the first enabled config for this provider
-        candidates = [cfg for cfg in loader.list_enabled() if cfg.provider == provider]
-        if not candidates:
-            continue
-        try:
-            resolved_cfg = loader.resolve(provider, candidates[0].model)
-        except ConfigError:
-            # Skip wiring if credentials missing; errors will surface on use
-            continue
-        static_adapters.setdefault(provider, adapter_factories[provider](resolved_cfg))
-
     # Legacy explicit providers list wiring (env-based)
+    # Only create env-wired adapters if NO model configs exist for that provider
     if providers:
         for provider in providers:
-            if provider in static_adapters:
+            if provider in adapter_factories or provider in static_adapters:
                 continue
-            if provider == "openai":
-                api_key = os.getenv("OPENAI_API_KEY")
-                if api_key:
-                    static_adapters[provider] = _make_openai_adapter(
-                        ResolvedModelConfig(provider="openai", model="gpt-4o", api_key=api_key)
+            # Check if configs exist for this provider
+            provider_configs = [cfg for cfg in loader.list_enabled() if cfg.provider == provider]
+            if provider_configs:
+                # Configs exist, don't shadow them with env-based wiring
+                if provider == "openai":
+                    adapter_factories[provider] = _make_openai_adapter
+                elif provider == "ollama":
+                    adapter_factories[provider] = _make_ollama_adapter
+            else:
+                # No configs; fall back to env-based wiring for backwards compatibility
+                if provider == "openai":
+                    api_key = os.getenv("OPENAI_API_KEY")
+                    if api_key:
+                        static_adapters[provider] = _make_openai_adapter(
+                            ResolvedModelConfig(provider="openai", model="gpt-4o", api_key=api_key)
+                        )
+                elif provider == "ollama":
+                    static_adapters[provider] = _make_ollama_adapter(
+                        ResolvedModelConfig(provider="ollama", model="default", endpoint=os.getenv("OLLAMA_HOST"))
                     )
-            elif provider == "ollama":
-                static_adapters[provider] = _make_ollama_adapter(
-                    ResolvedModelConfig(provider="ollama", model="default", endpoint=os.getenv("OLLAMA_HOST"))
-                )
 
     default_provider_name = os.getenv("OC_LLM_PROVIDER", "").strip()
     available_for_default = set(static_adapters.keys()) | set(adapter_factories.keys())
