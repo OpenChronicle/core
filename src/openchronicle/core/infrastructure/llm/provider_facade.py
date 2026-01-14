@@ -142,11 +142,21 @@ class ProviderAwareLLMFacade(LLMPort):
         return adapter
 
     def _generate_configuration_hint(self, provider: str) -> str:
+        """Generate configuration hint prioritizing config-file setup."""
+        config_dir = os.getenv("OC_CONFIG_DIR", "config")
+        config_file_hint = f"Add an enabled model config in {config_dir}/models/{provider}_*.json"
+
         if provider == "openai":
-            return "Ensure OpenAI is configured via model configs in <OC_CONFIG_DIR>/models or add it to OC_LLM_FAST_POOL/OC_LLM_QUALITY_POOL."
+            return f"{config_file_hint}. For legacy setup, set OPENAI_API_KEY environment variable."
         if provider == "ollama":
-            return "Ensure Ollama is in routing wiring or add an enabled model config in <OC_CONFIG_DIR>/models."
-        return "Add the provider to routing pools (OC_LLM_FAST_POOL, OC_LLM_QUALITY_POOL) or create model configs in <OC_CONFIG_DIR>/models."
+            return (
+                f"{config_file_hint}. "
+                "For legacy setup, set OLLAMA_HOST environment variable (e.g., http://localhost:11434)."
+            )
+        return (
+            f"{config_file_hint}. "
+            "Or add the provider to routing pools (OC_LLM_FAST_POOL, OC_LLM_QUALITY_POOL) for legacy setup."
+        )
 
     def complete(
         self,
@@ -199,7 +209,8 @@ def create_provider_aware_llm(
         return OllamaAdapter(model=cfg.model, base_url=cfg.base_url or cfg.endpoint)
 
     # Configure factories for providers found in configs
-    for provider in sorted(loader.providers()):
+    providers_with_configs = sorted(loader.providers())
+    for provider in providers_with_configs:
         if provider not in provider_set:
             continue
         if provider == "openai":
@@ -207,32 +218,24 @@ def create_provider_aware_llm(
         elif provider == "ollama":
             adapter_factories[provider] = _make_ollama_adapter
 
-    # Legacy explicit providers list wiring (env-based)
-    # Only create env-wired adapters if NO model configs exist for that provider
+    # Env-based wiring for providers without configs
+    # Only wire env-based providers if they're NOT already configured via config files
     if providers:
         for provider in providers:
             if provider in adapter_factories or provider in static_adapters:
-                continue
-            # Check if configs exist for this provider
-            provider_configs = [cfg for cfg in loader.list_enabled() if cfg.provider == provider]
-            if provider_configs:
-                # Configs exist, don't shadow them with env-based wiring
-                if provider == "openai":
-                    adapter_factories[provider] = _make_openai_adapter
-                elif provider == "ollama":
-                    adapter_factories[provider] = _make_ollama_adapter
-            else:
-                # No configs; fall back to env-based wiring for backwards compatibility
-                if provider == "openai":
-                    api_key = os.getenv("OPENAI_API_KEY")
-                    if api_key:
-                        static_adapters[provider] = _make_openai_adapter(
-                            ResolvedModelConfig(provider="openai", model="gpt-4o", api_key=api_key)
-                        )
-                elif provider == "ollama":
-                    static_adapters[provider] = _make_ollama_adapter(
-                        ResolvedModelConfig(provider="ollama", model="default", endpoint=os.getenv("OLLAMA_HOST"))
+                continue  # Already configured via config file or static setup
+            # Wire from env configuration for referenced providers without config files
+            if provider == "openai":
+                api_key = os.getenv("OPENAI_API_KEY")
+                if api_key:
+                    static_adapters[provider] = _make_openai_adapter(
+                        ResolvedModelConfig(provider="openai", model="gpt-4o", api_key=api_key)
                     )
+            elif provider == "ollama":
+                # Ollama doesn't require API key, wire it up unconditionally
+                static_adapters[provider] = _make_ollama_adapter(
+                    ResolvedModelConfig(provider="ollama", model="default", endpoint=os.getenv("OLLAMA_HOST"))
+                )
 
     default_provider_name = os.getenv("OC_LLM_PROVIDER", "").strip()
     available_for_default = set(static_adapters.keys()) | set(adapter_factories.keys())

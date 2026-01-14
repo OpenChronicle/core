@@ -90,6 +90,7 @@ warn_unused_ignores = true
 warn_no_return = true
 check_untyped_defs = true
 strict_equality = true
+ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 module = "openai.*"
@@ -97,4 +98,7 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "httpx.*"
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = "tests.helpers"
 ignore_missing_imports = true

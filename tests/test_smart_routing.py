@@ -59,7 +59,7 @@ class FakeLLMAdapter:
 
 @pytest.fixture
 def temp_env_vars() -> Generator[dict[str, str], None, None]:
-    """Set up temporary environment variables for testing."""
+    """Set up environment variables for testing."""
     original_env = os.environ.copy()
     test_vars = {
         "OC_LLM_MODEL_FAST": "gpt-4o-mini",

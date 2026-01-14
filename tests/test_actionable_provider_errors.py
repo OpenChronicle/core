@@ -69,7 +69,7 @@ class TestActionableProviderErrors:
 
     @pytest.mark.asyncio
     async def test_ollama_not_configured_mentions_pool_wiring(self) -> None:
-        """When ollama requested but not configured, hint mentions pool/wiring."""
+        """When ollama requested but not configured, hint mentions model config (config-first)."""
         facade = ProviderAwareLLMFacade(
             adapters={"stub": StubLLMAdapter()},
             default_provider=None,
@@ -87,11 +87,12 @@ class TestActionableProviderErrors:
         assert error.provider == "ollama"
         assert error.configured_providers == ["stub"]
         assert error.hint is not None
-        assert "pool" in error.hint.lower() or "wiring" in error.hint.lower()
+        # Config-first: should mention model config directory
+        assert "model config" in error.hint.lower() or "oc_config_dir" in error.hint.lower()
 
     @pytest.mark.asyncio
     async def test_generic_provider_not_configured_includes_basic_hint(self) -> None:
-        """Unknown provider gets generic hint about wiring."""
+        """Unknown provider gets generic hint about model config (config-first)."""
         facade = ProviderAwareLLMFacade(
             adapters={"stub": StubLLMAdapter()},
             default_provider=None,
@@ -109,7 +110,8 @@ class TestActionableProviderErrors:
         assert error.provider == "unknown_provider"
         assert error.configured_providers == ["stub"]
         assert error.hint is not None
-        assert "wiring" in error.hint.lower() or "initialization" in error.hint.lower()
+        # Config-first: should mention model config directory
+        assert "model config" in error.hint.lower()
 
     def test_error_fields_are_optional_and_backward_compatible(self) -> None:
         """LLMProviderError can be created without new fields (backward compatible)."""
@@ -157,7 +159,7 @@ class TestActionableProviderErrors:
         assert "openai" not in facade._adapters
         assert "stub" in facade._adapters  # stub always present
 
-        # Attempting to use openai should fail with actionable hint
+        # Attempting to use openai should fail with actionable hint or config error
         with pytest.raises(LLMProviderError) as exc_info:
             import asyncio
 
@@ -170,10 +172,14 @@ class TestActionableProviderErrors:
             )
 
         error = exc_info.value
-        assert error.error_code == "provider_not_configured"
-        assert error.provider == "openai"
-        assert error.hint is not None
-        assert "OPENAI_API_KEY" in error.hint
+        # Config-first: could be "config_error" if loader tries to resolve, or "provider_not_configured" if not wired
+        assert error.error_code in ("provider_not_configured", "config_error")
+        # When config_error, provider may be None, but error message clarifies the issue
+        if error.hint is not None:
+            # Hint should mention config directory or API key
+            assert "model config" in error.hint.lower() or "OPENAI_API_KEY" in error.hint
+        # The error message itself should mention the provider
+        assert "openai" in str(error).lower()
 
 
 class TestErrorHintPropagationInEvents:

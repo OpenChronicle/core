@@ -22,3 +22,9 @@ class DiagnosticsReport:
     running_in_container_hint: bool
     persistence_hint: str
     provider_env_summary: dict[str, str]
+    # Model config discovery (v1-style configs from <OC_CONFIG_DIR>/models/*.json)
+    models_dir: str
+    models_dir_exists: bool
+    model_config_files_count: int
+    model_config_provider_summary: dict[str, dict[str, int]]
+    model_config_load_errors: dict[str, str]

@@ -60,7 +60,7 @@ async def test_rpm_rate_limiting_waits(
 
     # Mock time.sleep in the rate_limiter module to make test fast
     def mock_sleep(seconds: float) -> None:
-        pass  # Don't actually sleep
+        pass
 
     with patch("openchronicle.core.application.policies.rate_limiter.time.sleep", mock_sleep):
 

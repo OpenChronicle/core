@@ -14,7 +14,7 @@ from openchronicle.core.domain.services.verification import VerificationService
 @pytest.fixture
 def container() -> CoreContainer:
     """Create a fresh container with isolated database for each test."""
-    # Create temporary database file
+    # Create isolated database file for test
     temp_dir = tempfile.mkdtemp()
     db_path = Path(temp_dir) / "test.db"
     return CoreContainer(db_path=str(db_path))

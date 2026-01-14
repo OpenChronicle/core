@@ -97,7 +97,7 @@ class TestCreateProviderAwareLLM:
     def test_always_includes_stub(self) -> None:
         """Factory should always include stub adapter."""
         with patch.dict(os.environ, {}, clear=True):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert "stub" in facade._adapters
 
     def test_includes_ollama_when_referenced_in_pool(self) -> None:
@@ -107,7 +107,7 @@ class TestCreateProviderAwareLLM:
             {"OC_LLM_FAST_POOL": "ollama:llama3.1,openai:gpt-4o-mini"},
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert "stub" in facade._adapters
             assert "ollama" in facade._adapters
 
@@ -119,7 +119,7 @@ class TestCreateProviderAwareLLM:
             {"OC_LLM_FAST_POOL": "openai:gpt-4o-mini"},
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert "openai" not in facade._adapters
 
         # With API key - should include openai
@@ -131,7 +131,7 @@ class TestCreateProviderAwareLLM:
             },
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert "openai" in facade._adapters
 
     def test_sets_default_provider_when_configured_and_present(self) -> None:
@@ -145,7 +145,7 @@ class TestCreateProviderAwareLLM:
             },
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert facade.default_provider == "ollama"
 
     def test_default_provider_not_set_when_adapter_missing(self) -> None:
@@ -156,7 +156,7 @@ class TestCreateProviderAwareLLM:
             {"OC_LLM_PROVIDER": "openai"},
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert facade.default_provider is None
 
     def test_default_provider_not_set_when_not_configured(self) -> None:
@@ -166,7 +166,7 @@ class TestCreateProviderAwareLLM:
             {"OC_LLM_FAST_POOL": "ollama:llama3.1"},
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert facade.default_provider is None
 
     def test_explicit_providers_list_overrides_config(self) -> None:
@@ -180,7 +180,7 @@ class TestCreateProviderAwareLLM:
             clear=True,
         ):
             # Explicit list - only openai and stub
-            facade = create_provider_aware_llm(providers=["openai", "stub"])
+            facade = create_provider_aware_llm(providers=["openai", "stub"], config_dir="/nonexistent")
             assert "stub" in facade._adapters
             assert "openai" in facade._adapters
             # Ollama not included even though in pool
@@ -190,7 +190,7 @@ class TestCreateProviderAwareLLM:
     async def test_provider_required_when_no_default_set(self) -> None:
         """Should raise provider_required when provider=None and no default."""
         with patch.dict(os.environ, {}, clear=True):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
 
             # No default_provider set, so provider=None should fail
             from openchronicle.core.domain.ports.llm_port import LLMProviderError
@@ -214,7 +214,7 @@ class TestCreateProviderAwareLLM:
             },
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
             assert facade.default_provider == "stub"
 
             # Should use stub adapter without explicit provider
@@ -235,11 +235,11 @@ class TestCreateProviderAwareLLM:
         }
 
         with patch.dict(os.environ, env_config, clear=True):
-            facade1 = create_provider_aware_llm()
+            facade1 = create_provider_aware_llm(config_dir="/nonexistent")
             adapters1 = list(facade1._adapters.keys())
 
         with patch.dict(os.environ, env_config, clear=True):
-            facade2 = create_provider_aware_llm()
+            facade2 = create_provider_aware_llm(config_dir="/nonexistent")
             adapters2 = list(facade2._adapters.keys())
 
         # Same config should produce same adapter keys
@@ -259,7 +259,7 @@ class TestProviderWiringConsistency:
             },
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
 
             # Both providers should be wired
             assert "ollama" in facade._adapters
@@ -273,7 +273,7 @@ class TestProviderWiringConsistency:
             {"OC_LLM_FAST_POOL": "stub:test-model"},
             clear=True,
         ):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
 
             # Only stub should be wired (no ollama/openai without being in config)
             assert "stub" in facade._adapters
@@ -284,7 +284,7 @@ class TestProviderWiringConsistency:
     async def test_explicit_failure_for_unconfigured_provider(self) -> None:
         """Should fail explicitly when routing selects provider not in adapters."""
         with patch.dict(os.environ, {}, clear=True):
-            facade = create_provider_aware_llm()
+            facade = create_provider_aware_llm(config_dir="/nonexistent")
 
             from openchronicle.core.domain.ports.llm_port import LLMProviderError
 

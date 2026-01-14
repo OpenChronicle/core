@@ -44,7 +44,7 @@ class CoreContainer:
         # Use provider-aware facade if no explicit LLM provided
         if llm is None:
             # Create facade that can route to multiple providers
-            llm = create_provider_aware_llm()
+            llm = create_provider_aware_llm(config_dir=config_dir_str)
 
         self.llm = llm
         self.handler_registry = TaskHandlerRegistry()

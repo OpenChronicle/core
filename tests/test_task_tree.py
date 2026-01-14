@@ -37,7 +37,7 @@ class FakeLLM(LLMPort):
 
 @pytest.fixture
 def tmp_db(tmp_path: Any) -> SqliteStore:
-    """Create a temporary database for testing."""
+    """Create an isolated database for testing."""
     db_path = Path(tmp_path) / "test.db"
     storage = SqliteStore(db_path=str(db_path))
     storage.init_schema()

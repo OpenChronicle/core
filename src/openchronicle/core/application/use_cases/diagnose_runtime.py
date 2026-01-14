@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -45,6 +46,18 @@ def execute() -> DiagnosticsReport:
     # 5. Provider env summary (SAFE only)
     provider_env_summary = _build_provider_env_summary()
 
+    # 6. Model config discovery (v1 configs from <OC_CONFIG_DIR>/models/*.json)
+    models_dir = str(config_dir_obj / "models")
+    models_dir_exists = (config_dir_obj / "models").exists()
+    model_config_files_count = 0
+    model_config_provider_summary: dict[str, dict[str, int]] = {}
+    model_config_load_errors: dict[str, str] = {}
+
+    if models_dir_exists:
+        model_config_files_count, model_config_provider_summary, model_config_load_errors = _discover_model_configs(
+            Path(models_dir)
+        )
+
     return DiagnosticsReport(
         timestamp_utc=datetime.utcnow(),
         db_path=db_path,
@@ -58,6 +71,11 @@ def execute() -> DiagnosticsReport:
         running_in_container_hint=running_in_container_hint,
         persistence_hint=persistence_hint,
         provider_env_summary=provider_env_summary,
+        models_dir=models_dir,
+        models_dir_exists=models_dir_exists,
+        model_config_files_count=model_config_files_count,
+        model_config_provider_summary=model_config_provider_summary,
+        model_config_load_errors=model_config_load_errors,
     )
 
 
@@ -79,6 +97,141 @@ def _infer_persistence_hint(db_path: str, running_in_container_hint: bool) -> st
         # Windows path detection (C:\\ or C:/)
         return "DB appears to be on a Windows bind-mount path."
     return "Persistence mode unknown."
+
+
+def _discover_model_configs(
+    models_dir: Path,
+) -> tuple[int, dict[str, dict[str, int]], dict[str, str]]:
+    """
+    Discover model configs in <OC_CONFIG_DIR>/models/*.json.
+
+    Returns:
+        (file_count, provider_summary, load_errors)
+
+    provider_summary structure:
+        {
+            "provider_name": {
+                "enabled_count": int,
+                "disabled_count": int,
+                "requires_api_key_count": int,
+                "api_key_set_count": int,
+                "api_key_missing_count": int,
+            },
+            ...
+        }
+
+    load_errors structure:
+        {
+            "filename": "error description (no content)",
+            ...
+        }
+
+    Rules:
+    - Never print api_key values
+    - Report filenames for parse errors
+    - Deterministic ordering (sort by filename)
+    """
+    file_count = 0
+    provider_summary: dict[str, dict[str, int]] = {}
+    load_errors: dict[str, str] = {}
+
+    if not models_dir.exists():
+        return 0, {}, {}
+
+    for config_file in sorted(models_dir.glob("*.json"), key=lambda p: p.name.lower()):
+        try:
+            raw = json.loads(config_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            load_errors[config_file.name] = f"Invalid JSON: {exc}"
+            continue
+        except (OSError, UnicodeDecodeError) as exc:
+            load_errors[config_file.name] = f"Read error: {exc}"
+            continue
+
+        file_count += 1
+
+        # Extract provider and model
+        provider = raw.get("provider")
+        model = raw.get("model") or raw.get("api_config", {}).get("model")
+
+        if not provider or not model:
+            load_errors[config_file.name] = "Missing required provider/model fields"
+            continue
+
+        provider = str(provider).lower()
+
+        # Initialize provider entry if not present
+        if provider not in provider_summary:
+            provider_summary[provider] = {
+                "enabled_count": 0,
+                "disabled_count": 0,
+                "requires_api_key_count": 0,
+                "api_key_set_count": 0,
+                "api_key_missing_count": 0,
+            }
+
+        # Check enabled status
+        enabled = raw.get("enabled", True)
+        if isinstance(enabled, bool):
+            if enabled:
+                provider_summary[provider]["enabled_count"] += 1
+            else:
+                provider_summary[provider]["disabled_count"] += 1
+        else:
+            provider_summary[provider]["enabled_count"] += 1
+
+        # Skip api_key analysis for disabled configs
+        if not (isinstance(enabled, bool) and enabled) and enabled is not True:
+            continue
+
+        # Analyze api_key configuration (enabled configs only)
+        api_config = raw.get("api_config", {})
+        if isinstance(api_config, dict):
+            auth_format = api_config.get("auth_format")
+            auth_header = api_config.get("auth_header")
+
+            # Check if API key is required
+            requires_key = False
+            if isinstance(auth_format, str) and "{api_key}" in auth_format or auth_header:
+                requires_key = True
+
+            if requires_key:
+                provider_summary[provider]["requires_api_key_count"] += 1
+
+                # Check if API key is set (inline or via env)
+                api_key_inline = api_config.get("api_key")
+                api_key_is_set = bool(isinstance(api_key_inline, str) and api_key_inline.strip())
+
+                if api_key_is_set:
+                    provider_summary[provider]["api_key_set_count"] += 1
+                else:
+                    # Check env var
+                    api_key_env_name = api_config.get("api_key_env")
+                    if isinstance(api_key_env_name, str) and api_key_env_name.strip():
+                        if os.getenv(api_key_env_name.strip()):
+                            provider_summary[provider]["api_key_set_count"] += 1
+                        else:
+                            provider_summary[provider]["api_key_missing_count"] += 1
+                    else:
+                        # Check standard env mapping
+                        standard_env = _standard_api_env(provider)
+                        if standard_env and os.getenv(standard_env):
+                            provider_summary[provider]["api_key_set_count"] += 1
+                        else:
+                            provider_summary[provider]["api_key_missing_count"] += 1
+
+    return file_count, provider_summary, load_errors
+
+
+def _standard_api_env(provider: str) -> str | None:
+    """Map provider to standard API key environment variable."""
+    mapping = {
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "groq": "GROQ_API_KEY",
+        "ollama": None,  # Ollama doesn't require API key typically
+    }
+    return mapping.get(provider.lower())
 
 
 def _build_provider_env_summary() -> dict[str, str]:
