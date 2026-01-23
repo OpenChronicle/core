@@ -38,6 +38,7 @@ venv.bak/
 *.env
 .env.local
 .env.production
+.serena/
 storage/*/openchronicle.db
 storage/**/openchronicle.db
 storage/*/logs/
