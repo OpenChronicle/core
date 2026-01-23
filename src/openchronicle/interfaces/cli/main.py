@@ -234,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     convo_ask_cmd.add_argument("--last-n", type=int, default=10, help="Number of prior turns to include")
     convo_ask_cmd.add_argument("--top-k-memory", type=int, default=8, help="Number of memory items to include")
     convo_ask_cmd.add_argument("--explain", action="store_true", help="Explain the turn from events")
+    convo_ask_cmd.add_argument("--allow-pii", action="store_true", help="Bypass privacy gate for this request")
     convo_ask_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
     convo_ask_group = convo_ask_cmd.add_mutually_exclusive_group()
     convo_ask_group.add_argument("--include-pinned-memory", dest="include_pinned_memory", action="store_true")
@@ -1024,6 +1025,9 @@ def main(argv: list[str] | None = None) -> int:
                         last_n=args.last_n,
                         top_k_memory=args.top_k_memory,
                         include_pinned_memory=args.include_pinned_memory,
+                        allow_pii=args.allow_pii,
+                        privacy_gate=getattr(container, "privacy_gate", None),
+                        privacy_settings=getattr(container, "privacy_settings", None),
                     )
                 except (ValueError, LLMProviderError) as exc:
                     if not args.json:

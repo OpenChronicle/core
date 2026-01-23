@@ -31,6 +31,7 @@ def execute(
     routed_event = _latest_event_before(events, "llm.routed", cutoff)
     memory_event = _latest_event_before(events, "memory.retrieved", cutoff)
     completed_llm_event = _latest_event_before(events, "llm.completed", cutoff)
+    privacy_override_event = _latest_event_before(events, "privacy.override_used", cutoff)
 
     memory_link_events = [
         event
@@ -54,6 +55,7 @@ def execute(
     routed_payload = routed_event.payload if routed_event else {}
     memory_payload = memory_event.payload if memory_event else {}
     llm_payload = completed_llm_event.payload if completed_llm_event else {}
+    privacy_override_used = bool(privacy_override_event)
 
     usage_payload = llm_payload.get("usage") or {
         "input_tokens": None,
@@ -83,6 +85,7 @@ def execute(
             "latency_ms": llm_payload.get("latency_ms") if llm_payload else None,
             "usage": usage_payload,
         },
+        "privacy_override_used": privacy_override_used,
     }
 
 

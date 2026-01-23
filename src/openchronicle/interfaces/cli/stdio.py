@@ -477,6 +477,7 @@ def dispatch_json_command(
             top_k_memory = coerce_int(args.get("top_k_memory"), 8)
             include_pinned_memory = bool(args.get("include_pinned_memory", True))
             include_explain = bool(args.get("explain", False))
+            allow_pii = bool(args.get("allow_pii", False))
 
             async def _run() -> dict[str, object]:
                 turn = await ask_conversation.execute(
@@ -491,6 +492,7 @@ def dispatch_json_command(
                     last_n=last_n,
                     top_k_memory=top_k_memory,
                     include_pinned_memory=include_pinned_memory,
+                    allow_pii=allow_pii,
                     privacy_gate=getattr(container, "privacy_gate", None),
                     privacy_settings=getattr(container, "privacy_settings", None),
                 )
@@ -525,6 +527,7 @@ def dispatch_json_command(
             conversation_id = str(args.get("conversation_id", ""))
             prompt_text = str(args.get("prompt", ""))
             include_explain = bool(args.get("explain", False))
+            allow_pii = bool(args.get("allow_pii", False))
             metadata_value = args.get("metadata")
             metadata = metadata_value if isinstance(metadata_value, dict) else None
 
@@ -568,6 +571,7 @@ def dispatch_json_command(
                 "conversation_id": conversation_id,
                 "prompt": prompt_text,
                 "explain": include_explain,
+                "allow_pii": allow_pii,
             }
             if metadata is not None:
                 task_payload["metadata"] = metadata
@@ -587,6 +591,7 @@ def dispatch_json_command(
                     payload={
                         "conversation_id": conversation_id,
                         "explain": include_explain,
+                        "allow_pii": allow_pii,
                     },
                 )
             )

@@ -156,7 +156,7 @@ Result:
 Args:
 
 ```json
-{"conversation_id":"...","prompt":"...","last_n":10,"top_k_memory":8,"include_pinned_memory":true,"explain":false}
+{"conversation_id":"...","prompt":"...","last_n":10,"top_k_memory":8,"include_pinned_memory":true,"explain":false,"allow_pii":false}
 ```
 
 Result:
@@ -170,7 +170,7 @@ Result:
 Args:
 
 ```json
-{"conversation_id":"...","prompt":"...","explain":false,"metadata":{}}
+{"conversation_id":"...","prompt":"...","explain":false,"allow_pii":false,"metadata":{}}
 ```
 
 Result:
@@ -179,7 +179,8 @@ Result:
 {"conversation_id":"...","task_id":"...","status":"queued"}
 ```
 
-This enqueues work for a future worker; no LLM execution happens immediately.
+This enqueues work for a future worker; no LLM execution happens immediately. Setting `allow_pii` bypasses
+the outbound privacy gate for this request and emits an audit event.
 
 ### task.get
 

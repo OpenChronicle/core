@@ -33,6 +33,7 @@ async def execute(
     include_pinned_memory: bool = True,
     max_output_tokens: int = 512,
     temperature: float = 0.2,
+    allow_pii: bool = False,
     privacy_gate: PrivacyGatePort | None = None,
     privacy_settings: PrivacyOutboundSettings | None = None,
 ) -> Turn:
@@ -224,7 +225,21 @@ async def execute(
     )
 
     effective_prompt = prompt_text
-    if privacy_gate is not None and privacy_settings is not None:
+    if allow_pii:
+        emit_event(
+            Event(
+                project_id=conversation.project_id,
+                task_id=conversation.id,
+                type="privacy.override_used",
+                payload={
+                    "allow_pii": True,
+                    "scope": "single_request",
+                    "provider": route_decision.provider,
+                    "conversation_id": conversation.id,
+                },
+            )
+        )
+    elif privacy_gate is not None and privacy_settings is not None:
         mode = privacy_settings.mode
         if mode != "off":
             should_check = True
