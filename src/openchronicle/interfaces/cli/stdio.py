@@ -24,7 +24,10 @@ from openchronicle.core.application.use_cases import (
 )
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
+from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
+from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
+from openchronicle.core.infrastructure.privacy.rule_privacy import is_external_provider
 from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 STDIO_RPC_PROTOCOL_VERSION = "1"
@@ -36,6 +39,7 @@ SUPPORTED_COMMANDS: tuple[str, ...] = (
     "convo.mode",
     "convo.show",
     "convo.verify",
+    "privacy.preview",
     "task.get",
     "task.list",
     "system.commands",
@@ -188,6 +192,42 @@ def _task_summary(task: Task) -> dict[str, object]:
     if task.parent_task_id:
         summary["parent_task_id"] = task.parent_task_id
     return summary
+
+
+def _resolve_privacy_settings(
+    settings: PrivacyOutboundSettings,
+    overrides: dict[str, object],
+) -> tuple[PrivacyOutboundSettings, str | None]:
+    mode_override = overrides.get("mode_override")
+    if mode_override is not None and (
+        not isinstance(mode_override, str) or mode_override not in {"off", "warn", "redact", "block"}
+    ):
+        return settings, "Invalid mode_override"
+
+    external_only_override = overrides.get("external_only_override")
+    if external_only_override is not None and not isinstance(external_only_override, bool):
+        return settings, "Invalid external_only_override"
+
+    categories_override = overrides.get("categories_override")
+    if categories_override is not None and (
+        not isinstance(categories_override, list) or not all(isinstance(item, str) for item in categories_override)
+    ):
+        return settings, "Invalid categories_override"
+
+    redact_style_override = overrides.get("redact_style_override")
+    if redact_style_override is not None and (
+        not isinstance(redact_style_override, str) or redact_style_override != "mask"
+    ):
+        return settings, "Invalid redact_style_override"
+
+    resolved = PrivacyOutboundSettings(
+        mode=mode_override if isinstance(mode_override, str) else settings.mode,
+        external_only=external_only_override if isinstance(external_only_override, bool) else settings.external_only,
+        categories=categories_override if isinstance(categories_override, list) else list(settings.categories),
+        redact_style=redact_style_override if isinstance(redact_style_override, str) else settings.redact_style,
+        log_events=settings.log_events,
+    )
+    return resolved, None
 
 
 def dispatch_json_command(
@@ -559,6 +599,102 @@ def dispatch_json_command(
                     "task_id": task.id,
                     "status": "queued",
                 },
+                error=None,
+            )
+
+        if command == "privacy.preview":
+            text_value = args.get("text")
+            if not isinstance(text_value, str):
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="INVALID_ARGUMENT",
+                        message="Request 'text' must be a string",
+                        hint=None,
+                    ),
+                )
+
+            provider_value = args.get("provider")
+            provider = provider_value if isinstance(provider_value, str) else None
+
+            privacy_gate = getattr(container, "privacy_gate", None)
+            privacy_settings = getattr(container, "privacy_settings", None)
+            if not isinstance(privacy_gate, PrivacyGatePort) or not isinstance(
+                privacy_settings, PrivacyOutboundSettings
+            ):
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="INTERNAL_ERROR",
+                        message="Privacy gate not configured",
+                        hint=None,
+                    ),
+                )
+
+            resolved_settings, error_message = _resolve_privacy_settings(privacy_settings, args)
+            if error_message is not None:
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="INVALID_ARGUMENT",
+                        message=error_message,
+                        hint=None,
+                    ),
+                )
+
+            effective_mode = resolved_settings.mode
+            applies = effective_mode != "off"
+            if (
+                applies
+                and resolved_settings.external_only
+                and provider is not None
+                and not is_external_provider(provider)
+            ):
+                applies = False
+            if provider is None and resolved_settings.external_only:
+                applies = True
+
+            analysis_mode = "warn" if applies and effective_mode != "off" else "warn"
+            if effective_mode == "off":
+                analysis_mode = "off"
+            if applies:
+                analysis_mode = effective_mode
+
+            redacted_text, report = privacy_gate.analyze_and_apply(
+                text=text_value,
+                mode=analysis_mode,
+                redact_style=resolved_settings.redact_style,
+                categories=resolved_settings.categories,
+            )
+
+            categories = sorted(report.categories)
+            counts = {key: report.counts[key] for key in categories}
+            result_payload: dict[str, object] = {
+                "effective_policy": {
+                    "mode": effective_mode,
+                    "external_only": resolved_settings.external_only,
+                    "applies": applies,
+                },
+                "report": {
+                    "categories": categories,
+                    "counts": counts,
+                    "redactions_applied": report.redactions_applied if applies else False,
+                    "summary": report.summary,
+                },
+            }
+            if applies and effective_mode == "redact":
+                result_payload["redacted_text"] = redacted_text
+
+            return json_envelope(
+                command=command,
+                ok=True,
+                result=result_payload,
                 error=None,
             )
 

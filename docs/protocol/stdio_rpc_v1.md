@@ -94,7 +94,7 @@ Args: `{}`
 Result:
 
 ```json
-{"commands":["convo.ask","convo.ask_async","convo.export","convo.mode","convo.show","convo.verify","task.get","task.list","system.commands","system.health","system.info","system.ping","system.shutdown"]}
+{"commands":["convo.ask","convo.ask_async","convo.export","convo.mode","convo.show","convo.verify","privacy.preview","task.get","task.list","system.commands","system.health","system.info","system.ping","system.shutdown"]}
 ```
 
 ### system.health
@@ -208,6 +208,22 @@ Result:
 ```json
 {"tasks":[{"task_id":"...","type":"...","status":"pending","created_at":"...","updated_at":"..."}],"total":1}
 ```
+
+### privacy.preview
+
+Args:
+
+```json
+{"text":"...","provider":"openai","mode_override":"warn","external_only_override":true,"categories_override":["email"],"redact_style_override":"mask"}
+```
+
+Result:
+
+```json
+{"effective_policy":{"mode":"warn","external_only":true,"applies":true},"report":{"categories":["email"],"counts":{"email":1},"redactions_applied":false,"summary":"Detected: email(1)."}}
+```
+
+This performs a preflight check only; no LLM call is made. Task payloads are never returned by this command.
 
 ### convo.show
 
