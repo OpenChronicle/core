@@ -72,3 +72,4 @@ def test_serve_stdio_ping_export_shutdown(tmp_path: Path) -> None:
     assert shutdown_payload["command"] == "system.shutdown"
     assert shutdown_payload["ok"] is True
     assert shutdown_payload["protocol_version"] == "1"
+    assert shutdown_payload["result"] == {"shutdown": True, "reason": "requested"}

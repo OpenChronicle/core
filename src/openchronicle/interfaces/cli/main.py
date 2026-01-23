@@ -166,7 +166,13 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     sub.add_parser("list-handlers", help="List registered task handlers")
-    sub.add_parser("serve", help="Run stdio JSON command server")
+    serve_cmd = sub.add_parser("serve", help="Run stdio JSON command server")
+    serve_cmd.add_argument(
+        "--idle-timeout-seconds",
+        type=int,
+        default=0,
+        help="Exit after N seconds of stdin inactivity (default: 0 disables)",
+    )
     rpc_cmd = sub.add_parser("rpc", help="Run a single JSON RPC request")
     rpc_cmd.add_argument("--request", default=None, help="JSON request string")
 
@@ -507,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "serve":
         _configure_stdio_logging()
-        return serve_stdio(container)
+        return serve_stdio(container, idle_timeout_seconds=args.idle_timeout_seconds)
 
     if args.command == "rpc":
         _configure_stdio_logging()

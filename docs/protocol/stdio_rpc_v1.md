@@ -64,11 +64,14 @@ Responses are single JSON objects on one line.
 - `NSFW_POOL_NOT_CONFIGURED`
 - `UNSUPPORTED_PROTOCOL_VERSION`
 
-## Serve-mode dedupe (best-effort)
+## Serve-mode behavior (best-effort)
 
 When running `oc serve`, the server keeps a small in-memory FIFO cache keyed by `request_id`. If a
 request arrives with a `request_id` that already exists in the cache, the cached response is returned
 without re-executing the command. This cache is bounded and is not persisted across restarts.
+
+`oc serve` also accepts an optional `--idle-timeout-seconds` flag. When set to a value greater than
+zero, the server exits after that many seconds without receiving any input line.
 
 ## Supported commands
 
@@ -116,7 +119,11 @@ Result:
 
 Args: `{}`
 
-Result: `null`
+Result:
+
+```json
+{"shutdown":true,"reason":"requested"}
+```
 
 ### convo.export
 

@@ -4,8 +4,10 @@ import asyncio
 import json
 import os
 import sys
+import threading
 from collections import OrderedDict
 from io import TextIOBase
+from queue import Empty, Queue
 from typing import TextIO
 
 from openchronicle.core.application.routing.pool_config import load_pool_config
@@ -242,7 +244,7 @@ def dispatch_json_command(
         return json_envelope(
             command=command,
             ok=True,
-            result=None,
+            result={"shutdown": True, "reason": "requested"},
             error=None,
         )
 
@@ -547,6 +549,7 @@ def serve_stdio(
     *,
     input_stream: TextIO | TextIOBase | None = None,
     output_stream: TextIO | TextIOBase | None = None,
+    idle_timeout_seconds: int = 0,
 ) -> int:
     input_stream = input_stream or sys.stdin
     output_stream = output_stream or sys.stdout
@@ -554,10 +557,27 @@ def serve_stdio(
     assert output_stream is not None
 
     cache: OrderedDict[str, dict[str, object]] = OrderedDict()
+    queue: Queue[str | None] = Queue()
+    stop_event = threading.Event()
+
+    def _reader() -> None:
+        while not stop_event.is_set():
+            line = input_stream.readline()
+            if line == "":
+                queue.put(None)
+                break
+            queue.put(line)
+
+    reader_thread = threading.Thread(target=_reader, daemon=True)
+    reader_thread.start()
 
     while True:
-        line = input_stream.readline()
-        if not line:
+        try:
+            line = queue.get(timeout=idle_timeout_seconds) if idle_timeout_seconds > 0 else queue.get()
+        except Empty:
+            break
+
+        if line is None:
             break
         raw = line.strip()
         if not raw:
@@ -613,4 +633,5 @@ def serve_stdio(
         output_stream.flush()
         if isinstance(request.get("command"), str) and request.get("command") == "system.shutdown":
             break
+    stop_event.set()
     return 0
