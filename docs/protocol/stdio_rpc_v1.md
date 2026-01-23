@@ -19,20 +19,21 @@ written to stdout. Stdout must contain JSON only. Diagnostics must be sent to st
 Requests are single JSON objects on one line.
 
 ```json
-{"protocol_version":"1","command":"...","args":{...}}
+{"protocol_version":"1","command":"...","args":{...},"request_id":"..."}
 ```
 
 - `protocol_version` (optional, recommended): must be "1" for this protocol version. If provided and not "1",
   the server responds with `UNSUPPORTED_PROTOCOL_VERSION`.
 - `command` (required): string command name.
 - `args` (optional): object containing command arguments. Defaults to `{}` when omitted.
+- `request_id` (optional): string identifier for client retries. If provided, it must be a string.
 
 ## Response envelope
 
 Responses are single JSON objects on one line.
 
 ```json
-{"protocol_version":"1","command":"...","ok":true,"result":{...},"error":null}
+{"protocol_version":"1","command":"...","ok":true,"result":{...},"error":null,"request_id":"..."}
 ```
 
 - `protocol_version` (optional, recommended): "1".
@@ -40,6 +41,7 @@ Responses are single JSON objects on one line.
 - `ok`: boolean success flag.
 - `result`: object or `null`.
 - `error`: object or `null`.
+- `request_id`: echoes the request identifier when provided.
 
 ### Error object
 
@@ -61,6 +63,12 @@ Responses are single JSON objects on one line.
 - `UNKNOWN_COMMAND`
 - `NSFW_POOL_NOT_CONFIGURED`
 - `UNSUPPORTED_PROTOCOL_VERSION`
+
+## Serve-mode dedupe (best-effort)
+
+When running `oc serve`, the server keeps a small in-memory FIFO cache keyed by `request_id`. If a
+request arrives with a `request_id` that already exists in the cache, the cached response is returned
+without re-executing the command. This cache is bounded and is not persisted across restarts.
 
 ## Supported commands
 

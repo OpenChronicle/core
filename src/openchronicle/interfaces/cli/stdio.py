@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import sys
+from collections import OrderedDict
 from io import TextIOBase
 from typing import TextIO
 
@@ -19,6 +20,7 @@ from openchronicle.core.application.use_cases import (
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
 
 STDIO_RPC_PROTOCOL_VERSION = "1"
+MAX_REQUEST_CACHE_ENTRIES = 256
 SUPPORTED_COMMANDS: tuple[str, ...] = (
     "convo.ask",
     "convo.export",
@@ -61,6 +63,11 @@ def json_envelope(
         "result": result,
         "error": error,
     }
+
+
+def _attach_request_id(payload: dict[str, object], request_id: str | None) -> None:
+    if request_id is not None:
+        payload["request_id"] = request_id
 
 
 def json_dumps_line(payload: dict[str, object]) -> str:
@@ -450,6 +457,22 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
     command_value = request.get("command")
     args_value = request.get("args")
     protocol_value = request.get("protocol_version")
+    request_id_value = request.get("request_id")
+    if request_id_value is not None and not isinstance(request_id_value, str):
+        payload = json_envelope(
+            command=str(command_value) if isinstance(command_value, str) else "unknown",
+            ok=False,
+            result=None,
+            error=json_error_payload(
+                error_code="INVALID_REQUEST",
+                message="Request 'request_id' must be a string",
+                hint=None,
+            ),
+        )
+        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        return payload
+
+    request_id = request_id_value if isinstance(request_id_value, str) else None
 
     if protocol_value is not None and not isinstance(protocol_value, str):
         payload = json_envelope(
@@ -463,6 +486,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ),
         )
         payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        _attach_request_id(payload, request_id)
         return payload
 
     if protocol_value is not None and protocol_value != STDIO_RPC_PROTOCOL_VERSION:
@@ -477,6 +501,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ),
         )
         payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        _attach_request_id(payload, request_id)
         return payload
 
     if not isinstance(command_value, str):
@@ -491,6 +516,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ),
         )
         payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        _attach_request_id(payload, request_id)
         return payload
 
     if args_value is None:
@@ -507,10 +533,12 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ),
         )
         payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        _attach_request_id(payload, request_id)
         return payload
 
     response = dispatch_json_command(container, command_value, args_value)
     response["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+    _attach_request_id(response, request_id)
     return response
 
 
@@ -524,6 +552,8 @@ def serve_stdio(
     output_stream = output_stream or sys.stdout
     assert input_stream is not None
     assert output_stream is not None
+
+    cache: OrderedDict[str, dict[str, object]] = OrderedDict()
 
     while True:
         line = input_stream.readline()
@@ -566,7 +596,19 @@ def serve_stdio(
             output_stream.flush()
             continue
 
+        request_id = request.get("request_id") if isinstance(request.get("request_id"), str) else None
+        if request_id is not None and request_id in cache:
+            cached = cache[request_id]
+            output_stream.write(json_dumps_line(cached) + "\n")
+            output_stream.flush()
+            continue
+
         response = dispatch_request(container, request)
+        if request_id is not None:
+            cache[request_id] = response
+            if len(cache) > MAX_REQUEST_CACHE_ENTRIES:
+                cache.popitem(last=False)
+
         output_stream.write(json_dumps_line(response) + "\n")
         output_stream.flush()
         if isinstance(request.get("command"), str) and request.get("command") == "system.shutdown":
