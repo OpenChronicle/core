@@ -100,6 +100,31 @@ CREATE TABLE IF NOT EXISTS llm_usage (
 );
 """
 
+CONVERSATIONS_TABLE = """
+CREATE TABLE IF NOT EXISTS conversations (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+"""
+
+TURNS_TABLE = """
+CREATE TABLE IF NOT EXISTS turns (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    turn_index INTEGER NOT NULL,
+    user_text TEXT NOT NULL,
+    assistant_text TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    routing_reasons TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(conversation_id) REFERENCES conversations(id)
+);
+"""
+
 # Performance indexes for common queries
 INDEXES = [
     # Tasks: optimize project queries with ordering
@@ -120,6 +145,20 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_llm_usage_task_created ON llm_usage(task_id, created_at, id)",
     # LLM Usage: optimize agent queries with ordering
     "CREATE INDEX IF NOT EXISTS idx_llm_usage_agent_created ON llm_usage(agent_id, created_at, id)",
+    # Conversations: optimize created ordering
+    "CREATE INDEX IF NOT EXISTS idx_conversations_created ON conversations(created_at, id)",
+    # Turns: optimize conversation ordering
+    "CREATE INDEX IF NOT EXISTS idx_turns_conversation_order ON turns(conversation_id, turn_index, id)",
 ]
 
-ALL_TABLES = [PROJECTS_TABLE, AGENTS_TABLE, TASKS_TABLE, EVENTS_TABLE, RESOURCES_TABLE, SPANS_TABLE, LLM_USAGE_TABLE]
+ALL_TABLES = [
+    PROJECTS_TABLE,
+    AGENTS_TABLE,
+    TASKS_TABLE,
+    EVENTS_TABLE,
+    RESOURCES_TABLE,
+    SPANS_TABLE,
+    LLM_USAGE_TABLE,
+    CONVERSATIONS_TABLE,
+    TURNS_TABLE,
+]

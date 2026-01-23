@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.project import (
     Agent,
     Event,
@@ -19,11 +20,12 @@ from openchronicle.core.domain.models.project import (
     Task,
     TaskStatus,
 )
+from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
 from openchronicle.core.infrastructure.persistence import schema
 
 
-class SqliteStore(StoragePort):
+class SqliteStore(StoragePort, ConversationStorePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -301,6 +303,88 @@ class SqliteStore(StoragePort):
         row = cur.execute("SELECT * FROM spans WHERE id=?", (span_id,)).fetchone()
         return self._row_to_span(row) if row else None
 
+    # Conversations
+    def add_conversation(self, conversation: Conversation) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            "INSERT INTO conversations (id, project_id, title, created_at) VALUES (?, ?, ?, ?)",
+            (
+                conversation.id,
+                conversation.project_id,
+                conversation.title,
+                conversation.created_at.isoformat(),
+            ),
+        )
+        self._commit_if_needed()
+
+    def get_conversation(self, conversation_id: str) -> Conversation | None:
+        cur = self._conn.cursor()
+        row = cur.execute("SELECT * FROM conversations WHERE id=?", (conversation_id,)).fetchone()
+        return self._row_to_conversation(row) if row else None
+
+    def list_conversations(self, limit: int | None = None) -> list[Conversation]:
+        cur = self._conn.cursor()
+        sql = "SELECT * FROM conversations ORDER BY created_at DESC, id DESC"
+        params: list[int] = []
+
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+
+        rows = cur.execute(sql, params).fetchall()
+        return [self._row_to_conversation(r) for r in rows]
+
+    def add_turn(self, turn: Turn) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO turns (id, conversation_id, turn_index, user_text, assistant_text, provider, model, routing_reasons, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                turn.id,
+                turn.conversation_id,
+                turn.turn_index,
+                turn.user_text,
+                turn.assistant_text,
+                turn.provider,
+                turn.model,
+                json.dumps(turn.routing_reasons, sort_keys=True),
+                turn.created_at.isoformat(),
+            ),
+        )
+        self._commit_if_needed()
+
+    def next_turn_index(self, conversation_id: str) -> int:
+        cur = self._conn.cursor()
+        row = cur.execute(
+            "SELECT COALESCE(MAX(turn_index), 0) + 1 AS next_index FROM turns WHERE conversation_id=?",
+            (conversation_id,),
+        ).fetchone()
+        return int(row["next_index"])
+
+    def list_turns(self, conversation_id: str, limit: int | None = None) -> list[Turn]:
+        cur = self._conn.cursor()
+        if limit is None:
+            rows = cur.execute(
+                "SELECT * FROM turns WHERE conversation_id=? ORDER BY turn_index ASC, id ASC",
+                (conversation_id,),
+            ).fetchall()
+            return [self._row_to_turn(r) for r in rows]
+
+        rows = cur.execute(
+            """
+            SELECT * FROM turns
+            WHERE conversation_id=?
+            ORDER BY turn_index DESC, id DESC
+            LIMIT ?
+            """,
+            (conversation_id, limit),
+        ).fetchall()
+        turns = [self._row_to_turn(r) for r in rows]
+        turns.reverse()
+        return turns
+
     # ---- helpers ----
     def _row_to_project(self, row: sqlite3.Row) -> Project:
         return Project(
@@ -388,6 +472,28 @@ class SqliteStore(StoragePort):
             output_tokens=row["output_tokens"],
             total_tokens=row["total_tokens"],
             latency_ms=row["latency_ms"],
+        )
+
+    def _row_to_conversation(self, row: sqlite3.Row) -> Conversation:
+        return Conversation(
+            id=row["id"],
+            project_id=row["project_id"],
+            title=row["title"],
+            created_at=self._parse_dt(row["created_at"]),
+        )
+
+    def _row_to_turn(self, row: sqlite3.Row) -> Turn:
+        reasons_raw = row["routing_reasons"] or "[]"
+        return Turn(
+            id=row["id"],
+            conversation_id=row["conversation_id"],
+            turn_index=row["turn_index"],
+            user_text=row["user_text"],
+            assistant_text=row["assistant_text"],
+            provider=row["provider"],
+            model=row["model"],
+            routing_reasons=json.loads(reasons_raw) if reasons_raw else [],
+            created_at=self._parse_dt(row["created_at"]),
         )
 
     def _parse_dt(self, value: str) -> datetime:

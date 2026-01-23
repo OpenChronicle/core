@@ -8,7 +8,9 @@ from typing import Any
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.application.use_cases import (
+    ask_conversation,
     continue_project,
+    create_conversation,
     create_project,
     diagnose_runtime,
     init_config,
@@ -16,6 +18,7 @@ from openchronicle.core.application.use_cases import (
     register_agent,
     resume_project,
     run_task,
+    show_conversation,
     show_task,
     smoke_live,
 )
@@ -146,6 +149,21 @@ def main(argv: list[str] | None = None) -> int:
     usage_cmd = sub.add_parser("usage", help="Show LLM usage statistics")
     usage_cmd.add_argument("project_id")
     usage_cmd.add_argument("--limit", type=int, default=20, help="Number of recent calls to show")
+
+    convo_cmd = sub.add_parser("convo", help="Conversation commands")
+    convo_sub = convo_cmd.add_subparsers(dest="convo_command")
+
+    convo_new_cmd = convo_sub.add_parser("new", help="Create a new conversation")
+    convo_new_cmd.add_argument("--title", default=None, help="Optional conversation title")
+
+    convo_show_cmd = convo_sub.add_parser("show", help="Show conversation transcript")
+    convo_show_cmd.add_argument("conversation_id")
+    convo_show_cmd.add_argument("--limit", type=int, default=None, help="Limit number of turns shown")
+
+    convo_ask_cmd = convo_sub.add_parser("ask", help="Ask a prompt in a conversation")
+    convo_ask_cmd.add_argument("conversation_id")
+    convo_ask_cmd.add_argument("prompt")
+    convo_ask_cmd.add_argument("--last-n", type=int, default=10, help="Number of prior turns to include")
 
     tree_cmd = sub.add_parser("task-tree", help="Show task tree with routing and usage")
     tree_cmd.add_argument("task_id")
@@ -497,6 +515,49 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {result_str}")
 
         return 0
+
+    if args.command == "convo":
+        if args.convo_command == "new":
+            conversation = create_conversation.execute(
+                storage=container.storage,
+                convo_store=container.storage,
+                emit_event=container.event_logger.append,
+                title=args.title,
+            )
+            print(conversation.id)
+            return 0
+
+        if args.convo_command == "show":
+            try:
+                _conversation, turns = show_conversation.execute(
+                    convo_store=container.storage,
+                    conversation_id=args.conversation_id,
+                    limit=args.limit,
+                )
+            except ValueError as exc:
+                print(str(exc))
+                return 1
+
+            for turn in turns:
+                print(f"{turn.turn_index}\t{turn.user_text}\t{turn.assistant_text}")
+            return 0
+
+        if args.convo_command == "ask":
+
+            async def _run_ask() -> None:
+                turn = await ask_conversation.execute(
+                    convo_store=container.storage,
+                    storage=container.storage,
+                    llm=container.llm,
+                    emit_event=container.event_logger.append,
+                    conversation_id=args.conversation_id,
+                    prompt_text=args.prompt,
+                    last_n=args.last_n,
+                )
+                print(turn.assistant_text)
+
+            asyncio.run(_run_ask())
+            return 0
 
     if args.command == "usage":
         # Get project-level totals
