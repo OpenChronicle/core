@@ -63,6 +63,7 @@ Responses are single JSON objects on one line.
 - `UNKNOWN_COMMAND`
 - `TASK_NOT_FOUND`
 - `NSFW_POOL_NOT_CONFIGURED`
+- `OUTBOUND_PII_BLOCKED`
 - `UNSUPPORTED_PROTOCOL_VERSION`
 
 ## Serve-mode behavior (best-effort)

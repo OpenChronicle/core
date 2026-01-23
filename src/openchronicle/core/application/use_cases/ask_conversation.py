@@ -11,7 +11,10 @@ from openchronicle.core.domain.ports.conversation_store_port import Conversation
 from openchronicle.core.domain.ports.interaction_router_port import InteractionRouterPort
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
+from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
+from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
+from openchronicle.core.infrastructure.privacy.rule_privacy import is_external_provider
 from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 
@@ -30,6 +33,8 @@ async def execute(
     include_pinned_memory: bool = True,
     max_output_tokens: int = 512,
     temperature: float = 0.2,
+    privacy_gate: PrivacyGatePort | None = None,
+    privacy_settings: PrivacyOutboundSettings | None = None,
 ) -> Turn:
     conversation = convo_store.get_conversation(conversation_id)
     if conversation is None:
@@ -218,11 +223,52 @@ async def execute(
         )
     )
 
+    effective_prompt = prompt_text
+    if privacy_gate is not None and privacy_settings is not None:
+        mode = privacy_settings.mode
+        if mode != "off":
+            should_check = True
+            if privacy_settings.external_only:
+                should_check = is_external_provider(route_decision.provider)
+            if should_check:
+                redacted_prompt, report = privacy_gate.analyze_and_apply(
+                    text=prompt_text,
+                    mode=mode,
+                    redact_style=privacy_settings.redact_style,
+                    categories=privacy_settings.categories,
+                )
+
+                if privacy_settings.log_events:
+                    emit_event(
+                        Event(
+                            project_id=conversation.project_id,
+                            task_id=conversation.id,
+                            type="privacy.outbound_checked",
+                            payload={
+                                "mode": report.action,
+                                "categories": report.categories,
+                                "counts": report.counts,
+                                "redactions_applied": report.redactions_applied,
+                            },
+                        )
+                    )
+
+                if report.action == "block":
+                    raise LLMProviderError(
+                        "Outbound privacy gate blocked external provider request.",
+                        error_code="OUTBOUND_PII_BLOCKED",
+                        hint=("Remove or redact PII, or change privacy_outbound_mode to warn/redact/off."),
+                        details={"categories": report.categories, "counts": report.counts},
+                    )
+
+                if report.action == "redact":
+                    effective_prompt = redacted_prompt
+
     try:
         response = await execute_with_route(
             llm,
             route_decision,
-            messages,
+            messages[:-1] + [{"role": "user", "content": effective_prompt}],
             max_output_tokens=max_output_tokens,
             temperature=temperature,
         )

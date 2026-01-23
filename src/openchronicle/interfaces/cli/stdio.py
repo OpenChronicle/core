@@ -451,6 +451,8 @@ def dispatch_json_command(
                     last_n=last_n,
                     top_k_memory=top_k_memory,
                     include_pinned_memory=include_pinned_memory,
+                    privacy_gate=getattr(container, "privacy_gate", None),
+                    privacy_settings=getattr(container, "privacy_settings", None),
                 )
 
                 explain_payload: dict[str, object] | None = None

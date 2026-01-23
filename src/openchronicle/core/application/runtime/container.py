@@ -8,9 +8,11 @@ from openchronicle.core.application.runtime.plugin_loader import PluginLoader
 from openchronicle.core.application.runtime.task_registry import TaskHandlerRegistry
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.domain.ports.llm_port import LLMPort
+from openchronicle.core.infrastructure.config.settings import load_privacy_outbound_settings
 from openchronicle.core.infrastructure.llm.provider_facade import create_provider_aware_llm
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
+from openchronicle.core.infrastructure.privacy.rule_privacy import RulePrivacyGate
 from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 
@@ -41,6 +43,8 @@ class CoreContainer:
         self.storage = SqliteStore(db_path=str(db_path_resolved))
         self.storage.init_schema()
         self.event_logger = EventLogger(self.storage)
+        self.privacy_gate = RulePrivacyGate()
+        self.privacy_settings = load_privacy_outbound_settings()
 
         # Use provider-aware facade if no explicit LLM provided
         if llm is None:
@@ -64,6 +68,8 @@ class CoreContainer:
         return {
             "storage": self.storage,
             "event_logger": self.event_logger,
+            "privacy_gate": self.privacy_gate,
+            "privacy_settings": self.privacy_settings,
             "llm": self.llm,
             "interaction_router": self.interaction_router,
             "plugins": self.plugin_loader.registry_instance(),
