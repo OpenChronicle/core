@@ -8,18 +8,22 @@ from openchronicle.core.domain.models.conversation import Turn
 from openchronicle.core.domain.models.project import Event
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
+from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
 
 
 async def execute(
     convo_store: ConversationStorePort,
     storage: StoragePort,
+    memory_store: MemoryStorePort,
     llm: LLMPort,
     emit_event: Callable[[Event], None],
     conversation_id: str,
     prompt_text: str,
     *,
     last_n: int = 10,
+    top_k_memory: int = 8,
+    include_pinned_memory: bool = True,
     max_output_tokens: int = 512,
     temperature: float = 0.2,
 ) -> Turn:
@@ -30,6 +34,49 @@ async def execute(
     prior_turns = convo_store.list_turns(conversation_id, limit=last_n)
 
     messages: list[dict[str, str]] = [{"role": "system", "content": "You are a helpful assistant."}]
+
+    pinned_memory = memory_store.list_memory(limit=top_k_memory, pinned_only=True) if include_pinned_memory else []
+    relevant_memory = memory_store.search_memory(
+        prompt_text,
+        top_k=top_k_memory,
+        conversation_id=conversation_id,
+        include_pinned=False,
+    )
+
+    emit_event(
+        Event(
+            project_id=conversation.project_id,
+            task_id=conversation.id,
+            type="memory.retrieved",
+            payload={
+                "pinned_count": len(pinned_memory),
+                "relevant_count": len(relevant_memory),
+                "pinned_ids": [item.id for item in pinned_memory],
+                "relevant_ids": [item.id for item in relevant_memory],
+                "query_len": len(prompt_text),
+                "top_k": top_k_memory,
+                "include_pinned_memory": include_pinned_memory,
+            },
+        )
+    )
+
+    if pinned_memory or relevant_memory:
+        memory_lines: list[str] = []
+        if include_pinned_memory:
+            memory_lines.append("Pinned memory:")
+            for item in pinned_memory:
+                content_snippet = item.content if len(item.content) <= 300 else item.content[:300] + "..."
+                tags_str = ",".join(item.tags)
+                memory_lines.append(f"- {item.id} | tags=[{tags_str}] | {content_snippet}")
+            memory_lines.append("")
+
+        memory_lines.append("Relevant memory:")
+        for item in relevant_memory:
+            content_snippet = item.content if len(item.content) <= 300 else item.content[:300] + "..."
+            tags_str = ",".join(item.tags)
+            memory_lines.append(f"- {item.id} | tags=[{tags_str}] | {content_snippet}")
+
+        messages.append({"role": "system", "content": "\n".join(memory_lines)})
     for turn in prior_turns:
         messages.append({"role": "user", "content": turn.user_text})
         messages.append({"role": "assistant", "content": turn.assistant_text})

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import string
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from openchronicle.core.domain.models.conversation import Conversation, Turn
+from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import (
     Agent,
     Event,
@@ -21,11 +23,14 @@ from openchronicle.core.domain.models.project import (
     TaskStatus,
 )
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
+from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
 from openchronicle.core.infrastructure.persistence import schema
 
+_MEMORY_SEARCH_LIMIT = 200
 
-class SqliteStore(StoragePort, ConversationStorePort):
+
+class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -385,6 +390,146 @@ class SqliteStore(StoragePort, ConversationStorePort):
         turns.reverse()
         return turns
 
+    # Memory
+    def add_memory(self, item: MemoryItem) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO memory_items (id, content, tags, created_at, pinned, conversation_id, project_id, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item.id,
+                item.content,
+                json.dumps(item.tags, sort_keys=True),
+                item.created_at.isoformat(),
+                1 if item.pinned else 0,
+                item.conversation_id,
+                item.project_id,
+                item.source,
+            ),
+        )
+        self._commit_if_needed()
+
+    def get_memory(self, memory_id: str) -> MemoryItem | None:
+        cur = self._conn.cursor()
+        row = cur.execute("SELECT * FROM memory_items WHERE id=?", (memory_id,)).fetchone()
+        return self._row_to_memory_item(row) if row else None
+
+    def list_memory(self, limit: int | None = None, pinned_only: bool = False) -> list[MemoryItem]:
+        cur = self._conn.cursor()
+        sql = "SELECT * FROM memory_items"
+        params: list[int] = []
+
+        if pinned_only:
+            sql += " WHERE pinned=1"
+
+        sql += " ORDER BY pinned DESC, created_at DESC, id DESC"
+
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+
+        rows = cur.execute(sql, params).fetchall()
+        return [self._row_to_memory_item(r) for r in rows]
+
+    def set_pinned(self, memory_id: str, pinned: bool) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            "UPDATE memory_items SET pinned=? WHERE id=?",
+            (1 if pinned else 0, memory_id),
+        )
+        if cur.rowcount == 0:
+            raise ValueError(f"Memory not found: {memory_id}")
+        self._commit_if_needed()
+
+    def search_memory(
+        self,
+        query: str,
+        *,
+        top_k: int = 8,
+        conversation_id: str | None = None,
+        project_id: str | None = None,
+        include_pinned: bool = True,
+    ) -> list[MemoryItem]:
+        q_tokens = self._normalize_tokens(query)
+
+        cur = self._conn.cursor()
+        params: list[Any] = []
+        if conversation_id is not None:
+            if include_pinned:
+                sql = """
+                    SELECT * FROM memory_items
+                    WHERE conversation_id=? OR pinned=1
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT ?
+                """
+                params = [conversation_id, _MEMORY_SEARCH_LIMIT]
+            else:
+                sql = """
+                    SELECT * FROM memory_items
+                    WHERE conversation_id=?
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT ?
+                """
+                params = [conversation_id, _MEMORY_SEARCH_LIMIT]
+        elif project_id is not None:
+            if include_pinned:
+                sql = """
+                    SELECT * FROM memory_items
+                    WHERE project_id=? OR pinned=1
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT ?
+                """
+                params = [project_id, _MEMORY_SEARCH_LIMIT]
+            else:
+                sql = """
+                    SELECT * FROM memory_items
+                    WHERE project_id=?
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT ?
+                """
+                params = [project_id, _MEMORY_SEARCH_LIMIT]
+        else:
+            if include_pinned:
+                sql = """
+                    SELECT * FROM memory_items
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT ?
+                """
+                params = [_MEMORY_SEARCH_LIMIT]
+            else:
+                sql = """
+                    SELECT * FROM memory_items
+                    WHERE pinned=0
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT ?
+                """
+                params = [_MEMORY_SEARCH_LIMIT]
+
+        rows = cur.execute(sql, params).fetchall()
+        items = [self._row_to_memory_item(r) for r in rows]
+
+        pinned_items = [i for i in items if i.pinned] if include_pinned else []
+        non_pinned_items = [i for i in items if not i.pinned]
+
+        pinned_items.sort(key=lambda i: (i.created_at, i.id), reverse=True)
+
+        def _score(item: MemoryItem) -> tuple[int, int, datetime, str]:
+            tag_matches = self._tag_match_count(item.tags, q_tokens)
+            keyword_matches = self._keyword_match_count(item.content, q_tokens)
+            return (tag_matches, keyword_matches, item.created_at, item.id)
+
+        non_pinned_items.sort(key=_score, reverse=True)
+
+        results: list[MemoryItem] = []
+        if include_pinned:
+            results.extend(pinned_items)
+
+        remaining = max(top_k - len(results), 0)
+        results.extend(non_pinned_items[:remaining])
+        return results
+
     # ---- helpers ----
     def _row_to_project(self, row: sqlite3.Row) -> Project:
         return Project(
@@ -495,6 +640,42 @@ class SqliteStore(StoragePort, ConversationStorePort):
             routing_reasons=json.loads(reasons_raw) if reasons_raw else [],
             created_at=self._parse_dt(row["created_at"]),
         )
+
+    def _row_to_memory_item(self, row: sqlite3.Row) -> MemoryItem:
+        tags_raw = row["tags"] or "[]"
+        return MemoryItem(
+            id=row["id"],
+            content=row["content"],
+            tags=json.loads(tags_raw) if tags_raw else [],
+            created_at=self._parse_dt(row["created_at"]),
+            pinned=bool(row["pinned"]),
+            conversation_id=row["conversation_id"],
+            project_id=row["project_id"],
+            source=row["source"],
+        )
+
+    def _normalize_tokens(self, text: str) -> list[str]:
+        cleaned = text.lower().translate(str.maketrans("", "", string.punctuation))
+        return [token for token in cleaned.split() if token]
+
+    def _tag_match_count(self, tags: list[str], q_tokens: list[str]) -> int:
+        if not tags or not q_tokens:
+            return 0
+        count = 0
+        for tag in tags:
+            tag_lower = tag.lower()
+            if tag_lower in q_tokens:
+                count += 1
+                continue
+            if any(token in tag_lower for token in q_tokens):
+                count += 1
+        return count
+
+    def _keyword_match_count(self, content: str, q_tokens: list[str]) -> int:
+        if not content or not q_tokens:
+            return 0
+        content_lower = content.lower()
+        return sum(1 for token in q_tokens if token in content_lower)
 
     def _parse_dt(self, value: str) -> datetime:
         return datetime.fromisoformat(value)

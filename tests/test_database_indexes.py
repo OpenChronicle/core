@@ -60,6 +60,9 @@ def test_fresh_database_has_all_indexes(fresh_db: SqliteStore) -> None:
         "idx_llm_usage_agent_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "idx_memory_pinned_created",
+        "idx_memory_convo_created",
+        "idx_memory_project_created",
     }
 
     assert index_names == expected, f"Missing or unexpected indexes. Got {index_names}, expected {expected}"
@@ -85,6 +88,9 @@ def test_migration_creates_indexes_on_existing_db(migrated_db: SqliteStore) -> N
         "idx_llm_usage_agent_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "idx_memory_pinned_created",
+        "idx_memory_convo_created",
+        "idx_memory_project_created",
     }
 
     assert index_names == expected
@@ -105,6 +111,9 @@ def test_indexes_are_on_correct_tables_and_columns(fresh_db: SqliteStore) -> Non
         "idx_spans_task_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "idx_memory_pinned_created",
+        "idx_memory_convo_created",
+        "idx_memory_project_created",
     ]:
         # Get the table name for this index
         table_row = cur.execute(
@@ -131,6 +140,18 @@ def test_indexes_are_on_correct_tables_and_columns(fresh_db: SqliteStore) -> Non
     assert index_info["idx_turns_conversation_order"] == {
         "table": "turns",
         "columns": ["conversation_id", "turn_index", "id"],
+    }
+    assert index_info["idx_memory_pinned_created"] == {
+        "table": "memory_items",
+        "columns": ["pinned", "created_at", "id"],
+    }
+    assert index_info["idx_memory_convo_created"] == {
+        "table": "memory_items",
+        "columns": ["conversation_id", "created_at", "id"],
+    }
+    assert index_info["idx_memory_project_created"] == {
+        "table": "memory_items",
+        "columns": ["project_id", "created_at", "id"],
     }
 
 
@@ -162,6 +183,9 @@ def test_index_creation_is_idempotent(tmp_path: Path) -> None:
         "idx_llm_usage_agent_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "idx_memory_pinned_created",
+        "idx_memory_convo_created",
+        "idx_memory_project_created",
     }
 
     assert index_names == expected

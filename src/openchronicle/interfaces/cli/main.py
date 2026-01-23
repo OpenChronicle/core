@@ -8,6 +8,7 @@ from typing import Any
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.application.use_cases import (
+    add_memory,
     ask_conversation,
     continue_project,
     create_conversation,
@@ -15,11 +16,15 @@ from openchronicle.core.application.use_cases import (
     diagnose_runtime,
     init_config,
     list_conversations,
+    list_memory,
     list_projects,
+    pin_memory,
     register_agent,
     resume_project,
     run_task,
+    search_memory,
     show_conversation,
+    show_memory,
     show_task,
     smoke_live,
 )
@@ -27,6 +32,7 @@ from openchronicle.core.application.use_cases.replay_project import (
     ReplayService as ProjectReplayService,
 )
 from openchronicle.core.domain.models.failure_category import failure_category_description
+from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import Agent
 from openchronicle.core.domain.services.replay import ReplayMode
 from openchronicle.core.domain.services.replay import ReplayService as DomainReplayService
@@ -165,9 +171,48 @@ def main(argv: list[str] | None = None) -> int:
     convo_ask_cmd.add_argument("conversation_id")
     convo_ask_cmd.add_argument("prompt")
     convo_ask_cmd.add_argument("--last-n", type=int, default=10, help="Number of prior turns to include")
+    convo_ask_cmd.add_argument("--top-k-memory", type=int, default=8, help="Number of memory items to include")
+    convo_ask_group = convo_ask_cmd.add_mutually_exclusive_group()
+    convo_ask_group.add_argument("--include-pinned-memory", dest="include_pinned_memory", action="store_true")
+    convo_ask_group.add_argument("--no-include-pinned-memory", dest="include_pinned_memory", action="store_false")
+    convo_ask_cmd.set_defaults(include_pinned_memory=True)
 
     convo_list_cmd = convo_sub.add_parser("list", help="List conversations")
     convo_list_cmd.add_argument("--limit", type=int, default=None, help="Limit number of conversations shown")
+
+    memory_cmd = sub.add_parser("memory", help="Memory commands")
+    memory_sub = memory_cmd.add_subparsers(dest="memory_command")
+
+    memory_add_cmd = memory_sub.add_parser("add", help="Add a memory item")
+    memory_add_cmd.add_argument("content")
+    memory_add_cmd.add_argument("--tags", default="", help="Comma-separated tags")
+    memory_add_cmd.add_argument("--pin", action="store_true", help="Pin this memory item")
+    memory_add_cmd.add_argument("--source", default="manual", help="Source label")
+    memory_add_cmd.add_argument("--conversation-id", default=None, help="Associated conversation id")
+    memory_add_cmd.add_argument("--project-id", default=None, help="Associated project id")
+
+    memory_list_cmd = memory_sub.add_parser("list", help="List memory items")
+    memory_list_cmd.add_argument("--limit", type=int, default=None, help="Limit number of memories shown")
+    memory_list_cmd.add_argument("--pinned-only", action="store_true", help="Show only pinned items")
+
+    memory_show_cmd = memory_sub.add_parser("show", help="Show memory item")
+    memory_show_cmd.add_argument("memory_id")
+
+    memory_pin_cmd = memory_sub.add_parser("pin", help="Toggle memory pin state")
+    memory_pin_cmd.add_argument("memory_id")
+    pin_group = memory_pin_cmd.add_mutually_exclusive_group(required=True)
+    pin_group.add_argument("--on", dest="pin_on", action="store_true")
+    pin_group.add_argument("--off", dest="pin_on", action="store_false")
+
+    memory_search_cmd = memory_sub.add_parser("search", help="Search memory items")
+    memory_search_cmd.add_argument("query")
+    memory_search_cmd.add_argument("--top-k", type=int, default=8, help="Number of memory items to return")
+    memory_search_cmd.add_argument("--conversation-id", default=None, help="Restrict to conversation")
+    memory_search_cmd.add_argument("--project-id", default=None, help="Restrict to project")
+    memory_search_group = memory_search_cmd.add_mutually_exclusive_group()
+    memory_search_group.add_argument("--include-pinned", dest="include_pinned", action="store_true")
+    memory_search_group.add_argument("--no-include-pinned", dest="include_pinned", action="store_false")
+    memory_search_cmd.set_defaults(include_pinned=True)
 
     tree_cmd = sub.add_parser("task-tree", help="Show task tree with routing and usage")
     tree_cmd.add_argument("task_id")
@@ -558,15 +603,100 @@ def main(argv: list[str] | None = None) -> int:
                 turn = await ask_conversation.execute(
                     convo_store=container.storage,
                     storage=container.storage,
+                    memory_store=container.storage,
                     llm=container.llm,
                     emit_event=container.event_logger.append,
                     conversation_id=args.conversation_id,
                     prompt_text=args.prompt,
                     last_n=args.last_n,
+                    top_k_memory=args.top_k_memory,
+                    include_pinned_memory=args.include_pinned_memory,
                 )
                 print(turn.assistant_text)
 
             asyncio.run(_run_ask())
+            return 0
+
+    if args.command == "memory":
+        if args.memory_command == "add":
+            tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
+            project_id = args.project_id
+            if project_id is None and args.conversation_id:
+                maybe_conversation = container.storage.get_conversation(args.conversation_id)
+                if maybe_conversation is None:
+                    print(f"Conversation not found: {args.conversation_id}")
+                    return 1
+                project_id = maybe_conversation.project_id
+            if project_id is None:
+                print("project_id is required when adding memory")
+                return 1
+            item = add_memory.execute(
+                store=container.storage,
+                emit_event=container.event_logger.append,
+                item=MemoryItem(
+                    content=args.content,
+                    tags=tags,
+                    pinned=args.pin,
+                    conversation_id=args.conversation_id,
+                    project_id=project_id,
+                    source=args.source,
+                ),
+            )
+            print(item.id)
+            return 0
+
+        if args.memory_command == "list":
+            items = list_memory.execute(
+                store=container.storage,
+                limit=args.limit,
+                pinned_only=args.pinned_only,
+            )
+            for item in items:
+                tags_str = ",".join(item.tags)
+                snippet = item.content if len(item.content) <= 120 else item.content[:120] + "..."
+                print(f"{item.id}\t{item.pinned}\t{item.created_at.isoformat()}\t{tags_str}\t{snippet}")
+            return 0
+
+        if args.memory_command == "show":
+            try:
+                item = show_memory.execute(container.storage, args.memory_id)
+            except ValueError as exc:
+                print(str(exc))
+                return 1
+
+            print(f"id: {item.id}")
+            print(f"pinned: {item.pinned}")
+            print(f"created_at: {item.created_at.isoformat()}")
+            print(f"tags: {','.join(item.tags)}")
+            print(f"source: {item.source}")
+            print(f"conversation_id: {item.conversation_id or ''}")
+            print(f"project_id: {item.project_id or ''}")
+            print("content:")
+            print(item.content)
+            return 0
+
+        if args.memory_command == "pin":
+            pin_memory.execute(
+                store=container.storage,
+                emit_event=container.event_logger.append,
+                memory_id=args.memory_id,
+                pinned=args.pin_on,
+            )
+            return 0
+
+        if args.memory_command == "search":
+            items = search_memory.execute(
+                store=container.storage,
+                query=args.query,
+                top_k=args.top_k,
+                conversation_id=args.conversation_id,
+                project_id=args.project_id,
+                include_pinned=args.include_pinned,
+            )
+            for item in items:
+                tags_str = ",".join(item.tags)
+                snippet = item.content if len(item.content) <= 120 else item.content[:120] + "..."
+                print(f"{item.id}\t{item.pinned}\t{item.created_at.isoformat()}\t{tags_str}\t{snippet}")
             return 0
 
     if args.command == "usage":

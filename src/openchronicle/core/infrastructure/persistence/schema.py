@@ -125,6 +125,21 @@ CREATE TABLE IF NOT EXISTS turns (
 );
 """
 
+MEMORY_ITEMS_TABLE = """
+CREATE TABLE IF NOT EXISTS memory_items (
+    id TEXT PRIMARY KEY,
+    content TEXT NOT NULL,
+    tags TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    pinned INTEGER NOT NULL,
+    conversation_id TEXT,
+    project_id TEXT,
+    source TEXT NOT NULL,
+    FOREIGN KEY(conversation_id) REFERENCES conversations(id),
+    FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+"""
+
 # Performance indexes for common queries
 INDEXES = [
     # Tasks: optimize project queries with ordering
@@ -149,6 +164,12 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_conversations_created ON conversations(created_at, id)",
     # Turns: optimize conversation ordering
     "CREATE INDEX IF NOT EXISTS idx_turns_conversation_order ON turns(conversation_id, turn_index, id)",
+    # Memory: optimize pinned ordering
+    "CREATE INDEX IF NOT EXISTS idx_memory_pinned_created ON memory_items(pinned, created_at, id)",
+    # Memory: optimize conversation ordering
+    "CREATE INDEX IF NOT EXISTS idx_memory_convo_created ON memory_items(conversation_id, created_at, id)",
+    # Memory: optimize project ordering
+    "CREATE INDEX IF NOT EXISTS idx_memory_project_created ON memory_items(project_id, created_at, id)",
 ]
 
 ALL_TABLES = [
@@ -161,4 +182,5 @@ ALL_TABLES = [
     LLM_USAGE_TABLE,
     CONVERSATIONS_TABLE,
     TURNS_TABLE,
+    MEMORY_ITEMS_TABLE,
 ]

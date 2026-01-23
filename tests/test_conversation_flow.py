@@ -46,6 +46,7 @@ async def test_conversation_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     turn1 = await ask_conversation.execute(
         convo_store=storage,
         storage=storage,
+        memory_store=storage,
         llm=llm,
         emit_event=event_logger.append,
         conversation_id=conversation.id,
@@ -56,6 +57,7 @@ async def test_conversation_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     turn2 = await ask_conversation.execute(
         convo_store=storage,
         storage=storage,
+        memory_store=storage,
         llm=llm,
         emit_event=event_logger.append,
         conversation_id=conversation.id,

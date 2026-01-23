@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from openchronicle.core.application.models.diagnostics_report import DiagnosticsReport
@@ -30,7 +30,7 @@ def execute() -> DiagnosticsReport:
         try:
             stat_info = db_path_obj.stat()
             db_size_bytes = stat_info.st_size
-            db_modified_utc = datetime.utcfromtimestamp(stat_info.st_mtime)
+            db_modified_utc = datetime.fromtimestamp(stat_info.st_mtime, UTC)
         except (OSError, ValueError):
             pass
 
@@ -59,7 +59,7 @@ def execute() -> DiagnosticsReport:
         )
 
     return DiagnosticsReport(
-        timestamp_utc=datetime.utcnow(),
+        timestamp_utc=datetime.now(UTC),
         db_path=db_path,
         db_exists=db_exists,
         db_size_bytes=db_size_bytes,
