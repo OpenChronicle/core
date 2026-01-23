@@ -94,7 +94,7 @@ Args: `{}`
 Result:
 
 ```json
-{"commands":["convo.ask","convo.ask_async","convo.export","convo.mode","convo.show","convo.verify","privacy.preview","task.get","task.list","system.commands","system.health","system.info","system.ping","system.shutdown"]}
+{"commands":["convo.ask","convo.ask_async","convo.export","convo.mode","convo.show","convo.verify","privacy.preview","task.get","task.list","task.run_one","system.commands","system.health","system.info","system.ping","system.shutdown"]}
 ```
 
 ### system.health
@@ -209,6 +209,22 @@ Result:
 ```json
 {"tasks":[{"task_id":"...","type":"...","status":"pending","created_at":"...","updated_at":"..."}],"total":1}
 ```
+
+### task.run_one
+
+Args:
+
+```json
+{"type":"convo.ask"}
+```
+
+Result:
+
+```json
+{"ran":true,"task_id":"...","status":"completed","conversation_id":"...","turn_id":"...","error":null}
+```
+
+This runs at most one queued task deterministically (oldest first). No background loop is started.
 
 ### privacy.preview
 

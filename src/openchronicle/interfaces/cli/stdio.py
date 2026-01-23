@@ -21,6 +21,7 @@ from openchronicle.core.application.use_cases import (
     export_convo,
     run_task,
     show_conversation,
+    task_once,
 )
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
@@ -42,6 +43,7 @@ SUPPORTED_COMMANDS: tuple[str, ...] = (
     "privacy.preview",
     "task.get",
     "task.list",
+    "task.run_one",
     "system.commands",
     "system.health",
     "system.info",
@@ -792,6 +794,41 @@ def dispatch_json_command(
                     "tasks": [_task_summary(task) for task in sliced],
                     "total": total,
                 },
+                error=None,
+            )
+
+        if command == "task.run_one":
+            task_type_value = args.get("type", "convo.ask")
+            if not isinstance(task_type_value, str) or task_type_value != "convo.ask":
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="INVALID_ARGUMENT",
+                        message="Only task type 'convo.ask' is supported",
+                        hint=None,
+                    ),
+                )
+
+            result = asyncio.run(
+                task_once.execute(
+                    storage=container.storage,
+                    convo_store=container.storage,
+                    memory_store=container.storage,
+                    llm=container.llm,
+                    interaction_router=container.interaction_router,
+                    emit_event=container.event_logger.append,
+                    privacy_gate=getattr(container, "privacy_gate", None),
+                    privacy_settings=getattr(container, "privacy_settings", None),
+                    task_type=task_type_value,
+                )
+            )
+
+            return json_envelope(
+                command=command,
+                ok=True,
+                result=result,
                 error=None,
             )
 
