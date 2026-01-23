@@ -15,6 +15,7 @@ from openchronicle.core.application.use_cases import (
     create_project,
     diagnose_runtime,
     explain_turn,
+    export_convo,
     init_config,
     list_conversations,
     list_memory,
@@ -169,6 +170,12 @@ def main(argv: list[str] | None = None) -> int:
     convo_show_cmd.add_argument("conversation_id")
     convo_show_cmd.add_argument("--limit", type=int, default=None, help="Limit number of turns shown")
     convo_show_cmd.add_argument("--explain", action="store_true", help="Explain each turn from events")
+
+    convo_export_cmd = convo_sub.add_parser("export", help="Export conversation as JSON")
+    convo_export_cmd.add_argument("conversation_id")
+    convo_export_cmd.add_argument("--explain", action="store_true", help="Include explain bundles per turn")
+    convo_export_cmd.add_argument("--verify", action="store_true", help="Include verification results")
+    convo_export_cmd.add_argument("--fail-on-verify", action="store_true", help="Exit non-zero on verification failure")
 
     convo_verify_cmd = convo_sub.add_parser("verify", help="Verify conversation event hash chain")
     convo_verify_cmd.add_argument("conversation_id")
@@ -630,6 +637,8 @@ def main(argv: list[str] | None = None) -> int:
                 relevant_ids = memory_dict.get("relevant_ids", []) if isinstance(memory_dict, dict) else []
                 pinned_str = ",".join(pinned_ids) if isinstance(pinned_ids, list) else ""
                 relevant_str = ",".join(relevant_ids) if isinstance(relevant_ids, list) else ""
+                memory_written_ids = explain.get("memory_written_ids", [])
+                memory_written_str = ",".join(memory_written_ids) if isinstance(memory_written_ids, list) else ""
                 llm_info = explain.get("llm")
                 llm_dict = llm_info if isinstance(llm_info, dict) else {}
                 usage_info = llm_dict.get("usage") if isinstance(llm_dict, dict) else {}
@@ -646,6 +655,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"reasons: {reasons_str}")
                 print(f"pinned_memory_ids: {pinned_str}")
                 print(f"relevant_memory_ids: {relevant_str}")
+                print(f"memory_written_ids: {memory_written_str}")
                 print(
                     "usage: "
                     f"in={'' if usage_in is None else usage_in} "
@@ -654,6 +664,27 @@ def main(argv: list[str] | None = None) -> int:
                     f"latency_ms={'' if latency_ms is None else latency_ms} "
                     f"finish_reason={'' if finish_reason is None else finish_reason}"
                 )
+            return 0
+
+        if args.convo_command == "export":
+            try:
+                export = export_convo.execute(
+                    storage=container.storage,
+                    convo_store=container.storage,
+                    conversation_id=args.conversation_id,
+                    include_explain=args.explain,
+                    include_verify=args.verify,
+                )
+            except ValueError as exc:
+                print(str(exc))
+                return 1
+
+            print(json.dumps(export, sort_keys=True, indent=2))
+            if args.verify and args.fail_on_verify:
+                verification = export.get("verification") if isinstance(export, dict) else None
+                verification_dict = verification if isinstance(verification, dict) else {}
+                if verification_dict.get("ok") is not True:
+                    return 1
             return 0
 
         if args.convo_command == "verify":
@@ -737,6 +768,8 @@ def main(argv: list[str] | None = None) -> int:
                     relevant_ids = memory_dict.get("relevant_ids", []) if isinstance(memory_dict, dict) else []
                     pinned_str = ",".join(pinned_ids) if isinstance(pinned_ids, list) else ""
                     relevant_str = ",".join(relevant_ids) if isinstance(relevant_ids, list) else ""
+                    memory_written_ids = explain.get("memory_written_ids", [])
+                    memory_written_str = ",".join(memory_written_ids) if isinstance(memory_written_ids, list) else ""
                     llm_info = explain.get("llm")
                     llm_dict = llm_info if isinstance(llm_info, dict) else {}
                     usage_info = llm_dict.get("usage") if isinstance(llm_dict, dict) else {}
@@ -754,6 +787,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"reasons: {reasons_str}")
                     print(f"pinned_memory_ids: {pinned_str}")
                     print(f"relevant_memory_ids: {relevant_str}")
+                    print(f"memory_written_ids: {memory_written_str}")
                     print(
                         "usage: "
                         f"in={'' if usage_in is None else usage_in} "

@@ -5,8 +5,15 @@ from typing import cast
 
 import pytest
 
-from openchronicle.core.application.use_cases import add_memory, ask_conversation, create_conversation, explain_turn
+from openchronicle.core.application.use_cases import (
+    add_memory,
+    ask_conversation,
+    create_conversation,
+    explain_turn,
+    remember_turn,
+)
 from openchronicle.core.domain.models.memory_item import MemoryItem
+from openchronicle.core.domain.models.project import Event
 from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
@@ -64,6 +71,33 @@ async def test_explain_turn_extracts_events(tmp_path: Path, monkeypatch: pytest.
         include_pinned_memory=True,
     )
 
+    remembered = remember_turn.execute(
+        storage=storage,
+        convo_store=storage,
+        memory_store=storage,
+        emit_event=event_logger.append,
+        conversation_id=conversation.id,
+        turn_index=turn.turn_index,
+        which="assistant",
+        tags=["explain"],
+        pinned=False,
+        source="turn",
+    )
+
+    event_logger.append(
+        Event(
+            project_id=conversation.project_id,
+            task_id=conversation.id,
+            type="convo.turn_completed",
+            payload={
+                "turn_id": turn.id,
+                "turn_index": turn.turn_index,
+                "provider": turn.provider,
+                "model": turn.model,
+            },
+        )
+    )
+
     explain = explain_turn.execute(storage=storage, conversation_id=conversation.id, turn_id=turn.id)
     explain_again = explain_turn.execute(storage=storage, conversation_id=conversation.id, turn_id=turn.id)
 
@@ -75,6 +109,7 @@ async def test_explain_turn_extracts_events(tmp_path: Path, monkeypatch: pytest.
     llm_info = cast(dict[str, object], explain["llm"])
     assert "mem-pinned" in cast(list[str], memory["pinned_ids"])
     assert "mem-relevant" in cast(list[str], memory["relevant_ids"])
+    assert remembered.id in cast(list[str], explain["memory_written_ids"])
 
     usage = cast(dict[str, object], llm_info["usage"])
     assert set(usage.keys()) == {"input_tokens", "output_tokens", "total_tokens"}

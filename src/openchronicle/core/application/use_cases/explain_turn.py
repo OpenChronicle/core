@@ -16,9 +16,12 @@ def execute(
 
     completed_event = None
     for event in events:
-        if event.type == "convo.turn_completed" and event.payload.get("turn_id") == turn_id:
+        if event.type != "convo.turn_completed":
+            continue
+        if event.payload.get("turn_id") != turn_id:
+            continue
+        if completed_event is None or (event.created_at, event.id) >= (completed_event.created_at, completed_event.id):
             completed_event = event
-            break
 
     if completed_event is None:
         raise ValueError(f"Turn completion event not found for turn_id: {turn_id}")
@@ -28,6 +31,25 @@ def execute(
     routed_event = _latest_event_before(events, "llm.routed", cutoff)
     memory_event = _latest_event_before(events, "memory.retrieved", cutoff)
     completed_llm_event = _latest_event_before(events, "llm.completed", cutoff)
+
+    memory_link_events = [
+        event
+        for event in events
+        if event.type == "convo.turn_memory_linked"
+        and event.created_at <= cutoff
+        and event.payload.get("turn_id") == turn_id
+    ]
+    memory_link_events.sort(key=lambda e: (e.created_at, e.id))
+    memory_written_ids: list[str] = []
+    seen_memory_ids: set[str] = set()
+    for event in memory_link_events:
+        memory_id = event.payload.get("memory_id")
+        if not isinstance(memory_id, str) or not memory_id:
+            continue
+        if memory_id in seen_memory_ids:
+            continue
+        seen_memory_ids.add(memory_id)
+        memory_written_ids.append(memory_id)
 
     routed_payload = routed_event.payload if routed_event else {}
     memory_payload = memory_event.payload if memory_event else {}
@@ -43,6 +65,7 @@ def execute(
         "turn_id": turn_id,
         "provider": routed_payload.get("provider"),
         "model": routed_payload.get("model"),
+        "memory_written_ids": memory_written_ids,
         "routing_reasons": routed_payload.get("reasons", [])
         if isinstance(routed_payload.get("reasons", []), list)
         else [],
