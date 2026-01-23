@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
+import sys
 from typing import Any
 
 from openchronicle.core.application.runtime.container import CoreContainer
@@ -46,13 +48,15 @@ from openchronicle.core.domain.services.verification import (
     VerificationService,
 )
 from openchronicle.interfaces.cli.stdio import (
+    dispatch_json_command,
+    json_dumps_line,
+    serve_stdio,
+)
+from openchronicle.interfaces.cli.stdio import (
     json_envelope as _json_envelope,
 )
 from openchronicle.interfaces.cli.stdio import (
     json_error_payload as _json_error_payload,
-)
-from openchronicle.interfaces.cli.stdio import (
-    serve_stdio,
 )
 
 
@@ -66,6 +70,12 @@ def _parse_json(value: str) -> dict[str, Any]:
 
 def _print_json(payload: dict[str, object]) -> None:
     print(json.dumps(payload, sort_keys=True, indent=2))
+
+
+def _configure_stdio_logging() -> None:
+    root_logger = logging.getLogger()
+    if not root_logger.handlers:
+        logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 
 def _ensure_agent(orchestrator: OrchestratorService, project_id: str, name: str, role: str) -> Agent:
@@ -156,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("list-handlers", help="List registered task handlers")
     sub.add_parser("serve", help="Run stdio JSON command server")
+    rpc_cmd = sub.add_parser("rpc", help="Run a single JSON RPC request")
+    rpc_cmd.add_argument("--request", default=None, help="JSON request string")
 
     verify_cmd = sub.add_parser("verify-task", help="Verify task event hash chain")
     verify_cmd.add_argument("task_id")
@@ -493,7 +505,77 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "serve":
+        _configure_stdio_logging()
         return serve_stdio(container)
+
+    if args.command == "rpc":
+        _configure_stdio_logging()
+        request_raw = args.request
+        if request_raw is None:
+            request_raw = ""
+            while True:
+                line = sys.stdin.readline()
+                if not line:
+                    break
+                if line.strip():
+                    request_raw = line.strip()
+                    break
+
+        try:
+            request = json.loads(request_raw)
+        except json.JSONDecodeError as exc:
+            payload = _json_envelope(
+                command="unknown",
+                ok=False,
+                result=None,
+                error=_json_error_payload(
+                    error_code="INVALID_JSON",
+                    message=str(exc),
+                    hint=None,
+                ),
+            )
+            sys.stdout.write(json_dumps_line(payload) + "\n")
+            sys.stdout.flush()
+            return 0
+
+        if not isinstance(request, dict) or not isinstance(request.get("command"), str):
+            payload = _json_envelope(
+                command=str(request.get("command")) if isinstance(request, dict) else "unknown",
+                ok=False,
+                result=None,
+                error=_json_error_payload(
+                    error_code="INVALID_REQUEST",
+                    message="Request must include 'command' string",
+                    hint=None,
+                ),
+            )
+            sys.stdout.write(json_dumps_line(payload) + "\n")
+            sys.stdout.flush()
+            return 0
+
+        args_value = request.get("args") if isinstance(request, dict) else None
+        if args_value is None:
+            args_value = {}
+        if not isinstance(args_value, dict):
+            payload = _json_envelope(
+                command=str(request.get("command")) if isinstance(request, dict) else "unknown",
+                ok=False,
+                result=None,
+                error=_json_error_payload(
+                    error_code="INVALID_REQUEST",
+                    message="Request 'args' must be an object",
+                    hint=None,
+                ),
+            )
+            sys.stdout.write(json_dumps_line(payload) + "\n")
+            sys.stdout.flush()
+            return 0
+
+        command = str(request.get("command"))
+        payload = dispatch_json_command(container, command, args_value)
+        sys.stdout.write(json_dumps_line(payload) + "\n")
+        sys.stdout.flush()
+        return 0
 
     if args.command == "verify-task":
         verification_service = VerificationService(container.storage)
