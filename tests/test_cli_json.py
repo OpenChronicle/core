@@ -139,6 +139,7 @@ def test_cli_json_error_envelope(
     assert payload["ok"] is False
     assert payload["result"] is None
     error = payload["error"]
-    assert set(error.keys()) == {"error_code", "message", "hint"}
+    assert set(error.keys()) == {"error_code", "message", "hint", "details"}
     assert error["error_code"] is None
+    assert error["details"] is None
     assert "Conversation not found" in error["message"]

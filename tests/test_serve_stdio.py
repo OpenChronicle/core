@@ -58,10 +58,12 @@ def test_serve_stdio_ping_export_shutdown(tmp_path: Path) -> None:
     assert ping_payload["command"] == "system.ping"
     assert ping_payload["ok"] is True
     assert ping_payload["result"] == {"pong": True}
+    assert ping_payload["protocol_version"] == "1"
 
     export_payload = json.loads(lines[1])
     assert export_payload["command"] == "convo.export"
     assert export_payload["ok"] is True
+    assert export_payload["protocol_version"] == "1"
     export_result = export_payload["result"]
     assert export_result["format_version"] == "1"
     assert export_result["conversation"]["id"] == convo_id
@@ -69,3 +71,4 @@ def test_serve_stdio_ping_export_shutdown(tmp_path: Path) -> None:
     shutdown_payload = json.loads(lines[2])
     assert shutdown_payload["command"] == "system.shutdown"
     assert shutdown_payload["ok"] is True
+    assert shutdown_payload["protocol_version"] == "1"

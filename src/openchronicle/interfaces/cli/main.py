@@ -49,7 +49,7 @@ from openchronicle.core.domain.services.verification import (
 )
 from openchronicle.interfaces.cli.stdio import (
     STDIO_RPC_PROTOCOL_VERSION,
-    dispatch_json_command,
+    dispatch_request,
     json_dumps_line,
     serve_stdio,
 )
@@ -540,14 +540,14 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.flush()
             return 0
 
-        if not isinstance(request, dict) or not isinstance(request.get("command"), str):
+        if not isinstance(request, dict):
             payload = _json_envelope(
-                command=str(request.get("command")) if isinstance(request, dict) else "unknown",
+                command="unknown",
                 ok=False,
                 result=None,
                 error=_json_error_payload(
                     error_code="INVALID_REQUEST",
-                    message="Request must include 'command' string",
+                    message="Request must be a JSON object",
                     hint=None,
                 ),
             )
@@ -556,28 +556,7 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.flush()
             return 0
 
-        args_value = request.get("args") if isinstance(request, dict) else None
-        if args_value is None:
-            args_value = {}
-        if not isinstance(args_value, dict):
-            payload = _json_envelope(
-                command=str(request.get("command")) if isinstance(request, dict) else "unknown",
-                ok=False,
-                result=None,
-                error=_json_error_payload(
-                    error_code="INVALID_REQUEST",
-                    message="Request 'args' must be an object",
-                    hint=None,
-                ),
-            )
-            payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
-            sys.stdout.write(json_dumps_line(payload) + "\n")
-            sys.stdout.flush()
-            return 0
-
-        command = str(request.get("command"))
-        payload = dispatch_json_command(container, command, args_value)
-        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        payload = dispatch_request(container, request)
         sys.stdout.write(json_dumps_line(payload) + "\n")
         sys.stdout.flush()
         return 0

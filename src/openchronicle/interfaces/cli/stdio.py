@@ -14,17 +14,23 @@ from openchronicle.core.application.use_cases import (
     export_convo,
     show_conversation,
 )
-from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
 
 STDIO_RPC_PROTOCOL_VERSION = "1"
 
 
-def json_error_payload(*, error_code: str | None, message: str, hint: str | None) -> dict[str, object]:
+def json_error_payload(
+    *,
+    error_code: str | None,
+    message: str,
+    hint: str | None,
+    details: dict[str, object] | None = None,
+) -> dict[str, object]:
     return {
         "error_code": error_code,
         "message": message,
         "hint": hint,
+        "details": details,
     }
 
 
@@ -53,6 +59,68 @@ def coerce_int(value: object, default: int) -> int:
     if isinstance(value, str) and value.isdigit():
         return int(value)
     return default
+
+
+def _sanitize_details(details: dict[str, object]) -> dict[str, object]:
+    sanitized: dict[str, object] = {}
+    for key, value in details.items():
+        key_lower = key.lower()
+        if "prompt" in key_lower or "user_text" in key_lower or "assistant_text" in key_lower:
+            continue
+        sanitized[key] = value
+    return sanitized
+
+
+def _normalize_error(exc: Exception) -> dict[str, object]:
+    if hasattr(exc, "error_code") or hasattr(exc, "hint"):
+        error_code = getattr(exc, "error_code", None)
+        hint = getattr(exc, "hint", None)
+        details: dict[str, object] = {}
+
+        configured_providers = getattr(exc, "configured_providers", None)
+        if configured_providers:
+            details["configured_providers"] = configured_providers
+
+        configured_pools = getattr(exc, "configured_pools", None)
+        if configured_pools:
+            details["configured_pools"] = configured_pools
+
+        config_dir = getattr(exc, "config_dir", None)
+        if config_dir:
+            details["config_dir"] = config_dir
+
+        extra_details = getattr(exc, "details", None)
+        if isinstance(extra_details, dict):
+            details.update(extra_details)
+
+        if details:
+            details = _sanitize_details(details)
+            try:
+                json.dumps(details)
+            except TypeError:
+                details = {}
+
+        return json_error_payload(
+            error_code=error_code,
+            message=str(exc),
+            hint=hint,
+            details=details or None,
+        )
+
+    if isinstance(exc, ValueError):
+        return json_error_payload(
+            error_code="INVALID_ARGUMENT",
+            message=str(exc),
+            hint=None,
+            details=None,
+        )
+
+    return json_error_payload(
+        error_code="INTERNAL_ERROR",
+        message="Internal error",
+        hint="See stderr logs for details.",
+        details=None,
+    )
 
 
 def dispatch_json_command(
@@ -273,39 +341,81 @@ def dispatch_json_command(
                 hint=None,
             ),
         )
-    except LLMProviderError as exc:
-        return json_envelope(
-            command=command,
-            ok=False,
-            result=None,
-            error=json_error_payload(
-                error_code=exc.error_code,
-                message=str(exc),
-                hint=exc.hint,
-            ),
-        )
-    except ValueError as exc:
-        return json_envelope(
-            command=command,
-            ok=False,
-            result=None,
-            error=json_error_payload(
-                error_code=None,
-                message=str(exc),
-                hint=None,
-            ),
-        )
     except Exception as exc:
         return json_envelope(
             command=command,
             ok=False,
             result=None,
+            error=_normalize_error(exc),
+        )
+
+
+def dispatch_request(container: CoreContainer, request: dict[str, object]) -> dict[str, object]:
+    command_value = request.get("command")
+    args_value = request.get("args")
+    protocol_value = request.get("protocol_version")
+
+    if protocol_value is not None and not isinstance(protocol_value, str):
+        payload = json_envelope(
+            command=str(command_value) if isinstance(command_value, str) else "unknown",
+            ok=False,
+            result=None,
             error=json_error_payload(
-                error_code=None,
-                message=str(exc),
+                error_code="INVALID_REQUEST",
+                message="Request 'protocol_version' must be a string",
                 hint=None,
             ),
         )
+        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        return payload
+
+    if protocol_value is not None and protocol_value != STDIO_RPC_PROTOCOL_VERSION:
+        payload = json_envelope(
+            command=str(command_value) if isinstance(command_value, str) else "unknown",
+            ok=False,
+            result=None,
+            error=json_error_payload(
+                error_code="UNSUPPORTED_PROTOCOL_VERSION",
+                message=f"Unsupported protocol_version: {protocol_value}",
+                hint='Use protocol_version "1".',
+            ),
+        )
+        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        return payload
+
+    if not isinstance(command_value, str):
+        payload = json_envelope(
+            command=str(command_value) if command_value is not None else "unknown",
+            ok=False,
+            result=None,
+            error=json_error_payload(
+                error_code="INVALID_REQUEST",
+                message="Request must include 'command' string",
+                hint=None,
+            ),
+        )
+        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        return payload
+
+    if args_value is None:
+        args_value = {}
+    if not isinstance(args_value, dict):
+        payload = json_envelope(
+            command=command_value,
+            ok=False,
+            result=None,
+            error=json_error_payload(
+                error_code="INVALID_REQUEST",
+                message="Request 'args' must be an object",
+                hint=None,
+            ),
+        )
+        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        return payload
+
+    response = dispatch_json_command(container, command_value, args_value)
+    response["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+    return response
 
 
 def serve_stdio(
@@ -344,16 +454,14 @@ def serve_stdio(
             output_stream.flush()
             continue
 
-        command = request.get("command") if isinstance(request, dict) else None
-        args = request.get("args") if isinstance(request, dict) else None
-        if not isinstance(command, str) or not isinstance(args, dict):
+        if not isinstance(request, dict):
             payload = json_envelope(
-                command=str(command) if command is not None else "unknown",
+                command="unknown",
                 ok=False,
                 result=None,
                 error=json_error_payload(
                     error_code="INVALID_REQUEST",
-                    message="Request must include 'command' string and 'args' object",
+                    message="Request must be a JSON object",
                     hint=None,
                 ),
             )
@@ -362,10 +470,9 @@ def serve_stdio(
             output_stream.flush()
             continue
 
-        response = dispatch_json_command(container, command, args)
-        response["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
+        response = dispatch_request(container, request)
         output_stream.write(json_dumps_line(response) + "\n")
         output_stream.flush()
-        if command == "system.shutdown":
+        if isinstance(request.get("command"), str) and request.get("command") == "system.shutdown":
             break
     return 0

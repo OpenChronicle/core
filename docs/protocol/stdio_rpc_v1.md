@@ -22,7 +22,8 @@ Requests are single JSON objects on one line.
 {"protocol_version":"1","command":"...","args":{...}}
 ```
 
-- `protocol_version` (optional, recommended): must be "1" for this protocol version.
+- `protocol_version` (optional, recommended): must be "1" for this protocol version. If provided and not "1",
+  the server responds with `UNSUPPORTED_PROTOCOL_VERSION`.
 - `command` (required): string command name.
 - `args` (optional): object containing command arguments. Defaults to `{}` when omitted.
 
@@ -49,13 +50,17 @@ Responses are single JSON objects on one line.
 - `error_code`: string or `null`.
 - `message`: string.
 - `hint`: string or `null`.
+- `details`: object or `null`.
 
 ## Error codes
 
 - `INVALID_JSON`
 - `INVALID_REQUEST`
+- `INVALID_ARGUMENT`
+- `INTERNAL_ERROR`
 - `UNKNOWN_COMMAND`
 - `NSFW_POOL_NOT_CONFIGURED`
+- `UNSUPPORTED_PROTOCOL_VERSION`
 
 ## Supported commands
 
