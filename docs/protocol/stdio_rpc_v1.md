@@ -81,7 +81,17 @@ Args: `{}`
 Result:
 
 ```json
-{"commands":["convo.ask","convo.export","convo.mode","convo.show","convo.verify","system.commands","system.info","system.ping","system.shutdown"]}
+{"commands":["convo.ask","convo.export","convo.mode","convo.show","convo.verify","system.commands","system.health","system.info","system.ping","system.shutdown"]}
+```
+
+### system.health
+
+Args: `{}`
+
+Result:
+
+```json
+{"ok":true,"storage":{"type":"sqlite","reachable":true},"config":{"config_dir":"config","pools":["FAST","QUALITY"],"nsfw_pool_configured":false}}
 ```
 
 ### system.ping

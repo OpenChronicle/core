@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 from io import TextIOBase
 from typing import TextIO
 
+from openchronicle.core.application.routing.pool_config import load_pool_config
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     ask_conversation,
@@ -24,6 +26,7 @@ SUPPORTED_COMMANDS: tuple[str, ...] = (
     "convo.show",
     "convo.verify",
     "system.commands",
+    "system.health",
     "system.info",
     "system.ping",
     "system.shutdown",
@@ -171,6 +174,52 @@ def dispatch_json_command(
             command=command,
             ok=True,
             result={"commands": list(SUPPORTED_COMMANDS)},
+            error=None,
+        )
+
+    if command == "system.health":
+        config_dir = os.getenv("OC_CONFIG_DIR", "config")
+        config_ok = os.path.isdir(config_dir) and os.access(config_dir, os.R_OK)
+
+        pool_config = load_pool_config() if config_ok else None
+        pools: list[str] = []
+        if pool_config is not None:
+            if pool_config.fast_pool:
+                pools.append("FAST")
+            if pool_config.nsfw_pool:
+                pools.append("NSFW")
+            if pool_config.quality_pool:
+                pools.append("QUALITY")
+        pools.sort()
+
+        nsfw_pool_configured = bool(pool_config.nsfw_pool) if pool_config is not None else False
+
+        storage_ok = False
+        try:
+            conn = getattr(container.storage, "_conn", None)
+            if conn is not None:
+                conn.execute("SELECT 1").fetchone()
+                storage_ok = True
+        except Exception:
+            storage_ok = False
+
+        overall_ok = storage_ok and config_ok
+
+        return json_envelope(
+            command=command,
+            ok=True,
+            result={
+                "ok": overall_ok,
+                "storage": {
+                    "type": "sqlite",
+                    "reachable": storage_ok,
+                },
+                "config": {
+                    "config_dir": config_dir,
+                    "pools": pools,
+                    "nsfw_pool_configured": nsfw_pool_configured,
+                },
+            },
             error=None,
         )
 
