@@ -17,6 +17,8 @@ from openchronicle.core.application.use_cases import (
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
 
+STDIO_RPC_PROTOCOL_VERSION = "1"
+
 
 def json_error_payload(*, error_code: str | None, message: str, hint: str | None) -> dict[str, object]:
     return {
@@ -337,6 +339,7 @@ def serve_stdio(
                     hint=None,
                 ),
             )
+            payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
             output_stream.write(json_dumps_line(payload) + "\n")
             output_stream.flush()
             continue
@@ -354,11 +357,13 @@ def serve_stdio(
                     hint=None,
                 ),
             )
+            payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
             output_stream.write(json_dumps_line(payload) + "\n")
             output_stream.flush()
             continue
 
         response = dispatch_json_command(container, command, args)
+        response["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
         output_stream.write(json_dumps_line(response) + "\n")
         output_stream.flush()
         if command == "system.shutdown":

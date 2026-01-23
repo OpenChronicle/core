@@ -48,6 +48,7 @@ from openchronicle.core.domain.services.verification import (
     VerificationService,
 )
 from openchronicle.interfaces.cli.stdio import (
+    STDIO_RPC_PROTOCOL_VERSION,
     dispatch_json_command,
     json_dumps_line,
     serve_stdio,
@@ -534,6 +535,7 @@ def main(argv: list[str] | None = None) -> int:
                     hint=None,
                 ),
             )
+            payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
             sys.stdout.write(json_dumps_line(payload) + "\n")
             sys.stdout.flush()
             return 0
@@ -549,6 +551,7 @@ def main(argv: list[str] | None = None) -> int:
                     hint=None,
                 ),
             )
+            payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
             sys.stdout.write(json_dumps_line(payload) + "\n")
             sys.stdout.flush()
             return 0
@@ -567,12 +570,14 @@ def main(argv: list[str] | None = None) -> int:
                     hint=None,
                 ),
             )
+            payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
             sys.stdout.write(json_dumps_line(payload) + "\n")
             sys.stdout.flush()
             return 0
 
         command = str(request.get("command"))
         payload = dispatch_json_command(container, command, args_value)
+        payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
         sys.stdout.write(json_dumps_line(payload) + "\n")
         sys.stdout.flush()
         return 0
