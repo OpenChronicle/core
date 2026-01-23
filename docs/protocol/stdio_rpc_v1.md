@@ -224,7 +224,7 @@ Result:
 {"ran":true,"task_id":"...","status":"completed","conversation_id":"...","turn_id":"...","error":null}
 ```
 
-This runs at most one queued task deterministically (oldest first). No background loop is started.
+This runs at most one queued task deterministically (created_at ASC, task_id ASC). No background loop is started.
 
 ### privacy.preview
 

@@ -4,10 +4,12 @@ import json
 import os
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 from openchronicle.core.application.use_cases import create_conversation
+from openchronicle.core.domain.models.project import Task, TaskStatus
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
 
@@ -112,6 +114,47 @@ def test_task_run_one_deterministic(tmp_path: Path) -> None:
 
     turns_after_second = storage.list_turns(conversation_id)
     assert len(turns_after_second) == 2
+
+
+def test_task_run_one_tie_breaker(tmp_path: Path) -> None:
+    env = _rpc_env(tmp_path)
+    conversation_id = _prepare_conversation(Path(env["OC_DB_PATH"]))
+
+    storage = SqliteStore(str(env["OC_DB_PATH"]))
+    conversation = storage.get_conversation(conversation_id)
+    assert conversation is not None
+
+    fixed_time = datetime(2024, 1, 1, tzinfo=UTC)
+    task_b = Task(
+        id="task-b",
+        project_id=conversation.project_id,
+        type="convo.ask",
+        payload={"conversation_id": conversation_id, "prompt": "second"},
+        status=TaskStatus.PENDING,
+        created_at=fixed_time,
+        updated_at=fixed_time,
+    )
+    task_a = Task(
+        id="task-a",
+        project_id=conversation.project_id,
+        type="convo.ask",
+        payload={"conversation_id": conversation_id, "prompt": "first"},
+        status=TaskStatus.PENDING,
+        created_at=fixed_time,
+        updated_at=fixed_time,
+    )
+    storage.add_task(task_b)
+    storage.add_task(task_a)
+
+    payload1 = _run_rpc({"command": "task.run_one", "args": {}}, env=env)
+    result1 = cast(dict[str, Any], payload1["result"])
+    assert result1["task_id"] == "task-a"
+    assert result1["status"] == "completed"
+
+    payload2 = _run_rpc({"command": "task.run_one", "args": {}}, env=env)
+    result2 = cast(dict[str, Any], payload2["result"])
+    assert result2["task_id"] == "task-b"
+    assert result2["status"] == "completed"
 
 
 def test_task_run_one_failure(tmp_path: Path) -> None:

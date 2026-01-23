@@ -14,6 +14,7 @@ from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSet
 
 
 def _eligible_tasks(tasks: list[Task], task_type: str) -> list[Task]:
+    """Return pending tasks ordered by created_at ASC, task_id ASC."""
     eligible = [task for task in tasks if task.status == TaskStatus.PENDING and task.type == task_type]
     eligible.sort(key=lambda task: (task.created_at, task.id))
     return eligible
