@@ -21,6 +21,7 @@ from openchronicle.core.application.use_cases import (
     list_projects,
     pin_memory,
     register_agent,
+    remember_turn,
     resume_project,
     run_task,
     search_memory,
@@ -167,6 +168,10 @@ def main(argv: list[str] | None = None) -> int:
     convo_show_cmd = convo_sub.add_parser("show", help="Show conversation transcript")
     convo_show_cmd.add_argument("conversation_id")
     convo_show_cmd.add_argument("--limit", type=int, default=None, help="Limit number of turns shown")
+    convo_show_cmd.add_argument("--explain", action="store_true", help="Explain each turn from events")
+
+    convo_verify_cmd = convo_sub.add_parser("verify", help="Verify conversation event hash chain")
+    convo_verify_cmd.add_argument("conversation_id")
 
     convo_ask_cmd = convo_sub.add_parser("ask", help="Ask a prompt in a conversation")
     convo_ask_cmd.add_argument("conversation_id")
@@ -181,6 +186,14 @@ def main(argv: list[str] | None = None) -> int:
 
     convo_list_cmd = convo_sub.add_parser("list", help="List conversations")
     convo_list_cmd.add_argument("--limit", type=int, default=None, help="Limit number of conversations shown")
+
+    convo_remember_cmd = convo_sub.add_parser("remember", help="Remember a turn as memory")
+    convo_remember_cmd.add_argument("conversation_id")
+    convo_remember_cmd.add_argument("turn_index", type=int)
+    convo_remember_cmd.add_argument("--which", choices=["user", "assistant"], required=True)
+    convo_remember_cmd.add_argument("--tags", default="", help="Comma-separated tags")
+    convo_remember_cmd.add_argument("--pin", action="store_true", help="Pin this memory item")
+    convo_remember_cmd.add_argument("--source", default="turn", help="Source label")
 
     memory_cmd = sub.add_parser("memory", help="Memory commands")
     memory_sub = memory_cmd.add_subparsers(dest="memory_command")
@@ -590,13 +603,107 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
 
             for turn in turns:
-                print(f"{turn.turn_index}\t{turn.user_text}\t{turn.assistant_text}")
+                if not args.explain:
+                    print(f"{turn.turn_index}\t{turn.user_text}\t{turn.assistant_text}")
+                    continue
+
+                print(f"Turn {turn.turn_index}:")
+                print(f"user: {turn.user_text}")
+                print(f"assistant: {turn.assistant_text}")
+
+                try:
+                    explain = explain_turn.execute(
+                        storage=container.storage,
+                        conversation_id=args.conversation_id,
+                        turn_id=turn.id,
+                    )
+                except ValueError:
+                    print("EXPLAIN")
+                    print("unavailable: missing events")
+                    continue
+
+                reasons = explain.get("routing_reasons", [])
+                reasons_str = ",".join(reasons) if isinstance(reasons, list) else ""
+                memory_info = explain.get("memory")
+                memory_dict = memory_info if isinstance(memory_info, dict) else {}
+                pinned_ids = memory_dict.get("pinned_ids", []) if isinstance(memory_dict, dict) else []
+                relevant_ids = memory_dict.get("relevant_ids", []) if isinstance(memory_dict, dict) else []
+                pinned_str = ",".join(pinned_ids) if isinstance(pinned_ids, list) else ""
+                relevant_str = ",".join(relevant_ids) if isinstance(relevant_ids, list) else ""
+                llm_info = explain.get("llm")
+                llm_dict = llm_info if isinstance(llm_info, dict) else {}
+                usage_info = llm_dict.get("usage") if isinstance(llm_dict, dict) else {}
+                usage_dict = usage_info if isinstance(usage_info, dict) else {}
+                usage_in = usage_dict.get("input_tokens")
+                usage_out = usage_dict.get("output_tokens")
+                usage_total = usage_dict.get("total_tokens")
+                latency_ms = llm_dict.get("latency_ms")
+                finish_reason = llm_dict.get("finish_reason")
+
+                print("EXPLAIN")
+                print(f"provider: {explain.get('provider') or ''}")
+                print(f"model: {explain.get('model') or ''}")
+                print(f"reasons: {reasons_str}")
+                print(f"pinned_memory_ids: {pinned_str}")
+                print(f"relevant_memory_ids: {relevant_str}")
+                print(
+                    "usage: "
+                    f"in={'' if usage_in is None else usage_in} "
+                    f"out={'' if usage_out is None else usage_out} "
+                    f"total={'' if usage_total is None else usage_total} "
+                    f"latency_ms={'' if latency_ms is None else latency_ms} "
+                    f"finish_reason={'' if finish_reason is None else finish_reason}"
+                )
             return 0
+
+        if args.convo_command == "verify":
+            verification_service = VerificationService(container.storage)
+            convo_verify_result: VerificationResult = verification_service.verify_task_chain(args.conversation_id)
+            if convo_verify_result.success:
+                print("OK")
+                return 0
+
+            error_message = convo_verify_result.error_message or "verification failed"
+            print(f"FAIL: {error_message}")
+
+            first_mismatch = convo_verify_result.first_mismatch or {}
+            event_id = first_mismatch.get("event_id")
+            if event_id:
+                print(f"event_id: {event_id}")
+
+            expected_hash = first_mismatch.get("expected_hash")
+            actual_hash = first_mismatch.get("computed_hash")
+            if expected_hash is None and actual_hash is None:
+                expected_hash = first_mismatch.get("expected_prev_hash")
+                actual_hash = first_mismatch.get("actual_prev_hash")
+            if expected_hash is not None or actual_hash is not None:
+                print(f"expected_hash: {'' if expected_hash is None else expected_hash}")
+                print(f"actual_hash: {'' if actual_hash is None else actual_hash}")
+
+            print(f"hint: run oc replay-task {args.conversation_id} --mode verify or oc diagnose")
+            return 1
 
         if args.convo_command == "list":
             conversations = list_conversations.execute(convo_store=container.storage, limit=args.limit)
             for conversation in conversations:
                 print(f"{conversation.id}\t{conversation.title}\t{conversation.created_at.isoformat()}")
+            return 0
+
+        if args.convo_command == "remember":
+            tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
+            item = remember_turn.execute(
+                storage=container.storage,
+                convo_store=container.storage,
+                memory_store=container.storage,
+                emit_event=container.event_logger.append,
+                conversation_id=args.conversation_id,
+                turn_index=args.turn_index,
+                which=args.which,
+                tags=tags,
+                pinned=args.pin,
+                source=args.source,
+            )
+            print(item.id)
             return 0
 
         if args.convo_command == "ask":

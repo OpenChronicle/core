@@ -43,7 +43,9 @@ def test_fresh_database_has_all_indexes(fresh_db: SqliteStore) -> None:
     cur = fresh_db._conn.cursor()
 
     # Query sqlite_master for indexes (excluding auto-created primary key indexes)
-    indexes = cur.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'").fetchall()
+    indexes = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND (name LIKE 'idx_%' OR name LIKE 'ux_%')"
+    ).fetchall()
 
     index_names = {row[0] for row in indexes}
 
@@ -60,6 +62,7 @@ def test_fresh_database_has_all_indexes(fresh_db: SqliteStore) -> None:
         "idx_llm_usage_agent_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "ux_turns_conversation_turn_index",
         "idx_memory_pinned_created",
         "idx_memory_convo_created",
         "idx_memory_project_created",
@@ -72,7 +75,9 @@ def test_migration_creates_indexes_on_existing_db(migrated_db: SqliteStore) -> N
     """Verify that indexes are created during migration of existing database."""
     cur = migrated_db._conn.cursor()
 
-    indexes = cur.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'").fetchall()
+    indexes = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND (name LIKE 'idx_%' OR name LIKE 'ux_%')"
+    ).fetchall()
 
     index_names = {row[0] for row in indexes}
 
@@ -88,6 +93,7 @@ def test_migration_creates_indexes_on_existing_db(migrated_db: SqliteStore) -> N
         "idx_llm_usage_agent_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "ux_turns_conversation_turn_index",
         "idx_memory_pinned_created",
         "idx_memory_convo_created",
         "idx_memory_project_created",
@@ -111,6 +117,7 @@ def test_indexes_are_on_correct_tables_and_columns(fresh_db: SqliteStore) -> Non
         "idx_spans_task_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "ux_turns_conversation_turn_index",
         "idx_memory_pinned_created",
         "idx_memory_convo_created",
         "idx_memory_project_created",
@@ -141,6 +148,10 @@ def test_indexes_are_on_correct_tables_and_columns(fresh_db: SqliteStore) -> Non
         "table": "turns",
         "columns": ["conversation_id", "turn_index", "id"],
     }
+    assert index_info["ux_turns_conversation_turn_index"] == {
+        "table": "turns",
+        "columns": ["conversation_id", "turn_index"],
+    }
     assert index_info["idx_memory_pinned_created"] == {
         "table": "memory_items",
         "columns": ["pinned", "created_at", "id"],
@@ -167,7 +178,9 @@ def test_index_creation_is_idempotent(tmp_path: Path) -> None:
 
     # Verify indexes still exist and are correct
     cur = store._conn.cursor()
-    indexes = cur.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'").fetchall()
+    indexes = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND (name LIKE 'idx_%' OR name LIKE 'ux_%')"
+    ).fetchall()
 
     index_names = {row[0] for row in indexes}
 
@@ -183,6 +196,7 @@ def test_index_creation_is_idempotent(tmp_path: Path) -> None:
         "idx_llm_usage_agent_created",
         "idx_conversations_created",
         "idx_turns_conversation_order",
+        "ux_turns_conversation_turn_index",
         "idx_memory_pinned_created",
         "idx_memory_convo_created",
         "idx_memory_project_created",

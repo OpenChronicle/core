@@ -46,6 +46,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         self._commit_if_needed()
         self._ensure_parent_task_column()
         self._ensure_task_result_columns()
+        self._ensure_turn_memory_written_column()
         self._ensure_indexes()
         # Ensure crash recovery runs even for reused databases
         self.recover_stale_tasks()
@@ -343,8 +344,19 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         cur = self._conn.cursor()
         cur.execute(
             """
-            INSERT INTO turns (id, conversation_id, turn_index, user_text, assistant_text, provider, model, routing_reasons, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO turns (
+                id,
+                conversation_id,
+                turn_index,
+                user_text,
+                assistant_text,
+                provider,
+                model,
+                routing_reasons,
+                memory_written_ids,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 turn.id,
@@ -355,6 +367,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
                 turn.provider,
                 turn.model,
                 json.dumps(turn.routing_reasons, sort_keys=True),
+                json.dumps(turn.memory_written_ids, sort_keys=True),
                 turn.created_at.isoformat(),
             ),
         )
@@ -389,6 +402,39 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         turns = [self._row_to_turn(r) for r in rows]
         turns.reverse()
         return turns
+
+    def get_turn_by_index(self, conversation_id: str, turn_index: int) -> Turn | None:
+        cur = self._conn.cursor()
+        row = cur.execute(
+            """
+            SELECT * FROM turns
+            WHERE conversation_id=? AND turn_index=?
+            ORDER BY id ASC
+            LIMIT 1
+            """,
+            (conversation_id, turn_index),
+        ).fetchone()
+        return self._row_to_turn(row) if row else None
+
+    def link_memory_to_turn(self, turn_id: str, memory_id: str) -> None:
+        cur = self._conn.cursor()
+        row = cur.execute("SELECT memory_written_ids FROM turns WHERE id=?", (turn_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"Turn not found: {turn_id}")
+        raw_ids = row["memory_written_ids"] or "[]"
+        try:
+            memory_ids = json.loads(raw_ids)
+        except json.JSONDecodeError:
+            memory_ids = []
+        if not isinstance(memory_ids, list):
+            memory_ids = []
+        if memory_id not in memory_ids:
+            memory_ids.append(memory_id)
+            cur.execute(
+                "UPDATE turns SET memory_written_ids=? WHERE id=?",
+                (json.dumps(memory_ids, sort_keys=True), turn_id),
+            )
+            self._commit_if_needed()
 
     # Memory
     def add_memory(self, item: MemoryItem) -> None:
@@ -629,6 +675,13 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
 
     def _row_to_turn(self, row: sqlite3.Row) -> Turn:
         reasons_raw = row["routing_reasons"] or "[]"
+        memory_raw = row["memory_written_ids"] if "memory_written_ids" in row else "[]"  # noqa: SIM401
+        try:
+            memory_ids = json.loads(memory_raw) if memory_raw else []
+        except json.JSONDecodeError:
+            memory_ids = []
+        if not isinstance(memory_ids, list):
+            memory_ids = []
         return Turn(
             id=row["id"],
             conversation_id=row["conversation_id"],
@@ -638,6 +691,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             provider=row["provider"],
             model=row["model"],
             routing_reasons=json.loads(reasons_raw) if reasons_raw else [],
+            memory_written_ids=memory_ids,
             created_at=self._parse_dt(row["created_at"]),
         )
 
@@ -706,6 +760,13 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         if "error_json" not in columns:
             cur.execute("ALTER TABLE tasks ADD COLUMN error_json TEXT")
         self._commit_if_needed()
+
+    def _ensure_turn_memory_written_column(self) -> None:
+        cur = self._conn.cursor()
+        columns = [row[1] for row in cur.execute("PRAGMA table_info(turns)").fetchall()]
+        if "memory_written_ids" not in columns:
+            cur.execute("ALTER TABLE turns ADD COLUMN memory_written_ids TEXT NOT NULL DEFAULT '[]'")
+            self._commit_if_needed()
 
     def _ensure_indexes(self) -> None:
         """Create indexes for query performance optimization."""

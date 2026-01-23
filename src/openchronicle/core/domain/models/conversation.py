@@ -27,4 +27,5 @@ class Turn:
     provider: str = ""
     model: str = ""
     routing_reasons: list[str] = field(default_factory=list)
+    memory_written_ids: list[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=_utc_now)

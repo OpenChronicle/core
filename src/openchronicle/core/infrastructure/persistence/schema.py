@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS turns (
     provider TEXT NOT NULL,
     model TEXT NOT NULL,
     routing_reasons TEXT NOT NULL,
+    memory_written_ids TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL,
     FOREIGN KEY(conversation_id) REFERENCES conversations(id)
 );
@@ -164,6 +165,8 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_conversations_created ON conversations(created_at, id)",
     # Turns: optimize conversation ordering
     "CREATE INDEX IF NOT EXISTS idx_turns_conversation_order ON turns(conversation_id, turn_index, id)",
+    # Turns: prevent duplicate turn_index within a conversation
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_turns_conversation_turn_index ON turns(conversation_id, turn_index)",
     # Memory: optimize pinned ordering
     "CREATE INDEX IF NOT EXISTS idx_memory_pinned_created ON memory_items(pinned, created_at, id)",
     # Memory: optimize conversation ordering
