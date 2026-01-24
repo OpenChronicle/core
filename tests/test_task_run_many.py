@@ -56,6 +56,8 @@ def test_task_run_many_none(tmp_path: Path) -> None:
     assert result["ran"] == 0
     assert result["completed"] == 0
     assert result["failed"] == 0
+    assert result["has_more"] is False
+    assert result["remaining_queued"] == 0
     assert result["tasks"] == []
 
 
@@ -77,6 +79,8 @@ def test_task_run_many_limits_and_continues(tmp_path: Path) -> None:
     assert result1["ran"] == 2
     assert result1["completed"] == 2
     assert result1["failed"] == 0
+    assert result1["has_more"] is True
+    assert result1["remaining_queued"] == 1
     assert len(cast(list[dict[str, Any]], result1["tasks"])) == 2
 
     pending_payload = _run_rpc(
@@ -91,6 +95,8 @@ def test_task_run_many_limits_and_continues(tmp_path: Path) -> None:
     assert result2["ran"] == 1
     assert result2["completed"] == 1
     assert result2["failed"] == 0
+    assert result2["has_more"] is False
+    assert result2["remaining_queued"] == 0
     assert len(cast(list[dict[str, Any]], result2["tasks"])) == 1
 
     pending_payload_after = _run_rpc(
@@ -120,6 +126,8 @@ def test_task_run_many_failure(tmp_path: Path) -> None:
     assert result["ran"] == 1
     assert result["completed"] == 0
     assert result["failed"] == 1
+    assert result["has_more"] is False
+    assert result["remaining_queued"] == 0
     tasks = cast(list[dict[str, Any]], result["tasks"])
     assert tasks[0]["status"] == "failed"
     error = cast(dict[str, Any], tasks[0]["error"])

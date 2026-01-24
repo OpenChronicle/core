@@ -14,6 +14,8 @@ protocol_version: "1"
 The STDIO RPC protocol defines newline-delimited JSON requests sent to `oc serve` and `oc rpc` and JSON responses
 written to stdout. Stdout must contain JSON only. Diagnostics must be sent to stderr.
 
+Integrations: [docs/integrations/discord_driver_contract.md](docs/integrations/discord_driver_contract.md)
+
 ## Request schema
 
 Requests are single JSON objects on one line.
@@ -237,7 +239,7 @@ Args:
 Result:
 
 ```json
-{"ran":2,"completed":2,"failed":0,"tasks":[{"task_id":"...","status":"completed","conversation_id":"...","turn_id":"...","error":null}]}
+{"ran":2,"completed":2,"failed":0,"has_more":false,"remaining_queued":0,"tasks":[{"task_id":"...","status":"completed","conversation_id":"...","turn_id":"...","error":null}]}
 ```
 
 This runs up to the requested number of queued tasks deterministically (created_at ASC, task_id ASC). No background loop is started.

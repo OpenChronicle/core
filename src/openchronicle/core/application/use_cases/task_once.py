@@ -202,6 +202,8 @@ async def execute_many(
             "ran": 0,
             "completed": 0,
             "failed": 0,
+            "has_more": False,
+            "remaining_queued": 0,
             "tasks": [],
         }
 
@@ -233,9 +235,12 @@ async def execute_many(
         else:
             failed += 1
 
+    remaining = len(_eligible_tasks(_collect_tasks(storage), task_type))
     return {
         "ran": len(results),
         "completed": completed,
         "failed": failed,
+        "has_more": remaining > 0,
+        "remaining_queued": remaining,
         "tasks": results,
     }
