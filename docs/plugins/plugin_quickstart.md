@@ -1,5 +1,7 @@
 # Plugin quickstart
 
+See the plugin contract for guarantees and requirements: [plugin_contract.md](plugin_contract.md)
+
 ## Structure
 
 Plugins live under the top-level plugins/ directory. Each plugin must be a package with **init**.py and a plugin.py entrypoint:

@@ -6,6 +6,11 @@ from openchronicle.core.application.runtime.task_registry import TaskHandlerRegi
 from openchronicle.core.domain.models.project import Task
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry
 
+PLUGIN_ID = "hello"
+PLUGIN_NAME = "Hello Plugin"
+PLUGIN_VERSION = "1.0.0"
+PLUGIN_ENTRYPOINT = "plugins/hello_plugin/plugin.py"
+
 
 async def _hello_echo_handler(task: Task, context: dict[str, Any] | None = None) -> dict[str, str]:
     payload = task.payload or {}
