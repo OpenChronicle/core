@@ -47,6 +47,7 @@ storage/temp/
 storage/data/memory.db
 storage/data/*.db
 data/*.db
+*.db
 *.jsonl
 *.log
 bandit-report.json
