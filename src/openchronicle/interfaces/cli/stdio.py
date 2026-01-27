@@ -68,7 +68,7 @@ SUPPORTED_COMMANDS: tuple[str, ...] = (
 RUNNABLE_TASK_TYPES = frozenset(
     {
         "convo.ask",
-        "hello.echo",
+        "plugin.invoke",
     }
 )
 
@@ -505,6 +505,111 @@ def _task_summary(task: Task) -> dict[str, object]:
     if task.parent_task_id:
         summary["parent_task_id"] = task.parent_task_id
     return summary
+
+
+def _execute_plugin_invoke_task(container: CoreContainer, task: Task) -> dict[str, object]:
+    payload = task.payload if isinstance(task.payload, dict) else {}
+    handler_name = payload.get("handler")
+    input_payload = payload.get("input")
+
+    if not isinstance(handler_name, str) or not handler_name:
+        error_payload = {
+            "error_code": "INVALID_ARGUMENT",
+            "message": "Missing or invalid payload.handler for plugin.invoke",
+        }
+        container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
+        return {
+            "task_id": task.id,
+            "status": "failed",
+            "error": error_payload,
+        }
+
+    if not isinstance(input_payload, dict):
+        error_payload = {
+            "error_code": "INVALID_ARGUMENT",
+            "message": "Missing or invalid payload.input for plugin.invoke (must be JSON object)",
+        }
+        container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
+        return {
+            "task_id": task.id,
+            "status": "failed",
+            "error": error_payload,
+        }
+
+    handler = container.orchestrator.handler_registry.get(handler_name)
+    if handler is None:
+        error_payload = {
+            "error_code": "UNKNOWN_HANDLER",
+            "message": f"Unknown handler: {handler_name}",
+        }
+        container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
+        return {
+            "task_id": task.id,
+            "status": "failed",
+            "error": error_payload,
+        }
+
+    container.storage.update_task_status(task.id, TaskStatus.RUNNING.value)
+    container.event_logger.append(
+        Event(
+            project_id=task.project_id,
+            task_id=task.id,
+            type="task.started",
+            payload={"task_id": task.id, "task_type": task.type, "handler": handler_name},
+        )
+    )
+
+    async def _run_handler() -> object:
+        invoke_task = Task(
+            id=task.id,
+            project_id=task.project_id,
+            agent_id=task.agent_id,
+            parent_task_id=task.parent_task_id,
+            type=task.type,
+            payload=input_payload,
+            status=TaskStatus.RUNNING,
+            created_at=task.created_at,
+            updated_at=task.updated_at,
+        )
+        return await handler(invoke_task, {"agent_id": None, "emit_event": container.event_logger.append})
+
+    try:
+        result = asyncio.run(_run_handler())
+    except Exception as exc:  # noqa: BLE001
+        error_payload = {
+            "error_code": "HANDLER_ERROR",
+            "message": str(exc)[:500],
+        }
+        container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
+        container.event_logger.append(
+            Event(
+                project_id=task.project_id,
+                task_id=task.id,
+                type="task.failed",
+                payload={"task_id": task.id, "error_code": "HANDLER_ERROR"},
+            )
+        )
+        return {
+            "task_id": task.id,
+            "status": "failed",
+            "error": error_payload,
+        }
+
+    result_json = json.dumps(result if isinstance(result, dict) else {"value": result})
+    container.storage.update_task_result(task.id, result_json, TaskStatus.COMPLETED.value)
+    container.event_logger.append(
+        Event(
+            project_id=task.project_id,
+            task_id=task.id,
+            type="task.completed",
+            payload={"task_id": task.id, "handler": handler_name},
+        )
+    )
+    return {
+        "task_id": task.id,
+        "status": "completed",
+        "error": None,
+    }
 
 
 def _resolve_privacy_settings(
@@ -1089,16 +1194,47 @@ def dispatch_json_command(
                     task_type=task_type,
                     payload=payload,
                 )
-            except ValueError as exc:
-                error_message = str(exc)
-                error_code = "UNKNOWN_TASK_TYPE" if "Unknown task type" in error_message else "INVALID_ARGUMENT"
+            except task_submit.InvalidTaskTypeError as exc:
                 return json_envelope(
                     command=command,
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code=error_code,
-                        message=error_message,
+                        error_code="INVALID_TASK_TYPE",
+                        message=str(exc),
+                        hint=None,
+                    ),
+                )
+            except task_submit.InvalidPluginPayloadError as exc:
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="INVALID_ARGUMENT",
+                        message=str(exc),
+                        hint=None,
+                    ),
+                )
+            except task_submit.UnknownHandlerError as exc:
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="UNKNOWN_HANDLER",
+                        message=str(exc),
+                        hint=None,
+                    ),
+                )
+            except ValueError as exc:
+                return json_envelope(
+                    command=command,
+                    ok=False,
+                    result=None,
+                    error=json_error_payload(
+                        error_code="UNKNOWN_TASK_TYPE",
+                        message=str(exc),
                         hint=None,
                     ),
                 )
@@ -1222,6 +1358,7 @@ def dispatch_json_command(
             max_scan = 10
             scanned = 0
             skipped_unrunnable = 0
+            invalid_type_count = 0
             run_one_result: dict[str, object] = {
                 "ran": False,
                 "task_id": None,
@@ -1239,6 +1376,23 @@ def dispatch_json_command(
                 if scanned >= max_scan:
                     break
                 scanned += 1
+
+                if "." in task.type and task.type not in RUNNABLE_TASK_TYPES:
+                    invalid_type_count += 1
+                    error_payload = {
+                        "error_code": "INVALID_TASK_TYPE",
+                        "message": f"Invalid task type: {task.type}",
+                    }
+                    container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
+                    container.event_logger.append(
+                        Event(
+                            project_id=task.project_id,
+                            task_id=task.id,
+                            type="task.failed",
+                            payload={"task_id": task.id, "error_code": "INVALID_TASK_TYPE"},
+                        )
+                    )
+                    continue
 
                 if task.type not in RUNNABLE_TASK_TYPES:
                     skipped_unrunnable += 1
@@ -1262,34 +1416,14 @@ def dispatch_json_command(
                         )
                     )
                 else:
-                    error_payload = None
-                    status = "completed"
-                    try:
-                        asyncio.run(run_task.execute(container.orchestrator, task.id))
-                    except Exception as exc:  # noqa: BLE001
-                        status = "failed"
-                        error_payload = {"message": str(exc)}
-
-                    task_after = container.storage.get_task(task.id)
-                    if task_after is not None:
-                        status = task_after.status.value
-                        if task_after.error_json:
-                            try:
-                                error_payload = json.loads(task_after.error_json)
-                            except json.JSONDecodeError:
-                                error_payload = {"message": task_after.error_json}
-
-                    run_one_result = {
-                        "ran": True,
-                        "task_id": task.id,
-                        "status": status,
-                        "error": error_payload,
-                    }
+                    run_one_result = _execute_plugin_invoke_task(container, task)
+                    run_one_result["ran"] = True
 
                 break
 
             run_one_result["scanned"] = scanned
             run_one_result["skipped_unrunnable"] = skipped_unrunnable
+            run_one_result["invalid_type_count"] = invalid_type_count
 
             if run_one_result.get("ran") is True:
                 status_value = str(run_one_result.get("status"))
@@ -1389,6 +1523,7 @@ def dispatch_json_command(
             max_scan = run_many_limit * 10
             scanned = 0
             skipped_unrunnable = 0
+            invalid_type_count = 0
             executed = 0
             completed_count = 0
             failed_count = 0
@@ -1409,6 +1544,23 @@ def dispatch_json_command(
                     break
 
                 scanned += 1
+
+                if "." in task.type and task.type not in RUNNABLE_TASK_TYPES:
+                    invalid_type_count += 1
+                    error_payload = {
+                        "error_code": "INVALID_TASK_TYPE",
+                        "message": f"Invalid task type: {task.type}",
+                    }
+                    container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
+                    container.event_logger.append(
+                        Event(
+                            project_id=task.project_id,
+                            task_id=task.id,
+                            type="task.failed",
+                            payload={"task_id": task.id, "error_code": "INVALID_TASK_TYPE"},
+                        )
+                    )
+                    continue
 
                 if task.type not in RUNNABLE_TASK_TYPES:
                     skipped_unrunnable += 1
@@ -1434,30 +1586,9 @@ def dispatch_json_command(
                     status = str(run_many_task_result.get("status"))
                     results.append(run_many_task_result)
                 else:
-                    status = "completed"
-                    error_payload = None
-                    try:
-                        asyncio.run(run_task.execute(container.orchestrator, task.id))
-                    except Exception as exc:  # noqa: BLE001
-                        status = "failed"
-                        error_payload = {"message": str(exc)}
-
-                    task_after = container.storage.get_task(task.id)
-                    if task_after is not None:
-                        status = task_after.status.value
-                        if task_after.error_json:
-                            try:
-                                error_payload = json.loads(task_after.error_json)
-                            except json.JSONDecodeError:
-                                error_payload = {"message": task_after.error_json}
-
-                    results.append(
-                        {
-                            "task_id": task.id,
-                            "status": status,
-                            "error": error_payload,
-                        }
-                    )
+                    run_many_task_result = _execute_plugin_invoke_task(container, task)
+                    status = str(run_many_task_result.get("status"))
+                    results.append(run_many_task_result)
 
                 executed += 1
                 if status == "completed":
@@ -1482,6 +1613,7 @@ def dispatch_json_command(
                 "failed": failed_count,
                 "scanned": scanned,
                 "skipped_unrunnable": skipped_unrunnable,
+                "invalid_type_count": invalid_type_count,
                 "has_more": remaining_queued > 0,
                 "remaining_queued": remaining_queued,
                 "tasks": results,

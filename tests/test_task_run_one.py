@@ -60,6 +60,7 @@ def test_task_run_one_none(tmp_path: Path) -> None:
     assert result["status"] == "none"
     assert result["scanned"] == 0
     assert result["skipped_unrunnable"] == 0
+    assert result["invalid_type_count"] == 0
 
 
 def test_task_run_one_deterministic(tmp_path: Path) -> None:
@@ -89,6 +90,7 @@ def test_task_run_one_deterministic(tmp_path: Path) -> None:
     assert result1["status"] == "completed"
     assert result1["scanned"] >= 1
     assert result1["skipped_unrunnable"] == 0
+    assert result1["invalid_type_count"] == 0
 
     turns_after_first = storage.list_turns(conversation_id)
     assert len(turns_after_first) == 1
@@ -99,6 +101,7 @@ def test_task_run_one_deterministic(tmp_path: Path) -> None:
     assert result2["status"] == "completed"
     assert result2["scanned"] >= 1
     assert result2["skipped_unrunnable"] == 0
+    assert result2["invalid_type_count"] == 0
 
     turns_after_second = storage.list_turns(conversation_id)
     assert len(turns_after_second) == 2
@@ -143,12 +146,14 @@ def test_task_run_one_tie_breaker(tmp_path: Path) -> None:
     assert result1["task_id"] == "task-a"
     assert result1["status"] == "completed"
     assert result1["skipped_unrunnable"] == 0
+    assert result1["invalid_type_count"] == 0
 
     payload2 = _run_rpc({"command": "task.run_one", "args": {}}, env=env)
     result2 = cast(dict[str, Any], payload2["result"])
     assert result2["task_id"] == "task-b"
     assert result2["status"] == "completed"
     assert result2["skipped_unrunnable"] == 0
+    assert result2["invalid_type_count"] == 0
 
 
 def test_task_run_one_failure(tmp_path: Path) -> None:
@@ -168,6 +173,7 @@ def test_task_run_one_failure(tmp_path: Path) -> None:
     result = cast(dict[str, Any], payload["result"])
     assert result["status"] == "failed"
     assert result["skipped_unrunnable"] == 0
+    assert result["invalid_type_count"] == 0
     error = cast(dict[str, Any], result["error"])
     assert error["error_code"] == "OUTBOUND_PII_BLOCKED"
 
@@ -191,7 +197,7 @@ def test_task_run_one_skips_unrunnable(tmp_path: Path) -> None:
 
     unrunnable_task = Task(
         project_id=conversation.project_id,
-        type="unknown.task",
+        type="unrunnable_task",
         payload={"note": "should be skipped"},
     )
     storage.add_task(unrunnable_task)
@@ -204,6 +210,7 @@ def test_task_run_one_skips_unrunnable(tmp_path: Path) -> None:
     assert result["status"] == "completed"
     assert result["skipped_unrunnable"] == 1
     assert result["scanned"] == 2
+    assert result["invalid_type_count"] == 0
 
     skipped_task = storage.get_task(unrunnable_task.id)
     assert skipped_task is not None

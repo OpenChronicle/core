@@ -8,6 +8,18 @@ from openchronicle.core.application.services.orchestrator import OrchestratorSer
 from openchronicle.core.domain.models.project import Task
 
 
+class InvalidTaskTypeError(ValueError):
+    pass
+
+
+class InvalidPluginPayloadError(ValueError):
+    pass
+
+
+class UnknownHandlerError(ValueError):
+    pass
+
+
 def execute(
     orchestrator: OrchestratorService,
     project_id: str,
@@ -33,19 +45,37 @@ def execute(
     Raises:
         ValueError: If task_type is not registered
     """
-    # Validate that the task type is registered
-    handler = orchestrator.handler_registry.get(task_type)
-    if handler is None:
-        registered_types = orchestrator.handler_registry.list_task_types()
-        raise ValueError(
-            f"Unknown task type: {task_type}. Registered task types: {', '.join(sorted(registered_types)) or 'none'}"
-        )
+    if "." in task_type and task_type not in {"plugin.invoke", "convo.ask"}:
+        raise InvalidTaskTypeError(f"Invalid task type: {task_type}")
+
+    normalized_payload = payload
+
+    if task_type == "plugin.invoke":
+        handler_name = payload.get("handler") if isinstance(payload, dict) else None
+        input_payload = payload.get("input") if isinstance(payload, dict) else None
+        if not isinstance(handler_name, str) or not handler_name:
+            raise InvalidPluginPayloadError("Missing or invalid payload.handler")
+        if not isinstance(input_payload, dict):
+            raise InvalidPluginPayloadError("Missing or invalid payload.input (must be JSON object)")
+
+        handler = orchestrator.handler_registry.get(handler_name)
+        if handler is None:
+            raise UnknownHandlerError(f"Unknown handler: {handler_name}")
+
+        normalized_payload = {"handler": handler_name, "input": input_payload}
+    elif task_type != "convo.ask":
+        handler = orchestrator.handler_registry.get(task_type)
+        if handler is None:
+            registered_types = orchestrator.handler_registry.list_task_types()
+            raise ValueError(
+                f"Unknown task type: {task_type}. Registered task types: {', '.join(sorted(registered_types)) or 'none'}"
+            )
 
     # Use orchestrator's submit_task which handles persistence + events
     return orchestrator.submit_task(
         project_id=project_id,
         task_type=task_type,
-        payload=payload,
+        payload=normalized_payload,
         parent_task_id=parent_task_id,
         agent_id=agent_id,
     )

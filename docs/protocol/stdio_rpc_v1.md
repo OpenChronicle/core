@@ -312,16 +312,19 @@ Args:
 ```json
 {
   "project_id": "...",
-  "task_type": "hello.echo",
+  "task_type": "plugin.invoke",
   "payload": {
-    "prompt": "test message"
+    "handler": "hello.echo",
+    "input": {
+      "prompt": "test message"
+    }
   }
 }
 ```
 
 - `project_id` (required): The project ID where the task will be created
-- `task_type` (required): The type of task handler to invoke
-- `payload` (required): JSON object containing task-specific parameters
+- `task_type` (required): Must be `plugin.invoke` for plugin handlers
+- `payload` (required): JSON object containing `{ "handler": "<namespace.action>", "input": { ... } }`
 
 Result:
 
@@ -335,8 +338,9 @@ Result:
 Error codes:
 
 - `INVALID_ARGUMENT`: Missing or invalid required argument
+- `INVALID_TASK_TYPE`: Task type is invalid (e.g., handler-as-task-type)
 - `PROJECT_NOT_FOUND`: Project does not exist
-- `UNKNOWN_TASK_TYPE`: Task type is not registered
+- `UNKNOWN_HANDLER`: Handler is not registered
 
 Example workflow:
 
@@ -345,7 +349,7 @@ Example workflow:
 PROJECT_ID=$(oc init-project "test-project")
 
 # 2. Submit a task
-TASK_ID=$(oc rpc --request '{"protocol_version":"1","command":"task.submit","args":{"project_id":"'"$PROJECT_ID"'","task_type":"hello.echo","payload":{"prompt":"hello"}}}' | jq -r '.result.task_id')
+TASK_ID=$(oc rpc --request '{"protocol_version":"1","command":"task.submit","args":{"project_id":"'"$PROJECT_ID"'","task_type":"plugin.invoke","payload":{"handler":"hello.echo","input":{"prompt":"hello"}}}}' | jq -r '.result.task_id')
 
 # 3. Execute queued tasks
 oc rpc --request '{"protocol_version":"1","command":"task.run_many","args":{"limit":10}}'
@@ -449,6 +453,7 @@ Result:
   "failed": 0,
   "scanned": 2,
   "skipped_unrunnable": 0,
+  "invalid_type_count": 0,
   "has_more": false,
   "remaining_queued": 0,
   "tasks": [
@@ -463,12 +468,12 @@ Result:
 }
 ```
 
-This runs up to the requested number of queued tasks deterministically (created_at ASC, task_id ASC). Tasks whose type is not in the runnable allowlist are skipped (left queued) and counted in `skipped_unrunnable`. Scanning stops once either `limit` tasks are executed or a bounded scan cap is reached (`limit * 10`). No background loop is started.
+This runs up to the requested number of queued tasks deterministically (created_at ASC, task_id ASC). Tasks whose type is not in the runnable allowlist are skipped (left queued) and counted in `skipped_unrunnable`. Any queued task whose type contains a dot and is not in the runnable allowlist (currently `convo.ask` and `plugin.invoke`) is marked failed with `INVALID_TASK_TYPE` and counted in `invalid_type_count`. Scanning stops once either `limit` tasks are executed or a bounded scan cap is reached (`limit * 10`). No background loop is started.
 
 Runnable allowlist:
 
 - `convo.ask`
-- `hello.echo`
+- `plugin.invoke`
 
 ### privacy.preview
 

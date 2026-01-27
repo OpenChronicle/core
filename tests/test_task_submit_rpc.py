@@ -33,8 +33,8 @@ def test_task_submit_creates_task_in_db() -> None:
             "command": "task.submit",
             "args": {
                 "project_id": project_id,
-                "task_type": "hello.echo",
-                "payload": {"prompt": "test"},
+                "task_type": "plugin.invoke",
+                "payload": {"handler": "hello.echo", "input": {"prompt": "test"}},
             },
         }
 
@@ -59,7 +59,7 @@ def test_task_submit_creates_task_in_db() -> None:
         get_response = json.loads(get_result.stdout)
         assert get_response["ok"] is True
         assert get_response["result"]["task"]["task_id"] == task_id
-        assert get_response["result"]["task"]["type"] == "hello.echo"
+        assert get_response["result"]["task"]["type"] == "plugin.invoke"
 
 
 def test_task_submit_and_execute_hello_echo(tmp_path: Path) -> None:
@@ -70,14 +70,14 @@ def test_task_submit_and_execute_hello_echo(tmp_path: Path) -> None:
     create_result = _run_oc(["oc", "init-project", "test-project"], db_path)
     project_id = create_result.stdout.strip()
 
-    # Submit hello.echo task
+    # Submit hello.echo task via plugin.invoke
     submit_request = {
         "protocol_version": "1",
         "command": "task.submit",
         "args": {
             "project_id": project_id,
-            "task_type": "hello.echo",
-            "payload": {"prompt": "test message"},
+            "task_type": "plugin.invoke",
+            "payload": {"handler": "hello.echo", "input": {"prompt": "test message"}},
         },
     }
 
@@ -90,7 +90,7 @@ def test_task_submit_and_execute_hello_echo(tmp_path: Path) -> None:
     run_request = {
         "protocol_version": "1",
         "command": "task.run_many",
-        "args": {"limit": 1, "max_seconds": 5, "type": "hello.echo"},
+        "args": {"limit": 1, "max_seconds": 5, "type": "plugin.invoke"},
     }
 
     _run_oc(["oc", "rpc", "--request", json.dumps(run_request)], db_path)
@@ -159,8 +159,8 @@ def test_task_submit_missing_project_id() -> None:
             "protocol_version": "1",
             "command": "task.submit",
             "args": {
-                "task_type": "hello.echo",
-                "payload": {"prompt": "test"},
+                "task_type": "plugin.invoke",
+                "payload": {"handler": "hello.echo", "input": {"prompt": "test"}},
             },
         }
 
@@ -172,8 +172,39 @@ def test_task_submit_missing_project_id() -> None:
         assert "project_id" in submit_response["error"]["message"]
 
 
-def test_task_submit_invalid_task_type() -> None:
-    """Task.submit should return UNKNOWN_TASK_TYPE for unregistered handlers."""
+def test_task_submit_invalid_task_type(tmp_path: Path) -> None:
+    """Task.submit should return INVALID_TASK_TYPE for handler-as-task-type."""
+    db_path = tmp_path / "test.db"
+
+    # Create project
+    create_result = _run_oc(["oc", "init-project", "test-project"], db_path)
+    project_id = create_result.stdout.strip()
+
+    submit_request = {
+        "protocol_version": "1",
+        "command": "task.submit",
+        "args": {
+            "project_id": project_id,
+            "task_type": "hello.echo",
+            "payload": {},
+        },
+    }
+
+    submit_result = _run_oc(["oc", "rpc", "--request", json.dumps(submit_request)], db_path, check=False)
+
+    submit_response = json.loads(submit_result.stdout)
+    assert submit_response["ok"] is False
+    assert submit_response["error"]["error_code"] == "INVALID_TASK_TYPE"
+    assert "Invalid task type" in submit_response["error"]["message"]
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute("SELECT COUNT(1) FROM tasks").fetchone()
+    assert row is not None
+    assert row[0] == 0
+
+
+def test_task_submit_unknown_handler() -> None:
+    """Task.submit should return UNKNOWN_HANDLER for unknown plugin.invoke handler."""
     with tempfile.TemporaryDirectory() as tmpdir:
         runtime_dir = Path(tmpdir)
         db_path = runtime_dir / "test.db"
@@ -187,8 +218,8 @@ def test_task_submit_invalid_task_type() -> None:
             "command": "task.submit",
             "args": {
                 "project_id": project_id,
-                "task_type": "nonexistent.handler",
-                "payload": {},
+                "task_type": "plugin.invoke",
+                "payload": {"handler": "unknown.handler", "input": {}},
             },
         }
 
@@ -196,8 +227,7 @@ def test_task_submit_invalid_task_type() -> None:
 
         submit_response = json.loads(submit_result.stdout)
         assert submit_response["ok"] is False
-        assert submit_response["error"]["error_code"] == "UNKNOWN_TASK_TYPE"
-        assert "Unknown task type" in submit_response["error"]["message"]
+        assert submit_response["error"]["error_code"] == "UNKNOWN_HANDLER"
 
 
 def test_task_submit_missing_payload() -> None:
@@ -215,7 +245,7 @@ def test_task_submit_missing_payload() -> None:
             "command": "task.submit",
             "args": {
                 "project_id": project_id,
-                "task_type": "hello.echo",
+                "task_type": "plugin.invoke",
             },
         }
 
@@ -238,8 +268,8 @@ def test_task_submit_project_not_found() -> None:
             "command": "task.submit",
             "args": {
                 "project_id": "nonexistent-project",
-                "task_type": "hello.echo",
-                "payload": {"prompt": "test"},
+                "task_type": "plugin.invoke",
+                "payload": {"handler": "hello.echo", "input": {"prompt": "test"}},
             },
         }
 

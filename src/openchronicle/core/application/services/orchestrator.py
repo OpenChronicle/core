@@ -786,6 +786,35 @@ class OrchestratorService:
         if builtin_handler is not None:
             return await builtin_handler(task, agent_id=agent_id, attempt_id=attempt_id)
 
+        if task.type == "plugin.invoke":
+            payload = task.payload if isinstance(task.payload, dict) else {}
+            handler_name = payload.get("handler")
+            input_payload = payload.get("input")
+            if not isinstance(handler_name, str) or not handler_name:
+                raise ValueError("Missing or invalid payload.handler for plugin.invoke")
+            if not isinstance(input_payload, dict):
+                raise ValueError("Missing or invalid payload.input for plugin.invoke")
+
+            registry_handler = self.handler_registry.get(handler_name)
+            if registry_handler is None:
+                raise ValueError(f"Unknown handler: {handler_name}")
+
+            invoke_task = Task(
+                id=task.id,
+                project_id=task.project_id,
+                agent_id=task.agent_id,
+                parent_task_id=task.parent_task_id,
+                type=task.type,
+                payload=input_payload,
+                status=task.status,
+                created_at=task.created_at,
+                updated_at=task.updated_at,
+            )
+            return await registry_handler(
+                invoke_task,
+                {"agent_id": agent_id, "attempt_id": attempt_id, "emit_event": self.emit_event},
+            )
+
         registry_handler = self.handler_registry.get(task.type)
         if registry_handler is not None:
             return await registry_handler(

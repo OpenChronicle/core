@@ -45,7 +45,11 @@ async def test_hello_plugin_routes_via_orchestrator(tmp_path: Path) -> None:
     )
 
     project = orchestrator.create_project("Hello")
-    task = orchestrator.submit_task(project.id, "hello.echo", {"prompt": "hi"})
+    task = orchestrator.submit_task(
+        project.id,
+        "plugin.invoke",
+        {"handler": "hello.echo", "input": {"prompt": "hi"}},
+    )
     result = await orchestrator.execute_task(task.id)
     result_payload = cast(dict[str, str], result)
     assert result_payload == {"echo": "hi"}
