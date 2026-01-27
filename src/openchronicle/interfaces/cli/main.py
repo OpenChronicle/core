@@ -29,6 +29,7 @@ from openchronicle.core.application.use_cases import (
     resume_project,
     run_task,
     search_memory,
+    selftest_run,
     show_conversation,
     show_memory,
     show_task,
@@ -306,6 +307,17 @@ def main(argv: list[str] | None = None) -> int:
     smoke_cmd.add_argument("--model", default=None, help="Force model (optional override)")
     smoke_cmd.add_argument("--prompt", default=None, help="Custom prompt (optional)")
     smoke_cmd.add_argument("--json", action="store_true", help="Output result as JSON")
+
+    selftest_cmd = sub.add_parser("selftest", help="Run deterministic CLI-only selftest")
+    selftest_cmd.add_argument(
+        "--dir",
+        dest="base_dir",
+        default="output/selftest",
+        help="Base directory for selftest workspace (default: output/selftest)",
+    )
+    selftest_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
+    selftest_cmd.add_argument("--keep-artifacts", action="store_true", help="Keep selftest workspace on success")
+    selftest_cmd.add_argument("--no-plugins", action="store_true", help="Skip plugin loading and execution")
 
     diag_cmd = sub.add_parser("diagnose", help="Troubleshoot runtime, paths, persistence, and provider config")
     diag_cmd.add_argument("--json", action="store_true", help="Output diagnostics as JSON")
@@ -1440,6 +1452,62 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if result.outcome == "completed" else 1
 
         return asyncio.run(_smoke())
+
+    if args.command == "selftest":
+        selftest_result: dict[str, object] = selftest_run.execute(
+            args.base_dir,
+            json_output=args.json,
+            keep_artifacts=args.keep_artifacts,
+            with_plugins=not args.no_plugins,
+        )
+        ok = selftest_result.get("ok") is True
+
+        if args.json:
+            selftest_failure_value = selftest_result.get("failure")
+            selftest_failure_dict = selftest_failure_value if isinstance(selftest_failure_value, dict) else None
+            message = (
+                str(selftest_failure_dict.get("message"))
+                if isinstance(selftest_failure_dict, dict) and selftest_failure_dict.get("message") is not None
+                else "selftest failed"
+            )
+            payload = _json_envelope(
+                command="selftest",
+                ok=ok,
+                result=selftest_result if ok else None,
+                error=None
+                if ok
+                else _json_error_payload(
+                    error_code=None,
+                    message=message,
+                    hint=None,
+                    details={
+                        "failure": selftest_failure_dict,
+                        "workspace": selftest_result.get("workspace"),
+                    }
+                    if isinstance(selftest_failure_dict, dict)
+                    else {"workspace": selftest_result.get("workspace")},
+                ),
+            )
+            _print_json(payload)
+            return 0 if ok else 1
+
+        if ok:
+            workspace_value = selftest_result.get("workspace")
+            workspace: dict[str, object] = workspace_value if isinstance(workspace_value, dict) else {}
+            print("PASS: selftest")
+            print(f"conversation_id: {selftest_result.get('conversation_id')}")
+            print(f"turn_id: {selftest_result.get('turn_id')}")
+            print(f"memory_ids: {selftest_result.get('memory_ids')}")
+            print(f"export_path: {selftest_result.get('export_path')}")
+            print(f"workspace: {workspace}")
+            return 0
+
+        selftest_failure_value = selftest_result.get("failure")
+        selftest_failure_dict = selftest_failure_value if isinstance(selftest_failure_value, dict) else None
+        print("FAIL: selftest")
+        if isinstance(selftest_failure_dict, dict):
+            print(f"error: {selftest_failure_dict.get('exception_type')}: {selftest_failure_dict.get('message')}")
+        return 1
 
     if args.command == "diagnose":
         report = diagnose_runtime.execute()
