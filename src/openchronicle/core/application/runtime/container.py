@@ -7,12 +7,19 @@ from typing import Any
 from openchronicle.core.application.runtime.plugin_loader import PluginLoader
 from openchronicle.core.application.runtime.task_registry import TaskHandlerRegistry
 from openchronicle.core.application.services.orchestrator import OrchestratorService
-from openchronicle.core.domain.ports.llm_port import LLMPort
-from openchronicle.core.infrastructure.config.settings import load_privacy_outbound_settings
+from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
+from openchronicle.core.domain.ports.router_assist_port import RouterAssistPort
+from openchronicle.core.infrastructure.config.settings import (
+    load_privacy_outbound_settings,
+    load_router_assist_settings,
+)
 from openchronicle.core.infrastructure.llm.provider_facade import create_provider_aware_llm
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
 from openchronicle.core.infrastructure.privacy.rule_privacy import RulePrivacyGate
+from openchronicle.core.infrastructure.router_assist import LinearRouterAssist, OnnxRouterAssist
+from openchronicle.core.infrastructure.routing.hybrid_router import HybridInteractionRouter
 from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 
@@ -36,7 +43,13 @@ class CoreContainer:
         output_dir_resolved = Path(output_dir_str)
 
         db_path_resolved.parent.mkdir(parents=True, exist_ok=True)
-        config_dir_resolved.mkdir(parents=True, exist_ok=True)
+        if not config_dir_resolved.exists():
+            raise LLMProviderError(
+                f"Config directory not found: {config_dir_resolved}",
+                error_code=CONFIG_ERROR,
+                hint="Run `oc init` or create the directory.",
+                details={"config_dir": str(config_dir_resolved)},
+            )
         plugin_dir_resolved.mkdir(parents=True, exist_ok=True)
         output_dir_resolved.mkdir(parents=True, exist_ok=True)
 
@@ -45,6 +58,7 @@ class CoreContainer:
         self.event_logger = EventLogger(self.storage)
         self.privacy_gate = RulePrivacyGate()
         self.privacy_settings = load_privacy_outbound_settings()
+        router_assist_settings = load_router_assist_settings()
 
         # Use provider-aware facade if no explicit LLM provided
         if llm is None:
@@ -52,7 +66,34 @@ class CoreContainer:
             llm = create_provider_aware_llm(config_dir=config_dir_str)
 
         self.llm = llm
-        self.interaction_router = RuleInteractionRouter()
+
+        assist: RouterAssistPort | None = None
+        if router_assist_settings.enabled:
+            if not router_assist_settings.model_path:
+                raise LLMProviderError(
+                    "Router assist model path not configured",
+                    error_code=CONFIG_ERROR,
+                    hint="Set OC_ROUTER_ASSIST_MODEL_PATH to a model JSON file.",
+                )
+            backend = router_assist_settings.backend.lower()
+            if backend == "linear":
+                assist = LinearRouterAssist(
+                    model_path=router_assist_settings.model_path,
+                    timeout_ms=router_assist_settings.timeout_ms,
+                )
+            elif backend == "onnx":
+                assist = OnnxRouterAssist(
+                    model_path=router_assist_settings.model_path,
+                    timeout_ms=router_assist_settings.timeout_ms,
+                )
+            else:
+                raise LLMProviderError(
+                    f"Unsupported router assist backend: {router_assist_settings.backend}",
+                    error_code=CONFIG_ERROR,
+                    hint="Set OC_ROUTER_ASSIST_BACKEND to 'linear' or 'onnx'.",
+                )
+
+        self.interaction_router = HybridInteractionRouter(base_router=RuleInteractionRouter(), assist=assist)
         self.handler_registry = TaskHandlerRegistry()
         self.plugin_loader = PluginLoader(plugins_dir=str(plugin_dir_resolved), handler_registry=self.handler_registry)
         self.plugin_loader.load_plugins()

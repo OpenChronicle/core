@@ -25,6 +25,14 @@ class TelemetrySettings:
     memory_self_report_strict: bool = False
 
 
+@dataclass(frozen=True)
+class RouterAssistSettings:
+    enabled: bool = False
+    backend: str = "linear"
+    model_path: str | None = None
+    timeout_ms: int = 50
+
+
 def _parse_bool(value: str | None, *, default: bool) -> bool:
     if value is None:
         return default
@@ -75,4 +83,13 @@ def load_telemetry_settings() -> TelemetrySettings:
             os.getenv("OC_TELEMETRY_MEMORY_SELF_REPORT_STRICT"),
             default=False,
         ),
+    )
+
+
+def load_router_assist_settings() -> RouterAssistSettings:
+    return RouterAssistSettings(
+        enabled=_parse_bool(os.getenv("OC_ROUTER_ASSIST_ENABLED"), default=False),
+        backend=os.getenv("OC_ROUTER_ASSIST_BACKEND", "linear").strip() or "linear",
+        model_path=os.getenv("OC_ROUTER_ASSIST_MODEL_PATH"),
+        timeout_ms=_parse_int(os.getenv("OC_ROUTER_ASSIST_TIMEOUT_MS"), default=50),
     )

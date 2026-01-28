@@ -28,6 +28,10 @@ def test_serve_stdio_ping_export_shutdown(tmp_path: Path) -> None:
     db_path = tmp_path / "serve.db"
     convo_id = _prepare_conversation(db_path)
 
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "plugins").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+
     container = CoreContainer(
         db_path=str(db_path),
         config_dir=str(tmp_path / "config"),

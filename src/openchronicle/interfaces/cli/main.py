@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from typing import Any
 
@@ -20,6 +21,7 @@ from openchronicle.core.application.use_cases import (
     explain_turn,
     export_convo,
     init_config,
+    init_runtime,
     list_conversations,
     list_memory,
     list_projects,
@@ -39,6 +41,7 @@ from openchronicle.core.application.use_cases.replay_project import (
     ReplayService as ProjectReplayService,
 )
 from openchronicle.core.domain.errors.error_codes import (
+    INTERNAL_ERROR,
     INVALID_JSON,
     INVALID_REQUEST,
 )
@@ -114,6 +117,163 @@ def _print_verification_result(result: VerificationResult) -> None:
             for key, value in result.first_mismatch.items():
                 if key not in ["event_index", "event_id", "event_type"]:
                     print(f"    {key}: {value}")
+
+
+def _run_acceptance(container: CoreContainer) -> dict[str, object]:
+    errors: list[dict[str, object]] = []
+    turn_ids: list[str] = []
+
+    def _add_error(exc: Exception) -> None:
+        error_code = getattr(exc, "error_code", None) or INTERNAL_ERROR
+        hint = getattr(exc, "hint", None)
+        errors.append({"error_code": error_code, "message": str(exc), "hint": hint})
+
+    health_payload = dispatch_request(container, {"command": "system.health", "args": {}})
+    health_result = health_payload.get("result") if isinstance(health_payload, dict) else None
+    if not health_payload.get("ok"):
+        health_error = health_payload.get("error") if isinstance(health_payload, dict) else None
+        health_error_code = health_error.get("error_code") if isinstance(health_error, dict) else INTERNAL_ERROR
+        errors.append(
+            {
+                "error_code": health_error_code,
+                "message": "system.health failed",
+                "hint": None,
+            }
+        )
+        return {
+            "status": "fail",
+            "health": health_result,
+            "conversation_id": None,
+            "turn_ids": turn_ids,
+            "export_verified": False,
+            "errors": errors,
+        }
+
+    conversation = create_conversation.execute(
+        storage=container.storage,
+        convo_store=container.storage,
+        emit_event=container.event_logger.append,
+        title="Acceptance",
+    )
+
+    try:
+        turn = asyncio.run(
+            ask_conversation.execute(
+                convo_store=container.storage,
+                storage=container.storage,
+                memory_store=container.storage,
+                llm=container.llm,
+                interaction_router=container.interaction_router,
+                emit_event=container.event_logger.append,
+                conversation_id=conversation.id,
+                prompt_text="hello",
+                last_n=5,
+                top_k_memory=3,
+                include_pinned_memory=True,
+                allow_pii=False,
+                privacy_gate=getattr(container, "privacy_gate", None),
+                privacy_settings=getattr(container, "privacy_settings", None),
+            )
+        )
+        turn_ids.append(turn.id)
+    except Exception as exc:
+        _add_error(exc)
+
+    show_payload = dispatch_request(
+        container,
+        {
+            "command": "convo.show",
+            "args": {"conversation_id": conversation.id, "explain": True, "limit": 5},
+        },
+    )
+    show_result = show_payload.get("result") if isinstance(show_payload, dict) else None
+    if not show_payload.get("ok"):
+        show_error = show_payload.get("error") if isinstance(show_payload, dict) else None
+        show_error_code = show_error.get("error_code") if isinstance(show_error, dict) else INTERNAL_ERROR
+        errors.append(
+            {
+                "error_code": show_error_code,
+                "message": "convo.show failed",
+                "hint": None,
+            }
+        )
+    else:
+        turns = show_result.get("turns", []) if isinstance(show_result, dict) else []
+        if turns:
+            explain = turns[-1].get("explain") if isinstance(turns[-1], dict) else None
+            if not isinstance(explain, dict) or "routing_reasons" not in explain or "privacy" not in explain:
+                errors.append(
+                    {
+                        "error_code": INTERNAL_ERROR,
+                        "message": "convo.show explain missing router/privacy",
+                        "hint": None,
+                    }
+                )
+
+    export_payload = dispatch_request(
+        container,
+        {
+            "command": "convo.export",
+            "args": {"conversation_id": conversation.id, "verify": True, "explain": True},
+        },
+    )
+    export_ok = bool(export_payload.get("ok"))
+    if not export_ok:
+        export_error = export_payload.get("error") if isinstance(export_payload, dict) else None
+        export_error_code = export_error.get("error_code") if isinstance(export_error, dict) else INTERNAL_ERROR
+        errors.append(
+            {
+                "error_code": export_error_code,
+                "message": "convo.export verification failed",
+                "hint": None,
+            }
+        )
+
+    pending_tasks = _count_pending_tasks(container, conversation.project_id)
+    if pending_tasks:
+        run_many_payload = dispatch_request(
+            container,
+            {"command": "task.run_many", "args": {"limit": 10, "type": "convo.ask", "max_seconds": 0}},
+        )
+        if not run_many_payload.get("ok"):
+            run_many_error = run_many_payload.get("error") if isinstance(run_many_payload, dict) else None
+            run_many_error_code = (
+                run_many_error.get("error_code") if isinstance(run_many_error, dict) else INTERNAL_ERROR
+            )
+            errors.append(
+                {
+                    "error_code": run_many_error_code,
+                    "message": "task.run_many failed",
+                    "hint": None,
+                }
+            )
+        remaining = _count_pending_tasks(container, conversation.project_id)
+        if remaining:
+            errors.append(
+                {
+                    "error_code": INTERNAL_ERROR,
+                    "message": "queued tasks remain after run_many",
+                    "hint": None,
+                }
+            )
+
+    status = "pass" if not errors else "fail"
+    return {
+        "status": status,
+        "health": health_result,
+        "conversation_id": conversation.id,
+        "turn_ids": turn_ids,
+        "export_verified": export_ok,
+        "errors": errors,
+    }
+
+
+def _count_pending_tasks(container: CoreContainer, project_id: str) -> int:
+    count = 0
+    for task in container.storage.list_tasks_by_project(project_id):
+        if task.status.value == "pending":
+            count += 1
+    return count
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -240,6 +400,11 @@ def main(argv: list[str] | None = None) -> int:
     convo_ask_cmd.add_argument("--top-k-memory", type=int, default=8, help="Number of memory items to include")
     convo_ask_cmd.add_argument("--explain", action="store_true", help="Explain the turn from events")
     convo_ask_cmd.add_argument("--allow-pii", action="store_true", help="Bypass privacy gate for this request")
+    convo_ask_cmd.add_argument(
+        "--enqueue-if-unavailable",
+        action="store_true",
+        help="Queue the ask when provider execution is unavailable",
+    )
     convo_ask_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
     convo_ask_group = convo_ask_cmd.add_mutually_exclusive_group()
     convo_ask_group.add_argument("--include-pinned-memory", dest="include_pinned_memory", action="store_true")
@@ -331,18 +496,44 @@ def main(argv: list[str] | None = None) -> int:
     diag_cmd = sub.add_parser("diagnose", help="Troubleshoot runtime, paths, persistence, and provider config")
     diag_cmd.add_argument("--json", action="store_true", help="Output diagnostics as JSON")
 
-    args = parser.parse_args(argv)
-    container = CoreContainer()
-    orchestrator = container.orchestrator
+    acceptance_cmd = sub.add_parser("acceptance", help="Run deterministic acceptance workflow")
+    acceptance_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
 
-    if args.command == "init-project":
-        project = create_project.execute(orchestrator, args.name)
-        print(project.id)
+    init_cmd = sub.add_parser("init", help="Initialize runtime directories and optional templates")
+    init_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
+    init_cmd.add_argument("--force", action="store_true", help="Overwrite templates if they exist")
+    init_cmd.add_argument("--no-templates", action="store_true", help="Skip template file creation")
+
+    args = parser.parse_args(argv)
+
+    if args.command == "init":
+        paths = init_runtime.resolve_runtime_paths()
+        result = init_runtime.execute(paths, write_templates=not args.no_templates, force=args.force)
+        if args.json:
+            _print_json(result)
+            return 0
+
+        def _print_status(label: str, payload: dict[str, object]) -> None:
+            status = payload.get("status")
+            path = payload.get("path")
+            extra = payload.get("parent")
+            if extra:
+                print(f"{label}: {status} ({path}; parent={extra})")
+            else:
+                print(f"{label}: {status} ({path})")
+
+        print("Runtime paths:")
+        _print_status("db_path", result["paths"]["db_path"])
+        _print_status("config_dir", result["paths"]["config_dir"])
+        _print_status("plugin_dir", result["paths"]["plugin_dir"])
+        _print_status("output_dir", result["paths"]["output_dir"])
+
+        print("Templates:")
+        _print_status("model_config", result["templates"]["model_config"])
+        _print_status("router_assist_model", result["templates"]["router_assist_model"])
         return 0
 
     if args.command == "init-config":
-        import os
-
         config_dir = args.config_dir or os.getenv("OC_CONFIG_DIR", "config")
         result = init_config.execute(config_dir)
 
@@ -366,9 +557,57 @@ def main(argv: list[str] | None = None) -> int:
 
         return 0
 
-    if args.command == "list-models":
-        import os
+    provider_override = os.getenv("OC_ACCEPTANCE_PROVIDER", "stub").strip()
+    original_provider = None
+    if args.command == "acceptance" and provider_override:
+        original_provider = os.getenv("OC_LLM_PROVIDER")
+        os.environ["OC_LLM_PROVIDER"] = provider_override
+        os.environ.setdefault("OC_LLM_FAST_POOL", "")
+        os.environ.setdefault("OC_LLM_QUALITY_POOL", "")
+        os.environ.setdefault("OC_LLM_POOL_NSFW", "")
 
+    try:
+        container = CoreContainer()
+    except LLMProviderError as exc:
+        if args.command in {"rpc", "acceptance"}:
+            payload = _json_envelope(
+                command=args.command,
+                ok=False,
+                result=None,
+                error=_json_error_payload(
+                    error_code=exc.error_code,
+                    message=str(exc),
+                    hint=exc.hint,
+                ),
+            )
+            _print_json(payload)
+            return 1
+        print(str(exc))
+        return 1
+    finally:
+        if args.command == "acceptance" and original_provider is not None:
+            os.environ["OC_LLM_PROVIDER"] = original_provider
+
+    orchestrator = container.orchestrator
+
+    if args.command == "init-project":
+        project = create_project.execute(orchestrator, args.name)
+        print(project.id)
+        return 0
+
+    if args.command == "acceptance":
+        result = _run_acceptance(container)
+        if args.json:
+            _print_json(result)
+        else:
+            status = result.get("status")
+            convo_id = result.get("conversation_id")
+            print(f"acceptance: {status}")
+            if convo_id:
+                print(f"conversation_id: {convo_id}")
+        return 0 if result.get("status") == "pass" else 1
+
+    if args.command == "list-models":
         from openchronicle.core.application.config.model_config import ModelConfigLoader, sort_model_configs
 
         config_dir = args.config_dir or os.getenv("OC_CONFIG_DIR", "config")
@@ -1051,6 +1290,43 @@ def main(argv: list[str] | None = None) -> int:
                         privacy_settings=getattr(container, "privacy_settings", None),
                     )
                 except (ValueError, LLMProviderError) as exc:
+                    if (
+                        isinstance(exc, LLMProviderError)
+                        and args.enqueue_if_unavailable
+                        and ask_conversation.is_enqueueable_provider_failure(exc.error_code)
+                    ):
+                        try:
+                            task = ask_conversation.enqueue(
+                                orchestrator=container.orchestrator,
+                                convo_store=container.storage,
+                                conversation_id=args.conversation_id,
+                                prompt_text=args.prompt,
+                                include_explain=args.explain,
+                                allow_pii=args.allow_pii,
+                                metadata=None,
+                                interaction_router=container.interaction_router,
+                                emit_event=container.event_logger.append,
+                            )
+                        except (ValueError, LLMProviderError) as enqueue_exc:
+                            exc = enqueue_exc
+                        else:
+                            if args.json:
+                                payload = _json_envelope(
+                                    command="convo.ask",
+                                    ok=True,
+                                    result={
+                                        "conversation_id": args.conversation_id,
+                                        "status": "queued",
+                                        "task_id": task.id,
+                                        "reason_code": exc.error_code,
+                                    },
+                                    error=None,
+                                )
+                                _print_json(payload)
+                                return 0
+                            print(f"queued: {task.id}")
+                            return 0
+
                     if not args.json:
                         print(str(exc))
                         return 1

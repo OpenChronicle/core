@@ -8,13 +8,17 @@ from typing import Protocol
 
 from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.services.llm_execution import execute_with_route
+from openchronicle.core.application.services.orchestrator import OrchestratorService
+from openchronicle.core.application.use_cases import run_task
 from openchronicle.core.domain.errors.error_codes import (
+    CONNECTION_ERROR,
     NSFW_POOL_NOT_CONFIGURED,
     OUTBOUND_PII_BLOCKED,
     SELF_REPORT_INVALID,
+    TIMEOUT,
 )
 from openchronicle.core.domain.models.conversation import Turn
-from openchronicle.core.domain.models.project import Event
+from openchronicle.core.domain.models.project import Event, Task
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.interaction_router_port import InteractionRouterPort
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMUsage
@@ -66,6 +70,18 @@ class TelemetryRecorder(Protocol):
     ) -> None: ...
 
     def record_memory_self_report(self, *, used_ids: Iterable[str], valid: bool) -> None: ...
+
+
+def is_enqueueable_provider_failure(error_code: str | None) -> bool:
+    """Return True when a provider failure should enqueue instead of erroring.
+
+    Allowlisted codes:
+    - CONNECTION_ERROR: provider unreachable
+    - TIMEOUT: provider did not respond in time
+    """
+    if not error_code:
+        return False
+    return error_code in {CONNECTION_ERROR, TIMEOUT}
 
 
 def _read_int_env(value: str | None) -> int | None:
@@ -566,6 +582,88 @@ async def execute(
         telemetry_recorder.record_perf(ask_total_ms=ask_total_ms)
 
     return turn
+
+
+def enqueue(
+    orchestrator: OrchestratorService,
+    *,
+    convo_store: ConversationStorePort,
+    conversation_id: str,
+    prompt_text: str,
+    include_explain: bool,
+    allow_pii: bool,
+    metadata: dict[str, object] | None,
+    interaction_router: InteractionRouterPort | None,
+    emit_event: Callable[[Event], None],
+) -> Task:
+    conversation = convo_store.get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation not found: {conversation_id}")
+
+    recent_turns = convo_store.list_turns(conversation_id, limit=10)
+    effective_mode = (conversation.mode or "general").strip().lower()
+    if effective_mode not in {"general", "persona", "story"}:
+        effective_mode = "general"
+
+    router = RouterPolicy()
+    router_hint = (interaction_router or RuleInteractionRouter()).analyze(
+        user_text=prompt_text,
+        recent_turns=recent_turns,
+    )
+    if router_hint.requires_nsfw_capable_model and effective_mode in {"persona", "story"}:
+        nsfw_pool = router.pool_config.nsfw_pool
+        if not nsfw_pool:
+            config_dir = os.getenv("OC_CONFIG_DIR", "config")
+            configured_providers = _configured_providers(router.pool_config)
+            providers_str = ", ".join(configured_providers) if configured_providers else "none"
+            raise LLMProviderError(
+                "NSFW pool not configured",
+                error_code=NSFW_POOL_NOT_CONFIGURED,
+                hint=(
+                    "Set OC_LLM_POOL_NSFW in your environment or config under OC_CONFIG_DIR="
+                    f"{config_dir} to a pool that supports NSFW-capable persona/story mode. "
+                    f"Configured providers: {providers_str}."
+                ),
+                configured_providers=configured_providers,
+                details={
+                    "config_dir": config_dir,
+                    "configured_providers": configured_providers,
+                    "fast_pool": _pool_candidates(router.pool_config.fast_pool),
+                    "quality_pool": _pool_candidates(router.pool_config.quality_pool),
+                    "nsfw_pool": _pool_candidates(router.pool_config.nsfw_pool),
+                },
+            )
+
+    task_payload: dict[str, object] = {
+        "conversation_id": conversation_id,
+        "prompt": prompt_text,
+        "explain": include_explain,
+        "allow_pii": allow_pii,
+    }
+    if metadata is not None:
+        task_payload["metadata"] = metadata
+
+    task = run_task.submit(
+        orchestrator,
+        project_id=conversation.project_id,
+        task_type="convo.ask",
+        payload=task_payload,
+    )
+
+    emit_event(
+        Event(
+            project_id=conversation.project_id,
+            task_id=task.id,
+            type="convo.ask_queued",
+            payload={
+                "conversation_id": conversation_id,
+                "explain": include_explain,
+                "allow_pii": allow_pii,
+            },
+        )
+    )
+
+    return task
 
 
 def _router_thresholds(router: InteractionRouterPort) -> dict[str, object]:

@@ -6,7 +6,7 @@ import json
 import os
 from typing import Any
 
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMResponse
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse
 
 
 class StubLLMAdapter(LLMPort):
@@ -25,6 +25,13 @@ class StubLLMAdapter(LLMPort):
         provider: str | None = None,
     ) -> LLMResponse:
         """Return a stub response based on input messages."""
+        forced_error = os.getenv("OC_STUB_ERROR_CODE")
+        if forced_error:
+            raise LLMProviderError(
+                "Stub adapter error requested",
+                error_code=forced_error,
+                hint="Unset OC_STUB_ERROR_CODE to restore normal stub responses.",
+            )
         # Only use user messages for stub summary (ignore system prompts)
         user_messages = [msg.get("content", "") for msg in messages if msg.get("role") == "user"]
         text = " ".join(str(content) for content in user_messages if isinstance(content, str))

@@ -29,6 +29,9 @@ def _set_cli_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, db_path: Path)
     monkeypatch.setenv("OC_CONFIG_DIR", str(tmp_path / "config"))
     monkeypatch.setenv("OC_PLUGIN_DIR", str(tmp_path / "plugins"))
     monkeypatch.setenv("OC_OUTPUT_DIR", str(tmp_path / "output"))
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "plugins").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "output").mkdir(parents=True, exist_ok=True)
 
 
 def _set_stub_llm_env(monkeypatch: pytest.MonkeyPatch) -> None:

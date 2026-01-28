@@ -300,7 +300,8 @@ Args:
   "top_k_memory": 8,
   "include_pinned_memory": true,
   "explain": false,
-  "allow_pii": false
+  "allow_pii": false,
+  "enqueue_if_unavailable": false
 }
 ```
 
@@ -313,6 +314,19 @@ Result:
   "turn_index": 1,
   "assistant_text": "...",
   "explain": null
+}
+```
+
+When `enqueue_if_unavailable` is true and the provider cannot execute due to a transient availability failure
+(timeout/connection error),
+the result is:
+
+```json
+{
+  "conversation_id": "...",
+  "status": "queued",
+  "task_id": "...",
+  "reason_code": "timeout"
 }
 ```
 

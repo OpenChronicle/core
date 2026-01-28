@@ -19,6 +19,19 @@ docker run --rm -it \
   openchronicle-core:local
 ```
 
+Before running commands that rely on runtime directories, bootstrap them explicitly:
+
+```bash
+docker run --rm \
+  -e OC_DB_PATH=/app/data/openchronicle.db \
+  -e OC_CONFIG_DIR=/app/config \
+  -e OC_PLUGIN_DIR=/app/plugins \
+  -e OC_OUTPUT_DIR=/app/output \
+  -v "$(pwd)/oc-data:/app/data" \
+  -v "$(pwd)/oc-output:/app/output" \
+  openchronicle-core:local init
+```
+
 ## Run selftest
 
 ```bash
@@ -39,7 +52,7 @@ docker run --rm \
   - /app/config
   - /app/plugins
   - /app/output
-- The entrypoint creates missing directories.
+- Runtime directories are created explicitly via `oc init`.
 - No external dependencies are required for `oc selftest`.
 
 ## Acceptance check (Windows)
@@ -49,3 +62,17 @@ pwsh tools/docker/acceptance.ps1
 ```
 
 Use `-Keep` to retain the runtime directory for debugging.
+
+## Recommended post-build check
+
+After building the image, run the CLI acceptance workflow for a deterministic smoke pass:
+
+```bash
+docker run --rm \
+  -e OC_DB_PATH=/app/runtime/data/openchronicle.db \
+  -e OC_CONFIG_DIR=/app/runtime/config \
+  -e OC_PLUGIN_DIR=/app/runtime/plugins \
+  -e OC_OUTPUT_DIR=/app/runtime/output \
+  -v "$(pwd)/oc-runtime:/app/runtime" \
+  openchronicle-core:local acceptance --json
+```

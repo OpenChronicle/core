@@ -13,6 +13,9 @@ def _serve_env(tmp_path: Path) -> dict[str, str]:
     env["OC_CONFIG_DIR"] = str(tmp_path / "config")
     env["OC_PLUGIN_DIR"] = str(tmp_path / "plugins")
     env["OC_OUTPUT_DIR"] = str(tmp_path / "output")
+    Path(env["OC_CONFIG_DIR"]).mkdir(parents=True, exist_ok=True)
+    Path(env["OC_PLUGIN_DIR"]).mkdir(parents=True, exist_ok=True)
+    Path(env["OC_OUTPUT_DIR"]).mkdir(parents=True, exist_ok=True)
     return env
 
 

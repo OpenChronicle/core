@@ -14,18 +14,20 @@ from queue import Empty, Queue
 from typing import TextIO, cast
 
 from openchronicle.core.application.routing.pool_config import load_pool_config
-from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     convo_mode,
     explain_turn,
     export_convo,
-    run_task,
     show_conversation,
     task_once,
 )
 from openchronicle.core.application.use_cases.ask_conversation import (
     TelemetryRecorder,
+    is_enqueueable_provider_failure,
+)
+from openchronicle.core.application.use_cases.ask_conversation import (
+    enqueue as enqueue_conversation,
 )
 from openchronicle.core.application.use_cases.ask_conversation import (
     execute as ask_conversation_execute,
@@ -37,7 +39,6 @@ from openchronicle.core.domain.errors.error_codes import (
     INVALID_JSON,
     INVALID_REQUEST,
     INVALID_TASK_TYPE,
-    NSFW_POOL_NOT_CONFIGURED,
     PROJECT_NOT_FOUND,
     TASK_NOT_FOUND,
     UNKNOWN_COMMAND,
@@ -55,7 +56,6 @@ from openchronicle.core.infrastructure.config.settings import (
     load_telemetry_settings,
 )
 from openchronicle.core.infrastructure.privacy.rule_privacy import is_external_provider
-from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 STDIO_RPC_PROTOCOL_VERSION = "1"
 MAX_REQUEST_CACHE_ENTRIES = 256
@@ -919,6 +919,7 @@ def dispatch_json_command(
             include_pinned_memory = bool(args.get("include_pinned_memory", True))
             include_explain = bool(args.get("explain", False))
             allow_pii = bool(args.get("allow_pii", False))
+            enqueue_if_unavailable = bool(args.get("enqueue_if_unavailable", False))
 
             async def _run() -> dict[str, object]:
                 turn = await ask_conversation_execute(
@@ -957,13 +958,39 @@ def dispatch_json_command(
                     "explain": explain_payload if include_explain else None,
                 }
 
-            result = asyncio.run(_run())
-            return json_envelope(
-                command=command,
-                ok=True,
-                result=result,
-                error=None,
-            )
+            try:
+                result = asyncio.run(_run())
+                return json_envelope(
+                    command=command,
+                    ok=True,
+                    result=result,
+                    error=None,
+                )
+            except LLMProviderError as exc:
+                if enqueue_if_unavailable and is_enqueueable_provider_failure(exc.error_code):
+                    task = enqueue_conversation(
+                        orchestrator=container.orchestrator,
+                        convo_store=container.storage,
+                        conversation_id=conversation_id,
+                        prompt_text=prompt_text,
+                        include_explain=include_explain,
+                        allow_pii=allow_pii,
+                        metadata=None,
+                        interaction_router=container.interaction_router,
+                        emit_event=container.event_logger.append,
+                    )
+                    return json_envelope(
+                        command=command,
+                        ok=True,
+                        result={
+                            "conversation_id": conversation_id,
+                            "task_id": task.id,
+                            "status": "queued",
+                            "reason_code": exc.error_code,
+                        },
+                        error=None,
+                    )
+                raise
 
         if command == "convo.ask_async":
             conversation_id = str(args.get("conversation_id", ""))
@@ -972,70 +999,16 @@ def dispatch_json_command(
             allow_pii = bool(args.get("allow_pii", False))
             metadata_value = args.get("metadata")
             metadata = metadata_value if isinstance(metadata_value, dict) else None
-
-            conversation, recent_turns = show_conversation.execute(
+            task = enqueue_conversation(
+                orchestrator=container.orchestrator,
                 convo_store=container.storage,
                 conversation_id=conversation_id,
-                limit=10,
-            )
-
-            effective_mode = (conversation.mode or "general").strip().lower()
-            if effective_mode not in {"general", "persona", "story"}:
-                effective_mode = "general"
-
-            router_hint = RuleInteractionRouter().analyze(user_text=prompt_text, recent_turns=recent_turns)
-            if router_hint.requires_nsfw_capable_model and effective_mode in {"persona", "story"}:
-                router = RouterPolicy()
-                nsfw_pool = router.pool_config.nsfw_pool
-                if not nsfw_pool:
-                    config_dir = os.getenv("OC_CONFIG_DIR", "config")
-                    configured_providers = _configured_providers(router.pool_config)
-                    providers_str = ", ".join(configured_providers) if configured_providers else "none"
-                    raise LLMProviderError(
-                        "NSFW pool not configured",
-                        error_code=NSFW_POOL_NOT_CONFIGURED,
-                        hint=(
-                            "Set OC_LLM_POOL_NSFW in your environment or config under OC_CONFIG_DIR="
-                            f"{config_dir} to a pool that supports NSFW-capable persona/story mode. "
-                            f"Configured providers: {providers_str}."
-                        ),
-                        configured_providers=configured_providers,
-                        details={
-                            "config_dir": config_dir,
-                            "configured_providers": configured_providers,
-                            "fast_pool": _pool_candidates(router.pool_config.fast_pool),
-                            "quality_pool": _pool_candidates(router.pool_config.quality_pool),
-                            "nsfw_pool": _pool_candidates(router.pool_config.nsfw_pool),
-                        },
-                    )
-
-            task_payload: dict[str, object] = {
-                "conversation_id": conversation_id,
-                "prompt": prompt_text,
-                "explain": include_explain,
-                "allow_pii": allow_pii,
-            }
-            if metadata is not None:
-                task_payload["metadata"] = metadata
-
-            task = run_task.submit(
-                container.orchestrator,
-                project_id=conversation.project_id,
-                task_type="convo.ask",
-                payload=task_payload,
-            )
-
-            container.event_logger.append(
-                Event(
-                    project_id=conversation.project_id,
-                    task_id=task.id,
-                    type="convo.ask_queued",
-                    payload={
-                        "conversation_id": conversation_id,
-                        "explain": include_explain,
-                        "allow_pii": allow_pii,
-                    },
-                )
+                prompt_text=prompt_text,
+                include_explain=include_explain,
+                allow_pii=allow_pii,
+                metadata=metadata,
+                interaction_router=container.interaction_router,
+                emit_event=container.event_logger.append,
             )
 
             return json_envelope(
