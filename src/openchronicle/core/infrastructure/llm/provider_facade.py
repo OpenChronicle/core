@@ -7,11 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 from openchronicle.core.application.config.model_config import ConfigError, ModelConfigLoader, ResolvedModelConfig
-from openchronicle.core.domain.error_codes import (
-    CONFIG_ERROR,
-    PROVIDER_NOT_CONFIGURED,
-    PROVIDER_REQUIRED,
-)
+from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR, PROVIDER_NOT_CONFIGURED, PROVIDER_REQUIRED
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse
 
 
