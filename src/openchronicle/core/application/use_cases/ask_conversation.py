@@ -8,6 +8,11 @@ from typing import Protocol
 
 from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.services.llm_execution import execute_with_route
+from openchronicle.core.domain.errors.error_codes import (
+    NSFW_POOL_NOT_CONFIGURED,
+    OUTBOUND_PII_BLOCKED,
+    SELF_REPORT_INVALID,
+)
 from openchronicle.core.domain.models.conversation import Turn
 from openchronicle.core.domain.models.project import Event
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
@@ -265,7 +270,7 @@ async def execute(
             providers_str = ", ".join(configured_providers) if configured_providers else "none"
             raise LLMProviderError(
                 "NSFW pool not configured",
-                error_code="NSFW_POOL_NOT_CONFIGURED",
+                error_code=NSFW_POOL_NOT_CONFIGURED,
                 hint=(
                     "Set OC_LLM_POOL_NSFW in your environment or config under OC_CONFIG_DIR="
                     f"{config_dir} to a pool that supports NSFW-capable persona/story mode. "
@@ -398,7 +403,7 @@ async def execute(
                 if report.action == "block":
                     raise LLMProviderError(
                         "Outbound privacy gate blocked external provider request.",
-                        error_code="OUTBOUND_PII_BLOCKED",
+                        error_code=OUTBOUND_PII_BLOCKED,
                         hint=("Remove or redact PII, or change privacy_outbound_mode to warn/redact/off."),
                         details={"categories": report.categories, "counts": report.counts},
                     )
@@ -466,7 +471,7 @@ async def execute(
             if telemetry_recorder is not None and telemetry_recorder.memory_self_report_strict():
                 raise LLMProviderError(
                     "Self-report metadata missing",
-                    error_code="SELF_REPORT_INVALID",
+                    error_code=SELF_REPORT_INVALID,
                     hint="LLM did not provide <OC_META> self-report block.",
                 )
         else:
@@ -478,7 +483,7 @@ async def execute(
                 if telemetry_recorder is not None and telemetry_recorder.memory_self_report_strict():
                     raise LLMProviderError(
                         "Self-report metadata invalid",
-                        error_code="SELF_REPORT_INVALID",
+                        error_code=SELF_REPORT_INVALID,
                         hint="Self-report must include valid used_memory_ids from retrieved set.",
                     )
             else:

@@ -13,6 +13,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     openai = None  # type: ignore[assignment,unused-ignore]
 
+from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
 
 
@@ -41,9 +42,9 @@ class OpenAIAdapter(LLMPort):
 
     def _ensure_ready(self) -> None:
         if not self.api_key:
-            raise LLMProviderError("OPENAI_API_KEY not set", status_code=401, error_code="missing_api_key")
+            raise LLMProviderError("OPENAI_API_KEY not set", status_code=401, error_code=MISSING_API_KEY)
         if openai is None or self._client is None:
-            raise LLMProviderError("openai package not installed", status_code=None, error_code="client_missing")
+            raise LLMProviderError("openai package not installed", status_code=None, error_code=CLIENT_MISSING)
 
     def complete(
         self,

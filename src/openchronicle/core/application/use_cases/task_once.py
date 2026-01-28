@@ -4,6 +4,7 @@ import time
 from collections.abc import Callable
 
 from openchronicle.core.application.use_cases import ask_conversation
+from openchronicle.core.domain.errors.error_codes import INTERNAL_ERROR, INVALID_ARGUMENT
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.interaction_router_port import InteractionRouterPort
@@ -104,7 +105,7 @@ async def _execute_task(
             message = str(exc)
         elif isinstance(exc, ValueError):
             message = str(exc)
-            error_code = "INVALID_ARGUMENT"
+            error_code = INVALID_ARGUMENT
 
         storage.update_task_status(task.id, TaskStatus.FAILED.value)
         emit_event(
@@ -124,7 +125,7 @@ async def _execute_task(
             "conversation_id": conversation_id if isinstance(conversation_id, str) else None,
             "turn_id": None,
             "error": {
-                "error_code": error_code or "INTERNAL_ERROR",
+                "error_code": error_code or INTERNAL_ERROR,
                 "message": message,
                 "hint": hint,
                 "details": details,

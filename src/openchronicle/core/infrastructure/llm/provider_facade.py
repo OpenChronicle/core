@@ -8,6 +8,7 @@ from typing import Any
 
 from openchronicle.core.application.config.model_config import ConfigError, ModelConfigLoader, ResolvedModelConfig
 from openchronicle.core.domain.error_codes import (
+    CONFIG_ERROR,
     PROVIDER_NOT_CONFIGURED,
     PROVIDER_REQUIRED,
 )
@@ -105,7 +106,7 @@ class ProviderAwareLLMFacade(LLMPort):
             try:
                 resolved_config = self._config_loader.resolve(provider, model)
             except ConfigError as exc:  # pragma: no cover - exercised in tests via control paths
-                raise LLMProviderError(str(exc), status_code=None, error_code="config_error") from exc
+                raise LLMProviderError(str(exc), status_code=None, error_code=CONFIG_ERROR) from exc
 
             adapter = self._get_adapter(provider, resolved_config)
         else:

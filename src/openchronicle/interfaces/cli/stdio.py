@@ -30,6 +30,21 @@ from openchronicle.core.application.use_cases.ask_conversation import (
 from openchronicle.core.application.use_cases.ask_conversation import (
     execute as ask_conversation_execute,
 )
+from openchronicle.core.domain.errors.error_codes import (
+    HANDLER_ERROR,
+    INTERNAL_ERROR,
+    INVALID_ARGUMENT,
+    INVALID_JSON,
+    INVALID_REQUEST,
+    INVALID_TASK_TYPE,
+    NSFW_POOL_NOT_CONFIGURED,
+    PROJECT_NOT_FOUND,
+    TASK_NOT_FOUND,
+    UNKNOWN_COMMAND,
+    UNKNOWN_HANDLER,
+    UNKNOWN_TASK_TYPE,
+    UNSUPPORTED_PROTOCOL_VERSION,
+)
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMProviderError, LLMUsage
 from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
@@ -458,14 +473,14 @@ def _normalize_error(exc: Exception) -> dict[str, object]:
 
     if isinstance(exc, ValueError):
         return json_error_payload(
-            error_code="INVALID_ARGUMENT",
+            error_code=INVALID_ARGUMENT,
             message=str(exc),
             hint=None,
             details=None,
         )
 
     return json_error_payload(
-        error_code="INTERNAL_ERROR",
+        error_code=INTERNAL_ERROR,
         message="Internal error",
         hint="See stderr logs for details.",
         details=None,
@@ -514,7 +529,7 @@ def _execute_plugin_invoke_task(container: CoreContainer, task: Task) -> dict[st
 
     if not isinstance(handler_name, str) or not handler_name:
         error_payload = {
-            "error_code": "INVALID_ARGUMENT",
+            "error_code": INVALID_ARGUMENT,
             "message": "Missing or invalid payload.handler for plugin.invoke",
         }
         container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
@@ -526,7 +541,7 @@ def _execute_plugin_invoke_task(container: CoreContainer, task: Task) -> dict[st
 
     if not isinstance(input_payload, dict):
         error_payload = {
-            "error_code": "INVALID_ARGUMENT",
+            "error_code": INVALID_ARGUMENT,
             "message": "Missing or invalid payload.input for plugin.invoke (must be JSON object)",
         }
         container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
@@ -539,7 +554,7 @@ def _execute_plugin_invoke_task(container: CoreContainer, task: Task) -> dict[st
     handler = container.orchestrator.handler_registry.get(handler_name)
     if handler is None:
         error_payload = {
-            "error_code": "UNKNOWN_HANDLER",
+            "error_code": UNKNOWN_HANDLER,
             "message": f"Unknown handler: {handler_name}",
         }
         container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
@@ -577,7 +592,7 @@ def _execute_plugin_invoke_task(container: CoreContainer, task: Task) -> dict[st
         result = asyncio.run(_run_handler())
     except Exception as exc:  # noqa: BLE001
         error_payload = {
-            "error_code": "HANDLER_ERROR",
+            "error_code": HANDLER_ERROR,
             "message": str(exc)[:500],
         }
         container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
@@ -586,7 +601,7 @@ def _execute_plugin_invoke_task(container: CoreContainer, task: Task) -> dict[st
                 project_id=task.project_id,
                 task_id=task.id,
                 type="task.failed",
-                payload={"task_id": task.id, "error_code": "HANDLER_ERROR"},
+                payload={"task_id": task.id, "error_code": HANDLER_ERROR},
             )
         )
         return {
@@ -659,7 +674,7 @@ def dispatch_json_command(
             ok=False,
             result=None,
             error=json_error_payload(
-                error_code="UNKNOWN_COMMAND",
+                error_code=UNKNOWN_COMMAND,
                 message=f"Unsupported command: {command}",
                 hint=None,
             ),
@@ -978,7 +993,7 @@ def dispatch_json_command(
                     providers_str = ", ".join(configured_providers) if configured_providers else "none"
                     raise LLMProviderError(
                         "NSFW pool not configured",
-                        error_code="NSFW_POOL_NOT_CONFIGURED",
+                        error_code=NSFW_POOL_NOT_CONFIGURED,
                         hint=(
                             "Set OC_LLM_POOL_NSFW in your environment or config under OC_CONFIG_DIR="
                             f"{config_dir} to a pool that supports NSFW-capable persona/story mode. "
@@ -1042,7 +1057,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Request 'text' must be a string",
                         hint=None,
                     ),
@@ -1061,7 +1076,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INTERNAL_ERROR",
+                        error_code=INTERNAL_ERROR,
                         message="Privacy gate not configured",
                         hint=None,
                     ),
@@ -1074,7 +1089,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message=error_message,
                         hint=None,
                     ),
@@ -1143,7 +1158,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Missing required argument: project_id",
                         hint=None,
                     ),
@@ -1155,7 +1170,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Missing required argument: task_type",
                         hint=None,
                     ),
@@ -1167,7 +1182,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Missing or invalid required argument: payload (must be a JSON object)",
                         hint=None,
                     ),
@@ -1181,7 +1196,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="PROJECT_NOT_FOUND",
+                        error_code=PROJECT_NOT_FOUND,
                         message=f"Project not found: {project_id}",
                         hint="Use 'oc init-project' to create a project first",
                     ),
@@ -1200,7 +1215,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_TASK_TYPE",
+                        error_code=INVALID_TASK_TYPE,
                         message=str(exc),
                         hint=None,
                     ),
@@ -1211,7 +1226,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message=str(exc),
                         hint=None,
                     ),
@@ -1222,7 +1237,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="UNKNOWN_HANDLER",
+                        error_code=UNKNOWN_HANDLER,
                         message=str(exc),
                         hint=None,
                     ),
@@ -1233,7 +1248,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="UNKNOWN_TASK_TYPE",
+                        error_code=UNKNOWN_TASK_TYPE,
                         message=str(exc),
                         hint=None,
                     ),
@@ -1258,7 +1273,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="TASK_NOT_FOUND",
+                        error_code=TASK_NOT_FOUND,
                         message=f"Task not found: {task_id}",
                         hint=None,
                     ),
@@ -1280,7 +1295,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message=f"Unsupported status filter: {status_value}",
                         hint=None,
                     ),
@@ -1301,7 +1316,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message=f"Unsupported sort key: {sort_key}",
                         hint=None,
                     ),
@@ -1314,7 +1329,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message=f"Unsupported sort order: {order}",
                         hint=None,
                     ),
@@ -1349,7 +1364,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Task type must be a string",
                         hint=None,
                     ),
@@ -1380,7 +1395,7 @@ def dispatch_json_command(
                 if "." in task.type and task.type not in RUNNABLE_TASK_TYPES:
                     invalid_type_count += 1
                     error_payload = {
-                        "error_code": "INVALID_TASK_TYPE",
+                        "error_code": INVALID_TASK_TYPE,
                         "message": f"Invalid task type: {task.type}",
                     }
                     container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
@@ -1389,7 +1404,7 @@ def dispatch_json_command(
                             project_id=task.project_id,
                             task_id=task.id,
                             type="task.failed",
-                            payload={"task_id": task.id, "error_code": "INVALID_TASK_TYPE"},
+                            payload={"task_id": task.id, "error_code": INVALID_TASK_TYPE},
                         )
                     )
                     continue
@@ -1447,7 +1462,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Task type must be a string",
                         hint=None,
                     ),
@@ -1461,7 +1476,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Limit must be an integer",
                         hint=None,
                     ),
@@ -1473,7 +1488,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="Limit must be at least 1",
                         hint=None,
                     ),
@@ -1488,7 +1503,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="max_seconds must be a number",
                         hint=None,
                     ),
@@ -1501,7 +1516,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="max_seconds must be a number",
                         hint=None,
                     ),
@@ -1513,7 +1528,7 @@ def dispatch_json_command(
                     ok=False,
                     result=None,
                     error=json_error_payload(
-                        error_code="INVALID_ARGUMENT",
+                        error_code=INVALID_ARGUMENT,
                         message="max_seconds must be non-negative",
                         hint=None,
                     ),
@@ -1548,7 +1563,7 @@ def dispatch_json_command(
                 if "." in task.type and task.type not in RUNNABLE_TASK_TYPES:
                     invalid_type_count += 1
                     error_payload = {
-                        "error_code": "INVALID_TASK_TYPE",
+                        "error_code": INVALID_TASK_TYPE,
                         "message": f"Invalid task type: {task.type}",
                     }
                     container.storage.update_task_error(task.id, json.dumps(error_payload), TaskStatus.FAILED.value)
@@ -1557,7 +1572,7 @@ def dispatch_json_command(
                             project_id=task.project_id,
                             task_id=task.id,
                             type="task.failed",
-                            payload={"task_id": task.id, "error_code": "INVALID_TASK_TYPE"},
+                            payload={"task_id": task.id, "error_code": INVALID_TASK_TYPE},
                         )
                     )
                     continue
@@ -1645,7 +1660,7 @@ def dispatch_json_command(
         ok=False,
         result=None,
         error=json_error_payload(
-            error_code="UNKNOWN_COMMAND",
+            error_code=UNKNOWN_COMMAND,
             message=f"Unsupported command: {command}",
             hint=None,
         ),
@@ -1664,7 +1679,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ok=False,
             result=None,
             error=json_error_payload(
-                error_code="INVALID_REQUEST",
+                error_code=INVALID_REQUEST,
                 message="Request 'request_id' must be a string",
                 hint=None,
             ),
@@ -1681,7 +1696,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ok=False,
             result=None,
             error=json_error_payload(
-                error_code="INVALID_REQUEST",
+                error_code=INVALID_REQUEST,
                 message="Request 'protocol_version' must be a string",
                 hint=None,
             ),
@@ -1697,7 +1712,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ok=False,
             result=None,
             error=json_error_payload(
-                error_code="UNSUPPORTED_PROTOCOL_VERSION",
+                error_code=UNSUPPORTED_PROTOCOL_VERSION,
                 message=f"Unsupported protocol_version: {protocol_value}",
                 hint='Use protocol_version "1".',
             ),
@@ -1713,7 +1728,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ok=False,
             result=None,
             error=json_error_payload(
-                error_code="INVALID_REQUEST",
+                error_code=INVALID_REQUEST,
                 message="Request must include 'command' string",
                 hint=None,
             ),
@@ -1731,7 +1746,7 @@ def dispatch_request(container: CoreContainer, request: dict[str, object]) -> di
             ok=False,
             result=None,
             error=json_error_payload(
-                error_code="INVALID_REQUEST",
+                error_code=INVALID_REQUEST,
                 message="Request 'args' must be an object",
                 hint=None,
             ),
@@ -1801,13 +1816,13 @@ def serve_stdio(
                 ok=False,
                 result=None,
                 error=json_error_payload(
-                    error_code="INVALID_JSON",
+                    error_code=INVALID_JSON,
                     message=str(exc),
                     hint=None,
                 ),
             )
             payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
-            METRICS.record_request("unknown", ok=False, error_code="INVALID_JSON")
+            METRICS.record_request("unknown", ok=False, error_code=INVALID_JSON)
             output_stream.write(json_dumps_line(payload) + "\n")
             output_stream.flush()
             continue
@@ -1818,13 +1833,13 @@ def serve_stdio(
                 ok=False,
                 result=None,
                 error=json_error_payload(
-                    error_code="INVALID_REQUEST",
+                    error_code=INVALID_REQUEST,
                     message="Request must be a JSON object",
                     hint=None,
                 ),
             )
             payload["protocol_version"] = STDIO_RPC_PROTOCOL_VERSION
-            METRICS.record_request("unknown", ok=False, error_code="INVALID_REQUEST")
+            METRICS.record_request("unknown", ok=False, error_code=INVALID_REQUEST)
             output_stream.write(json_dumps_line(payload) + "\n")
             output_stream.flush()
             continue

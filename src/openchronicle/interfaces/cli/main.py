@@ -38,6 +38,10 @@ from openchronicle.core.application.use_cases import (
 from openchronicle.core.application.use_cases.replay_project import (
     ReplayService as ProjectReplayService,
 )
+from openchronicle.core.domain.errors.error_codes import (
+    INVALID_JSON,
+    INVALID_REQUEST,
+)
 from openchronicle.core.domain.models.failure_category import failure_category_description
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import Agent
@@ -554,7 +558,7 @@ def main(argv: list[str] | None = None) -> int:
                 ok=False,
                 result=None,
                 error=_json_error_payload(
-                    error_code="INVALID_JSON",
+                    error_code=INVALID_JSON,
                     message=str(exc),
                     hint=None,
                 ),
@@ -570,7 +574,7 @@ def main(argv: list[str] | None = None) -> int:
                 ok=False,
                 result=None,
                 error=_json_error_payload(
-                    error_code="INVALID_REQUEST",
+                    error_code=INVALID_REQUEST,
                     message="Request must be a JSON object",
                     hint=None,
                 ),

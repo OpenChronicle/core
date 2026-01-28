@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from openchronicle.core.application.runtime.task_registry import HandlerCollisionError, TaskHandlerRegistry
+from openchronicle.core.domain.errors import PLUGIN_COLLISION, PLUGIN_ID_COLLISION
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry, TaskHandler
 
 
@@ -20,7 +21,7 @@ class PluginCollisionError(Exception):
         sources: list[str] | None = None,
         existing_source: str | None = None,
         new_source: str | None = None,
-        error_code: str = "PLUGIN_COLLISION",
+        error_code: str = PLUGIN_COLLISION,
     ) -> None:
         self.collision_type = collision_type
         self.key = key
@@ -118,7 +119,7 @@ class PluginLoader:
                     existing_source=existing_source,
                     new_source=new_source,
                     sources=[existing_source, new_source],
-                    error_code="PLUGIN_ID_COLLISION",
+                    error_code=PLUGIN_ID_COLLISION,
                 )
             # With collisions allowed, later plugins override earlier ones (deterministic)
 

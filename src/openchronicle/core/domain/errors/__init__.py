@@ -1,4 +1,4 @@
-"""Backward-compatible re-export of canonical error code constants."""
+"""Error domain utilities and constants."""
 
 from __future__ import annotations
 

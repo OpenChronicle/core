@@ -57,15 +57,51 @@ Responses are single JSON objects on one line.
 
 ## Error codes
 
+Request/validation:
+
 - `INVALID_JSON`
 - `INVALID_REQUEST`
 - `INVALID_ARGUMENT`
-- `INTERNAL_ERROR`
+- `INVALID_TASK_TYPE`
 - `UNKNOWN_COMMAND`
+- `UNKNOWN_TASK_TYPE`
+- `UNKNOWN_HANDLER`
+- `PROJECT_NOT_FOUND`
 - `TASK_NOT_FOUND`
+- `UNSUPPORTED_PROTOCOL_VERSION`
+- `INTERNAL_ERROR`
+
+Task execution / handler:
+
+- `HANDLER_ERROR`
+- `HANDLER_COLLISION`
+- `PLUGIN_ID_COLLISION`
+- `PLUGIN_COLLISION`
+
+Privacy / routing:
+
 - `NSFW_POOL_NOT_CONFIGURED`
 - `OUTBOUND_PII_BLOCKED`
-- `UNSUPPORTED_PROTOCOL_VERSION`
+- `SELF_REPORT_INVALID`
+
+Provider/config/runtime (from provider adapters):
+
+- `provider_required`
+- `provider_not_configured`
+- `invalid_provider`
+- `missing_api_key`
+- `missing_package`
+- `client_missing`
+- `config_error`
+- `provider_error`
+- `timeout`
+- `connection_error`
+- `unknown`
+
+Execution outcomes:
+
+- `budget_exceeded`
+- `unexpected_error`
 
 ## Serve-mode behavior (best-effort)
 

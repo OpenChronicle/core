@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from openchronicle.core.domain.errors import BUDGET_EXCEEDED, TIMEOUT
+
 # User-facing failure categories (what to display in CLI/events)
 FailureCategory = Literal[
     "PROVIDER_ERROR",
@@ -52,9 +54,9 @@ def classify_failure_category(error_code: str | None, error_class: str | None) -
         User-facing failure category
     """
     # Direct mapping by error code (most specific)
-    if error_code == "budget_exceeded":
+    if error_code == BUDGET_EXCEEDED:
         return "BUDGET_BLOCKED"
-    if error_code == "timeout":
+    if error_code == TIMEOUT:
         return "TIMEOUT"
     if error_code and "credential" in error_code.lower():
         return "CONFIG_ERROR"

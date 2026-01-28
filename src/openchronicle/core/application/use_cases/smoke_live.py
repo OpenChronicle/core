@@ -19,6 +19,7 @@ from uuid import uuid4
 from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.services.llm_execution import execute_with_route
 from openchronicle.core.application.services.orchestrator import OrchestratorService
+from openchronicle.core.domain.errors import BUDGET_EXCEEDED, PROVIDER_ERROR, UNEXPECTED_ERROR
 from openchronicle.core.domain.exceptions import BudgetExceededError
 from openchronicle.core.domain.models.failure_category import classify_failure_category
 from openchronicle.core.domain.models.project import Event, TaskStatus
@@ -206,7 +207,7 @@ async def execute(
     except BudgetExceededError as exc:
         # Budget was exceeded - this is a valid outcome to report
         outcome = "blocked"
-        error_code = "budget_exceeded"
+        error_code = BUDGET_EXCEEDED
         error_message = str(exc)
         failure_category = classify_failure_category(error_code, None)
 
@@ -230,7 +231,7 @@ async def execute(
     except LLMProviderError as exc:
         # Provider error - capture for diagnostics (without revealing secrets)
         outcome = "failed"
-        error_code = exc.error_code or "provider_error"
+        error_code = exc.error_code or PROVIDER_ERROR
         error_message = str(exc)
 
         # Log error without revealing secrets like API keys
@@ -262,7 +263,7 @@ async def execute(
     except Exception as exc:
         # Unexpected error
         outcome = "failed"
-        error_code = "unexpected_error"
+        error_code = UNEXPECTED_ERROR
         error_message = str(exc)[:500]  # Truncate to prevent leaking sensitive data
         failure_category = classify_failure_category(error_code, None)
 

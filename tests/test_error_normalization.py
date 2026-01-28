@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from openchronicle.core.application.use_cases import convo_mode, create_conversation
+from openchronicle.core.domain.errors import INVALID_ARGUMENT, INVALID_REQUEST, NSFW_POOL_NOT_CONFIGURED
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
 from tests.helpers.subprocess_env import build_env, run_oc_module
@@ -30,7 +31,7 @@ def test_error_normalization_invalid_request(tmp_path: Path) -> None:
     assert payload["ok"] is False
     error = cast(dict[str, Any], payload["error"])
     assert set(error.keys()) == {"error_code", "message", "hint", "details"}
-    assert error["error_code"] == "INVALID_REQUEST"
+    assert error["error_code"] == INVALID_REQUEST
 
 
 def test_error_normalization_provider_error(tmp_path: Path) -> None:
@@ -69,7 +70,7 @@ def test_error_normalization_provider_error(tmp_path: Path) -> None:
     )
     assert payload["ok"] is False
     error = cast(dict[str, Any], payload["error"])
-    assert error["error_code"] == "NSFW_POOL_NOT_CONFIGURED"
+    assert error["error_code"] == NSFW_POOL_NOT_CONFIGURED
     assert isinstance(error.get("details"), dict)
     assert "config_dir" in error["details"]
 
@@ -109,5 +110,5 @@ def test_error_normalization_invalid_argument(tmp_path: Path) -> None:
     )
     assert payload["ok"] is False
     error = cast(dict[str, Any], payload["error"])
-    assert error["error_code"] == "INVALID_ARGUMENT"
+    assert error["error_code"] == INVALID_ARGUMENT
     assert "details" in error
