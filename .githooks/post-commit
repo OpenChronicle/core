@@ -31,10 +31,12 @@ cd "$STAGING_DIR"
 # Tests
 rm -rf tests/ test.db
 
-# Documentation (keep README.md for basic context)
+# Documentation (keep README.md and LICENSE.md for basic context)
 rm -rf docs/
 rm -f BACKLOG.md CHANGELOG.md CONTRIBUTING.md README_V1_REFERENCE.md
 rm -f CLAUDE.md INSTRUCTIONS.md
+# Remove any dev/planning markdown files (keep only README.md, LICENSE*.md)
+find . -maxdepth 1 -name "*.md" ! -name "README.md" ! -name "LICENSE.md" -delete 2>/dev/null || true
 
 # Legacy v1 reference code
 rm -rf v1.reference/
@@ -49,8 +51,12 @@ rm -f Dockerfile docker-compose.yml
 rm -rf .docker/
 
 # IDE and AI assistant files
-rm -rf .vscode/ .vs/ .claude/ .serena/
+rm -rf .vscode/ .vs/ .claude/ .serena/ .githooks/
 rm -f .mcp.json *.code-workspace
+
+# Dev scripts
+rm -f commit-and-push.ps1 check-and-fix.ps1
+rm -f .dockerignore
 
 # Build artifacts (shouldn't be in git, but just in case)
 rm -rf build/ dist/ *.egg-info/
