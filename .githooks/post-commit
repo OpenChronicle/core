@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Post-commit hook: creates a scrubbed, timestamped zip of the project
+# containing only files essential to run the application.
+#
+# Output: D:\GitHub\openchronicle-core_YYYY-MM-DD_HHMMSS.zip
+#
+# Install: cp .githooks/post-commit .git/hooks/post-commit
+#   (or run: .githooks/install-hooks.sh)
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+REPO_NAME="$(basename "$REPO_ROOT")"
+TIMESTAMP="$(date +%Y-%m-%d_%H%M%S)"
+OUTPUT_DIR="/d/GitHub"
+ZIP_NAME="${REPO_NAME}_${TIMESTAMP}.zip"
+ZIP_PATH="${OUTPUT_DIR}/${ZIP_NAME}"
+STAGING_DIR="$(mktemp -d)"
+
+trap 'rm -rf "$STAGING_DIR"' EXIT
+
+echo "[post-commit] Creating scrubbed export: ${ZIP_NAME}"
+
+# Use git archive as the base -- this respects .gitignore and only
+# includes tracked files, automatically excluding .git/, .venv/, etc.
+git archive HEAD | tar -x -C "$STAGING_DIR"
+
+# Remove non-essential directories and files from the export
+cd "$STAGING_DIR"
+
+# Tests
+rm -rf tests/ test.db
+
+# Documentation (keep README.md for basic context)
+rm -rf docs/
+rm -f BACKLOG.md CHANGELOG.md CONTRIBUTING.md README_V1_REFERENCE.md
+rm -f CLAUDE.md INSTRUCTIONS.md
+
+# Legacy v1 reference code
+rm -rf v1.reference/
+
+# Dev tooling and CI config
+rm -rf tools/ .benchmarks/
+rm -f .pre-commit-config.yaml .markdownlint.json .gitleaks.toml
+rm -f .markdownlint-cli2.jsonc .editorconfig
+rm -f check-and-fix.ps1 commit.ps1
+rm -f package.json package-lock.json
+rm -f Dockerfile docker-compose.yml
+rm -rf .docker/
+
+# IDE and AI assistant files
+rm -rf .vscode/ .vs/ .claude/ .serena/
+rm -f .mcp.json *.code-workspace
+
+# Build artifacts (shouldn't be in git, but just in case)
+rm -rf build/ dist/ *.egg-info/
+
+# Cache dirs (shouldn't be in git, but just in case)
+rm -rf .pytest_cache/ .mypy_cache/ .ruff_cache/ __pycache__/
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+
+# Git-related files
+rm -f .gitignore .gitattributes
+
+# Create the zip
+cd "$STAGING_DIR"
+if command -v zip &>/dev/null; then
+    zip -r "$ZIP_PATH" . -x '.*' >/dev/null
+elif command -v 7z &>/dev/null; then
+    7z a -tzip "$ZIP_PATH" . -x'!.*' >/dev/null
+elif command -v powershell.exe &>/dev/null; then
+    powershell.exe -NoProfile -Command "Compress-Archive -Path '$STAGING_DIR\\*' -DestinationPath '$(cygpath -w "$ZIP_PATH")' -Force"
+else
+    echo "[post-commit] ERROR: No zip tool found (tried zip, 7z, PowerShell)."
+    exit 1
+fi
+
+# Report size
+ZIP_SIZE=$(du -h "$ZIP_PATH" | cut -f1)
+echo "[post-commit] Export complete: ${ZIP_PATH} (${ZIP_SIZE})"
