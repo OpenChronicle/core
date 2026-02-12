@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Claude Code local settings
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]

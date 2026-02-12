@@ -8,13 +8,13 @@ This document tracks planned features, implementation gaps, and future work for 
 
 ## Status Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Implemented |
-| 🟡 | In Progress |
-| 🔴 | Not Started |
-| ⚪ | Stubbed/Placeholder |
-| ⏸️ | Deferred |
+| Symbol | Meaning             |
+| ------ | ------------------- |
+| ✅     | Implemented         |
+| 🟡     | In Progress         |
+| 🔴     | Not Started         |
+| ⚪     | Stubbed/Placeholder |
+| ⏸️     | Deferred            |
 
 ---
 
@@ -160,7 +160,7 @@ This document tracks planned features, implementation gaps, and future work for 
 
 ---
 
-## Priority 5 — IDE Integrations
+## Priority 5 — IDE / Developer Platform Integrations
 
 ### 5.1 VS Code Copilot SDK Integration
 
@@ -174,6 +174,64 @@ This document tracks planned features, implementation gaps, and future work for 
 - [ ] Submit request payload, return structured output + logs
 - [ ] Explicit opt-in network policy with full audit logging
 - [ ] Sanitize payloads / respect PII gate
+
+### 5.2 Goose (Block) Integration (Plugin / External Agent Driver)
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Depends On:** Scheduler, Security Scanner, Sandbox Runner baseline
+
+**What it is:** Goose is an open-source, local, extensible AI agent aimed at automating engineering tasks end-to-end (CLI + desktop), with support for multi-model configuration and MCP server integrations.
+
+**Why we care:** Goose overlaps directly with the "dev-agent runner" concept, and could accelerate our path to background development workflows by reusing an existing agent runtime rather than inventing one. It also gives us an integration target for MCP-style tool ecosystems.
+
+**Integration posture (keep core hardcore):**
+
+- **Plugin-only integration.** Core must not depend on Goose.
+- Treat Goose as an **external worker/agent** that our plugins can orchestrate via:
+  - CLI process execution (stdio)
+  - explicit workspace mounts
+  - explicit network policy (default deny)
+  - deterministic job envelopes
+
+**Minimum viable capability (MVP):**
+
+- A plugin that can:
+  1. Launch Goose with a controlled workspace (sandbox dir/container mount)
+  2. Provide an input "plan" or task description
+  3. Capture outputs deterministically:
+     - logs
+     - artifacts (patches/files)
+     - structured status
+  4. Emit an OpenChronicle task result with full explainability:
+     - what Goose was asked to do
+     - what workspace it had access to
+     - whether network was allowed
+     - what it produced
+
+**Security guardrails (non-negotiable):**
+
+- Default **no internet** unless explicitly enabled per run.
+- Strict allowlists for:
+  - writable paths
+  - executable commands
+  - maximum runtime/resources
+- No pushing to external remotes.
+- All outputs must pass through our scanning pipeline before being considered "trusted."
+
+**Where it fits in the sequence:**
+
+- After:
+  1. Scheduler plugin MVP
+  2. Security scanning plugin MVP
+  3. Sandbox runner baseline (or equivalent)
+- Then Goose becomes either:
+  - a backend option for "Dev Agent Runner," or
+  - a parallel integration target for "agent execution engines."
+
+**Notes:**
+
+- We should treat Goose as a _replaceable_ agent runtime. The integration should be a driver contract, not a Goose-specific assumption.
 
 ---
 
@@ -262,12 +320,12 @@ This document tracks planned features, implementation gaps, and future work for 
 
 ### Known Issues
 
-| Issue | Location | Priority |
-|-------|----------|----------|
-| ~~Unicode encoding on Windows CLI~~ | `interfaces/cli/main.py` | ✅ Fixed |
-| ~~Test subprocess PATH issue~~ | `tests/test_task_submit_rpc.py` | ✅ Fixed |
-| ~~Docker acceptance JSON escaping~~ | `tools/docker/acceptance.ps1` | ✅ Fixed |
-| ~~docker-compose .env required~~ | `docker-compose.yml` | ✅ Fixed |
+| Issue                               | Location                               | Priority |
+| ----------------------------------- | -------------------------------------- | -------- |
+| ~~Unicode encoding on Windows CLI~~ | `interfaces/cli/main.py`               | ✅ Fixed |
+| ~~Test subprocess PATH issue~~      | `tests/test_task_submit_rpc.py`        | ✅ Fixed |
+| ~~Docker acceptance JSON escaping~~ | `tools/docker/acceptance.ps1`          | ✅ Fixed |
+| ~~docker-compose .env required~~    | `docker-compose.yml`                   | ✅ Fixed |
 | ~~Smoke test assertion too strict~~ | `tests/integration/test_smoke_live.py` | ✅ Fixed |
 
 ### Code Quality Enforcement
@@ -308,14 +366,18 @@ Recommended order based on dependencies:
 6. Serena MCP Integration (P3.2)
    └── Inside sandbox runner only
 
-7. VS Code Copilot SDK (P5)
+7. VS Code Copilot SDK (P5.1)
    └── After sandbox exists
 
-8. Mixture-of-Experts (P4)
+8. Goose Integration (P5.2)
+   └── After scheduler + scanner + sandbox baseline
+   └── Replaceable agent runtime driver
+
+9. Mixture-of-Experts (P4)
    └── Optional advanced feature
 
-9. Private Git Server (P6)
-   └── Platform infrastructure
+10. Private Git Server (P6)
+    └── Platform infrastructure
 ```
 
 ---
