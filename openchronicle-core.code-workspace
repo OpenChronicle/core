@@ -1,10 +1,21 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {
-		"chat.agent.maxRequests": 250
-	}
+  "folders": [
+    {
+      "path": ".",
+    },
+  ],
+  "settings": {
+    "chat.agent.maxRequests": 250,
+    "terminal.integrated.defaultProfile.windows": "pwsh 7",
+    "terminal.integrated.profiles.windows": {
+      "pwsh 7": {
+        "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "icon": "terminal-powershell",
+      },
+    },
+    "terminal.integrated.shellIntegration.enabled": true,
+    "terminal.integrated.automationProfile.windows": {
+      "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+    },
+  },
 }
