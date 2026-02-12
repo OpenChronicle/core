@@ -292,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
     chat_cmd.add_argument("--conversation-id", default=None, help="Resume specific conversation by ID")
     chat_cmd.add_argument("--resume", action="store_true", help="Resume most recent conversation")
     chat_cmd.add_argument("--title", default=None, help="Title for new conversation")
+    chat_cmd.add_argument("--no-stream", dest="no_stream", action="store_true", help="Disable streaming output")
 
     # --- Parse ---
     args = parser.parse_args(argv)

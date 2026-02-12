@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from openchronicle.core.domain.ports.llm_port import LLMProviderError, LLMResponse, LLMUsage
+from openchronicle.core.domain.ports.llm_port import LLMProviderError, LLMResponse, LLMUsage, StreamChunk
 
 # ---------------------------------------------------------------------------
 # Helpers: fake SDK response objects
@@ -463,3 +463,70 @@ class TestOllamaAdapterContract:
         assert result.usage.input_tokens == 8
         assert result.usage.output_tokens == 16
         assert result.usage.total_tokens == 24
+
+
+# ===================================================================
+# Streaming Contract Tests
+# ===================================================================
+
+
+class TestStubStreamAsync:
+    """Verify stub adapter streaming produces word-by-word chunks."""
+
+    async def test_stream_yields_chunks(self) -> None:
+        from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
+
+        adapter = StubLLMAdapter()
+        chunks: list[StreamChunk] = []
+        async for chunk in adapter.stream_async(
+            [{"role": "user", "content": "hello world"}],
+            model="stub",
+        ):
+            chunks.append(chunk)
+
+        assert len(chunks) >= 1
+        full_text = "".join(c.text for c in chunks)
+        assert "hello" in full_text
+        # Last chunk should be marked finished
+        assert chunks[-1].finished is True
+        assert chunks[-1].provider == "stub"
+
+    async def test_stream_single_word(self) -> None:
+        from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
+
+        adapter = StubLLMAdapter()
+        chunks: list[StreamChunk] = []
+        async for chunk in adapter.stream_async(
+            [{"role": "user", "content": "hi"}],
+            model="stub",
+        ):
+            chunks.append(chunk)
+
+        assert len(chunks) == 1
+        assert chunks[0].text == "hi"
+        assert chunks[0].finished is True
+
+
+class TestLLMPortDefaultStreamFallback:
+    """Verify the default stream_async falls back to complete_async."""
+
+    async def test_fallback_yields_single_chunk(self) -> None:
+        from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
+
+        # Use a subclass that only has complete_async (not stream_async)
+        # We test the base class fallback by calling it through super()
+        adapter = StubLLMAdapter()
+        # Call the base class stream_async directly to test fallback
+        from openchronicle.core.domain.ports.llm_port import LLMPort
+
+        chunks: list[StreamChunk] = []
+        async for chunk in LLMPort.stream_async(
+            adapter,
+            [{"role": "user", "content": "test fallback"}],
+            model="stub",
+        ):
+            chunks.append(chunk)
+
+        assert len(chunks) == 1
+        assert chunks[0].finished is True
+        assert "test fallback" in chunks[0].text

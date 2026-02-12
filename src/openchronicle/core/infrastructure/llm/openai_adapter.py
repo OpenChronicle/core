@@ -12,8 +12,10 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     openai = None  # type: ignore[assignment,unused-ignore]
 
+from collections.abc import AsyncIterator
+
 from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage, StreamChunk
 
 
 class OpenAIAdapter(LLMPort):
@@ -92,3 +94,62 @@ class OpenAIAdapter(LLMPort):
             usage=usage_obj,
             latency_ms=latency_ms,
         )
+
+    async def stream_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        max_output_tokens: int | None = None,
+        temperature: float | None = None,
+        provider: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        self._ensure_ready()
+
+        start = time.perf_counter()
+        try:
+            stream = await self._client.chat.completions.create(
+                model=model or self.model,
+                messages=messages,
+                max_tokens=max_output_tokens,
+                temperature=temperature,
+                stream=True,
+                stream_options={"include_usage": True},
+            )
+        except Exception as exc:
+            status = getattr(exc, "status_code", None)
+            code = getattr(exc, "code", None)
+            raise LLMProviderError(str(exc), status_code=status, error_code=code) from exc
+
+        usage_obj: LLMUsage | None = None
+        finish_reason: str | None = None
+        async for chunk in stream:
+            # Usage comes on the final chunk with empty choices
+            chunk_usage = getattr(chunk, "usage", None)
+            if chunk_usage is not None:
+                usage_obj = LLMUsage(
+                    input_tokens=getattr(chunk_usage, "prompt_tokens", None),
+                    output_tokens=getattr(chunk_usage, "completion_tokens", None),
+                    total_tokens=getattr(chunk_usage, "total_tokens", None),
+                )
+
+            if not chunk.choices:
+                continue
+
+            delta = chunk.choices[0].delta
+            text = getattr(delta, "content", None) or ""
+            chunk_finish = getattr(chunk.choices[0], "finish_reason", None)
+            if chunk_finish:
+                finish_reason = chunk_finish
+
+            if text or chunk_finish:
+                latency_ms = int((time.perf_counter() - start) * 1000) if chunk_finish else None
+                yield StreamChunk(
+                    text=text,
+                    finished=bool(chunk_finish),
+                    provider="openai",
+                    model=model or self.model,
+                    finish_reason=finish_reason if chunk_finish else None,
+                    usage=usage_obj if chunk_finish else None,
+                    latency_ms=latency_ms,
+                )

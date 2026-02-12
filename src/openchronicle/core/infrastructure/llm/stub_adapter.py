@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import AsyncIterator
 from typing import Any
 
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, StreamChunk
 
 
 class StubLLMAdapter(LLMPort):
@@ -56,3 +57,34 @@ class StubLLMAdapter(LLMPort):
             usage=None,
             latency_ms=0,
         )
+
+    async def stream_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        max_output_tokens: int | None = None,
+        temperature: float | None = None,
+        provider: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        """Stream stub response word by word for testing."""
+        response = await self.complete_async(
+            messages,
+            model=model,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            provider=provider,
+        )
+        words = response.content.split()
+        for i, word in enumerate(words):
+            is_last = i == len(words) - 1
+            text = word if i == 0 else " " + word
+            yield StreamChunk(
+                text=text,
+                finished=is_last,
+                provider=response.provider,
+                model=response.model,
+                finish_reason=response.finish_reason if is_last else None,
+                usage=response.usage if is_last else None,
+                latency_ms=response.latency_ms if is_last else None,
+            )

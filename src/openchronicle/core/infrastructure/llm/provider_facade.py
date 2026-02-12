@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 from openchronicle.core.application.config.model_config import ConfigError, ModelConfigLoader, ResolvedModelConfig
 from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR, PROVIDER_NOT_CONFIGURED, PROVIDER_REQUIRED
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, StreamChunk
 
 
 def extract_providers_from_routing_config() -> set[str]:
@@ -56,31 +56,8 @@ class ProviderAwareLLMFacade(LLMPort):
         self._adapter_cache: dict[tuple[str, str], LLMPort] = {}
         self.default_provider = default_provider
 
-    async def complete_async(
-        self,
-        messages: list[dict[str, Any]],
-        *,
-        model: str,
-        max_output_tokens: int | None = None,
-        temperature: float | None = None,
-        provider: str | None = None,
-    ) -> LLMResponse:
-        """
-        Execute LLM call with specified provider.
-
-        Args:
-            messages: Chat messages
-            model: Model name
-            max_output_tokens: Max output tokens
-            temperature: Sampling temperature
-            provider: Provider name (required for routing enforcement)
-
-        Returns:
-            LLMResponse from the specified provider
-
-        Raises:
-            LLMProviderError: If provider is not configured or unavailable
-        """
+    def _resolve_adapter(self, provider: str | None, model: str) -> tuple[LLMPort, str]:
+        """Resolve provider name and adapter. Returns (adapter, resolved_provider)."""
         available = list(self._adapters) + [p for p in self._adapter_factories if p not in self._adapters]
 
         if provider is None:
@@ -95,8 +72,6 @@ class ProviderAwareLLMFacade(LLMPort):
                     hint="Set OC_LLM_PROVIDER to configure a default provider, or ensure routing provides a provider parameter.",
                 )
 
-        adapter: LLMPort
-
         # Config-driven providers: always resolve per (provider, model)
         if provider in self._adapter_factories and self._config_loader is not None:
             try:
@@ -104,29 +79,58 @@ class ProviderAwareLLMFacade(LLMPort):
             except ConfigError as exc:  # pragma: no cover - exercised in tests via control paths
                 raise LLMProviderError(str(exc), status_code=None, error_code=CONFIG_ERROR) from exc
 
-            adapter = self._get_adapter(provider, resolved_config)
-        else:
-            # Static adapters must be explicitly present for test/stub providers
-            if provider in self._adapters:
-                adapter = self._adapters[provider]
-            else:
-                hint = self._generate_configuration_hint(provider)
-                raise LLMProviderError(
-                    f"Provider '{provider}' not configured. Available: {', '.join(available)}",
-                    status_code=None,
-                    error_code=PROVIDER_NOT_CONFIGURED,
-                    provider=provider,
-                    configured_providers=available,
-                    hint=hint,
-                )
+            return self._get_adapter(provider, resolved_config), provider
 
+        # Static adapters must be explicitly present for test/stub providers
+        if provider in self._adapters:
+            return self._adapters[provider], provider
+
+        hint = self._generate_configuration_hint(provider)
+        raise LLMProviderError(
+            f"Provider '{provider}' not configured. Available: {', '.join(available)}",
+            status_code=None,
+            error_code=PROVIDER_NOT_CONFIGURED,
+            provider=provider,
+            configured_providers=available,
+            hint=hint,
+        )
+
+    async def complete_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        max_output_tokens: int | None = None,
+        temperature: float | None = None,
+        provider: str | None = None,
+    ) -> LLMResponse:
+        adapter, resolved_provider = self._resolve_adapter(provider, model)
         return await adapter.complete_async(
             messages,
             model=model,
             max_output_tokens=max_output_tokens,
             temperature=temperature,
-            provider=provider,
+            provider=resolved_provider,
         )
+
+    async def stream_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        max_output_tokens: int | None = None,
+        temperature: float | None = None,
+        provider: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        adapter, resolved_provider = self._resolve_adapter(provider, model)
+        async for chunk in adapter.stream_async(
+            messages,
+            model=model,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            provider=resolved_provider,
+        ):
+            yield chunk
 
     def _get_adapter(self, provider: str, cfg: ResolvedModelConfig) -> LLMPort:
         cache_key = (provider, cfg.model)

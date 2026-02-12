@@ -13,8 +13,10 @@ except ImportError:  # pragma: no cover - optional dependency
     GenerateContentConfig = None  # type: ignore[assignment,misc,unused-ignore]
     Part = None  # type: ignore[assignment,misc,unused-ignore]
 
+from collections.abc import AsyncIterator
+
 from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage, StreamChunk
 
 
 class GeminiAdapter(LLMPort):
@@ -109,6 +111,79 @@ class GeminiAdapter(LLMPort):
             provider="gemini",
             model=model or self.model,
             finish_reason=None,
+            usage=usage_obj,
+            latency_ms=latency_ms,
+        )
+
+    async def stream_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        max_output_tokens: int | None = None,
+        temperature: float | None = None,
+        provider: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        self._ensure_ready()
+
+        system_parts: list[str] = []
+        contents: list[Any] = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            text = str(msg.get("content", ""))
+            if role == "system":
+                system_parts.append(text)
+            else:
+                gemini_role = "model" if role == "assistant" else "user"
+                contents.append(Content(role=gemini_role, parts=[Part.from_text(text=text)]))
+
+        config_kwargs: dict[str, Any] = {}
+        if system_parts:
+            config_kwargs["system_instruction"] = "\n\n".join(system_parts)
+        if max_output_tokens is not None:
+            config_kwargs["max_output_tokens"] = max_output_tokens
+        if temperature is not None:
+            config_kwargs["temperature"] = temperature
+
+        config = GenerateContentConfig(**config_kwargs) if config_kwargs else None
+
+        start = time.perf_counter()
+        try:
+            kwargs: dict[str, Any] = {
+                "model": model or self.model,
+                "contents": contents,
+            }
+            if config is not None:
+                kwargs["config"] = config
+            stream = self._client.aio.models.generate_content_stream(**kwargs)
+        except Exception as exc:
+            status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+            raise LLMProviderError(str(exc), status_code=status, error_code=None) from exc
+
+        usage_obj: LLMUsage | None = None
+        async for chunk in stream:
+            text = getattr(chunk, "text", None) or ""
+            usage_metadata = getattr(chunk, "usage_metadata", None)
+            if usage_metadata is not None:
+                usage_obj = LLMUsage(
+                    input_tokens=getattr(usage_metadata, "prompt_token_count", None),
+                    output_tokens=getattr(usage_metadata, "candidates_token_count", None),
+                    total_tokens=getattr(usage_metadata, "total_token_count", None),
+                )
+            if text:
+                yield StreamChunk(
+                    text=text,
+                    finished=False,
+                    provider="gemini",
+                    model=model or self.model,
+                )
+
+        latency_ms = int((time.perf_counter() - start) * 1000)
+        yield StreamChunk(
+            text="",
+            finished=True,
+            provider="gemini",
+            model=model or self.model,
             usage=usage_obj,
             latency_ms=latency_ms,
         )

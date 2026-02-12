@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -18,6 +19,19 @@ class LLMResponse:
     provider: str
     model: str
     request_id: str | None = None
+    finish_reason: str | None = None
+    usage: LLMUsage | None = None
+    latency_ms: int | None = None
+
+
+@dataclass
+class StreamChunk:
+    """A single chunk from a streaming LLM response."""
+
+    text: str
+    finished: bool = False
+    provider: str = ""
+    model: str = ""
     finish_reason: str | None = None
     usage: LLMUsage | None = None
     latency_ms: int | None = None
@@ -85,6 +99,38 @@ class LLMPort(ABC):
         Raises:
             LLMProviderError: If the call fails or provider is not available
         """
+
+    async def stream_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        max_output_tokens: int | None = None,
+        temperature: float | None = None,
+        provider: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        """Stream a chat completion as chunks.
+
+        Default implementation falls back to complete_async and yields the
+        full response as a single chunk. Override in adapters that support
+        native streaming.
+        """
+        response = await self.complete_async(
+            messages,
+            model=model,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            provider=provider,
+        )
+        yield StreamChunk(
+            text=response.content,
+            finished=True,
+            provider=response.provider,
+            model=response.model,
+            finish_reason=response.finish_reason,
+            usage=response.usage,
+            latency_ms=response.latency_ms,
+        )
 
     def complete(
         self,

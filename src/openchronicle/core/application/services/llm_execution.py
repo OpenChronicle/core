@@ -10,10 +10,11 @@ Optional budget enforcement gate ensures projects stay within defined constraint
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
 from openchronicle.core.application.routing.router_policy import RouteDecision
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMResponse
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMResponse, StreamChunk
 
 if TYPE_CHECKING:
     from openchronicle.core.application.policies.budget_gate import BudgetGate
@@ -81,6 +82,40 @@ async def execute_with_route(
         temperature=temperature,
         provider=route_decision.provider,
     )
+
+
+async def stream_with_route(
+    llm: LLMPort,
+    route_decision: RouteDecision,
+    messages: list[dict[str, str]],
+    max_output_tokens: int | None = None,
+    temperature: float | None = None,
+    budget_gate: BudgetGate | None = None,
+    project_id: str | None = None,
+    budget_policy: BudgetPolicy | None = None,
+) -> AsyncIterator[StreamChunk]:
+    """Stream an LLM call with a routing decision.
+
+    Same routing discipline as execute_with_route, but yields StreamChunks.
+    """
+    if not route_decision:
+        raise ValueError("route_decision is required - routing must happen before LLM execution")
+    if not route_decision.provider:
+        raise ValueError("route_decision.provider is required")
+    if not route_decision.model:
+        raise ValueError("route_decision.model is required")
+
+    if budget_gate is not None and budget_policy is not None and project_id is not None:
+        budget_gate.check(project_id, budget_policy, max_output_tokens)
+
+    async for chunk in llm.stream_async(
+        messages=messages,
+        model=route_decision.model,
+        max_output_tokens=max_output_tokens,
+        temperature=temperature,
+        provider=route_decision.provider,
+    ):
+        yield chunk
 
 
 async def execute_with_explicit_provider(
