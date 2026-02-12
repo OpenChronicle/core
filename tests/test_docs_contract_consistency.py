@@ -16,7 +16,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DOC_FILES: list[Path] = [
     _REPO_ROOT / "docs" / "plugins" / "plugin_contract.md",
     _REPO_ROOT / "docs" / "plugins" / "plugin_quickstart.md",
-    _REPO_ROOT / "docs" / "v2" / "PLUGINS.md",
+    _REPO_ROOT / "docs" / "architecture" / "PLUGINS.md",
 ]
 
 

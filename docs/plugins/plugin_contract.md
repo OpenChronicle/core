@@ -1,5 +1,9 @@
 # Plugin contract
 
+> **See also:**
+> [Plugin Quickstart](plugin_quickstart.md) |
+> [Full Plugin Guide](../architecture/PLUGINS.md)
+
 ## Core promises
 
 - Plugin loader discovers packages under plugins/ with **init**.py and plugin.py.

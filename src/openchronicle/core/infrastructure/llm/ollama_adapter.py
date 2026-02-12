@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from openchronicle.core.domain.error_codes import (
+from openchronicle.core.domain.errors.error_codes import (
     CONNECTION_ERROR,
     TIMEOUT,
     UNKNOWN_ERROR,

@@ -22,12 +22,10 @@ Licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 In
 
 ## 🗂️ This License Applies To
 
-All example and included story content located in:
-
-- `/storage/storypacks/`
-- `/storage/temp/demo/`
-- `/canon/`
-- `/examples/`
+All story content, templates, and canon files distributed with
+OpenChronicle. The v2 core does not currently ship story content;
+this license covers any future content additions and the legacy
+`v1.reference/` archive.
 
 ---
 
@@ -39,4 +37,4 @@ These are licensed separately under AGPL-3.0 (see `LICENSE.md`).
 
 ---
 
-© 2024–2025 CarlDog / OpenChronicle Project
+© 2024–2026 CarlDog / OpenChronicle Project

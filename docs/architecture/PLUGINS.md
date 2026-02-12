@@ -1,5 +1,9 @@
 # Plugin System
 
+> **Related Plugin Documentation:**
+> [Plugin Contract](../plugins/plugin_contract.md) |
+> [Plugin Quickstart](../plugins/plugin_quickstart.md)
+
 OpenChronicle v2 uses a file-based plugin system that allows contributors to extend functionality by adding plugins to the `plugins/` directory.
 
 ## Plugin Structure

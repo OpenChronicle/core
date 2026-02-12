@@ -384,8 +384,8 @@ Recommended order based on dependencies:
 
 ## References
 
-- **Architecture:** `docs/v2/ARCHITECTURE.md`
-- **Plugin Guide:** `docs/v2/PLUGINS.md`
+- **Architecture:** `docs/architecture/ARCHITECTURE.md`
+- **Plugin Guide:** `docs/architecture/PLUGINS.md`
 - **Plugin Roadmap:** `docs/plugins/plugin_backlog.md`
 - **RPC Protocol:** `docs/protocol/stdio_rpc_v1.md`
 - **Discord Contract:** `docs/integrations/discord_driver_contract.md`

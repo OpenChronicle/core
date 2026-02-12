@@ -49,34 +49,11 @@ pre-commit run --all-files
 
 ## Architecture
 
-This is a Python 3.11+ project using **hexagonal architecture** with three layers:
-
-```text
-src/openchronicle/
-├── core/
-│   ├── domain/           # Pure business logic, models, ports (no external deps)
-│   │   ├── models/       # Task, Project, Agent, Event, Conversation, Memory dataclasses
-│   │   ├── ports/        # Abstract interfaces (LLMPort, StoragePort, PluginPort, etc.)
-│   │   ├── services/     # Domain services (replay, verification, usage_tracker)
-│   │   └── errors/       # Error codes and exceptions
-│   ├── application/      # Use cases, orchestration, policies
-│   │   ├── policies/     # BudgetGate, RateLimiter, RetryController
-│   │   ├── routing/      # RouterPolicy, PoolConfig, FallbackExecutor
-│   │   ├── runtime/      # Container, PluginLoader, TaskHandlerRegistry
-│   │   ├── services/     # OrchestratorService, LLMExecution
-│   │   ├── use_cases/    # All application use cases (ask_conversation, smoke_live, etc.)
-│   │   ├── replay/       # Project state replay and usage derivation
-│   │   └── observability/# Execution index and telemetry
-│   └── infrastructure/   # Technical implementations
-│       ├── llm/          # Provider adapters (OpenAI, Anthropic, Ollama, Stub)
-│       ├── persistence/  # SqliteStore
-│       ├── privacy/      # Privacy gate implementation
-│       ├── routing/      # Rule-based and hybrid routers
-│       └── router_assist/# NSFW classification (linear, ONNX)
-└── interfaces/
-    ├── cli/              # CLI via argparse, JSON-RPC stdio protocol
-    └── api/              # HTTP API stub
-```
+Python 3.11+ project using **hexagonal architecture**: `domain/` (pure business
+logic, ports) -> `application/` (use cases, policies, orchestration) ->
+`infrastructure/` (LLM adapters, persistence, routing). CLI and API live in
+`interfaces/`. See [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)
+for the full directory tree and layer descriptions.
 
 **Key Concepts:**
 
@@ -110,69 +87,24 @@ src/openchronicle/
 
 ## Environment Variables
 
-### Core Paths
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OC_DB_PATH` | SQLite database location | `data/openchronicle.db` |
-| `OC_CONFIG_DIR` | Configuration directory | `config` |
-| `OC_PLUGIN_DIR` | Plugin directory | `plugins` |
-| `OC_OUTPUT_DIR` | Output/export directory | `output` |
-
-### LLM Provider Selection
+Most-used variables for quick reference:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `OC_LLM_PROVIDER` | Provider selection (`stub`, `openai`, `ollama`, `anthropic`) | `stub` |
 | `OPENAI_API_KEY` | OpenAI authentication | - |
-| `OPENAI_MODEL` | OpenAI model override | `gpt-4o-mini` |
-| `OC_LLM_MODEL_FAST` | Model for fast pool | - |
-| `OC_LLM_MODEL_QUALITY` | Model for quality pool | - |
-| `OC_LLM_DEFAULT_MODE` | Default routing mode (`fast`, `quality`) | `fast` |
+| `OC_DB_PATH` | SQLite database location | `data/openchronicle.db` |
 
-### Budget and Rate Limiting
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OC_MAX_TOKENS_PER_TASK` | Budget limit per task | - |
-| `OC_MAX_OUTPUT_TOKENS_PER_CALL` | Max output tokens per LLM call | - |
-| `OC_LLM_RPM_LIMIT` | Rate limit (requests/minute) | - |
-| `OC_LLM_TPM_LIMIT` | Rate limit (tokens/minute) | - |
-| `OC_LLM_MAX_WAIT_MS` | Max wait for rate limiting | `5000` |
-| `OC_LLM_MAX_RETRIES` | Max retry attempts | `2` |
-| `OC_LLM_MAX_RETRY_SLEEP_MS` | Max sleep per retry | `2000` |
-
-### Routing and Pools
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OC_LLM_FAST_POOL` | Providers for fast pool | - |
-| `OC_LLM_QUALITY_POOL` | Providers for quality pool | - |
-| `OC_LLM_POOL_NSFW` | Provider for NSFW content | - |
-| `OC_LLM_MAX_FALLBACKS` | Max fallback attempts | `1` |
-| `OC_LLM_PROVIDER_WEIGHTS` | Provider weights for selection | `ollama:100,openai:20` |
-
-### Privacy
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OC_PRIVACY_OUTBOUND_MODE` | Privacy mode (`off`, `warn`, `block`, `redact`) | `off` |
-| `OC_PRIVACY_OUTBOUND_EXTERNAL_ONLY` | Only apply to external providers | `true` |
-| `OC_PRIVACY_OUTBOUND_CATEGORIES` | PII categories to detect | - |
-
-### Telemetry
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OC_TELEMETRY_ENABLED` | Enable telemetry | `true` |
-| `OC_TELEMETRY_PERF_ENABLED` | Enable performance metrics | `true` |
-| `OC_TELEMETRY_USAGE_ENABLED` | Enable usage tracking | `true` |
+Full reference (~60 variables covering budget, rate limiting, routing, privacy,
+telemetry, and more): [docs/configuration/env_vars.md](docs/configuration/env_vars.md)
 
 ## Key Files
 
 - `pyproject.toml` - Project config, dependencies, tool settings
-- `docs/v2/ARCHITECTURE.md` - Detailed architecture documentation
-- `docs/v2/PLUGINS.md` - Plugin development guide
+- `docs/architecture/ARCHITECTURE.md` - Detailed architecture documentation
+- `docs/architecture/PLUGINS.md` - Plugin development guide
+- `docs/configuration/env_vars.md` - Full environment variables reference
+- `docs/design/design_decisions.md` - Core subsystem design rationale
 - `docs/protocol/stdio_rpc_v1.md` - RPC protocol specification
 - `docs/BACKLOG.md` - Feature and implementation backlog
 - `src/openchronicle/core/application/services/orchestrator.py` - Main orchestrator

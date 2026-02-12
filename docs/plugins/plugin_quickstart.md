@@ -1,6 +1,7 @@
 # Plugin quickstart
 
-See the plugin contract for guarantees and requirements: [plugin_contract.md](plugin_contract.md)
+See the plugin contract for guarantees and requirements: [plugin_contract.md](plugin_contract.md).
+For the full plugin development guide, see [PLUGINS.md](../architecture/PLUGINS.md).
 
 ## Structure
 
