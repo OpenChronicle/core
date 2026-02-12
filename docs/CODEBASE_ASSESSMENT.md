@@ -24,8 +24,7 @@ Tests are strong (404+), architecture is enforced, and the STDIO RPC daemon
 mode exists.
 
 **What's next** is the plugin phase (scheduler, Discord driver, security scanner)
-and optional should-have refactoring (decompose `ask_conversation.execute()`,
-orchestrator methods, SqliteStore row mappers).
+and optional should-have refactoring (all 3 items now complete).
 
 **Overall: Core done.** Both backend and UX are at the "you can use this as a
 chatbot" bar. Remaining work is polish and extensibility.
@@ -235,7 +234,7 @@ surface. No backwards compatibility concerns. No production deployment yet.
 |---|------|--------|--------|
 | 5 | **Decompose `ask_conversation.execute()`** | Done | Testability, readability |
 | 6 | **Decompose orchestrator manager/worker methods** | Done | Phase-separated into 6 private helpers + dataclass |
-| 7 | **SqliteStore row mapper extraction** | Not started | Cognitive load reduction |
+| 7 | **SqliteStore row mapper extraction** | Done | Cognitive load reduction |
 
 ### Defer to Plugin Phase
 
@@ -322,8 +321,9 @@ resolution), and 5 `_worker_*` phase helpers. `_run_worker_summarize` is now a
 ~20-line orchestrator calling setup → budget → rate-limit → execute → record.
 `_run_analysis_summary` uses `_resolve_worker_modes` (~85 lines, down from ~119).
 
-**4c. Extract SqliteStore row mappers** — Move 11 `_row_to_*` methods to a
-`row_mappers.py` module.
+**4c. Extract SqliteStore row mappers** — Done. Extracted 10 `_row_to_*` methods
+and `_parse_dt` to `row_mappers.py` as module-level functions. 21 callsites
+updated. `sqlite_store.py` reduced by ~165 lines.
 
 ---
 

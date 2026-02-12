@@ -26,6 +26,18 @@ from openchronicle.core.domain.ports.conversation_store_port import Conversation
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
 from openchronicle.core.infrastructure.persistence import schema
+from openchronicle.core.infrastructure.persistence.row_mappers import (
+    row_to_agent,
+    row_to_conversation,
+    row_to_event,
+    row_to_llm_usage,
+    row_to_memory_item,
+    row_to_project,
+    row_to_resource,
+    row_to_span,
+    row_to_task,
+    row_to_turn,
+)
 
 _MEMORY_SEARCH_LIMIT = 200
 
@@ -95,12 +107,12 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def list_projects(self) -> list[Project]:
         cur = self._conn.cursor()
         rows = cur.execute("SELECT * FROM projects ORDER BY created_at DESC").fetchall()
-        return [self._row_to_project(r) for r in rows]
+        return [row_to_project(r) for r in rows]
 
     def get_project(self, project_id: str) -> Project | None:
         cur = self._conn.cursor()
         row = cur.execute("SELECT * FROM projects WHERE id=?", (project_id,)).fetchone()
-        return self._row_to_project(row) if row else None
+        return row_to_project(row) if row else None
 
     # Agents
     def add_agent(self, agent: Agent) -> None:
@@ -123,14 +135,14 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def get_agent(self, agent_id: str) -> Agent | None:
         cur = self._conn.cursor()
         row = cur.execute("SELECT * FROM agents WHERE id=?", (agent_id,)).fetchone()
-        return self._row_to_agent(row) if row else None
+        return row_to_agent(row) if row else None
 
     def list_agents(self, project_id: str) -> list[Agent]:
         cur = self._conn.cursor()
         rows = cur.execute(
             "SELECT * FROM agents WHERE project_id=? ORDER BY created_at ASC, id ASC", (project_id,)
         ).fetchall()
-        return [self._row_to_agent(r) for r in rows]
+        return [row_to_agent(r) for r in rows]
 
     # Tasks
     def add_task(self, task: Task) -> None:
@@ -186,7 +198,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def get_task(self, task_id: str) -> Task | None:
         cur = self._conn.cursor()
         row = cur.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
-        return self._row_to_task(row) if row else None
+        return row_to_task(row) if row else None
 
     def list_tasks_by_project(self, project_id: str) -> list[Task]:
         cur = self._conn.cursor()
@@ -194,7 +206,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             "SELECT * FROM tasks WHERE project_id=? ORDER BY created_at ASC, id ASC",
             (project_id,),
         ).fetchall()
-        return [self._row_to_task(r) for r in rows]
+        return [row_to_task(r) for r in rows]
 
     # Events
     def append_event(self, event: Event) -> None:
@@ -240,7 +252,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
 
         sql += " ORDER BY created_at ASC, id ASC"
         rows = cur.execute(sql, params).fetchall()
-        return [self._row_to_event(r) for r in rows]
+        return [row_to_event(r) for r in rows]
 
     # Resources
     def add_resource(self, resource: Resource) -> None:
@@ -262,7 +274,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def list_resources(self, project_id: str) -> list[Resource]:
         cur = self._conn.cursor()
         rows = cur.execute("SELECT * FROM resources WHERE project_id=?", (project_id,)).fetchall()
-        return [self._row_to_resource(r) for r in rows]
+        return [row_to_resource(r) for r in rows]
 
     # Spans
     def add_span(self, span: Span) -> None:
@@ -303,12 +315,12 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def list_spans(self, task_id: str) -> list[Span]:
         cur = self._conn.cursor()
         rows = cur.execute("SELECT * FROM spans WHERE task_id=? ORDER BY created_at ASC", (task_id,)).fetchall()
-        return [self._row_to_span(r) for r in rows]
+        return [row_to_span(r) for r in rows]
 
     def get_span(self, span_id: str) -> Span | None:
         cur = self._conn.cursor()
         row = cur.execute("SELECT * FROM spans WHERE id=?", (span_id,)).fetchone()
-        return self._row_to_span(row) if row else None
+        return row_to_span(row) if row else None
 
     # Conversations
     def add_conversation(self, conversation: Conversation) -> None:
@@ -328,7 +340,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def get_conversation(self, conversation_id: str) -> Conversation | None:
         cur = self._conn.cursor()
         row = cur.execute("SELECT * FROM conversations WHERE id=?", (conversation_id,)).fetchone()
-        return self._row_to_conversation(row) if row else None
+        return row_to_conversation(row) if row else None
 
     def list_conversations(self, limit: int | None = None) -> list[Conversation]:
         cur = self._conn.cursor()
@@ -340,7 +352,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             params.append(limit)
 
         rows = cur.execute(sql, params).fetchall()
-        return [self._row_to_conversation(r) for r in rows]
+        return [row_to_conversation(r) for r in rows]
 
     def get_conversation_mode(self, conversation_id: str) -> str:
         cur = self._conn.cursor()
@@ -408,7 +420,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
                 "SELECT * FROM turns WHERE conversation_id=? ORDER BY turn_index ASC, id ASC",
                 (conversation_id,),
             ).fetchall()
-            return [self._row_to_turn(r) for r in rows]
+            return [row_to_turn(r) for r in rows]
 
         rows = cur.execute(
             """
@@ -419,7 +431,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             """,
             (conversation_id, limit),
         ).fetchall()
-        turns = [self._row_to_turn(r) for r in rows]
+        turns = [row_to_turn(r) for r in rows]
         turns.reverse()
         return turns
 
@@ -434,7 +446,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             """,
             (conversation_id, turn_index),
         ).fetchone()
-        return self._row_to_turn(row) if row else None
+        return row_to_turn(row) if row else None
 
     def link_memory_to_turn(self, turn_id: str, memory_id: str) -> None:
         cur = self._conn.cursor()
@@ -480,7 +492,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def get_memory(self, memory_id: str) -> MemoryItem | None:
         cur = self._conn.cursor()
         row = cur.execute("SELECT * FROM memory_items WHERE id=?", (memory_id,)).fetchone()
-        return self._row_to_memory_item(row) if row else None
+        return row_to_memory_item(row) if row else None
 
     def list_memory(self, limit: int | None = None, pinned_only: bool = False) -> list[MemoryItem]:
         cur = self._conn.cursor()
@@ -497,7 +509,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             params.append(limit)
 
         rows = cur.execute(sql, params).fetchall()
-        return [self._row_to_memory_item(r) for r in rows]
+        return [row_to_memory_item(r) for r in rows]
 
     def set_pinned(self, memory_id: str, pinned: bool) -> None:
         cur = self._conn.cursor()
@@ -574,7 +586,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
                 params = [_MEMORY_SEARCH_LIMIT]
 
         rows = cur.execute(sql, params).fetchall()
-        items = [self._row_to_memory_item(r) for r in rows]
+        items = [row_to_memory_item(r) for r in rows]
 
         pinned_items = [i for i in items if i.pinned] if include_pinned else []
         non_pinned_items = [i for i in items if not i.pinned]
@@ -597,145 +609,6 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         return results
 
     # ---- helpers ----
-    def _row_to_project(self, row: sqlite3.Row) -> Project:
-        return Project(
-            id=row["id"],
-            name=row["name"],
-            metadata=json.loads(row["metadata"] or "{}"),
-            created_at=self._parse_dt(row["created_at"]),
-        )
-
-    def _row_to_agent(self, row: sqlite3.Row) -> Agent:
-        return Agent(
-            id=row["id"],
-            project_id=row["project_id"],
-            role=row["role"],
-            name=row["name"],
-            provider=row["provider"],
-            model=row["model"],
-            tags=json.loads(row["tags"] or "[]"),
-            created_at=self._parse_dt(row["created_at"]),
-        )
-
-    def _row_to_task(self, row: sqlite3.Row) -> Task:
-        return Task(
-            id=row["id"],
-            project_id=row["project_id"],
-            agent_id=row["agent_id"],
-            parent_task_id=row["parent_task_id"],
-            type=row["type"],
-            payload=json.loads(row["payload"] or "{}"),
-            status=TaskStatus(row["status"]),
-            result_json=row["result_json"],
-            error_json=row["error_json"],
-            created_at=self._parse_dt(row["created_at"]),
-            updated_at=self._parse_dt(row["updated_at"]),
-        )
-
-    def _row_to_event(self, row: sqlite3.Row) -> Event:
-        return Event(
-            id=row["id"],
-            project_id=row["project_id"],
-            task_id=row["task_id"],
-            agent_id=row["agent_id"],
-            type=row["type"],
-            payload=json.loads(row["payload"] or "{}"),
-            created_at=self._parse_dt(row["created_at"]),
-            prev_hash=row["prev_hash"],
-            hash=row["hash"],
-        )
-
-    def _row_to_resource(self, row: sqlite3.Row) -> Resource:
-        return Resource(
-            id=row["id"],
-            project_id=row["project_id"],
-            kind=row["kind"],
-            path=row["path"],
-            content_hash=row["content_hash"],
-            metadata=json.loads(row["metadata"] or "{}"),
-            created_at=self._parse_dt(row["created_at"]),
-        )
-
-    def _row_to_span(self, row: sqlite3.Row) -> Span:
-        return Span(
-            id=row["id"],
-            task_id=row["task_id"],
-            agent_id=row["agent_id"],
-            name=row["name"],
-            start_event_id=row["start_event_id"],
-            end_event_id=row["end_event_id"],
-            status=SpanStatus(row["status"]),
-            created_at=self._parse_dt(row["created_at"]),
-            ended_at=self._parse_dt(row["ended_at"]) if row["ended_at"] else None,
-        )
-
-    def _row_to_llm_usage(self, row: sqlite3.Row) -> LLMUsage:
-        return LLMUsage(
-            id=row["id"],
-            created_at=self._parse_dt(row["created_at"]),
-            project_id=row["project_id"],
-            task_id=row["task_id"],
-            agent_id=row["agent_id"],
-            provider=row["provider"],
-            model=row["model"],
-            request_id=row["request_id"],
-            input_tokens=row["input_tokens"],
-            output_tokens=row["output_tokens"],
-            total_tokens=row["total_tokens"],
-            latency_ms=row["latency_ms"],
-        )
-
-    def _row_to_conversation(self, row: sqlite3.Row) -> Conversation:
-        try:
-            mode = row["mode"]
-        except KeyError:
-            mode = None
-        return Conversation(
-            id=row["id"],
-            project_id=row["project_id"],
-            title=row["title"],
-            mode=mode or "general",
-            created_at=self._parse_dt(row["created_at"]),
-        )
-
-    def _row_to_turn(self, row: sqlite3.Row) -> Turn:
-        reasons_raw = row["routing_reasons"] or "[]"
-        try:
-            memory_raw = row["memory_written_ids"]
-        except KeyError:
-            memory_raw = "[]"
-        try:
-            memory_ids = json.loads(memory_raw) if memory_raw else []
-        except json.JSONDecodeError:
-            memory_ids = []
-        if not isinstance(memory_ids, list):
-            memory_ids = []
-        return Turn(
-            id=row["id"],
-            conversation_id=row["conversation_id"],
-            turn_index=row["turn_index"],
-            user_text=row["user_text"],
-            assistant_text=row["assistant_text"],
-            provider=row["provider"],
-            model=row["model"],
-            routing_reasons=json.loads(reasons_raw) if reasons_raw else [],
-            memory_written_ids=memory_ids,
-            created_at=self._parse_dt(row["created_at"]),
-        )
-
-    def _row_to_memory_item(self, row: sqlite3.Row) -> MemoryItem:
-        tags_raw = row["tags"] or "[]"
-        return MemoryItem(
-            id=row["id"],
-            content=row["content"],
-            tags=json.loads(tags_raw) if tags_raw else [],
-            created_at=self._parse_dt(row["created_at"]),
-            pinned=bool(row["pinned"]),
-            conversation_id=row["conversation_id"],
-            project_id=row["project_id"],
-            source=row["source"],
-        )
-
     def _normalize_tokens(self, text: str) -> list[str]:
         cleaned = text.lower().translate(str.maketrans("", "", string.punctuation))
         return [token for token in cleaned.split() if token]
@@ -758,9 +631,6 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             return 0
         content_lower = content.lower()
         return sum(1 for token in q_tokens if token in content_lower)
-
-    def _parse_dt(self, value: str) -> datetime:
-        return datetime.fromisoformat(value)
 
     def _configure_connection(self) -> None:
         self._conn.execute("PRAGMA foreign_keys = ON;")
@@ -828,7 +698,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
 
         recovered: list[str] = []
         for row in rows:
-            task = self._row_to_task(row)
+            task = row_to_task(row)
             failure_event = Event(
                 project_id=task.project_id,
                 task_id=task.id,
@@ -916,7 +786,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             params.extend([limit, offset])
 
         rows = cur.execute(sql, params).fetchall()
-        return [self._row_to_llm_usage(r) for r in rows]
+        return [row_to_llm_usage(r) for r in rows]
 
     def sum_tokens_by_task(self, task_id: str) -> dict[str, int]:
         """Sum token usage for a task. Returns dict with input/output/total counts."""
@@ -973,7 +843,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             "SELECT * FROM tasks WHERE parent_task_id=? ORDER BY created_at ASC, id ASC",
             (parent_task_id,),
         ).fetchall()
-        return [self._row_to_task(r) for r in rows]
+        return [row_to_task(r) for r in rows]
 
     def get_task_latest_routing(self, task_id: str) -> dict[str, Any] | None:
         """Get the latest routing decision for a task from llm.routed events."""
