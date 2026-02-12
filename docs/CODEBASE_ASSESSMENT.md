@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-12
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 2 (updated with full project history and Definition of Done)
+**Revision:** 3 (core done — all 4 must-haves complete)
 
 ---
 
@@ -15,19 +15,20 @@ character AI, and 15+ providers. V2 is a clean-room rebuild recognizing that the
 *actual* underlying problem — durable context, explainable routing, and auditable
 decisions across LLM interactions — is domain-agnostic.
 
-The core is now in a **"foundation complete, UX incomplete"** state. The backend
+The core is now **feature-complete for the "core done" milestone.** The full
 pipeline works end-to-end: conversation → context assembly → memory retrieval →
-provider routing → LLM call → response → turn persistence → event logging. Tests
-are strong (400+), architecture is enforced, and the STDIO RPC daemon mode exists.
+provider routing → LLM call → streaming response → turn persistence → event
+logging. The CLI has an interactive chat REPL with streaming, conversation
+shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
+Tests are strong (404+), architecture is enforced, and the STDIO RPC daemon
+mode exists.
 
-**What's missing for "core done"** is the user-facing experience. The CLI requires
-manual UUID juggling for every turn. There's no interactive chat mode. There's no
-streaming. The interface layer has God Functions that will compound as plugins
-arrive. These are solvable problems, and the backend is solid enough to support
-them.
+**What's next** is the plugin phase (scheduler, Discord driver, security scanner)
+and optional should-have refactoring (decompose `ask_conversation.execute()`,
+orchestrator methods, SqliteStore row mappers).
 
-**Overall: A-tier backend, C-tier UX.** The hard parts are done. What remains is
-making it feel like a product you'd actually want to use.
+**Overall: Core done.** Both backend and UX are at the "you can use this as a
+chatbot" bar. Remaining work is polish and extensibility.
 
 ---
 
@@ -288,55 +289,32 @@ oc task submit --handler story.draft --input '{"prompt":"..."}'
 
 ## Refactoring Priorities (Ordered)
 
-### Phase 1: Interface Layer (Unblocks Everything Else)
+### Phase 1: Interface Layer — DONE (e368db4)
 
-**1a. Split `main()` into command functions**
+- `main.py` split from 1,852 → ~350 lines via `cli/commands/` dispatch tables
+- `stdio.py` split into `rpc_handlers.py` (18 handlers) + slim dispatch
+- `oc chat` REPL built with auto-create, `--resume`, streaming
 
-Extract each CLI subcommand into its own function. Use argparse subparser callbacks
-or a dispatch dict. Target: `main()` becomes ~100 lines of argument parsing +
-dispatch. Each command function is independently testable.
+### Phase 2: Streaming — DONE (6416c76)
 
-**1b. Split `dispatch_json_command()` into handler functions**
+- `StreamChunk` dataclass + `stream_async()` on `LLMPort` with fallback default
+- Native streaming in all 6 adapters (stub, OpenAI, Anthropic, Groq, Gemini, Ollama)
+- `stream_with_route()` execution boundary + `_stream_turn()` in chat REPL
+- `--no-stream` opt-out toggle
 
-One function per RPC command with a dispatch table mapping command names to
-handlers. The STDIO RPC spec already defines clean command boundaries — the code
-should match.
+### Phase 3: Conversation UX — DONE (a946e7c)
 
-**1c. Build `oc chat` interactive REPL**
+- Auto-create conversations in `oc chat`
+- `oc chat --resume` picks up most recent conversation
+- `oc convo ask/show/export --latest` resolves most recent conversation
 
-Wraps the existing `convo.ask` pipeline in a readline-based loop. Auto-creates
-or resumes conversations. Minimal new logic — just UX wiring around existing
-use cases.
-
-### Phase 2: Streaming (Chatbot UX)
-
-**2a. Add `stream_async()` to LLMPort**
-
-Returns `AsyncIterator[str]` (or a richer chunk type with usage metadata on the
-final chunk). Each adapter wraps its SDK's native streaming API.
-
-**2b. Wire streaming through CLI**
-
-`oc chat` and `oc convo ask` print tokens as they arrive. STDIO RPC gets a
-`convo.ask_stream` command that emits chunks.
-
-### Phase 3: Conversation UX Polish
-
-**3a. Auto-create conversations** — `oc chat` with no args creates a new
-conversation with an auto-generated title.
-
-**3b. Resume latest** — `oc chat --resume` picks up the most recent conversation.
-
-**3c. Simple conversation reference** — Allow `oc convo ask --latest "message"`
-instead of requiring full UUID.
-
-### Phase 4: Internal Quality
+### Phase 4: Internal Quality (Should-Have, Not Started)
 
 **4a. Decompose `ask_conversation.execute()`** — Extract context assembly, memory
 retrieval, LLM interaction, and telemetry recording into helper functions.
 
-**4b. Decide manager/worker fate** — Keep in core (cleaned up) or extract as
-built-in plugin. Either way, `_run_worker_summarize()` needs decomposition.
+**4b. Decompose orchestrator manager/worker methods** — 339+119 lines need phase
+separation. Decision resolved: stays in core as runtime capability.
 
 **4c. Extract SqliteStore row mappers** — Move 11 `_row_to_*` methods to a
 `row_mappers.py` module.

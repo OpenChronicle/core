@@ -34,35 +34,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Sprint
 
-**Objective:** Get core to "done" — a fully operational daemon you can interact
-with like a chatbot via CLI, with durable memory, explainable routing, and a
-stable plugin surface.
+**Status:** Core done. All 4 must-haves complete. See
+[docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status,
+Definition of Done table, and refactoring priorities.
 
-**Definition of Done (4 must-haves):**
-
-1. Interactive chat REPL (`oc chat`) — auto-create/resume conversations, no UUIDs
-2. Streaming responses (`stream_async()` on LLMPort + all 5 adapters + CLI, with
-   `--no-stream` opt-out toggle)
-3. Interface layer refactoring — split God Functions into dispatch tables
-4. Conversation UX shortcuts — `--latest`, `--resume`, auto-create
-
-**Current status:** All 4 must-haves are **done**. Core is feature-complete for
-the "interact like a chatbot" milestone. Ready for plugin phase or should-have
-refactoring.
-
-**Completed (this sprint):**
-
-- Interface layer refactoring — `main.py` split from 1,852 to ~350 lines,
-  `stdio.py` split into `rpc_handlers.py` + slim dispatch (e368db4)
-- Interactive chat REPL — `oc chat` with auto-create, `--resume`, streaming (e368db4)
-- Streaming responses — `stream_async()` on LLMPort + all 6 adapters + CLI,
-  `--no-stream` opt-out (6416c76)
-- Conversation UX shortcuts — `--latest`, `--resume`, auto-create (a946e7c)
-- All 5 LLM adapters built out (OpenAI, Anthropic, Groq, Gemini, Ollama) (898779f)
-
-**Next action:** Decide whether to start the plugin phase or tackle should-have
-refactoring (decompose `ask_conversation.execute()`, orchestrator methods,
-SqliteStore row mappers).
+**Next action:** Decide whether to start plugin phase or should-have refactoring.
 
 ## Build and Development
 
