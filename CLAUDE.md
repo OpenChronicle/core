@@ -1,42 +1,13 @@
 # CLAUDE.md
 
-## BEFORE ANYTHING ELSE
+## Project Status File
 
-**STOP. Complete these steps before responding to any user message.**
-**This includes resumptions after context compression.**
-**A compression summary is NOT a substitute — it may be stale or incomplete.**
+**`docs/CODEBASE_ASSESSMENT.md`** — single source of truth for this project.
 
-1. Run `mcp__serena__check_onboarding_performed`
-2. Read the Definition of Done table + Refactoring Priorities in
-   `docs/CODEBASE_ASSESSMENT.md` (the single source of truth for project status)
-3. Read the Current Sprint section in this file (below)
-4. Cross-check: does the doc state match your understanding? Flag discrepancies.
-5. Only then respond to the user.
+## Project-Specific Notes
 
----
-
-## Working Style
-
-**How the owner works:**
-
-- **Discuss before implementing.** Always talk through the approach before writing
-  code. The owner wants to understand and approve the direction, not just see a PR.
-- **No backwards compatibility.** This is a personal project with no public users
-  and no production deployment. Break whatever needs breaking.
-- **Push back on scope creep.** The owner self-describes as having "a tendency to
-  wander." If a request is drifting away from the current sprint or the Definition
-  of Done, say so directly. Be a guardrail, not a yes-man.
-- **Be direct.** The owner responds well to honest technical opinions and pushback.
-  Don't hedge or soften assessments. Say what you think.
-- **Don't over-engineer.** This is a personal project. Solve the problem in front
-  of you. Don't add abstraction layers for hypothetical future requirements.
-
-**Session discipline:**
-
-- If a session is getting long or complex, proactively offer to write a handoff
-  note (update `docs/CODEBASE_ASSESSMENT.md`) before context compression hits.
-- When status changes (phase completed, decision made), update
-  `docs/CODEBASE_ASSESSMENT.md` and nothing else. That's the only status file.
+- **No backwards compatibility.** Personal project, no public users, no production.
+  Break whatever needs breaking.
 
 ## Current Sprint
 
