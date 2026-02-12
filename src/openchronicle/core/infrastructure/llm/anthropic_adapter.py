@@ -144,42 +144,42 @@ class AnthropicAdapter(LLMPort):
         start = time.perf_counter()
         try:
             stream = self._client.messages.stream(**kwargs)
+
+            async with stream as response:
+                async for text in response.text_stream:
+                    yield StreamChunk(
+                        text=text,
+                        finished=False,
+                        provider="anthropic",
+                        model=model or self.model,
+                    )
+
+                final_message = await response.get_final_message()
+                usage_obj = None
+                usage = getattr(final_message, "usage", None)
+                if usage is not None:
+                    input_tokens = getattr(usage, "input_tokens", None)
+                    output_tokens = getattr(usage, "output_tokens", None)
+                    total = None
+                    if input_tokens is not None and output_tokens is not None:
+                        total = input_tokens + output_tokens
+                    usage_obj = LLMUsage(
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        total_tokens=total,
+                    )
+
+                latency_ms = int((time.perf_counter() - start) * 1000)
+                yield StreamChunk(
+                    text="",
+                    finished=True,
+                    provider="anthropic",
+                    model=model or self.model,
+                    finish_reason=getattr(final_message, "stop_reason", None),
+                    usage=usage_obj,
+                    latency_ms=latency_ms,
+                )
         except Exception as exc:
             status = getattr(exc, "status_code", None)
             code = getattr(exc, "code", None)
             raise LLMProviderError(str(exc), status_code=status, error_code=code) from exc
-
-        async with stream as response:
-            async for text in response.text_stream:
-                yield StreamChunk(
-                    text=text,
-                    finished=False,
-                    provider="anthropic",
-                    model=model or self.model,
-                )
-
-            final_message = await response.get_final_message()
-            usage_obj = None
-            usage = getattr(final_message, "usage", None)
-            if usage is not None:
-                input_tokens = getattr(usage, "input_tokens", None)
-                output_tokens = getattr(usage, "output_tokens", None)
-                total = None
-                if input_tokens is not None and output_tokens is not None:
-                    total = input_tokens + output_tokens
-                usage_obj = LLMUsage(
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                    total_tokens=total,
-                )
-
-            latency_ms = int((time.perf_counter() - start) * 1000)
-            yield StreamChunk(
-                text="",
-                finished=True,
-                provider="anthropic",
-                model=model or self.model,
-                finish_reason=getattr(final_message, "stop_reason", None),
-                usage=usage_obj,
-                latency_ms=latency_ms,
-            )

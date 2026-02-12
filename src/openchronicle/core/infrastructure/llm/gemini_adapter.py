@@ -156,34 +156,41 @@ class GeminiAdapter(LLMPort):
             if config is not None:
                 kwargs["config"] = config
             stream = self._client.aio.models.generate_content_stream(**kwargs)
+
+            usage_obj: LLMUsage | None = None
+            finish_reason: str | None = None
+            async for chunk in stream:
+                text = getattr(chunk, "text", None) or ""
+                usage_metadata = getattr(chunk, "usage_metadata", None)
+                if usage_metadata is not None:
+                    usage_obj = LLMUsage(
+                        input_tokens=getattr(usage_metadata, "prompt_token_count", None),
+                        output_tokens=getattr(usage_metadata, "candidates_token_count", None),
+                        total_tokens=getattr(usage_metadata, "total_token_count", None),
+                    )
+                candidates = getattr(chunk, "candidates", None)
+                if candidates:
+                    reason = getattr(candidates[0], "finish_reason", None)
+                    if reason is not None:
+                        finish_reason = str(reason)
+                if text:
+                    yield StreamChunk(
+                        text=text,
+                        finished=False,
+                        provider="gemini",
+                        model=model or self.model,
+                    )
+
+            latency_ms = int((time.perf_counter() - start) * 1000)
+            yield StreamChunk(
+                text="",
+                finished=True,
+                provider="gemini",
+                model=model or self.model,
+                finish_reason=finish_reason,
+                usage=usage_obj,
+                latency_ms=latency_ms,
+            )
         except Exception as exc:
             status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
             raise LLMProviderError(str(exc), status_code=status, error_code=None) from exc
-
-        usage_obj: LLMUsage | None = None
-        async for chunk in stream:
-            text = getattr(chunk, "text", None) or ""
-            usage_metadata = getattr(chunk, "usage_metadata", None)
-            if usage_metadata is not None:
-                usage_obj = LLMUsage(
-                    input_tokens=getattr(usage_metadata, "prompt_token_count", None),
-                    output_tokens=getattr(usage_metadata, "candidates_token_count", None),
-                    total_tokens=getattr(usage_metadata, "total_token_count", None),
-                )
-            if text:
-                yield StreamChunk(
-                    text=text,
-                    finished=False,
-                    provider="gemini",
-                    model=model or self.model,
-                )
-
-        latency_ms = int((time.perf_counter() - start) * 1000)
-        yield StreamChunk(
-            text="",
-            finished=True,
-            provider="gemini",
-            model=model or self.model,
-            usage=usage_obj,
-            latency_ms=latency_ms,
-        )

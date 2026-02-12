@@ -187,3 +187,9 @@ class OllamaAdapter(LLMPort):
                 status_code=None,
                 error_code=CONNECTION_ERROR,
             ) from exc
+        except Exception as exc:
+            raise LLMProviderError(
+                f"Ollama streaming error: {exc}",
+                status_code=None,
+                error_code=None,
+            ) from exc

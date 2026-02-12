@@ -39,6 +39,11 @@ src/openchronicle/
 │       └── routing/             # Rule-based and hybrid routers
 └── interfaces/
     ├── cli/                     # argparse CLI + STDIO RPC protocol
+    │   ├── commands/            # Dispatch tables + handler modules
+    │   ├── chat.py              # Interactive chat REPL (oc chat)
+    │   ├── main.py              # Argparse definitions + slim dispatch
+    │   ├── rpc_handlers.py      # 18 RPC handler functions
+    │   └── stdio.py             # STDIO server loop + utilities
     └── api/                     # HTTP API stub (FastAPI placeholder)
 
 plugins/

@@ -46,28 +46,23 @@ stable plugin surface.
 3. Interface layer refactoring — split God Functions into dispatch tables
 4. Conversation UX shortcuts — `--latest`, `--resume`, auto-create
 
-**Current status:** Planning phase. Assessment complete (rev 2), all three open
-decisions resolved, CLAUDE.md and MEMORY.md updated with working style and sprint
-context. No code changes pending — clean working tree except docs.
+**Current status:** All 4 must-haves are **done**. Core is feature-complete for
+the "interact like a chatbot" milestone. Ready for plugin phase or should-have
+refactoring.
 
-**Next action:** Commit the assessment + CLAUDE.md + MEMORY.md updates, then plan
-Phase 1 (interface layer refactoring — split God Functions in main.py and stdio.py
-into dispatch tables). This unblocks everything else.
+**Completed (this sprint):**
 
-**Important:** docs/CODEBASE_ASSESSMENT.md, CLAUDE.md, and MEMORY.md all have
-uncommitted changes from this session. Commit these first.
+- Interface layer refactoring — `main.py` split from 1,852 to ~350 lines,
+  `stdio.py` split into `rpc_handlers.py` + slim dispatch (e368db4)
+- Interactive chat REPL — `oc chat` with auto-create, `--resume`, streaming (e368db4)
+- Streaming responses — `stream_async()` on LLMPort + all 6 adapters + CLI,
+  `--no-stream` opt-out (6416c76)
+- Conversation UX shortcuts — `--latest`, `--resume`, auto-create (a946e7c)
+- All 5 LLM adapters built out (OpenAI, Anthropic, Groq, Gemini, Ollama) (898779f)
 
-**Recently completed:**
-
-- All 5 LLM adapters built out (OpenAI, Anthropic, Groq, Gemini, Ollama)
-- Codebase assessment written with full project history context
-- Three open decisions resolved (manager/worker, streaming, memory self-report)
-
-**Resolved decisions (see assessment for full rationale):**
-
-- Manager/worker stays in core (runtime capability, not domain feature)
-- Streaming is must-have with `--no-stream` opt-out
-- Memory self-report: keep lenient, remove strict mode
+**Next action:** Decide whether to start the plugin phase or tackle should-have
+refactoring (decompose `ask_conversation.execute()`, orchestrator methods,
+SqliteStore row mappers).
 
 ## Build and Development
 

@@ -223,10 +223,10 @@ surface. No backwards compatibility concerns. No production deployment yet.
 
 | # | Item | Status | Why It's Blocking |
 |---|------|--------|-------------------|
-| 1 | **Interactive chat REPL** (`oc chat`) | Not started | Can't "interact like a chatbot" without it |
-| 2 | **Streaming responses** (LLMPort + adapters + CLI, with `--no-stream` toggle) | Not started | Chatbot UX with 10s wait for response is broken |
-| 3 | **Interface layer refactoring** (God Functions → dispatch tables) | Not started | Untestable interface layer is a stability risk |
-| 4 | **Conversation UX shortcuts** (auto-create, resume latest, etc.) | Not started | UUID juggling prevents casual use |
+| 1 | **Interactive chat REPL** (`oc chat`) | Done (e368db4) | Can't "interact like a chatbot" without it |
+| 2 | **Streaming responses** (LLMPort + adapters + CLI, with `--no-stream` toggle) | Done (6416c76) | Chatbot UX with 10s wait for response is broken |
+| 3 | **Interface layer refactoring** (God Functions → dispatch tables) | Done (e368db4) | Untestable interface layer is a stability risk |
+| 4 | **Conversation UX shortcuts** (auto-create, resume latest, etc.) | Done (a946e7c) | UUID juggling prevents casual use |
 
 ### Should Have (Quality, Not Functionality)
 
