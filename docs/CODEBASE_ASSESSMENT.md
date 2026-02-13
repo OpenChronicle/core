@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-12
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 5 (core done — real-world provider validation complete)
+**Revision:** 6 (concurrency audit — 4 race conditions proven exploitable)
 
 ---
 
@@ -20,15 +20,21 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (404+ unit/functional, 13 real-world integration), architecture
-is enforced, and the STDIO RPC daemon mode exists. The full pipeline has been
-validated against OpenAI (gpt-4o-mini) and Anthropic (Claude Sonnet 4) with all
-13 integration scenarios passing.
+Tests are strong (404+ unit/functional, 13 real-world integration, 5 concurrency
+stress), architecture is enforced, and the STDIO RPC daemon mode exists. The full
+pipeline has been validated against OpenAI (gpt-4o-mini) and Anthropic (Claude
+Sonnet 4) with all 13 integration scenarios passing.
 
-**What's next** is the plugin phase (scheduler, Discord driver, security scanner).
-All internal quality refactoring is complete.
+A **concurrency audit** revealed that the persistence and event logging layers
+were written for single-connection access. Threading-based stress tests proved 4
+race conditions exploitable: hash chain forking (EventLogger.append), duplicate
+turn indices (next_turn_index), lost updates (link_memory_to_turn), and write
+lock starvation (long transactions). These must be fixed before multi-process
+deployment (chat + scheduler + plugins writing to the same database).
 
-**Overall: Core done, fully validated.** Ready for plugin phase or merge to main.
+**What's next:** Fix the 4 proven concurrency issues, then plugin phase.
+
+**Overall: Core feature-complete, concurrency fixes needed before multi-process.**
 
 ---
 
@@ -119,7 +125,7 @@ validates against live providers (OpenAI, Anthropic).
 | **STDIO RPC** (18 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (50+ subcommands) | Working | Project/task/convo/memory/diagnostics |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
-| **Test suite** (404+ unit/functional, 13 real-world integration) | Passing | 12 test categories, architecture guards, live provider validation |
+| **Test suite** (404+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
 
 ### Architecture (Enforced and Clean)
 
@@ -152,6 +158,30 @@ Refactoring Priorities sections for implementation details.
 | 3 | God Functions in interface layer | Dispatch tables in `cli/commands/` + `rpc_handlers.py` (e368db4) |
 | 4 | Manager/worker methods need decomposition | Phase-separated into 6 private helpers + dataclass (f4416d0) |
 | 5 | `ask_conversation.execute()` too large | Split into `prepare_ask()` / `finalize_turn()` pipeline (95cab4c) |
+
+---
+
+## Concurrency Issues (Proven, Unfixed)
+
+The persistence and event logging layers were written for single-connection
+access. The planned deployment (interactive chat + scheduler plugin + background
+tasks) requires multiple OS processes writing to the same SQLite database
+concurrently. A concurrency audit identified 4 critical race conditions, all
+proven exploitable by `test_stress.py`.
+
+| # | Issue | Severity | Root Cause | Impact |
+|---|-------|----------|------------|--------|
+| 1 | **Hash chain fork** | CRITICAL | `EventLogger.append()` does read-compute-write without a transaction. Two connections read the same `prev_hash`, create sibling events. | Tamper-evident audit trail is silently broken |
+| 2 | **Duplicate turn index** | CRITICAL | `next_turn_index()` reads MAX inside deferred BEGIN (no write lock). Two connections compute the same index; UNIQUE constraint rejects one. | Completed LLM response is lost |
+| 3 | **Lost memory link** | CRITICAL | `link_memory_to_turn()` does read-modify-write on a JSON column with no transaction. Second writer overwrites first. | Memory associations silently disappear |
+| 4 | **Write lock starvation** | CRITICAL | Any transaction that holds the write lock for the duration of an LLM call (seconds) starves all other writers past `busy_timeout`. | All concurrent operations fail with "database is locked" |
+
+**Single-connection use is safe.** These only manifest when multiple connections
+(processes) write to the same database file. The current CLI (`oc chat`) is
+single-process and unaffected.
+
+**Fix required before:** Scheduler plugin, Discord driver, or any deployment
+where multiple processes share the database.
 
 ---
 
@@ -338,7 +368,7 @@ configuration (settings dataclasses + env vars).
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (94 files, 404+ unit/functional + 13 real-world integration)
+### Test Suite (94 files, 404+ unit/functional + 13 real-world integration + 5 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (15), hygiene (10),
 infrastructure (10), contract (8), policy (5), memory (5), architecture guard (4),
@@ -352,8 +382,25 @@ streaming vs non-streaming, and conversation mode. Validated against OpenAI
 (gpt-4o-mini) and Anthropic (Claude Sonnet 4). Manual checklist covers
 interactive features (streaming visual, chat resume, quit, diagnose).
 
+**Concurrency stress tests** (`test_stress.py`): 5 threading-based tests using
+separate `SqliteStore` connections to the same database file (simulating
+multi-process access). Each thread gets its own `sqlite3.Connection` with
+independent locks and WAL snapshots. Results:
+
+| Test | Target | Outcome |
+|------|--------|---------|
+| T1: Hash chain fork | `EventLogger.append()` read-compute-write race | **xfail** — prev_hash collisions, chain verification fails |
+| T2: Duplicate turn index | `next_turn_index()` + deferred BEGIN | **xfail** — IntegrityError / database locked errors |
+| T3: Lost update | `link_memory_to_turn()` JSON read-modify-write | **xfail** — memory IDs silently lost |
+| T4: Write lock starvation | Long transaction blocks other writers | **xfail** — "database is locked" after busy_timeout |
+| T5: Independent chains (baseline) | Concurrent writes to different task_ids | **pass** — always passes, database fundamentally sound |
+
+T1–T4 use `pytest.xfail()` when the race triggers (CI green either way). After
+fixes: remove xfail paths, assert integrity unconditionally.
+
 **Strongest coverage:** Provider routing, budget enforcement, conversation flow,
-event verification, architectural boundaries, live provider validation.
+event verification, architectural boundaries, live provider validation,
+concurrency race conditions.
 
 Interface layer was split into dispatch tables (e368db4), unlocking
 command-level testing.
