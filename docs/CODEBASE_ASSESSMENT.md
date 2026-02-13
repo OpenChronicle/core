@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-12
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 4 (core done — all must-haves and should-haves complete)
+**Revision:** 5 (core done — real-world provider validation complete)
 
 ---
 
@@ -20,13 +20,15 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (404+), architecture is enforced, and the STDIO RPC daemon
-mode exists.
+Tests are strong (404+ unit/functional, 13 real-world integration), architecture
+is enforced, and the STDIO RPC daemon mode exists. The full pipeline has been
+validated against OpenAI (gpt-4o-mini) and Anthropic (Claude Sonnet 4) with all
+13 integration scenarios passing.
 
 **What's next** is the plugin phase (scheduler, Discord driver, security scanner).
 All internal quality refactoring is complete.
 
-**Overall: Core done, fully polished.** Ready for plugin phase or merge to main.
+**Overall: Core done, fully validated.** Ready for plugin phase or merge to main.
 
 ---
 
@@ -97,7 +99,9 @@ User prompt
   → Telemetry recording (tokens, latency, memory usage)
 ```
 
-This is tested end-to-end in `test_conversation_flow.py` and `test_smoke_live.py`.
+This is tested end-to-end in `test_conversation_flow.py`, `test_smoke_live.py`,
+and the 13-scenario real-world integration suite (`test_real_world.py`) which
+validates against live providers (OpenAI, Anthropic).
 
 ### Infrastructure Inventory
 
@@ -115,7 +119,7 @@ This is tested end-to-end in `test_conversation_flow.py` and `test_smoke_live.py
 | **STDIO RPC** (18 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (50+ subcommands) | Working | Project/task/convo/memory/diagnostics |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
-| **Test suite** (400+ tests, 93 files) | Passing | 12 test categories, architecture guards |
+| **Test suite** (404+ unit/functional, 13 real-world integration) | Passing | 12 test categories, architecture guards, live provider validation |
 
 ### Architecture (Enforced and Clean)
 
@@ -334,14 +338,22 @@ configuration (settings dataclasses + env vars).
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (93 files, 400+ tests)
+### Test Suite (94 files, 404+ unit/functional + 13 real-world integration)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (15), hygiene (10),
 infrastructure (10), contract (8), policy (5), memory (5), architecture guard (4),
-advanced (5), data format (4), plugin (2), integration (2).
+advanced (5), data format (4), plugin (2), integration (3).
+
+**Real-world integration** (`test_real_world.py`): 13 scenarios exercising the
+full stack against live LLM providers — single/multi-turn, memory save/recall,
+pinned memory, hash chain verification, token tracking, event chain completeness,
+privacy gate PII detection, conversation resume, export with verify/explain,
+streaming vs non-streaming, and conversation mode. Validated against OpenAI
+(gpt-4o-mini) and Anthropic (Claude Sonnet 4). Manual checklist covers
+interactive features (streaming visual, chat resume, quit, diagnose).
 
 **Strongest coverage:** Provider routing, budget enforcement, conversation flow,
-event verification, architectural boundaries.
+event verification, architectural boundaries, live provider validation.
 
 Interface layer was split into dispatch tables (e368db4), unlocking
 command-level testing.
