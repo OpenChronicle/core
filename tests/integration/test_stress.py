@@ -133,13 +133,8 @@ def test_t1_hash_chain_fork(db_path: str) -> None:
     result = verifier.verify_task_chain(task_id=task_id)
     verify_store._conn.close()
 
-    if collisions or not result.success:
-        pytest.xfail(
-            f"Hash chain fork detected (expected race): "
-            f"{len(collisions)} prev_hash collision(s), "
-            f"verification={'OK' if result.success else result.error_message}"
-        )
-    # If we get here, chain is intact — race didn't trigger this run.
+    assert not collisions, f"Hash chain fork: {len(collisions)} prev_hash collision(s): {collisions}"
+    assert result.success, f"Chain verification failed: {result.error_message}"
 
 
 # ---------------------------------------------------------------------------
@@ -212,19 +207,10 @@ def test_t2_duplicate_turn_index(db_path: str) -> None:
 
     assert not other_errors, f"Unexpected errors: {other_errors}"
 
-    # Both IntegrityError (duplicate index) and OperationalError (database
-    # locked) prove the race — either way a completed LLM response is lost.
-    race_errors = integrity_errors + locked_errors
-    if race_errors:
-        pytest.xfail(
-            f"Turn index race detected (expected): "
-            f"{len(integrity_errors)} IntegrityError(s), "
-            f"{len(locked_errors)} locked error(s), "
-            f"{len(successes)} succeeded"
-        )
-
-    # If all succeeded, verify distinct turn_index values.
-    assert len(set(successes)) == len(successes), f"Duplicate turn_index values without errors: {successes}"
+    assert not integrity_errors, f"IntegrityError(s): {integrity_errors}"
+    assert not locked_errors, f"Locked error(s): {locked_errors}"
+    assert len(successes) == n_threads, f"Expected {n_threads} successes, got {len(successes)}"
+    assert len(set(successes)) == len(successes), f"Duplicate turn_index values: {successes}"
 
 
 # ---------------------------------------------------------------------------
@@ -300,9 +286,10 @@ def test_t3_link_memory_lost_update(db_path: str) -> None:
     surviving_ids: list[str] = json.loads(raw)
     survived = sum(1 for mid in memory_ids if mid in surviving_ids)
 
-    if survived < n_threads:
-        pytest.xfail(f"Lost update race detected (expected): {survived}/{n_threads} memory IDs survived")
-    # If all 10 present, race didn't trigger.
+    assert survived == n_threads, (
+        f"Lost update: only {survived}/{n_threads} memory IDs survived. "
+        f"Expected: {memory_ids}, Got: {surviving_ids}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -316,6 +303,11 @@ def test_t4_write_lock_starvation(db_path: str) -> None:
     Target: audit issue #6 (CRITICAL). A writer holding BEGIN IMMEDIATE
     for the duration of an LLM call blocks every other writer until
     busy_timeout expires.
+
+    Note: This tests a raw SQLite limitation by intentionally holding a
+    write lock for 1 second. The orchestrator no longer triggers this
+    pattern after splitting execute_task() into short transactions (Fix 4).
+    Kept as xfail to document the constraint.
     """
     setup = _make_store(db_path)
     project = Project(name="t4-project", metadata={})

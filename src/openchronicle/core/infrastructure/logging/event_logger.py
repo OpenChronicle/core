@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from openchronicle.core.domain.models.project import Event
+from openchronicle.core.domain.models.project import Event, _utc_now
 from openchronicle.core.domain.ports.storage_port import StoragePort
 
 
@@ -9,8 +9,13 @@ class EventLogger:
         self.storage = storage
 
     def append(self, event: Event) -> None:
-        existing = self.storage.list_events(task_id=event.task_id) if event.task_id else []
-        if existing:
-            event.prev_hash = existing[-1].hash
-        event.compute_hash()
-        self.storage.append_event(event)
+        with self.storage.transaction():
+            existing = self.storage.list_events(task_id=event.task_id) if event.task_id else []
+            if existing:
+                event.prev_hash = existing[-1].hash
+            # Refresh timestamp under lock so created_at ordering matches
+            # the serialization order (prevents out-of-order chain links
+            # when events are constructed before the lock is acquired).
+            event.created_at = _utc_now()
+            event.compute_hash()
+            self.storage.append_event(event)

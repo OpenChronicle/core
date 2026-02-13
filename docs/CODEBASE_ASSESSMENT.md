@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-12
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 6 (concurrency audit — 4 race conditions proven exploitable)
+**Revision:** 7 (concurrency fixes — 3 of 4 race conditions fixed)
 
 ---
 
@@ -25,16 +25,19 @@ stress), architecture is enforced, and the STDIO RPC daemon mode exists. The ful
 pipeline has been validated against OpenAI (gpt-4o-mini) and Anthropic (Claude
 Sonnet 4) with all 13 integration scenarios passing.
 
-A **concurrency audit** revealed that the persistence and event logging layers
-were written for single-connection access. Threading-based stress tests proved 4
-race conditions exploitable: hash chain forking (EventLogger.append), duplicate
-turn indices (next_turn_index), lost updates (link_memory_to_turn), and write
-lock starvation (long transactions). These must be fixed before multi-process
-deployment (chat + scheduler + plugins writing to the same database).
+A **concurrency audit** revealed 4 race conditions in the persistence and event
+logging layers. Three have been fixed: hash chain forking (`EventLogger.append`
+now transactional with timestamp refresh under lock), duplicate turn indices
+(`BEGIN IMMEDIATE` serializes writers), and lost updates (`link_memory_to_turn`
+wrapped in transaction). Write lock starvation (T4) is a raw SQLite limitation
+mitigated by splitting `execute_task()` into short transactions so LLM calls no
+longer hold the write lock. Connection setup uses `autocommit=True` to bypass
+Python's legacy `isolation_level` transaction handling, which silently undermined
+explicit `BEGIN IMMEDIATE` in multi-threaded scenarios.
 
-**What's next:** Fix the 4 proven concurrency issues, then plugin phase.
+**What's next:** Plugin phase.
 
-**Overall: Core feature-complete, concurrency fixes needed before multi-process.**
+**Overall: Core feature-complete, concurrency-safe for multi-process deployment.**
 
 ---
 

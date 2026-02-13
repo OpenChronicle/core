@@ -197,16 +197,23 @@ class OrchestratorService:
         handler_error: Exception | None = None
         handler_result: Any | None = None
 
+        # Transaction 1: mark task running + emit start event + open span.
+        # Short — no I/O inside.
         with self.storage.transaction():
             self.storage.update_task_status(task.id, TaskStatus.RUNNING.value)
             self.emit_event(start_event)
             self.storage.add_span(span)
 
-            try:
-                handler_result = await self._dispatch_task(task, agent_id, attempt_id)
-            except Exception as exc:
-                handler_error = exc
+        # LLM call — outside any transaction so the write lock is released.
+        # If the process crashes here, task stays RUNNING;
+        # recover_stale_tasks() (called on startup) will mark it FAILED.
+        try:
+            handler_result = await self._dispatch_task(task, agent_id, attempt_id)
+        except Exception as exc:
+            handler_error = exc
 
+        # Transaction 2: record outcome (completion or failure).
+        with self.storage.transaction():
             if handler_error is None:
                 complete_event = Event(
                     project_id=task.project_id,

@@ -47,6 +47,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self._conn.autocommit = True  # type: ignore[attr-defined]  # Python 3.12+
         self._conn.row_factory = sqlite3.Row
         self._transaction_depth = 0
         self._configure_connection()
@@ -72,7 +73,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         savepoint_name = None
 
         if is_outer:
-            self._conn.execute("BEGIN")
+            self._conn.execute("BEGIN IMMEDIATE")
         else:
             savepoint_name = f"sp_{self._transaction_depth + 1}"
             self._conn.execute(f"SAVEPOINT {savepoint_name}")
@@ -82,12 +83,12 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         try:
             yield self._conn
             if is_outer:
-                self._conn.commit()
+                self._conn.execute("COMMIT")
             else:
                 self._conn.execute(f"RELEASE SAVEPOINT {savepoint_name}")
         except Exception:
             if is_outer:
-                self._conn.rollback()
+                self._conn.execute("ROLLBACK")
             else:
                 self._conn.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}")
                 self._conn.execute(f"RELEASE SAVEPOINT {savepoint_name}")
@@ -449,24 +450,24 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         return row_to_turn(row) if row else None
 
     def link_memory_to_turn(self, turn_id: str, memory_id: str) -> None:
-        cur = self._conn.cursor()
-        row = cur.execute("SELECT memory_written_ids FROM turns WHERE id=?", (turn_id,)).fetchone()
-        if row is None:
-            raise ValueError(f"Turn not found: {turn_id}")
-        raw_ids = row["memory_written_ids"] or "[]"
-        try:
-            memory_ids = json.loads(raw_ids)
-        except json.JSONDecodeError:
-            memory_ids = []
-        if not isinstance(memory_ids, list):
-            memory_ids = []
-        if memory_id not in memory_ids:
-            memory_ids.append(memory_id)
-            cur.execute(
-                "UPDATE turns SET memory_written_ids=? WHERE id=?",
-                (json.dumps(memory_ids, sort_keys=True), turn_id),
-            )
-            self._commit_if_needed()
+        with self.transaction():
+            cur = self._conn.cursor()
+            row = cur.execute("SELECT memory_written_ids FROM turns WHERE id=?", (turn_id,)).fetchone()
+            if row is None:
+                raise ValueError(f"Turn not found: {turn_id}")
+            raw_ids = row["memory_written_ids"] or "[]"
+            try:
+                memory_ids = json.loads(raw_ids)
+            except json.JSONDecodeError:
+                memory_ids = []
+            if not isinstance(memory_ids, list):
+                memory_ids = []
+            if memory_id not in memory_ids:
+                memory_ids.append(memory_id)
+                cur.execute(
+                    "UPDATE turns SET memory_written_ids=? WHERE id=?",
+                    (json.dumps(memory_ids, sort_keys=True), turn_id),
+                )
 
     # Memory
     def add_memory(self, item: MemoryItem) -> None:

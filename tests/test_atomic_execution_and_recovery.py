@@ -13,8 +13,14 @@ from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteSto
 
 
 @pytest.mark.asyncio
-async def test_execute_task_rolls_back_on_write_failure(tmp_path: Path, monkeypatch: Any) -> None:
-    """If a write fails mid-transaction, no partial task state is persisted."""
+async def test_execute_task_rolls_back_outcome_on_write_failure(tmp_path: Path, monkeypatch: Any) -> None:
+    """If a write fails in the outcome transaction, T1 (RUNNING + start event)
+    is durable and T2 (result recording) rolls back cleanly.
+
+    The task stays RUNNING with no result_json or error_json. Crash recovery
+    (recover_stale_tasks) handles orphaned RUNNING tasks on next startup —
+    see test_crash_recovery_marks_running_tasks.
+    """
 
     container = CoreContainer(db_path=str(tmp_path / "atomic.db"))
     orchestrator = container.orchestrator
@@ -39,12 +45,18 @@ async def test_execute_task_rolls_back_on_write_failure(tmp_path: Path, monkeypa
 
     persisted = container.storage.get_task(task.id)
     assert persisted is not None
-    assert persisted.status == TaskStatus.PENDING
+    # T1 committed: task is RUNNING (not PENDING)
+    assert persisted.status == TaskStatus.RUNNING
+    # T2 rolled back: no result or error persisted
     assert persisted.result_json is None
     assert persisted.error_json is None
+    # T1 committed start event; task_submitted from submit_task
     events = container.storage.list_events(task.id)
-    assert [event.type for event in events] == ["task_submitted"]
-    assert container.storage.list_spans(task.id) == []
+    assert [event.type for event in events] == ["task_submitted", "task_started"]
+    # T1 committed the span in STARTED status
+    spans = container.storage.list_spans(task.id)
+    assert len(spans) == 1
+    assert spans[0].status == SpanStatus.STARTED
 
 
 def test_crash_recovery_marks_running_tasks(tmp_path: Path) -> None:
