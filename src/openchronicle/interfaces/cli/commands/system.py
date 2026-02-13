@@ -1,4 +1,4 @@
-"""System and setup CLI commands: init, init-config, list-models, list-handlers, serve, rpc."""
+"""System and setup CLI commands: init, init-config, provider, list-models, list-handlers, serve, rpc."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import os
 import sys
 
 from openchronicle.core.application.runtime.container import CoreContainer
-from openchronicle.core.application.use_cases import init_config, init_runtime
+from openchronicle.core.application.use_cases import init_config, init_runtime, provider_setup
 from openchronicle.core.domain.errors.error_codes import INVALID_JSON, INVALID_REQUEST
 from openchronicle.interfaces.cli.commands._helpers import json_envelope, json_error_payload, print_json
 from openchronicle.interfaces.cli.stdio import (
@@ -103,8 +103,7 @@ def cmd_list_models(args: argparse.Namespace, container: CoreContainer) -> int:
         status = "enabled" if cfg.enabled else "disabled"
         display = cfg.display_name or "-"
         print(
-            f"{cfg.provider}\t{cfg.model}\t{status}\t{display}\t"
-            f"{'[set]' if key_set else '[missing]'}\t{cfg.filename}"
+            f"{cfg.provider}\t{cfg.model}\t{status}\t{display}\t{'[set]' if key_set else '[missing]'}\t{cfg.filename}"
         )
 
     return 0
@@ -179,3 +178,210 @@ def cmd_rpc(args: argparse.Namespace, container: CoreContainer) -> int:
     sys.stdout.write(json_dumps_line(payload) + "\n")
     sys.stdout.flush()
     return 0
+
+
+def cmd_provider(args: argparse.Namespace) -> int:
+    """Dispatch provider subcommands."""
+    sub = getattr(args, "provider_command", None)
+    if sub == "list":
+        return _cmd_provider_list()
+    if sub == "setup":
+        return _cmd_provider_setup(args)
+    if sub == "custom":
+        return _cmd_provider_custom(args)
+    # No subcommand — print usage
+    print("Usage: oc provider {list|setup|custom}")
+    print()
+    print("  list    List known providers and their models")
+    print("  setup   Set up model configs for a provider")
+    print("  custom  Set up a custom provider config")
+    return 0
+
+
+def _cmd_provider_list() -> int:
+    """Print table of known providers and models."""
+    providers = provider_setup.list_providers()
+    if not providers:
+        print("No providers registered.")
+        return 0
+
+    for p in providers:
+        key_info = f"(key: ${p['api_key_env']})" if p["requires_api_key"] else "(no key needed)"
+        print(f"\n  {p['name']:<12} {p['display_name']}  {key_info}")
+        models = p.get("models", [])
+        if isinstance(models, list):
+            for m in models:
+                if isinstance(m, dict):
+                    print(f"    - {m['model_id']:<30} [{m['pool_hint']}]  {m.get('display_name', '')}")
+    print()
+    return 0
+
+
+def _cmd_provider_setup(args: argparse.Namespace) -> int:
+    """Set up model configs for a known provider (interactive or non-interactive)."""
+    import getpass
+
+    config_dir = args.config_dir or os.getenv("OC_CONFIG_DIR", "config")
+    provider_name = args.provider
+    api_key = args.api_key
+    api_key_env = args.api_key_env
+    model_filter = [m.strip() for m in args.models.split(",")] if args.models else None
+    non_interactive = provider_name is not None
+
+    # Interactive mode: prompt for provider
+    if provider_name is None:
+        providers = provider_setup.list_providers()
+        print("\nAvailable providers:\n")
+        for i, p in enumerate(providers, 1):
+            key_info = f"(key: ${p['api_key_env']})" if p["requires_api_key"] else "(no key needed)"
+            print(f"  {i}. {p['name']:<12} {p['display_name']}  {key_info}")
+        print()
+
+        try:
+            choice = input("Select provider [number]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 1
+
+        try:
+            idx = int(choice) - 1
+            if idx < 0 or idx >= len(providers):
+                print(f"Invalid selection: {choice}")
+                return 1
+            provider_name = str(providers[idx]["name"])
+        except ValueError:
+            # Accept name directly
+            provider_name = choice
+
+    # Validate provider exists
+    info = provider_setup.get_provider_info(provider_name)
+    if info is None:
+        print(f"Unknown provider: {provider_name}")
+        return 1
+
+    # Interactive key prompt (only in interactive mode)
+    if not non_interactive and api_key is None and api_key_env is None and info["requires_api_key"]:
+        default_env = str(info["api_key_env"]) if info["api_key_env"] else None
+        print(f"\n{provider_name} requires an API key.")
+        if default_env:
+            print(f"  Default env var: {default_env}")
+
+        try:
+            key_input = getpass.getpass("  Enter API key (or press Enter to use env var): ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 1
+
+        if key_input.strip():
+            api_key = key_input.strip()
+        # else: leave both None — service will write api_key_env from registry default
+
+    # Interactive model selection (only in interactive mode)
+    if not non_interactive and model_filter is None:
+        models_list = info.get("models", [])
+        if isinstance(models_list, list) and len(models_list) > 1:
+            print(f"\nModels for {provider_name}:\n")
+            for i, m in enumerate(models_list, 1):
+                if isinstance(m, dict):
+                    print(f"  {i}. {m['model_id']:<30} [{m['pool_hint']}]  {m.get('description', '')}")
+            print()
+
+            try:
+                selection = input("Select models [numbers, comma-separated, or Enter for all]: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                return 1
+
+            if selection:
+                try:
+                    indices = [int(s.strip()) - 1 for s in selection.split(",")]
+                    model_filter = []
+                    for idx in indices:
+                        if 0 <= idx < len(models_list):
+                            m = models_list[idx]
+                            if isinstance(m, dict):
+                                model_filter.append(str(m["model_id"]))
+                except ValueError:
+                    print(f"Invalid selection: {selection}")
+                    return 1
+
+    try:
+        result = provider_setup.setup_provider(
+            provider_name=provider_name,
+            config_dir=config_dir,
+            api_key=api_key,
+            api_key_env=api_key_env,
+            models=model_filter,
+        )
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+
+    _print_setup_result(result)
+    return 0
+
+
+def _cmd_provider_custom(args: argparse.Namespace) -> int:
+    """Set up a custom/blank provider config (interactive or non-interactive)."""
+    config_dir = args.config_dir or os.getenv("OC_CONFIG_DIR", "config")
+    provider = args.provider
+    model = args.model
+
+    # Interactive prompts for required fields
+    if provider is None:
+        try:
+            provider = input("Provider name: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 1
+        if not provider:
+            print("Provider name is required.")
+            return 1
+
+    if model is None:
+        try:
+            model = input("Model identifier: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 1
+        if not model:
+            print("Model identifier is required.")
+            return 1
+
+    result = provider_setup.setup_custom(
+        config_dir=config_dir,
+        provider=provider,
+        model=model,
+        display_name=args.display_name,
+        description=args.description,
+        endpoint=args.endpoint,
+        base_url=args.base_url,
+        auth_header=args.auth_header,
+        auth_format=args.auth_format,
+        api_key=args.api_key,
+        api_key_env=args.api_key_env,
+        timeout=args.timeout,
+    )
+    _print_setup_result(result)
+    return 0
+
+
+def _print_setup_result(result: dict[str, str | int | list[str]]) -> None:
+    """Shared output formatting for provider setup results."""
+    print(f"\nProvider: {result['provider']}")
+    print(f"Config dir: {result['models_dir']}")
+    print()
+
+    created = result["created"]
+    if isinstance(created, list) and created:
+        print(f"Created {result['created_count']} config(s):")
+        for f in created:
+            print(f"  + {f}")
+    else:
+        print("No new configs created (all already exist).")
+
+    skipped = result["skipped"]
+    if isinstance(skipped, list) and skipped:
+        print(f"\nSkipped {result['skipped_count']} existing config(s):")
+        for f in skipped:
+            print(f"  - {f}")

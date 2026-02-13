@@ -214,6 +214,42 @@ def main(argv: list[str] | None = None) -> int:
     memory_search_group.add_argument("--no-include-pinned", dest="include_pinned", action="store_false")
     memory_search_cmd.set_defaults(include_pinned=True)
 
+    # --- Provider commands ---
+    provider_cmd = sub.add_parser("provider", help="Provider setup and management")
+    provider_sub = provider_cmd.add_subparsers(dest="provider_command")
+
+    provider_sub.add_parser("list", help="List known providers and their models")
+
+    provider_setup_cmd = provider_sub.add_parser("setup", help="Set up model configs for a provider")
+    provider_setup_cmd.add_argument("--provider", default=None, help="Provider name (interactive if omitted)")
+    provider_setup_cmd.add_argument("--api-key", default=None, help="API key (written inline to config)")
+    provider_setup_cmd.add_argument("--api-key-env", default=None, help="Env var name for API key")
+    provider_setup_cmd.add_argument("--models", default=None, help="Comma-separated model IDs (default: all)")
+    provider_setup_cmd.add_argument(
+        "--config-dir",
+        default=None,
+        help="Configuration directory (default: OC_CONFIG_DIR env var or 'config')",
+    )
+
+    provider_custom_cmd = provider_sub.add_parser("custom", help="Set up a custom provider config")
+    provider_custom_cmd.add_argument("--provider", default=None, help="Provider name")
+    provider_custom_cmd.add_argument("--model", default=None, help="Model identifier")
+    provider_custom_cmd.add_argument("--display-name", default=None, help="Display name")
+    provider_custom_cmd.add_argument("--description", default=None, help="Model description")
+    provider_custom_cmd.add_argument("--endpoint", default=None, help="API endpoint URL")
+    provider_custom_cmd.add_argument("--base-url", default=None, help="Base URL for SDK")
+    provider_custom_cmd.add_argument("--auth-header", default=None, help="Auth header name")
+    provider_custom_cmd.add_argument("--auth-format", default=None, help="Auth format (e.g. 'Bearer {api_key}')")
+    provider_custom_cmd.add_argument("--api-key", default=None, help="API key (written inline to config)")
+    provider_custom_cmd.add_argument("--api-key-env", default=None, help="Env var name for API key")
+    provider_custom_cmd.add_argument("--timeout", type=int, default=30, help="Request timeout in seconds")
+    provider_custom_cmd.add_argument(
+        "--config-dir",
+        default=None,
+        help="Configuration directory (default: OC_CONFIG_DIR env var or 'config')",
+    )
+
+    # --- System commands ---
     # --- System commands ---
     init_config_cmd = sub.add_parser("init-config", help="Initialize model configuration with examples")
     init_config_cmd.add_argument(

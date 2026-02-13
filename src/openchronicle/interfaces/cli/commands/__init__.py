@@ -19,6 +19,7 @@ from . import conversation, debug, memory, project, system, task
 PRE_CONTAINER_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "init": system.cmd_init,
     "init-config": system.cmd_init_config,
+    "provider": system.cmd_provider,
 }
 
 # Post-container commands
