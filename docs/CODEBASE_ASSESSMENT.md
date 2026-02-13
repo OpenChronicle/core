@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-12
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 7 (concurrency fixes — 3 of 4 race conditions fixed)
+**Revision:** 8 (concurrency fixes — all 4 race conditions fixed)
 
 ---
 
@@ -20,18 +20,20 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (404+ unit/functional, 13 real-world integration, 5 concurrency
+Tests are strong (430+ unit/functional, 13 real-world integration, 5 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. The full
 pipeline has been validated against OpenAI (gpt-4o-mini) and Anthropic (Claude
 Sonnet 4) with all 13 integration scenarios passing.
 
 A **concurrency audit** revealed 4 race conditions in the persistence and event
-logging layers. Three have been fixed: hash chain forking (`EventLogger.append`
+logging layers. All four have been fixed: hash chain forking (`EventLogger.append`
 now transactional with timestamp refresh under lock), duplicate turn indices
 (`BEGIN IMMEDIATE` serializes writers), and lost updates (`link_memory_to_turn`
-wrapped in transaction). Write lock starvation (T4) is a raw SQLite limitation
-mitigated by splitting `execute_task()` into short transactions so LLM calls no
-longer hold the write lock. Connection setup uses `autocommit=True` to bypass
+wrapped in transaction). Write lock starvation (T4) is fixed with a two-layer
+approach: `execute_task()` was split into short transactions so LLM calls no
+longer hold the write lock, and `transaction()` now retries `BEGIN IMMEDIATE`
+with exponential backoff (3 retries, 0.5–2s delays with jitter) when SQLite's
+`busy_timeout` expires. Connection setup uses `autocommit=True` to bypass
 Python's legacy `isolation_level` transaction handling, which silently undermined
 explicit `BEGIN IMMEDIATE` in multi-threaded scenarios.
 
@@ -128,7 +130,7 @@ validates against live providers (OpenAI, Anthropic).
 | **STDIO RPC** (18 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (50+ subcommands) | Working | Project/task/convo/memory/diagnostics |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
-| **Test suite** (404+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
+| **Test suite** (430+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
 
 ### Architecture (Enforced and Clean)
 
@@ -168,15 +170,14 @@ Refactoring Priorities sections for implementation details.
 
 The persistence and event logging layers were originally written for
 single-connection access. A concurrency audit identified 4 race conditions, all
-proven exploitable by `test_stress.py`. Three have been fixed; the fourth is a
-raw SQLite limitation mitigated by architectural change.
+proven exploitable by `test_stress.py`. All four have been fixed.
 
 | # | Issue | Fix | Status |
 |---|-------|-----|--------|
 | 1 | **Hash chain fork** — `EventLogger.append()` read-compute-write race | Wrapped in `BEGIN IMMEDIATE` transaction + timestamp refresh under lock | **Fixed** |
 | 2 | **Duplicate turn index** — `next_turn_index()` reads MAX in deferred BEGIN | `BEGIN IMMEDIATE` serializes all write transactions | **Fixed** |
 | 3 | **Lost memory link** — `link_memory_to_turn()` JSON read-modify-write race | Wrapped in `BEGIN IMMEDIATE` transaction | **Fixed** |
-| 4 | **Write lock starvation** — long transaction blocks all writers | `execute_task()` split into short transactions; LLM call outside lock | **Mitigated** (raw SQLite limitation) |
+| 4 | **Write lock starvation** — long transaction blocks all writers | Short transactions + application-level retry with exponential backoff in `transaction()` | **Fixed** |
 
 Additional fixes applied during implementation:
 
@@ -376,7 +377,7 @@ configuration (settings dataclasses + env vars).
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (94 files, 404+ unit/functional + 13 real-world integration + 5 concurrency stress)
+### Test Suite (94 files, 430+ unit/functional + 13 real-world integration + 5 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (15), hygiene (10),
 infrastructure (10), contract (8), policy (5), memory (5), architecture guard (4),
@@ -400,7 +401,7 @@ independent locks and WAL snapshots. Results:
 | T1: Hash chain fork | `EventLogger.append()` read-compute-write race | **pass** — 300 events, chain intact, no collisions |
 | T2: Duplicate turn index | `next_turn_index()` + deferred BEGIN | **pass** — 10 turns, distinct indices |
 | T3: Lost update | `link_memory_to_turn()` JSON read-modify-write | **pass** — all 10 memory IDs survive |
-| T4: Write lock starvation | Long transaction blocks other writers | **xfail** — raw SQLite limitation; orchestrator no longer triggers |
+| T4: Write lock starvation | Long transaction blocks other writers | **pass** — application-level retry recovers after holder releases |
 | T5: Independent chains (baseline) | Concurrent writes to different task_ids | **pass** — database fundamentally sound |
 
 **Strongest coverage:** Provider routing, budget enforcement, conversation flow,

@@ -298,16 +298,16 @@ def test_t3_link_memory_lost_update(db_path: str) -> None:
 
 
 def test_t4_write_lock_starvation(db_path: str) -> None:
-    """Long transaction starves other writers.
+    """Application-level retry recovers from write lock contention.
 
     Target: audit issue #6 (CRITICAL). A writer holding BEGIN IMMEDIATE
     for the duration of an LLM call blocks every other writer until
     busy_timeout expires.
 
-    Note: This tests a raw SQLite limitation by intentionally holding a
-    write lock for 1 second. The orchestrator no longer triggers this
-    pattern after splitting execute_task() into short transactions (Fix 4).
-    Kept as xfail to document the constraint.
+    The holder keeps the write lock for 1 second. The writer has a short
+    busy_timeout (200ms) so each individual attempt fails fast. The
+    application-level retry in SqliteStore._begin_immediate_with_retry
+    backs off and retries, succeeding after the holder releases.
     """
     setup = _make_store(db_path)
     project = Project(name="t4-project", metadata={})
@@ -365,9 +365,13 @@ def test_t4_write_lock_starvation(db_path: str) -> None:
     store_writer._conn.close()
 
     err = writer_result.get("error")
-    if isinstance(err, sqlite3.OperationalError) and "locked" in str(err).lower():
-        pytest.xfail(f"Write lock starvation confirmed (expected): {err}")
-    # If no error, the writer squeezed through — race didn't trigger.
+    assert err is None, f"Writer should succeed with retry, got: {err}"
+
+    # Verify the event was actually persisted.
+    verify = _make_store(db_path)
+    row = verify._conn.execute("SELECT type FROM events WHERE type = 't4.starved'").fetchone()
+    verify._conn.close()
+    assert row is not None, "Retried write should persist the event"
 
 
 # ---------------------------------------------------------------------------

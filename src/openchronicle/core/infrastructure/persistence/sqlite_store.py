@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
+import random
 import sqlite3
 import string
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -39,7 +42,16 @@ from openchronicle.core.infrastructure.persistence.row_mappers import (
     row_to_turn,
 )
 
+_logger = logging.getLogger(__name__)
+
 _MEMORY_SEARCH_LIMIT = 200
+
+# Application-level retry for BEGIN IMMEDIATE write-lock contention.
+# SQLite's busy_timeout (5s) handles short contention internally. These
+# parameters add a second retry layer: back off between attempts so the
+# lock holder can finish, turning a hard crash into a recoverable wait.
+_BEGIN_MAX_RETRIES = 3
+_BEGIN_BASE_DELAY = 0.5  # seconds; exponential: 0.5, 1.0, 2.0
 
 
 class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
@@ -65,6 +77,32 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         # Ensure crash recovery runs even for reused databases
         self.recover_stale_tasks()
 
+    def _begin_immediate_with_retry(self) -> None:
+        """Acquire write lock with application-level retry on contention.
+
+        SQLite's busy_timeout (5s) handles short contention internally.
+        This adds a second retry layer for sustained contention: back off
+        between attempts so the holder can finish.
+        """
+        for attempt in range(_BEGIN_MAX_RETRIES + 1):
+            try:
+                self._conn.execute("BEGIN IMMEDIATE")
+                return
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc).lower() or attempt >= _BEGIN_MAX_RETRIES:
+                    raise
+                delay = _BEGIN_BASE_DELAY * (2**attempt)
+                jitter = delay * random.random() * 0.25
+                total = delay + jitter
+                _logger.warning(
+                    "BEGIN IMMEDIATE failed (attempt %d/%d), retrying in %.1fs: %s",
+                    attempt + 1,
+                    _BEGIN_MAX_RETRIES,
+                    total,
+                    exc,
+                )
+                time.sleep(total)
+
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:
         """Context manager for SQLite transactions with savepoint nesting."""
@@ -73,7 +111,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         savepoint_name = None
 
         if is_outer:
-            self._conn.execute("BEGIN IMMEDIATE")
+            self._begin_immediate_with_retry()
         else:
             savepoint_name = f"sp_{self._transaction_depth + 1}"
             self._conn.execute(f"SAVEPOINT {savepoint_name}")
