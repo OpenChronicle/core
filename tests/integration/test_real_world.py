@@ -372,7 +372,13 @@ async def test_t07_event_chain_completeness(container: CoreContainer) -> None:
 
 
 async def test_t08_privacy_gate_pii_detection(container: CoreContainer) -> None:
-    """Verify privacy gate detects PII in warn mode without blocking."""
+    """Verify privacy gate detects PII in warn mode without blocking.
+
+    Privacy checks only apply to external providers (external_only=True by
+    default). Local providers like Ollama and stub are skipped because data
+    never leaves the machine. The test verifies correct behavior for both
+    cases: event emitted for external, no event for local.
+    """
     convo = create_conversation.execute(
         storage=container.storage,
         convo_store=container.storage,
@@ -406,7 +412,20 @@ async def test_t08_privacy_gate_pii_detection(container: CoreContainer) -> None:
     # Check for privacy.outbound_checked event
     events = container.storage.list_events(task_id=convo.id)
     privacy_events = [e for e in events if e.type == "privacy.outbound_checked"]
-    assert len(privacy_events) > 0, f"Expected privacy.outbound_checked event. Event types: {[e.type for e in events]}"
+
+    # Local providers (ollama, stub) skip privacy checks — data stays local
+    provider = turn.provider.strip().lower()
+    if provider in ("ollama", "stub"):
+        assert (
+            len(privacy_events) == 0
+        ), f"Local provider '{turn.provider}' should skip privacy check, but got {len(privacy_events)} privacy events"
+        return
+
+    # External providers should emit the privacy event
+    assert len(privacy_events) > 0, (
+        f"Expected privacy.outbound_checked event for external provider "
+        f"'{turn.provider}'. Event types: {[e.type for e in events]}"
+    )
 
     payload = privacy_events[-1].payload
     assert payload["applies"] is True, f"Expected applies=True, got: {payload}"
