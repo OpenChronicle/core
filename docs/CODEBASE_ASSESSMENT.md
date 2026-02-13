@@ -164,27 +164,32 @@ Refactoring Priorities sections for implementation details.
 
 ---
 
-## Concurrency Issues (Proven, Unfixed)
+## Concurrency Issues (Audited and Fixed)
 
-The persistence and event logging layers were written for single-connection
-access. The planned deployment (interactive chat + scheduler plugin + background
-tasks) requires multiple OS processes writing to the same SQLite database
-concurrently. A concurrency audit identified 4 critical race conditions, all
-proven exploitable by `test_stress.py`.
+The persistence and event logging layers were originally written for
+single-connection access. A concurrency audit identified 4 race conditions, all
+proven exploitable by `test_stress.py`. Three have been fixed; the fourth is a
+raw SQLite limitation mitigated by architectural change.
 
-| # | Issue | Severity | Root Cause | Impact |
-|---|-------|----------|------------|--------|
-| 1 | **Hash chain fork** | CRITICAL | `EventLogger.append()` does read-compute-write without a transaction. Two connections read the same `prev_hash`, create sibling events. | Tamper-evident audit trail is silently broken |
-| 2 | **Duplicate turn index** | CRITICAL | `next_turn_index()` reads MAX inside deferred BEGIN (no write lock). Two connections compute the same index; UNIQUE constraint rejects one. | Completed LLM response is lost |
-| 3 | **Lost memory link** | CRITICAL | `link_memory_to_turn()` does read-modify-write on a JSON column with no transaction. Second writer overwrites first. | Memory associations silently disappear |
-| 4 | **Write lock starvation** | CRITICAL | Any transaction that holds the write lock for the duration of an LLM call (seconds) starves all other writers past `busy_timeout`. | All concurrent operations fail with "database is locked" |
+| # | Issue | Fix | Status |
+|---|-------|-----|--------|
+| 1 | **Hash chain fork** — `EventLogger.append()` read-compute-write race | Wrapped in `BEGIN IMMEDIATE` transaction + timestamp refresh under lock | **Fixed** |
+| 2 | **Duplicate turn index** — `next_turn_index()` reads MAX in deferred BEGIN | `BEGIN IMMEDIATE` serializes all write transactions | **Fixed** |
+| 3 | **Lost memory link** — `link_memory_to_turn()` JSON read-modify-write race | Wrapped in `BEGIN IMMEDIATE` transaction | **Fixed** |
+| 4 | **Write lock starvation** — long transaction blocks all writers | `execute_task()` split into short transactions; LLM call outside lock | **Mitigated** (raw SQLite limitation) |
 
-**Single-connection use is safe.** These only manifest when multiple connections
-(processes) write to the same database file. The current CLI (`oc chat`) is
-single-process and unaffected.
+Additional fixes applied during implementation:
 
-**Fix required before:** Scheduler plugin, Discord driver, or any deployment
-where multiple processes share the database.
+- **`autocommit=True`** on connection setup — Python's legacy `isolation_level`
+  handling silently undermined explicit `BEGIN IMMEDIATE` in multi-threaded
+  scenarios. Explicit `COMMIT`/`ROLLBACK` via `execute()` instead of
+  `conn.commit()`/`conn.rollback()`.
+- **Timestamp refresh under lock** — events constructed before lock acquisition
+  had `created_at` timestamps that didn't match serialization order, causing
+  `ORDER BY created_at` to return stale `prev_hash` values.
+
+**Multi-process safe.** Scheduler plugin, Discord driver, and concurrent
+processes can now share the database.
 
 ---
 
@@ -392,14 +397,11 @@ independent locks and WAL snapshots. Results:
 
 | Test | Target | Outcome |
 |------|--------|---------|
-| T1: Hash chain fork | `EventLogger.append()` read-compute-write race | **xfail** — prev_hash collisions, chain verification fails |
-| T2: Duplicate turn index | `next_turn_index()` + deferred BEGIN | **xfail** — IntegrityError / database locked errors |
-| T3: Lost update | `link_memory_to_turn()` JSON read-modify-write | **xfail** — memory IDs silently lost |
-| T4: Write lock starvation | Long transaction blocks other writers | **xfail** — "database is locked" after busy_timeout |
-| T5: Independent chains (baseline) | Concurrent writes to different task_ids | **pass** — always passes, database fundamentally sound |
-
-T1–T4 use `pytest.xfail()` when the race triggers (CI green either way). After
-fixes: remove xfail paths, assert integrity unconditionally.
+| T1: Hash chain fork | `EventLogger.append()` read-compute-write race | **pass** — 300 events, chain intact, no collisions |
+| T2: Duplicate turn index | `next_turn_index()` + deferred BEGIN | **pass** — 10 turns, distinct indices |
+| T3: Lost update | `link_memory_to_turn()` JSON read-modify-write | **pass** — all 10 memory IDs survive |
+| T4: Write lock starvation | Long transaction blocks other writers | **xfail** — raw SQLite limitation; orchestrator no longer triggers |
+| T5: Independent chains (baseline) | Concurrent writes to different task_ids | **pass** — database fundamentally sound |
 
 **Strongest coverage:** Provider routing, budget enforcement, conversation flow,
 event verification, architectural boundaries, live provider validation,
