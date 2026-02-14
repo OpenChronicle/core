@@ -335,18 +335,24 @@ def test_t4_write_lock_starvation(db_path: str) -> None:
         holder_done.set()
 
     def _writer() -> None:
-        """Try to write while holder has the lock."""
+        """Try to write while holder has the lock.
+
+        Uses EventLogger.append() — the real production code path — which
+        wraps in transaction() → _begin_immediate_with_retry(). Plain
+        append_event() bypasses that retry and relies solely on
+        busy_timeout, which is too short for this test.
+        """
         holder_ready.wait(timeout=5)
         # Small delay to ensure we're well within the holder's sleep window.
         time.sleep(0.1)
         try:
+            logger = EventLogger(store_writer)
             evt = Event(
                 project_id=project.id,
                 task_id="t4-task",
                 type="t4.starved",
             )
-            evt.compute_hash()
-            store_writer.append_event(evt)
+            logger.append(evt)
             writer_result["error"] = None
         except sqlite3.OperationalError as exc:
             writer_result["error"] = exc
