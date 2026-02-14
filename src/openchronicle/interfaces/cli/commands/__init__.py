@@ -13,7 +13,7 @@ from collections.abc import Callable
 from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.interfaces.cli.chat import cmd_chat
 
-from . import conversation, db, debug, memory, project, system, task
+from . import conversation, db, debug, memory, project, scheduler, system, task
 
 # Pre-container commands (no CoreContainer needed)
 PRE_CONTAINER_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
@@ -50,6 +50,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace, CoreContainer], int]] = {
     "memory": memory.cmd_memory,
     # Database
     "db": db.cmd_db,
+    # Scheduler
+    "scheduler": scheduler.cmd_scheduler,
     # System
     "list-models": system.cmd_list_models,
     "list-handlers": system.cmd_list_handlers,

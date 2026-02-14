@@ -295,6 +295,41 @@ def main(argv: list[str] | None = None) -> int:
     db_stats_cmd = db_sub.add_parser("stats", help="Show global token usage statistics")
     db_stats_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
 
+    # --- Scheduler commands ---
+    sched_cmd = sub.add_parser("scheduler", help="Scheduled job management")
+    sched_sub = sched_cmd.add_subparsers(dest="scheduler_command")
+
+    sched_add = sched_sub.add_parser("add", help="Create a scheduled job")
+    sched_add.add_argument("--project-id", required=True, help="Project ID")
+    sched_add.add_argument("--name", required=True, help="Job name")
+    sched_add.add_argument("--task-type", required=True, help="Task type to submit")
+    sched_add.add_argument("--payload", required=True, help="JSON task payload")
+    sched_add.add_argument("--due-at", default=None, help="ISO datetime for first fire")
+    sched_add.add_argument("--interval", type=int, default=None, help="Recurrence interval in seconds")
+    sched_add.add_argument("--max-failures", type=int, default=0, help="Max consecutive failures (0=unlimited)")
+    sched_add.add_argument("--json", action="store_true", help="Emit JSON output")
+
+    sched_list = sched_sub.add_parser("list", help="List scheduled jobs")
+    sched_list.add_argument("--project-id", default=None, help="Filter by project ID")
+    sched_list.add_argument("--status", default=None, help="Filter by status")
+    sched_list.add_argument("--json", action="store_true", help="Emit JSON output")
+
+    sched_pause = sched_sub.add_parser("pause", help="Pause a scheduled job")
+    sched_pause.add_argument("job_id", help="Job ID to pause")
+    sched_pause.add_argument("--json", action="store_true", help="Emit JSON output")
+
+    sched_resume = sched_sub.add_parser("resume", help="Resume a paused job")
+    sched_resume.add_argument("job_id", help="Job ID to resume")
+    sched_resume.add_argument("--json", action="store_true", help="Emit JSON output")
+
+    sched_cancel = sched_sub.add_parser("cancel", help="Cancel a scheduled job")
+    sched_cancel.add_argument("job_id", help="Job ID to cancel")
+    sched_cancel.add_argument("--json", action="store_true", help="Emit JSON output")
+
+    sched_tick = sched_sub.add_parser("tick", help="Fire one scheduler tick")
+    sched_tick.add_argument("--max-jobs", type=int, default=10, help="Max jobs per tick")
+    sched_tick.add_argument("--json", action="store_true", help="Emit JSON output")
+
     # --- System commands ---
     init_config_cmd = sub.add_parser("init-config", help="Initialize model configuration with examples")
     init_config_cmd.add_argument(

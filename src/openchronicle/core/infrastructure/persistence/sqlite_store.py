@@ -8,7 +8,7 @@ import string
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +25,7 @@ from openchronicle.core.domain.models.project import (
     Task,
     TaskStatus,
 )
+from openchronicle.core.domain.models.scheduled_job import JobStatus, ScheduledJob
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
@@ -37,6 +38,7 @@ from openchronicle.core.infrastructure.persistence.row_mappers import (
     row_to_memory_item,
     row_to_project,
     row_to_resource,
+    row_to_scheduled_job,
     row_to_span,
     row_to_task,
     row_to_turn,
@@ -1008,3 +1010,136 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             "rationale": payload.get("rationale"),
             "worker_count": payload.get("worker_count"),
         }
+
+    # ------------------------------------------------------------------
+    # Scheduled Jobs
+    # ------------------------------------------------------------------
+
+    def add_scheduled_job(self, job: ScheduledJob) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO scheduled_jobs (id, project_id, name, task_type, task_payload, status,
+                next_due_at, interval_seconds, cron_expr, fire_count, consecutive_failures,
+                max_failures, last_fired_at, last_task_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                job.id,
+                job.project_id,
+                job.name,
+                job.task_type,
+                json.dumps(job.task_payload),
+                job.status.value,
+                job.next_due_at.isoformat(),
+                job.interval_seconds,
+                job.cron_expr,
+                job.fire_count,
+                job.consecutive_failures,
+                job.max_failures,
+                job.last_fired_at.isoformat() if job.last_fired_at else None,
+                job.last_task_id,
+                job.created_at.isoformat(),
+                job.updated_at.isoformat(),
+            ),
+        )
+        self._commit_if_needed()
+
+    def get_scheduled_job(self, job_id: str) -> ScheduledJob | None:
+        cur = self._conn.cursor()
+        cur.execute("SELECT * FROM scheduled_jobs WHERE id = ?", (job_id,))
+        row = cur.fetchone()
+        return row_to_scheduled_job(row) if row else None
+
+    def list_scheduled_jobs(self, project_id: str | None = None, status: str | None = None) -> list[ScheduledJob]:
+        clauses: list[str] = []
+        params: list[str] = []
+        if project_id is not None:
+            clauses.append("project_id = ?")
+            params.append(project_id)
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+        where = " AND ".join(clauses)
+        sql = "SELECT * FROM scheduled_jobs"
+        if where:
+            sql += f" WHERE {where}"
+        sql += " ORDER BY created_at ASC, id ASC"
+        cur = self._conn.cursor()
+        cur.execute(sql, params)
+        return [row_to_scheduled_job(r) for r in cur.fetchall()]
+
+    def update_scheduled_job_status(self, job_id: str, status: str) -> None:
+        now = datetime.now(UTC).isoformat()
+        cur = self._conn.cursor()
+        cur.execute(
+            "UPDATE scheduled_jobs SET status = ?, updated_at = ? WHERE id = ?",
+            (status, now, job_id),
+        )
+        self._commit_if_needed()
+
+    def claim_due_jobs(self, now: datetime, max_jobs: int = 10) -> list[ScheduledJob]:
+        """Atomically claim up to max_jobs due active jobs.
+
+        Runs inside BEGIN IMMEDIATE to serialize concurrent tick() calls.
+        For recurring jobs, advances next_due_at past `now` in one step
+        (drift prevention). One-shot jobs transition to completed.
+        """
+        claimed: list[ScheduledJob] = []
+        now_iso = now.isoformat()
+
+        with self.transaction():
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT * FROM scheduled_jobs
+                WHERE status = ? AND next_due_at <= ?
+                ORDER BY next_due_at ASC, created_at ASC, id ASC
+                LIMIT ?
+                """,
+                (JobStatus.ACTIVE.value, now_iso, max_jobs),
+            )
+            rows = cur.fetchall()
+
+            for row in rows:
+                job = row_to_scheduled_job(row)
+                job.fire_count += 1
+                job.last_fired_at = now
+                job.updated_at = now
+
+                if job.interval_seconds is not None and job.interval_seconds > 0:
+                    # Recurring: advance next_due_at past now (drift prevention)
+                    while job.next_due_at <= now:
+                        job.next_due_at += timedelta(seconds=job.interval_seconds)
+                else:
+                    # One-shot: mark completed
+                    job.status = JobStatus.COMPLETED
+
+                cur.execute(
+                    """
+                    UPDATE scheduled_jobs
+                    SET fire_count = ?, last_fired_at = ?, next_due_at = ?,
+                        status = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        job.fire_count,
+                        job.last_fired_at.isoformat(),
+                        job.next_due_at.isoformat(),
+                        job.status.value,
+                        job.updated_at.isoformat(),
+                        job.id,
+                    ),
+                )
+                claimed.append(job)
+
+        return claimed
+
+    def update_scheduled_job_last_task(self, job_id: str, task_id: str) -> None:
+        now = datetime.now(UTC).isoformat()
+        cur = self._conn.cursor()
+        cur.execute(
+            "UPDATE scheduled_jobs SET last_task_id = ?, updated_at = ? WHERE id = ?",
+            (task_id, now, job_id),
+        )
+        self._commit_if_needed()

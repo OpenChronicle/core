@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-02-13
+**Date:** 2026-02-14
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 10 (LLMPort function calling / tool use)
+**Revision:** 11 (Scheduler service)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (540+ unit/functional, 13 real-world integration, 5 concurrency
+Tests are strong (590+ unit/functional, 13 real-world integration, 6 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. The full
 pipeline has been validated against OpenAI (gpt-4o-mini) and Anthropic (Claude
 Sonnet 4) with all 13 integration scenarios passing.
@@ -43,7 +43,7 @@ Six operational CLI utilities were added to close day-one gaps: `oc version`,
 domain port additions (`delete_conversation`, `delete_memory`) with cascade
 logic in SqliteStore. CLI command reference documented in `docs/cli/commands.md`.
 
-**What's next:** Plugin phase.
+**What's next:** Discord driver (core interface).
 
 **Overall: Core feature-complete, concurrency-safe for multi-process deployment.**
 
@@ -126,17 +126,18 @@ validates against live providers (OpenAI, Anthropic).
 |-----------|--------|----------|
 | **5 LLM providers** (OpenAI, Anthropic, Groq, Gemini, Ollama) | Working | Async-native adapters, contract tests |
 | **Provider routing** (pools, fallback, NSFW, budget-aware) | Working | 1,278-line test suite |
-| **SQLite persistence** (10 tables, 52 methods, WAL mode) | Working | Handles tasks, conversations, memory, events, delete + cascade operations |
+| **SQLite persistence** (11 tables, 58 methods, WAL mode) | Working | Handles tasks, conversations, memory, events, scheduled jobs, delete + cascade operations |
 | **Hash-chained events** (SHA256, prev_hash → hash) | Working | Verification + replay services |
 | **Privacy gate** (6 PII categories, Luhn validation) | Working | Rule-based, provider-aware |
 | **Interaction routing** (rule + hybrid ML assist) | Working | NSFW scoring, mode detection |
 | **Memory v0** (keyword search, pinned, tagged) | Working | Deterministic retrieval, no embeddings |
 | **Budget/rate limiting** | Working | Token limits, call limits, rate gates |
 | **Plugin system** (discover, load, register, invoke) | Working | 2 example plugins, collision detection |
-| **STDIO RPC** (18 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
-| **CLI** (70+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete |
+| **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 52+ tests |
+| **STDIO RPC** (24 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
+| **CLI** (76+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete/scheduler |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
-| **Test suite** (540+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
+| **Test suite** (590+ unit/functional, 13 real-world integration, 6 concurrency stress) | Passing | 13 test categories, architecture guards, live provider validation, concurrency race proofs |
 
 ### Architecture (Enforced and Clean)
 
@@ -357,7 +358,7 @@ the orchestrator" is unclear. `run_task.py` is 28 lines (pure forwarding) while
 `ask_conversation.py` is 758 lines (full orchestration). The orchestrator also owns
 built-in handler logic that could be use cases.
 
-### Domain Layer (12 models, 8 ports, 3 services)
+### Domain Layer (13 models, 8 ports, 3 services)
 
 Clean and well-typed. Key models:
 
@@ -367,7 +368,7 @@ Clean and well-typed. Key models:
 - **`BudgetPolicy`, `TaskRetryPolicy`** — Policy-as-data pattern
 - **`InteractionHint`, `RouterAssistResult`** — Routing decision outputs
 
-Ports define clean contracts: `StoragePort` (28+ methods), `ConversationStorePort`
+Ports define clean contracts: `StoragePort` (34+ methods), `ConversationStorePort`
 (12 methods, including cascade delete), `MemoryStorePort` (7 methods, including
 delete with turn reference cleanup), `LLMPort` (2 methods), plus single-method
 ports for routing, privacy, and plugin hosting.
@@ -384,7 +385,7 @@ configuration (settings dataclasses + env vars).
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (110 files, 540+ unit/functional + 13 real-world integration + 5 concurrency stress)
+### Test Suite (115 files, 590+ unit/functional + 13 real-world integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (10),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -410,6 +411,7 @@ independent locks and WAL snapshots. Results:
 | T3: Lost update | `link_memory_to_turn()` JSON read-modify-write | **pass** — all 10 memory IDs survive |
 | T4: Write lock starvation | Long transaction blocks other writers | **pass** — application-level retry recovers after holder releases |
 | T5: Independent chains (baseline) | Concurrent writes to different task_ids | **pass** — database fundamentally sound |
+| T6: Scheduler tick no double-fire | Concurrent `tick()` atomic claiming | **pass** — 20 jobs, each fired exactly once |
 
 **Strongest coverage:** Provider routing, budget enforcement, conversation flow,
 event verification, architectural boundaries, live provider validation,
@@ -452,7 +454,7 @@ service-dependent features. See Decision #4 below for the architectural response
 ```text
 Core Done
   ✓ LLMPort: function calling / tool use (done)
-  → Scheduler (core — application/services)
+  ✓ Scheduler (core — application/services)
   → Discord Driver (core — interfaces/)
   → Security Scanner (plugin — stateless handler)
   → Dev Agent Runner (core — needs LLM + sandbox)
@@ -563,11 +565,12 @@ ToolCall, tool_calls on LLMResponse/StreamChunk, tools/tool_choice params on all
 | `interfaces/cli/commands/db.py` | ~170 | DB maintenance CLI | New (info, vacuum, backup, stats) |
 | `interfaces/cli/stdio.py` | ~200 | RPC dispatch | Clean (handlers extracted) |
 | `services/orchestrator.py` | 927 | Task orchestration | Clean (phases decomposed) |
-| `persistence/sqlite_store.py` | ~1,030 | All persistence | Clean (mappers extracted, delete + cascade ops) |
+| `persistence/sqlite_store.py` | ~1,150 | All persistence | Clean (mappers extracted, delete + cascade, scheduled jobs) |
 | `persistence/row_mappers.py` | ~180 | Row → domain model | Clean |
 | `use_cases/ask_conversation.py` | 832 | Conversation logic | Clean (prepare/finalize pipeline) |
 | `infrastructure/llm/provider_facade.py` | ~291 | Provider routing | Clean |
 | `application/routing/router_policy.py` | 236 | Route decisions | Clean |
 | `domain/ports/llm_port.py` | 146 | LLM contract | Clean (includes streaming) |
 | `application/services/llm_execution.py` | ~200 | LLM call + fallback | Clean |
-| `application/runtime/container.py` | ~118 | DI container | Clean |
+| `services/scheduler.py` | ~250 | Tick-driven scheduler | New (core service) |
+| `application/runtime/container.py` | ~122 | DI container | Clean (scheduler wired) |

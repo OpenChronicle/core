@@ -11,11 +11,12 @@
 
 ## Current Sprint
 
-**Status:** Core done. Post-core phase starting. Hybrid taxonomy decided:
+**Status:** Core done. Post-core features in progress. Hybrid taxonomy decided:
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Scheduler service (core, `application/services/`).
+**Next action:** Discord driver (core, `interfaces/discord/`).
+Scheduler service is done (tick-driven, atomic claim, 52+ tests, CLI + RPC).
 LLMPort function calling/tool use is done (all 6 adapters, 30 contract tests).
 
 ## Build and Development

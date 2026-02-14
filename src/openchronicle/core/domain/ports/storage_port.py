@@ -3,9 +3,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import Any, Protocol
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Protocol
 
 from openchronicle.core.domain.models.project import Agent, Event, LLMUsage, Project, Resource, Span, Task
+
+if TYPE_CHECKING:
+    from openchronicle.core.domain.models.scheduled_job import ScheduledJob
 
 
 class Page(Protocol):
@@ -118,3 +122,22 @@ class StoragePort(ABC):
 
     @abstractmethod
     def get_task_worker_plan(self, task_id: str) -> dict[str, Any] | None: ...
+
+    # Scheduled Jobs
+    @abstractmethod
+    def add_scheduled_job(self, job: ScheduledJob) -> None: ...
+
+    @abstractmethod
+    def get_scheduled_job(self, job_id: str) -> ScheduledJob | None: ...
+
+    @abstractmethod
+    def list_scheduled_jobs(self, project_id: str | None = None, status: str | None = None) -> list[ScheduledJob]: ...
+
+    @abstractmethod
+    def update_scheduled_job_status(self, job_id: str, status: str) -> None: ...
+
+    @abstractmethod
+    def claim_due_jobs(self, now: datetime, max_jobs: int = 10) -> list[ScheduledJob]: ...
+
+    @abstractmethod
+    def update_scheduled_job_last_task(self, job_id: str, task_id: str) -> None: ...

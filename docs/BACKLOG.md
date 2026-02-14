@@ -20,26 +20,31 @@ This document tracks planned features, implementation gaps, and future work for 
 
 ## Priority 0 — Foundation (Blocking)
 
-### 0.1 Scheduler / Background Jobs Plugin
+### 0.1 Scheduler Service (Core)
 
-**Status:** 🔴 Not Started
+**Status:** ✅ Implemented
 **Effort:** Medium
-**Rationale:** Enables scheduled responses, periodic scans, metrics snapshots without daemon in core. Unlocks downstream plugins (Discord, security scanner, dev agent runner).
+**Rationale:** Enables scheduled responses, periodic scans, metrics snapshots. Unlocks downstream features (Discord, security scanner, dev agent runner). Built as a core service in `application/services/` per Decision #4 (hybrid taxonomy).
 
 **Requirements:**
 
-- [ ] Job store (plugin-local SQLite)
-- [ ] One-shot scheduled tasks
-- [ ] Recurring jobs (cron-like)
-- [ ] Deterministic execution order (`due_at ASC`, `created_at ASC`, `job_id ASC`)
-- [ ] `scheduler.tick(now, max_jobs)` to enqueue tasks
-- [ ] Optional long-running `scheduler.serve` loop
+- [x] Job store (core SQLite — `scheduled_jobs` table, 16 columns, 2 indexes)
+- [x] One-shot scheduled tasks (auto-complete after fire)
+- [x] Recurring jobs (interval-based, `cron_expr` column reserved for v1)
+- [x] Deterministic execution order (`next_due_at ASC`, `created_at ASC`, `id ASC`)
+- [x] `scheduler.tick(now, max_jobs)` — atomic claim via `BEGIN IMMEDIATE`, drift prevention
+- [x] `scheduler.serve()` — async polling loop with clean shutdown
+- [x] Job lifecycle: active/paused/completed/cancelled with state transition validation
+- [x] CLI: `oc scheduler {add|list|pause|resume|cancel|tick}`
+- [x] RPC: `scheduler.{add|list|pause|resume|cancel|tick}` (6 handlers)
+- [x] Events: `scheduler.job_created/paused/resumed/cancelled/fired/tick_completed`
 
 **Acceptance Criteria:**
 
-- Jobs persist across restarts
-- Deterministic ordering verified by tests
-- Integration with task.submit RPC
+- [x] Jobs persist across restarts (SQLite)
+- [x] Deterministic ordering verified by tests
+- [x] No double-fire under concurrent tick() (concurrency stress test T6)
+- [x] 52+ tests (28 service, 13 storage, 11 CLI)
 
 ---
 
@@ -344,8 +349,8 @@ All enforced via CI/tests:
 Recommended order based on dependencies:
 
 ```text
-1. Scheduler Plugin (P0)
-   └── Foundation for all plugins
+1. Scheduler Service (P0) ✅
+   └── Foundation for all downstream features
 
 2. Security Scanner Plugin (P2)
    └── Runs via scheduler

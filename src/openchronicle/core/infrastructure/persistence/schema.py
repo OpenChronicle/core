@@ -143,6 +143,29 @@ CREATE TABLE IF NOT EXISTS memory_items (
 """
 
 # Performance indexes for common queries
+
+SCHEDULED_JOBS_TABLE = """
+CREATE TABLE IF NOT EXISTS scheduled_jobs (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    task_type TEXT NOT NULL,
+    task_payload TEXT NOT NULL,
+    status TEXT NOT NULL,
+    next_due_at TEXT NOT NULL,
+    interval_seconds INTEGER,
+    cron_expr TEXT,
+    fire_count INTEGER NOT NULL DEFAULT 0,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    max_failures INTEGER NOT NULL DEFAULT 0,
+    last_fired_at TEXT,
+    last_task_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+"""
+
 INDEXES = [
     # Tasks: optimize project queries with ordering
     "CREATE INDEX IF NOT EXISTS idx_tasks_project_created ON tasks(project_id, created_at, id)",
@@ -174,6 +197,10 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_memory_convo_created ON memory_items(conversation_id, created_at, id)",
     # Memory: optimize project ordering
     "CREATE INDEX IF NOT EXISTS idx_memory_project_created ON memory_items(project_id, created_at, id)",
+    # Scheduled jobs: optimize tick query (find due active jobs)
+    "CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_due ON scheduled_jobs(status, next_due_at, created_at, id)",
+    # Scheduled jobs: optimize project listing
+    "CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_project ON scheduled_jobs(project_id, created_at, id)",
 ]
 
 ALL_TABLES = [
@@ -187,4 +214,5 @@ ALL_TABLES = [
     CONVERSATIONS_TABLE,
     TURNS_TABLE,
     MEMORY_ITEMS_TABLE,
+    SCHEDULED_JOBS_TABLE,
 ]

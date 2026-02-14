@@ -1018,6 +1018,156 @@ def handle_task_run_many(container: CoreContainer, command: str, args: dict[str,
 
 
 # ---------------------------------------------------------------------------
+# Scheduler handlers
+# ---------------------------------------------------------------------------
+
+
+def handle_scheduler_add(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    from openchronicle.core.domain.errors.error_codes import INVALID_ARGUMENT
+
+    project_id = str(args.get("project_id", ""))
+    name = str(args.get("name", ""))
+    task_type = str(args.get("task_type", ""))
+    payload = args.get("payload")
+
+    if not project_id or not name or not task_type:
+        return json_envelope(
+            command=command,
+            ok=False,
+            result=None,
+            error=json_error_payload(
+                error_code=INVALID_ARGUMENT,
+                message="Missing required: project_id, name, task_type",
+                hint=None,
+            ),
+        )
+    if payload is None or not isinstance(payload, dict):
+        return json_envelope(
+            command=command,
+            ok=False,
+            result=None,
+            error=json_error_payload(
+                error_code=INVALID_ARGUMENT,
+                message="payload must be a JSON object",
+                hint=None,
+            ),
+        )
+
+    from datetime import datetime
+
+    due_at_raw = args.get("due_at")
+    due_at = datetime.fromisoformat(str(due_at_raw)) if due_at_raw else None
+    interval_raw = args.get("interval_seconds")
+    interval = coerce_int(interval_raw, 0) if interval_raw is not None else None
+    max_failures = coerce_int(args.get("max_failures"), 0) or 0
+
+    job = container.scheduler.add_job(
+        project_id=project_id,
+        name=name,
+        task_type=task_type,
+        task_payload=payload,
+        due_at=due_at,
+        interval_seconds=interval,
+        max_failures=max_failures,
+    )
+    return json_envelope(command=command, ok=True, result=_job_summary(job), error=None)
+
+
+def handle_scheduler_list(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    project_id = args.get("project_id")
+    status = args.get("status")
+    jobs = container.scheduler.list_jobs(
+        project_id=str(project_id) if project_id else None,
+        status=str(status) if status else None,
+    )
+    return json_envelope(
+        command=command,
+        ok=True,
+        result={"jobs": [_job_summary(j) for j in jobs]},
+        error=None,
+    )
+
+
+def handle_scheduler_pause(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    return _scheduler_transition(container, command, args, "pause")
+
+
+def handle_scheduler_resume(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    return _scheduler_transition(container, command, args, "resume")
+
+
+def handle_scheduler_cancel(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    return _scheduler_transition(container, command, args, "cancel")
+
+
+def handle_scheduler_tick(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    max_jobs = coerce_int(args.get("max_jobs"), 10) or 10
+    results = container.scheduler.tick(max_jobs=max_jobs)
+    return json_envelope(
+        command=command,
+        ok=True,
+        result={
+            "jobs_fired": len(results),
+            "tasks": [{"job_id": job.id, "job_name": job.name, "task_id": task.id} for job, task in results],
+        },
+        error=None,
+    )
+
+
+def _scheduler_transition(
+    container: CoreContainer, command: str, args: dict[str, object], action: str
+) -> dict[str, object]:
+    from openchronicle.core.application.services.scheduler import InvalidTransitionError, JobNotFoundError
+    from openchronicle.core.domain.errors.error_codes import INVALID_STATE_TRANSITION, JOB_NOT_FOUND
+
+    job_id = str(args.get("job_id", ""))
+    if not job_id:
+        return json_envelope(
+            command=command,
+            ok=False,
+            result=None,
+            error=json_error_payload(error_code=INVALID_ARGUMENT, message="Missing job_id", hint=None),
+        )
+
+    method = getattr(container.scheduler, f"{action}_job")
+    try:
+        job = method(job_id)
+    except JobNotFoundError:
+        return json_envelope(
+            command=command,
+            ok=False,
+            result=None,
+            error=json_error_payload(error_code=JOB_NOT_FOUND, message=f"Job not found: {job_id}", hint=None),
+        )
+    except InvalidTransitionError as exc:
+        return json_envelope(
+            command=command,
+            ok=False,
+            result=None,
+            error=json_error_payload(error_code=INVALID_STATE_TRANSITION, message=str(exc), hint=None),
+        )
+
+    return json_envelope(command=command, ok=True, result=_job_summary(job), error=None)
+
+
+def _job_summary(job: object) -> dict[str, object]:
+    from openchronicle.core.domain.models.scheduled_job import ScheduledJob
+
+    assert isinstance(job, ScheduledJob)
+    return {
+        "id": job.id,
+        "project_id": job.project_id,
+        "name": job.name,
+        "task_type": job.task_type,
+        "status": job.status.value,
+        "next_due_at": job.next_due_at.isoformat(),
+        "interval_seconds": job.interval_seconds,
+        "fire_count": job.fire_count,
+        "last_task_id": job.last_task_id,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Dispatch table
 # ---------------------------------------------------------------------------
 
@@ -1042,4 +1192,10 @@ RPC_DISPATCH: dict[str, _RpcHandler] = {
     "task.list": handle_task_list,
     "task.run_one": handle_task_run_one,
     "task.run_many": handle_task_run_many,
+    "scheduler.add": handle_scheduler_add,
+    "scheduler.list": handle_scheduler_list,
+    "scheduler.pause": handle_scheduler_pause,
+    "scheduler.resume": handle_scheduler_resume,
+    "scheduler.cancel": handle_scheduler_cancel,
+    "scheduler.tick": handle_scheduler_tick,
 }

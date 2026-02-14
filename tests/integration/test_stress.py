@@ -452,3 +452,77 @@ def test_t5_independent_chains_baseline(db_path: str) -> None:
     integrity = verify_store._conn.execute("PRAGMA integrity_check").fetchone()
     verify_store._conn.close()
     assert integrity[0] == "ok", f"SQLite integrity failed: {integrity[0]}"
+
+
+# ---------------------------------------------------------------------------
+# T6: Scheduler tick() — No Double-Fire
+# ---------------------------------------------------------------------------
+
+
+def test_t6_scheduler_tick_no_double_fire(db_path: str) -> None:
+    """Two threads call tick() simultaneously; no job fires twice.
+
+    Target: scheduler claim_due_jobs() atomic claiming. BEGIN IMMEDIATE
+    serializes concurrent tick() calls so only one thread can claim each job.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from openchronicle.core.domain.models.scheduled_job import JobStatus, ScheduledJob
+
+    n_jobs = 20
+    now = datetime.now(UTC)
+    past = now - timedelta(minutes=1)
+
+    setup = _make_store(db_path)
+    project = Project(name="t6-project", metadata={})
+    setup.add_project(project)
+    for i in range(n_jobs):
+        job = ScheduledJob(
+            project_id=project.id,
+            name=f"t6-job-{i}",
+            task_type="plugin.invoke",
+            task_payload={"handler": "test"},
+            next_due_at=past,
+        )
+        setup.add_scheduled_job(job)
+    setup._conn.close()
+
+    barrier = threading.Barrier(2)
+    all_claimed: list[list[str]] = [[], []]
+    errors: list[Exception] = []
+    lock = threading.Lock()
+
+    def _ticker(thread_idx: int) -> None:
+        store = _make_store(db_path)
+        barrier.wait()
+        try:
+            claimed = store.claim_due_jobs(now, max_jobs=n_jobs)
+            all_claimed[thread_idx] = [j.id for j in claimed]
+        except Exception as exc:
+            with lock:
+                errors.append(exc)
+        finally:
+            store._conn.close()
+
+    threads = [threading.Thread(target=_ticker, args=(t,)) for t in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+
+    assert not errors, f"Thread errors: {errors}"
+
+    # Every job should be claimed exactly once across both threads
+    all_ids = all_claimed[0] + all_claimed[1]
+    id_counts = Counter(all_ids)
+    duplicates = {jid: cnt for jid, cnt in id_counts.items() if cnt > 1}
+    assert not duplicates, f"Double-fired jobs: {duplicates}"
+    assert len(all_ids) == n_jobs, f"Expected {n_jobs} claims total, got {len(all_ids)}"
+
+    # Verify all jobs are completed (one-shot, no interval)
+    verify = _make_store(db_path)
+    jobs = verify.list_scheduled_jobs(project_id=project.id)
+    for j in jobs:
+        assert j.status == JobStatus.COMPLETED, f"Job {j.id} not completed: {j.status}"
+        assert j.fire_count == 1, f"Job {j.id} fire_count={j.fire_count}, expected 1"
+    verify._conn.close()

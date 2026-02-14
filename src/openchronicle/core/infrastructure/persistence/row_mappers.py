@@ -19,6 +19,7 @@ from openchronicle.core.domain.models.project import (
     Task,
     TaskStatus,
 )
+from openchronicle.core.domain.models.scheduled_job import JobStatus, ScheduledJob
 
 
 def _parse_dt(value: str) -> datetime:
@@ -171,4 +172,25 @@ def row_to_memory_item(row: sqlite3.Row) -> MemoryItem:
         conversation_id=row["conversation_id"],
         project_id=row["project_id"],
         source=row["source"],
+    )
+
+
+def row_to_scheduled_job(row: sqlite3.Row) -> ScheduledJob:
+    return ScheduledJob(
+        id=row["id"],
+        project_id=row["project_id"],
+        name=row["name"],
+        task_type=row["task_type"],
+        task_payload=json.loads(row["task_payload"] or "{}"),
+        status=JobStatus(row["status"]),
+        next_due_at=_parse_dt(row["next_due_at"]),
+        interval_seconds=row["interval_seconds"],
+        cron_expr=row["cron_expr"],
+        fire_count=row["fire_count"],
+        consecutive_failures=row["consecutive_failures"],
+        max_failures=row["max_failures"],
+        last_fired_at=_parse_dt(row["last_fired_at"]) if row["last_fired_at"] else None,
+        last_task_id=row["last_task_id"],
+        created_at=_parse_dt(row["created_at"]),
+        updated_at=_parse_dt(row["updated_at"]),
     )

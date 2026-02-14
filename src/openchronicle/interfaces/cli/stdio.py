@@ -52,6 +52,12 @@ SUPPORTED_COMMANDS: tuple[str, ...] = (
     "system.metrics",
     "system.ping",
     "system.shutdown",
+    "scheduler.add",
+    "scheduler.list",
+    "scheduler.pause",
+    "scheduler.resume",
+    "scheduler.cancel",
+    "scheduler.tick",
 )
 
 RUNNABLE_TASK_TYPES = frozenset(
