@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-02-12
+**Date:** 2026-02-13
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 8 (concurrency fixes — all 4 race conditions fixed)
+**Revision:** 9 (6 CLI utilities + delete operations)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (470+ unit/functional, 13 real-world integration, 5 concurrency
+Tests are strong (510+ unit/functional, 13 real-world integration, 5 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. The full
 pipeline has been validated against OpenAI (gpt-4o-mini) and Anthropic (Claude
 Sonnet 4) with all 13 integration scenarios passing.
@@ -36,6 +36,12 @@ with exponential backoff (3 retries, 0.5–2s delays with jitter) when SQLite's
 `busy_timeout` expires. Connection setup uses `autocommit=True` to bypass
 Python's legacy `isolation_level` transaction handling, which silently undermined
 explicit `BEGIN IMMEDIATE` in multi-threaded scenarios.
+
+Six operational CLI utilities were added to close day-one gaps: `oc version`,
+`oc db info|vacuum|backup|stats`, `oc config show`, `oc show-project`,
+`oc events`, and `oc convo delete` + `oc memory delete`. These required two
+domain port additions (`delete_conversation`, `delete_memory`) with cascade
+logic in SqliteStore. CLI command reference documented in `docs/cli/commands.md`.
 
 **What's next:** Plugin phase.
 
@@ -120,7 +126,7 @@ validates against live providers (OpenAI, Anthropic).
 |-----------|--------|----------|
 | **5 LLM providers** (OpenAI, Anthropic, Groq, Gemini, Ollama) | Working | Async-native adapters, contract tests |
 | **Provider routing** (pools, fallback, NSFW, budget-aware) | Working | 1,278-line test suite |
-| **SQLite persistence** (10 tables, 50 methods, WAL mode) | Working | Handles tasks, conversations, memory, events, delete operations |
+| **SQLite persistence** (10 tables, 52 methods, WAL mode) | Working | Handles tasks, conversations, memory, events, delete + cascade operations |
 | **Hash-chained events** (SHA256, prev_hash → hash) | Working | Verification + replay services |
 | **Privacy gate** (6 PII categories, Luhn validation) | Working | Rule-based, provider-aware |
 | **Interaction routing** (rule + hybrid ML assist) | Working | NSFW scoring, mode detection |
@@ -128,9 +134,9 @@ validates against live providers (OpenAI, Anthropic).
 | **Budget/rate limiting** | Working | Token limits, call limits, rate gates |
 | **Plugin system** (discover, load, register, invoke) | Working | 2 example plugins, collision detection |
 | **STDIO RPC** (18 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
-| **CLI** (60+ subcommands) | Working | Project/task/convo/memory/diagnostics/db/config/version/events |
+| **CLI** (70+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
-| **Test suite** (470+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
+| **Test suite** (510+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
 
 ### Architecture (Enforced and Clean)
 
@@ -362,8 +368,9 @@ Clean and well-typed. Key models:
 - **`InteractionHint`, `RouterAssistResult`** — Routing decision outputs
 
 Ports define clean contracts: `StoragePort` (28+ methods), `ConversationStorePort`
-(11 methods), `MemoryStorePort` (6 methods), `LLMPort` (2 methods), plus single-
-method ports for routing, privacy, and plugin hosting.
+(12 methods, including cascade delete), `MemoryStorePort` (7 methods, including
+delete with turn reference cleanup), `LLMPort` (2 methods), plus single-method
+ports for routing, privacy, and plugin hosting.
 
 **Concern:** `StoragePort` at 28+ abstract methods is doing too much. The task tree
 navigation methods feel like read-model concerns that could be a separate port.
@@ -377,10 +384,10 @@ configuration (settings dataclasses + env vars).
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (102 files, 470+ unit/functional + 13 real-world integration + 5 concurrency stress)
+### Test Suite (110 files, 510+ unit/functional + 13 real-world integration + 5 concurrency stress)
 
-Well-organized into 12 categories: business logic (23), CLI/RPC (15), hygiene (10),
-infrastructure (10), contract (8), policy (5), memory (5), architecture guard (4),
+Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (10),
+infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
 advanced (5), data format (4), plugin (2), integration (3).
 
 **Real-world integration** (`test_real_world.py`): 13 scenarios exercising the
@@ -515,10 +522,11 @@ v1 (embeddings/vector search) — self-report data will inform retrieval quality
 
 | File | Lines | Role | Status |
 |------|-------|------|--------|
-| `interfaces/cli/main.py` | ~350 | CLI entry point | Clean (dispatch tables) |
+| `interfaces/cli/main.py` | ~400 | CLI entry point | Clean (dispatch tables) |
+| `interfaces/cli/commands/db.py` | ~170 | DB maintenance CLI | New (info, vacuum, backup, stats) |
 | `interfaces/cli/stdio.py` | ~200 | RPC dispatch | Clean (handlers extracted) |
 | `services/orchestrator.py` | 927 | Task orchestration | Clean (phases decomposed) |
-| `persistence/sqlite_store.py` | ~980 | All persistence | Clean (mappers extracted, delete ops added) |
+| `persistence/sqlite_store.py` | ~1,030 | All persistence | Clean (mappers extracted, delete + cascade ops) |
 | `persistence/row_mappers.py` | ~180 | Row → domain model | Clean |
 | `use_cases/ask_conversation.py` | 832 | Conversation logic | Clean (prepare/finalize pipeline) |
 | `infrastructure/llm/provider_facade.py` | ~291 | Provider routing | Clean |
