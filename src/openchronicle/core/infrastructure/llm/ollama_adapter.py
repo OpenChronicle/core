@@ -12,7 +12,15 @@ from openchronicle.core.domain.errors.error_codes import (
     TIMEOUT,
     UNKNOWN_ERROR,
 )
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage, StreamChunk
+from openchronicle.core.domain.ports.llm_port import (
+    LLMPort,
+    LLMProviderError,
+    LLMResponse,
+    LLMUsage,
+    StreamChunk,
+    ToolCall,
+    ToolDefinition,
+)
 
 
 class OllamaAdapter(LLMPort):
@@ -36,6 +44,8 @@ class OllamaAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         """Generate a chat completion using Ollama API."""
         start = time.perf_counter()
@@ -46,6 +56,16 @@ class OllamaAdapter(LLMPort):
             "messages": messages,
             "stream": False,
         }
+
+        # Add tools (OpenAI-compatible format)
+        if tools:
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "function": {"name": t.name, "description": t.description, "parameters": t.parameters},
+                }
+                for t in tools
+            ]
 
         # Add optional parameters
         options: dict[str, Any] = {}
@@ -91,6 +111,29 @@ class OllamaAdapter(LLMPort):
         # Parse response
         content = data.get("message", {}).get("content", "")
 
+        # Extract tool calls
+        import json as json_mod
+        import uuid
+
+        result_tool_calls: list[ToolCall] | None = None
+        raw_tool_calls = data.get("message", {}).get("tool_calls")
+        if raw_tool_calls:
+            tc_list: list[ToolCall] = []
+            for tc in raw_tool_calls:
+                fn = tc.get("function", {})
+                args = fn.get("arguments", {})
+                # Normalize: Ollama may return parsed dict instead of JSON string
+                if isinstance(args, dict):
+                    args = json_mod.dumps(args)
+                tc_list.append(
+                    ToolCall(
+                        id=tc.get("id", f"ollama_{uuid.uuid4().hex[:12]}"),
+                        name=fn.get("name", ""),
+                        arguments=args,
+                    )
+                )
+            result_tool_calls = tc_list
+
         # Ollama may not always return token usage; handle gracefully
         usage_data = None
         if "prompt_eval_count" in data or "eval_count" in data:
@@ -107,6 +150,7 @@ class OllamaAdapter(LLMPort):
             finish_reason=data.get("done_reason"),
             usage=usage_data,
             latency_ms=latency_ms,
+            tool_calls=result_tool_calls,
         )
 
     async def stream_async(
@@ -117,8 +161,33 @@ class OllamaAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         """Stream a chat completion using Ollama API."""
+        # Fall back to complete_async when tools are provided (v0)
+        if tools:
+            fallback = await self.complete_async(
+                messages,
+                model=model,
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+                provider=provider,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+            yield StreamChunk(
+                text=fallback.content,
+                finished=True,
+                provider=fallback.provider,
+                model=fallback.model,
+                finish_reason=fallback.finish_reason,
+                usage=fallback.usage,
+                latency_ms=fallback.latency_ms,
+                tool_calls=fallback.tool_calls,
+            )
+            return
+
         import json as json_mod
 
         start = time.perf_counter()

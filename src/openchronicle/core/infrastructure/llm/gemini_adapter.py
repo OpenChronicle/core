@@ -16,7 +16,15 @@ except ImportError:  # pragma: no cover - optional dependency
 from collections.abc import AsyncIterator
 
 from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage, StreamChunk
+from openchronicle.core.domain.ports.llm_port import (
+    LLMPort,
+    LLMProviderError,
+    LLMResponse,
+    LLMUsage,
+    StreamChunk,
+    ToolCall,
+    ToolDefinition,
+)
 
 
 class GeminiAdapter(LLMPort):
@@ -51,6 +59,8 @@ class GeminiAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         self._ensure_ready()
 
@@ -59,12 +69,44 @@ class GeminiAdapter(LLMPort):
         contents: list[Any] = []
         for msg in messages:
             role = msg.get("role", "user")
-            text = str(msg.get("content", ""))
             if role == "system":
-                system_parts.append(text)
+                system_parts.append(str(msg.get("content", "")))
+            elif role == "tool":
+                # Tool result → user message with function response part
+                import json as json_mod
+
+                result_content = msg.get("content", "")
+                try:
+                    response_data = json_mod.loads(result_content)
+                except (json_mod.JSONDecodeError, TypeError):
+                    response_data = {"result": result_content}
+                contents.append(
+                    Content(
+                        role="user",
+                        parts=[
+                            Part.from_function_response(
+                                name=msg.get("name", ""),
+                                response=response_data,
+                            )
+                        ],
+                    )
+                )
+            elif role == "assistant" and msg.get("tool_calls"):
+                # Assistant with tool calls → model message with function call parts
+                import json as json_mod
+
+                parts: list[Any] = []
+                if msg.get("content"):
+                    parts.append(Part.from_text(text=str(msg["content"])))
+                for tc in msg["tool_calls"]:
+                    fn = tc["function"]
+                    args = json_mod.loads(fn["arguments"])
+                    parts.append(Part.from_function_call(name=fn["name"], args=args))
+                contents.append(Content(role="model", parts=parts))
             else:
                 # Gemini uses "model" instead of "assistant"
                 gemini_role = "model" if role == "assistant" else "user"
+                text = str(msg.get("content", ""))
                 contents.append(Content(role=gemini_role, parts=[Part.from_text(text=text)]))
 
         config_kwargs: dict[str, Any] = {}
@@ -74,6 +116,30 @@ class GeminiAdapter(LLMPort):
             config_kwargs["max_output_tokens"] = max_output_tokens
         if temperature is not None:
             config_kwargs["temperature"] = temperature
+
+        # Add tools
+        if tools:
+            config_kwargs["tools"] = [
+                {
+                    "function_declarations": [
+                        {"name": t.name, "description": t.description, "parameters": t.parameters} for t in tools
+                    ]
+                }
+            ]
+        if tool_choice is not None and tools:
+            if tool_choice == "auto":
+                config_kwargs["tool_config"] = {"function_calling_config": {"mode": "AUTO"}}
+            elif tool_choice == "required":
+                config_kwargs["tool_config"] = {"function_calling_config": {"mode": "ANY"}}
+            elif tool_choice == "none":
+                config_kwargs["tool_config"] = {"function_calling_config": {"mode": "NONE"}}
+            else:
+                config_kwargs["tool_config"] = {
+                    "function_calling_config": {
+                        "mode": "ANY",
+                        "allowed_function_names": [tool_choice],
+                    }
+                }
 
         config = GenerateContentConfig(**config_kwargs) if config_kwargs else None
 
@@ -92,7 +158,34 @@ class GeminiAdapter(LLMPort):
 
         latency_ms = int((time.perf_counter() - start) * 1000)
 
-        content = getattr(response, "text", None) or ""
+        # Parse response parts — may include text and function_call
+        import json as json_mod
+        import uuid
+
+        content = ""
+        result_tool_calls: list[ToolCall] | None = None
+        candidates = getattr(response, "candidates", None)
+        if candidates:
+            text_parts: list[str] = []
+            tc_list: list[ToolCall] = []
+            parts = getattr(candidates[0].content, "parts", None) or []
+            for part in parts:
+                if getattr(part, "text", None):
+                    text_parts.append(part.text)
+                fn_call = getattr(part, "function_call", None)
+                if fn_call:
+                    tc_list.append(
+                        ToolCall(
+                            id=f"gemini_{uuid.uuid4().hex[:12]}",
+                            name=fn_call.name,
+                            arguments=json_mod.dumps(dict(fn_call.args)) if fn_call.args else "{}",
+                        )
+                    )
+            content = "".join(text_parts)
+            if tc_list:
+                result_tool_calls = tc_list
+        else:
+            content = getattr(response, "text", None) or ""
 
         usage_obj = None
         usage_metadata = getattr(response, "usage_metadata", None)
@@ -113,6 +206,7 @@ class GeminiAdapter(LLMPort):
             finish_reason=None,
             usage=usage_obj,
             latency_ms=latency_ms,
+            tool_calls=result_tool_calls,
         )
 
     async def stream_async(
@@ -123,8 +217,33 @@ class GeminiAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         self._ensure_ready()
+
+        # Fall back to complete_async when tools are provided (v0)
+        if tools:
+            response = await self.complete_async(
+                messages,
+                model=model,
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+                provider=provider,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+            yield StreamChunk(
+                text=response.content,
+                finished=True,
+                provider=response.provider,
+                model=response.model,
+                finish_reason=response.finish_reason,
+                usage=response.usage,
+                latency_ms=response.latency_ms,
+                tool_calls=response.tool_calls,
+            )
+            return
 
         system_parts: list[str] = []
         contents: list[Any] = []

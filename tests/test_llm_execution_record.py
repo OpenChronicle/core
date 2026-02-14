@@ -96,6 +96,7 @@ async def test_execution_record_emitted_on_refusal(
             max_output_tokens: int | None = None,
             temperature: float | None = None,
             provider: str | None = None,
+            **kwargs: Any,
         ) -> LLMResponse:
             raise LLMProviderError(
                 "content blocked",
@@ -187,6 +188,7 @@ async def test_execution_id_correlates_events_on_refusal(
             max_output_tokens: int | None = None,
             temperature: float | None = None,
             provider: str | None = None,
+            **kwargs: Any,
         ) -> LLMResponse:
             raise LLMProviderError(
                 "content blocked",

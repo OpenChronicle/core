@@ -26,6 +26,7 @@ class FakeOpenAIAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         self.calls.append(
             {
@@ -59,6 +60,7 @@ class FakeStubAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         self.calls.append(
             {
@@ -190,6 +192,7 @@ async def test_provider_mismatch_emits_event() -> None:
             max_output_tokens: int | None = None,
             temperature: float | None = None,
             provider: str | None = None,
+            **kwargs: Any,
         ) -> LLMResponse:
             # Claims to be requested provider but returns stub response
             return LLMResponse(

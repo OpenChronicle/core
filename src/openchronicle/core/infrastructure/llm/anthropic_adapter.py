@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import time
 from typing import Any
@@ -12,7 +13,15 @@ except ImportError:  # pragma: no cover - optional dependency
 from collections.abc import AsyncIterator
 
 from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage, StreamChunk
+from openchronicle.core.domain.ports.llm_port import (
+    LLMPort,
+    LLMProviderError,
+    LLMResponse,
+    LLMUsage,
+    StreamChunk,
+    ToolCall,
+    ToolDefinition,
+)
 
 
 class AnthropicAdapter(LLMPort):
@@ -52,13 +61,52 @@ class AnthropicAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         self._ensure_ready()
+
+        # Transform tool-related messages to Anthropic format before system extraction
+        transformed: list[dict[str, Any]] = []
+        for msg in messages:
+            role = msg.get("role")
+            if role == "tool":
+                # Tool result → user message with tool_result content block
+                transformed.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": msg["tool_call_id"],
+                                "content": msg.get("content", ""),
+                            }
+                        ],
+                    }
+                )
+            elif role == "assistant" and msg.get("tool_calls"):
+                # Assistant with tool calls → content blocks
+                blocks: list[dict[str, Any]] = []
+                if msg.get("content"):
+                    blocks.append({"type": "text", "text": msg["content"]})
+                for tc in msg["tool_calls"]:
+                    fn = tc["function"]
+                    blocks.append(
+                        {
+                            "type": "tool_use",
+                            "id": tc["id"],
+                            "name": fn["name"],
+                            "input": json.loads(fn["arguments"]),
+                        }
+                    )
+                transformed.append({"role": "assistant", "content": blocks})
+            else:
+                transformed.append(msg)
 
         # Anthropic requires system messages as a top-level param, not in the messages array
         system_parts: list[str] = []
         filtered_messages: list[dict[str, Any]] = []
-        for msg in messages:
+        for msg in transformed:
             if msg.get("role") == "system":
                 system_parts.append(str(msg.get("content", "")))
             else:
@@ -74,6 +122,20 @@ class AnthropicAdapter(LLMPort):
         if temperature is not None:
             kwargs["temperature"] = temperature
 
+        # Add tools
+        if tools and tool_choice != "none":
+            kwargs["tools"] = [
+                {"name": t.name, "description": t.description, "input_schema": t.parameters} for t in tools
+            ]
+        if tool_choice is not None and tools:
+            if tool_choice == "auto":
+                kwargs["tool_choice"] = {"type": "auto"}
+            elif tool_choice == "required":
+                kwargs["tool_choice"] = {"type": "any"}
+            elif tool_choice != "none":
+                # "none" is handled above by omitting tools from kwargs
+                kwargs["tool_choice"] = {"type": "tool", "name": tool_choice}
+
         start = time.perf_counter()
         try:
             response = await self._client.messages.create(**kwargs)
@@ -84,9 +146,27 @@ class AnthropicAdapter(LLMPort):
 
         latency_ms = int((time.perf_counter() - start) * 1000)
 
+        # Parse content blocks — may include text and tool_use
         content = ""
+        result_tool_calls: list[ToolCall] | None = None
         if response.content:
-            content = getattr(response.content[0], "text", "") or ""
+            text_parts: list[str] = []
+            tc_list: list[ToolCall] = []
+            for block in response.content:
+                block_type = getattr(block, "type", None)
+                if block_type == "text":
+                    text_parts.append(getattr(block, "text", "") or "")
+                elif block_type == "tool_use":
+                    tc_list.append(
+                        ToolCall(
+                            id=block.id,
+                            name=block.name,
+                            arguments=json.dumps(block.input),
+                        )
+                    )
+            content = "".join(text_parts)
+            if tc_list:
+                result_tool_calls = tc_list
 
         usage_obj = None
         usage = getattr(response, "usage", None)
@@ -110,6 +190,7 @@ class AnthropicAdapter(LLMPort):
             finish_reason=getattr(response, "stop_reason", None),
             usage=usage_obj,
             latency_ms=latency_ms,
+            tool_calls=result_tool_calls,
         )
 
     async def stream_async(
@@ -120,8 +201,34 @@ class AnthropicAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         self._ensure_ready()
+
+        # Fall back to complete_async when tools are provided (v0 — streaming
+        # with tool use requires event-level parsing of Anthropic's stream)
+        if tools:
+            response = await self.complete_async(
+                messages,
+                model=model,
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+                provider=provider,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+            yield StreamChunk(
+                text=response.content,
+                finished=True,
+                provider=response.provider,
+                model=response.model,
+                finish_reason=response.finish_reason,
+                usage=response.usage,
+                latency_ms=response.latency_ms,
+                tool_calls=response.tool_calls,
+            )
+            return
 
         system_parts: list[str] = []
         filtered_messages: list[dict[str, Any]] = []

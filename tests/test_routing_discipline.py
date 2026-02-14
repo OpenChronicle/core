@@ -7,6 +7,7 @@ the routing system by calling LLM infrastructure directly.
 
 import ast
 from pathlib import Path
+from typing import Any
 
 
 def test_application_layer_must_not_call_llm_port_directly() -> None:
@@ -92,6 +93,7 @@ def test_llm_execution_boundary_validates_provider() -> None:
             max_output_tokens: int | None = None,  # noqa: ARG002
             temperature: float | None = None,  # noqa: ARG002
             provider: str | None = None,
+            **kwargs: Any,
         ) -> LLMResponse:
             return LLMResponse(
                 content="test",
@@ -102,12 +104,13 @@ def test_llm_execution_boundary_validates_provider() -> None:
 
         def complete(
             self,
-            messages: list[dict[str, str]],  # noqa: ARG002
+            messages: list[dict[str, Any]],  # noqa: ARG002
             *,
             model: str,  # noqa: ARG002
             max_output_tokens: int | None = None,  # noqa: ARG002
             temperature: float | None = None,  # noqa: ARG002
             provider: str | None = None,  # noqa: ARG002
+            **kwargs: Any,  # noqa: ARG002
         ) -> LLMResponse:
             raise NotImplementedError
 

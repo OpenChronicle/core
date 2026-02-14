@@ -15,8 +15,8 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Add function calling / tool use to LLMPort (core gap), then
-scheduler service.
+**Next action:** Scheduler service (core, `application/services/`).
+LLMPort function calling/tool use is done (all 6 adapters, 30 contract tests).
 
 ## Build and Development
 

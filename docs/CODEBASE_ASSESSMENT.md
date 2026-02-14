@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-13
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 9 (6 CLI utilities + delete operations)
+**Revision:** 10 (LLMPort function calling / tool use)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (510+ unit/functional, 13 real-world integration, 5 concurrency
+Tests are strong (540+ unit/functional, 13 real-world integration, 5 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. The full
 pipeline has been validated against OpenAI (gpt-4o-mini) and Anthropic (Claude
 Sonnet 4) with all 13 integration scenarios passing.
@@ -136,7 +136,7 @@ validates against live providers (OpenAI, Anthropic).
 | **STDIO RPC** (18 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (70+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
-| **Test suite** (510+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
+| **Test suite** (540+ unit/functional, 13 real-world integration, 5 concurrency stress) | Passing | 12 test categories, architecture guards, live provider validation, concurrency race proofs |
 
 ### Architecture (Enforced and Clean)
 
@@ -384,7 +384,7 @@ configuration (settings dataclasses + env vars).
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (110 files, 510+ unit/functional + 13 real-world integration + 5 concurrency stress)
+### Test Suite (110 files, 540+ unit/functional + 13 real-world integration + 5 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (10),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -451,7 +451,7 @@ service-dependent features. See Decision #4 below for the architectural response
 
 ```text
 Core Done
-  → LLMPort: function calling / tool use (core gap)
+  ✓ LLMPort: function calling / tool use (done)
   → Scheduler (core — application/services)
   → Discord Driver (core — interfaces/)
   → Security Scanner (plugin — stateless handler)
@@ -549,7 +549,9 @@ is an optional bolt-on — they need the same level of access as core services.
 
 **Action:** Build scheduler in `application/services/`, Discord driver in
 `interfaces/discord/`. Keep the plugin system for what it's good at. Close one
-core gap first: add function calling / tool use to LLMPort.
+core gap first: add function calling / tool use to LLMPort (done — ToolDefinition,
+ToolCall, tool_calls on LLMResponse/StreamChunk, tools/tool_choice params on all
+6 adapters + facade + execution layer, 30 contract tests).
 
 ---
 

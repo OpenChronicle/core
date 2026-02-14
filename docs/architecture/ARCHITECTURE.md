@@ -66,7 +66,7 @@ plugins/
 
 **Ports (Interfaces):**
 
-- `LLMPort`: Async LLM generation with usage tracking
+- `LLMPort`: Async LLM generation with usage tracking and function calling (tool use)
 - `StoragePort`: Project, task, event, conversation persistence
 - `ConversationStorePort`: Conversation and turn storage
 - `MemoryStorePort`: Memory CRUD operations

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -27,6 +28,7 @@ class RecordingAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         self.calls.append(model)
         return LLMResponse(
@@ -45,6 +47,7 @@ class RecordingAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Synchronous completion (not implemented)."""
         raise NotImplementedError("Use complete_async")

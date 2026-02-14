@@ -23,6 +23,7 @@ class _FakeLLMSuccess(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         usage = LLMUsage(input_tokens=5, output_tokens=3, total_tokens=8)
         return LLMResponse(
@@ -45,6 +46,7 @@ class _FakeLLMFailure(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         raise LLMProviderError("boom", status_code=500, error_code="server_error")
 

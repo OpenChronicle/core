@@ -11,10 +11,10 @@ Optional budget enforcement gate ensures projects stay within defined constraint
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from openchronicle.core.application.routing.router_policy import RouteDecision
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMResponse, StreamChunk
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMResponse, StreamChunk, ToolDefinition
 
 if TYPE_CHECKING:
     from openchronicle.core.application.policies.budget_gate import BudgetGate
@@ -24,12 +24,14 @@ if TYPE_CHECKING:
 async def execute_with_route(
     llm: LLMPort,
     route_decision: RouteDecision,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     max_output_tokens: int | None = None,
     temperature: float | None = None,
     budget_gate: BudgetGate | None = None,
     project_id: str | None = None,
     budget_policy: BudgetPolicy | None = None,
+    tools: list[ToolDefinition] | None = None,
+    tool_choice: str | None = None,
 ) -> LLMResponse:
     """
     Execute an LLM call with a routing decision.
@@ -81,18 +83,22 @@ async def execute_with_route(
         max_output_tokens=max_output_tokens,
         temperature=temperature,
         provider=route_decision.provider,
+        tools=tools,
+        tool_choice=tool_choice,
     )
 
 
 async def stream_with_route(
     llm: LLMPort,
     route_decision: RouteDecision,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     max_output_tokens: int | None = None,
     temperature: float | None = None,
     budget_gate: BudgetGate | None = None,
     project_id: str | None = None,
     budget_policy: BudgetPolicy | None = None,
+    tools: list[ToolDefinition] | None = None,
+    tool_choice: str | None = None,
 ) -> AsyncIterator[StreamChunk]:
     """Stream an LLM call with a routing decision.
 
@@ -114,6 +120,8 @@ async def stream_with_route(
         max_output_tokens=max_output_tokens,
         temperature=temperature,
         provider=route_decision.provider,
+        tools=tools,
+        tool_choice=tool_choice,
     ):
         yield chunk
 
@@ -122,12 +130,14 @@ async def execute_with_explicit_provider(
     llm: LLMPort,
     provider: str,
     model: str,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     max_output_tokens: int | None = None,
     temperature: float | None = None,
     budget_gate: BudgetGate | None = None,
     project_id: str | None = None,
     budget_policy: BudgetPolicy | None = None,
+    tools: list[ToolDefinition] | None = None,
+    tool_choice: str | None = None,
 ) -> LLMResponse:
     """
     Execute an LLM call with explicitly provided provider and model.
@@ -178,4 +188,6 @@ async def execute_with_explicit_provider(
         max_output_tokens=max_output_tokens,
         temperature=temperature,
         provider=provider,
+        tools=tools,
+        tool_choice=tool_choice,
     )

@@ -8,7 +8,7 @@ from typing import Any
 
 from openchronicle.core.application.config.model_config import ConfigError, ModelConfigLoader, ResolvedModelConfig
 from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR, PROVIDER_NOT_CONFIGURED, PROVIDER_REQUIRED
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, StreamChunk
+from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, StreamChunk, ToolDefinition
 
 
 def extract_providers_from_routing_config() -> set[str]:
@@ -103,6 +103,8 @@ class ProviderAwareLLMFacade(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         adapter, resolved_provider = self._resolve_adapter(provider, model)
         return await adapter.complete_async(
@@ -111,6 +113,8 @@ class ProviderAwareLLMFacade(LLMPort):
             max_output_tokens=max_output_tokens,
             temperature=temperature,
             provider=resolved_provider,
+            tools=tools,
+            tool_choice=tool_choice,
         )
 
     async def stream_async(
@@ -121,6 +125,8 @@ class ProviderAwareLLMFacade(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         adapter, resolved_provider = self._resolve_adapter(provider, model)
         async for chunk in adapter.stream_async(
@@ -129,6 +135,8 @@ class ProviderAwareLLMFacade(LLMPort):
             max_output_tokens=max_output_tokens,
             temperature=temperature,
             provider=resolved_provider,
+            tools=tools,
+            tool_choice=tool_choice,
         ):
             yield chunk
 
@@ -172,6 +180,8 @@ class ProviderAwareLLMFacade(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         """Synchronous completion (not implemented)."""
         raise NotImplementedError("Use complete_async")

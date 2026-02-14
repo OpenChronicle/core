@@ -14,6 +14,24 @@ class LLMUsage:
 
 
 @dataclass
+class ToolDefinition:
+    """A tool/function the model may call."""
+
+    name: str
+    description: str
+    parameters: dict[str, Any]  # JSON Schema
+
+
+@dataclass
+class ToolCall:
+    """A tool call returned by the model."""
+
+    id: str
+    name: str
+    arguments: str  # Always JSON string (adapters normalize)
+
+
+@dataclass
 class LLMResponse:
     content: str
     provider: str
@@ -22,6 +40,7 @@ class LLMResponse:
     finish_reason: str | None = None
     usage: LLMUsage | None = None
     latency_ms: int | None = None
+    tool_calls: list[ToolCall] | None = None
 
 
 @dataclass
@@ -35,6 +54,7 @@ class StreamChunk:
     finish_reason: str | None = None
     usage: LLMUsage | None = None
     latency_ms: int | None = None
+    tool_calls: list[ToolCall] | None = None
 
 
 class LLMProviderError(Exception):
@@ -82,8 +102,18 @@ class LLMPort(ABC):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         """Generate a chat completion asynchronously.
+
+        Messages use OpenAI-like dict format. Tool-related messages:
+        - Assistant with tool calls: {"role": "assistant", "content": None,
+          "tool_calls": [{"id": "...", "type": "function",
+          "function": {"name": "...", "arguments": "..."}}]}
+        - Tool result: {"role": "tool", "tool_call_id": "...", "name": "...",
+          "content": "..."}
+        The ``name`` field on tool results is included because Gemini requires it.
 
         Args:
             messages: List of message dicts with 'role' and 'content'
@@ -92,6 +122,9 @@ class LLMPort(ABC):
             temperature: Sampling temperature
             provider: Provider name (e.g., 'openai', 'ollama', 'stub').
                       If None, adapter uses its default provider.
+            tools: Optional list of tool definitions the model may call
+            tool_choice: Tool choice strategy - "auto", "required", "none",
+                         or a specific tool name. None means provider default.
 
         Returns:
             LLMResponse with content, provider, model, usage, etc.
@@ -108,6 +141,8 @@ class LLMPort(ABC):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         """Stream a chat completion as chunks.
 
@@ -121,6 +156,8 @@ class LLMPort(ABC):
             max_output_tokens=max_output_tokens,
             temperature=temperature,
             provider=provider,
+            tools=tools,
+            tool_choice=tool_choice,
         )
         yield StreamChunk(
             text=response.content,
@@ -130,6 +167,7 @@ class LLMPort(ABC):
             finish_reason=response.finish_reason,
             usage=response.usage,
             latency_ms=response.latency_ms,
+            tool_calls=response.tool_calls,
         )
 
     def complete(
@@ -140,6 +178,8 @@ class LLMPort(ABC):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         """Synchronous convenience wrapper."""
 

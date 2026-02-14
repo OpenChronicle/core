@@ -28,6 +28,7 @@ class CaptureLLM(LLMPort):
         max_output_tokens: int | None = None,  # noqa: ARG002
         temperature: float | None = None,  # noqa: ARG002
         provider: str | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         self.last_messages = messages
         return LLMResponse(content="ok", provider=provider or "stub", model=model)
@@ -40,6 +41,7 @@ class CaptureLLM(LLMPort):
         max_output_tokens: int | None = None,  # noqa: ARG002
         temperature: float | None = None,  # noqa: ARG002
         provider: str | None = None,  # noqa: ARG002
+        **kwargs: Any,  # noqa: ARG002
     ) -> LLMResponse:
         raise NotImplementedError
 

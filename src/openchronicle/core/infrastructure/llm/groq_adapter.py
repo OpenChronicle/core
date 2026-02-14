@@ -12,7 +12,15 @@ except ImportError:  # pragma: no cover - optional dependency
 from collections.abc import AsyncIterator
 
 from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
-from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage, StreamChunk
+from openchronicle.core.domain.ports.llm_port import (
+    LLMPort,
+    LLMProviderError,
+    LLMResponse,
+    LLMUsage,
+    StreamChunk,
+    ToolCall,
+    ToolDefinition,
+)
 
 
 class GroqAdapter(LLMPort):
@@ -47,17 +55,34 @@ class GroqAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> LLMResponse:
         self._ensure_ready()
 
+        kwargs: dict[str, Any] = {
+            "model": model or self.model,
+            "messages": messages,
+            "max_tokens": max_output_tokens,
+            "temperature": temperature,
+        }
+        if tools:
+            kwargs["tools"] = [
+                {
+                    "type": "function",
+                    "function": {"name": t.name, "description": t.description, "parameters": t.parameters},
+                }
+                for t in tools
+            ]
+        if tool_choice is not None and tools:
+            if tool_choice in ("auto", "required", "none"):
+                kwargs["tool_choice"] = tool_choice
+            else:
+                kwargs["tool_choice"] = {"type": "function", "function": {"name": tool_choice}}
+
         start = time.perf_counter()
         try:
-            response = await self._client.chat.completions.create(
-                model=model or self.model,
-                messages=messages,
-                max_tokens=max_output_tokens,
-                temperature=temperature,
-            )
+            response = await self._client.chat.completions.create(**kwargs)
         except Exception as exc:
             status = getattr(exc, "status_code", None)
             code = getattr(exc, "code", None)
@@ -68,6 +93,19 @@ class GroqAdapter(LLMPort):
         content = getattr(choice.message, "content", None) or ""
         finish_reason = getattr(choice, "finish_reason", None)
         usage = getattr(response, "usage", None)
+
+        # Extract tool calls
+        result_tool_calls: list[ToolCall] | None = None
+        raw_tool_calls = getattr(choice.message, "tool_calls", None)
+        if raw_tool_calls:
+            result_tool_calls = [
+                ToolCall(
+                    id=tc.id,
+                    name=tc.function.name,
+                    arguments=tc.function.arguments,
+                )
+                for tc in raw_tool_calls
+            ]
 
         usage_obj = None
         if usage is not None:
@@ -85,6 +123,7 @@ class GroqAdapter(LLMPort):
             finish_reason=finish_reason,
             usage=usage_obj,
             latency_ms=latency_ms,
+            tool_calls=result_tool_calls,
         )
 
     async def stream_async(
@@ -95,24 +134,42 @@ class GroqAdapter(LLMPort):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         provider: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         self._ensure_ready()
 
+        stream_kwargs: dict[str, Any] = {
+            "model": model or self.model,
+            "messages": messages,
+            "max_tokens": max_output_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
+        if tools:
+            stream_kwargs["tools"] = [
+                {
+                    "type": "function",
+                    "function": {"name": t.name, "description": t.description, "parameters": t.parameters},
+                }
+                for t in tools
+            ]
+        if tool_choice is not None and tools:
+            if tool_choice in ("auto", "required", "none"):
+                stream_kwargs["tool_choice"] = tool_choice
+            else:
+                stream_kwargs["tool_choice"] = {"type": "function", "function": {"name": tool_choice}}
+
         start = time.perf_counter()
         try:
-            stream = await self._client.chat.completions.create(
-                model=model or self.model,
-                messages=messages,
-                max_tokens=max_output_tokens,
-                temperature=temperature,
-                stream=True,
-            )
+            stream = await self._client.chat.completions.create(**stream_kwargs)
         except Exception as exc:
             status = getattr(exc, "status_code", None)
             code = getattr(exc, "code", None)
             raise LLMProviderError(str(exc), status_code=status, error_code=code) from exc
 
         finish_reason: str | None = None
+        tc_buffer: dict[int, dict[str, str]] = {}
         async for chunk in stream:
             if not chunk.choices:
                 continue
@@ -122,6 +179,22 @@ class GroqAdapter(LLMPort):
             chunk_finish = getattr(chunk.choices[0], "finish_reason", None)
             if chunk_finish:
                 finish_reason = chunk_finish
+
+            # Accumulate tool call deltas
+            delta_tool_calls = getattr(delta, "tool_calls", None)
+            if delta_tool_calls:
+                for dtc in delta_tool_calls:
+                    idx = dtc.index
+                    if idx not in tc_buffer:
+                        tc_buffer[idx] = {"id": "", "name": "", "arguments": ""}
+                    if getattr(dtc, "id", None):
+                        tc_buffer[idx]["id"] = dtc.id
+                    fn = getattr(dtc, "function", None)
+                    if fn:
+                        if getattr(fn, "name", None):
+                            tc_buffer[idx]["name"] = fn.name
+                        if getattr(fn, "arguments", None):
+                            tc_buffer[idx]["arguments"] += fn.arguments
 
             # Groq includes usage on the final chunk
             usage_obj: LLMUsage | None = None
@@ -136,6 +209,14 @@ class GroqAdapter(LLMPort):
                     )
 
             if text or chunk_finish:
+                # Build tool_calls on final chunk
+                result_tool_calls: list[ToolCall] | None = None
+                if chunk_finish and tc_buffer:
+                    result_tool_calls = [
+                        ToolCall(id=v["id"], name=v["name"], arguments=v["arguments"])
+                        for _, v in sorted(tc_buffer.items())
+                    ]
+
                 latency_ms = int((time.perf_counter() - start) * 1000) if chunk_finish else None
                 yield StreamChunk(
                     text=text,
@@ -145,4 +226,5 @@ class GroqAdapter(LLMPort):
                     finish_reason=finish_reason if chunk_finish else None,
                     usage=usage_obj if chunk_finish else None,
                     latency_ms=latency_ms,
+                    tool_calls=result_tool_calls,
                 )
