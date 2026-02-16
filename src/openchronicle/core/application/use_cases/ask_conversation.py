@@ -5,6 +5,7 @@ import os
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Protocol
 
 from openchronicle.core.application.routing.router_policy import RouteDecision, RouterPolicy
@@ -151,6 +152,8 @@ class PreparedContext:
     max_output_tokens: int
     temperature: float
     started_at: float
+    last_interaction_at: datetime | None = None
+    seconds_since_last_interaction: int | None = None
 
 
 async def prepare_ask(
@@ -235,6 +238,18 @@ async def prepare_ask(
             memory_lines.append(f"- {item.id} | tags=[{tags_str}] | {content_snippet}")
 
         messages.append({"role": "system", "content": "\n".join(memory_lines)})
+
+    # Time context — raw temporal data for bot awareness
+    now = datetime.now(UTC)
+    ref_time = prior_turns[-1].created_at if prior_turns else conversation.created_at
+    delta_seconds = int((now - ref_time).total_seconds())
+    time_ctx_msg = (
+        f"Current time: {now.isoformat()}. "
+        f"Last interaction: {ref_time.isoformat()}. "
+        f"Seconds since last interaction: {delta_seconds}."
+    )
+    messages.append({"role": "system", "content": time_ctx_msg})
+
     for turn in prior_turns:
         messages.append({"role": "user", "content": turn.user_text})
         messages.append({"role": "assistant", "content": turn.assistant_text})
@@ -466,6 +481,8 @@ async def prepare_ask(
         max_output_tokens=max_output_tokens,
         temperature=temperature,
         started_at=started_at,
+        last_interaction_at=ref_time,
+        seconds_since_last_interaction=delta_seconds,
     )
 
 
