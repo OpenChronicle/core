@@ -89,6 +89,27 @@ Canonical reference for all OpenChronicle environment variables.
 | `OC_ROUTER_NSFW_ROUTE_GTE` | `0.70` | NSFW routing threshold |
 | `OC_ROUTER_NSFW_UNCERTAIN_GTE` | `0.45` | NSFW uncertainty threshold |
 
+## Conversation Defaults
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `OC_CONVO_TEMPERATURE` | `0.2` | LLM sampling temperature |
+| `OC_CONVO_MAX_OUTPUT_TOKENS` | `512` | Maximum output tokens per turn |
+| `OC_CONVO_TOP_K_MEMORY` | `8` | Number of memory items to retrieve |
+| `OC_CONVO_LAST_N` | `10` | Number of prior turns in context |
+| `OC_CONVO_INCLUDE_PINNED_MEMORY` | `true` | Include pinned memory items |
+
+## Discord Bot
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `DISCORD_BOT_TOKEN` | - | Bot authentication token (required, env-only) |
+| `OC_DISCORD_GUILD_IDS` | - | CSV guild IDs for slash command sync |
+| `OC_DISCORD_CHANNEL_ALLOWLIST` | - | CSV channel IDs (empty = all channels) |
+| `OC_DISCORD_SESSION_STORE_PATH` | `data/discord_sessions.json` | Session persistence path |
+| `OC_DISCORD_CONVERSATION_TITLE` | `Discord chat` | Default title for new conversations |
+| `OC_DISCORD_HISTORY_LIMIT` | `5` | Default turn count for `/history` command |
+
 ## Plugin System
 
 | Variable | Default | Description |

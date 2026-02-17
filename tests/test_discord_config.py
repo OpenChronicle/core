@@ -44,15 +44,22 @@ class TestDiscordConfig:
 
     def test_minimal_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DISCORD_BOT_TOKEN", "test-token")
-        monkeypatch.delenv("OC_DISCORD_GUILD_IDS", raising=False)
-        monkeypatch.delenv("OC_DISCORD_CHANNEL_ALLOWLIST", raising=False)
-        monkeypatch.delenv("OC_DISCORD_SESSION_STORE_PATH", raising=False)
+        for var in (
+            "OC_DISCORD_GUILD_IDS",
+            "OC_DISCORD_CHANNEL_ALLOWLIST",
+            "OC_DISCORD_SESSION_STORE_PATH",
+            "OC_DISCORD_CONVERSATION_TITLE",
+            "OC_DISCORD_HISTORY_LIMIT",
+        ):
+            monkeypatch.delenv(var, raising=False)
 
         config = DiscordConfig.from_env()
         assert config.token == "test-token"
         assert config.guild_ids == []
         assert config.channel_allowlist == []
         assert config.session_store_path == "data/discord_sessions.json"
+        assert config.conversation_title == "Discord chat"
+        assert config.history_limit == 5
 
     def test_full_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DISCORD_BOT_TOKEN", "test-token")

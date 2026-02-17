@@ -14,13 +14,14 @@ from openchronicle.interfaces.discord.config import DiscordConfig
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
+    container = CoreContainer()
+
     try:
-        config = DiscordConfig.from_env()
+        config = DiscordConfig.from_env(file_config=container.file_configs.get("discord"))
     except ValueError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 1
 
-    container = CoreContainer()
     bot = DiscordBot(container, config)
 
     async def on_ready_with_commands() -> None:

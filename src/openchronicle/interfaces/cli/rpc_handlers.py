@@ -315,11 +315,12 @@ def handle_convo_show(container: CoreContainer, command: str, args: dict[str, ob
 
 
 def handle_convo_ask(container: CoreContainer, command: str, args: dict[str, object]) -> dict[str, object]:
+    cs = container.conversation_settings
     conversation_id = str(args.get("conversation_id", ""))
     prompt_text = str(args.get("prompt", ""))
-    last_n = coerce_int(args.get("last_n"), 10)
-    top_k_memory = coerce_int(args.get("top_k_memory"), 8)
-    include_pinned_memory = bool(args.get("include_pinned_memory", True))
+    last_n = coerce_int(args.get("last_n"), cs.last_n)
+    top_k_memory = coerce_int(args.get("top_k_memory"), cs.top_k_memory)
+    include_pinned_memory = bool(args.get("include_pinned_memory", cs.include_pinned_memory))
     include_explain = bool(args.get("explain", False))
     allow_pii = bool(args.get("allow_pii", False))
     enqueue_if_unavailable = bool(args.get("enqueue_if_unavailable", False))

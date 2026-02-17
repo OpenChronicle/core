@@ -72,6 +72,20 @@ map directly to internal factory functions.
   "telemetry": {
     "enabled": true
   },
+  "conversation": {
+    "temperature": 0.2,
+    "max_output_tokens": 512,
+    "top_k_memory": 8,
+    "last_n": 10,
+    "include_pinned_memory": true
+  },
+  "discord": {
+    "guild_ids": [],
+    "channel_allowlist": [],
+    "session_store_path": "data/discord_sessions.json",
+    "conversation_title": "Discord chat",
+    "history_limit": 5
+  },
   "router": {
     "rules": {
       "enabled": true,
@@ -95,7 +109,7 @@ map directly to internal factory functions.
 **Top-level fields** — provider selection and model routing defaults.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `provider` | `OC_LLM_PROVIDER` | `stub` |
 | `default_mode` | `OC_LLM_DEFAULT_MODE` | `fast` |
 | `model_fast` | `OC_LLM_MODEL_FAST` | `gpt-4o-mini` |
@@ -104,7 +118,7 @@ map directly to internal factory functions.
 **`pools`** — multi-provider pool routing. Comma-separated `provider:model` pairs.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `pools.fast` | `OC_LLM_FAST_POOL` | `""` |
 | `pools.quality` | `OC_LLM_QUALITY_POOL` | `""` |
 | `pools.nsfw` | `OC_LLM_POOL_NSFW` | `""` |
@@ -116,7 +130,7 @@ or a CSV string (`ollama:100,openai:20`) in the env var.
 **`fallback`** — fallback behavior when an LLM call fails.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `fallback.max_fallbacks` | `OC_LLM_MAX_FALLBACKS` | `1` |
 | `fallback.on_transient` | `OC_LLM_FALLBACK_ON_TRANSIENT` | `true` |
 | `fallback.on_constraint` | `OC_LLM_FALLBACK_ON_CONSTRAINT` | `true` |
@@ -125,14 +139,14 @@ or a CSV string (`ollama:100,openai:20`) in the env var.
 **`budget`** — token and call budget limits. `0` means no constraint.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `budget.max_total_tokens` | `OC_BUDGET_MAX_TOKENS` | `0` (unlimited) |
 | `budget.max_llm_calls` | `OC_BUDGET_MAX_CALLS` | `0` (unlimited) |
 
 **`retry`** — retry and rate-limit wait behavior.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `retry.max_retries` | `OC_LLM_MAX_RETRIES` | `2` |
 | `retry.max_retry_sleep_ms` | `OC_LLM_MAX_RETRY_SLEEP_MS` | `2000` |
 | `retry.rate_limit_max_wait_ms` | `OC_LLM_MAX_WAIT_MS` | `5000` |
@@ -140,7 +154,7 @@ or a CSV string (`ollama:100,openai:20`) in the env var.
 **`privacy`** — outbound PII detection and redaction.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `privacy.mode` | `OC_PRIVACY_OUTBOUND_MODE` | `off` |
 | `privacy.external_only` | `OC_PRIVACY_OUTBOUND_EXTERNAL_ONLY` | `true` |
 | `privacy.categories` | `OC_PRIVACY_OUTBOUND_CATEGORIES` | all 6 |
@@ -150,13 +164,36 @@ or a CSV string (`ollama:100,openai:20`) in the env var.
 **`telemetry`** — telemetry data collection.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `telemetry.enabled` | `OC_TELEMETRY_ENABLED` | `true` |
+
+**`conversation`** — default parameters for conversation turns (temperature,
+context window, memory retrieval). These are the fallback values used by
+CLI, Discord, and RPC when no per-call override is provided.
+
+| Field | Env Override | Default |
+| ----- | ----------- | ------- |
+| `conversation.temperature` | `OC_CONVO_TEMPERATURE` | `0.2` |
+| `conversation.max_output_tokens` | `OC_CONVO_MAX_OUTPUT_TOKENS` | `512` |
+| `conversation.top_k_memory` | `OC_CONVO_TOP_K_MEMORY` | `8` |
+| `conversation.last_n` | `OC_CONVO_LAST_N` | `10` |
+| `conversation.include_pinned_memory` | `OC_CONVO_INCLUDE_PINNED_MEMORY` | `true` |
+
+**`discord`** — Discord bot operational settings. The bot token is
+env-only (`DISCORD_BOT_TOKEN`) and never belongs in config files.
+
+| Field | Env Override | Default |
+| ----- | ----------- | ------- |
+| `discord.guild_ids` | `OC_DISCORD_GUILD_IDS` (CSV) | `[]` |
+| `discord.channel_allowlist` | `OC_DISCORD_CHANNEL_ALLOWLIST` (CSV) | `[]` |
+| `discord.session_store_path` | `OC_DISCORD_SESSION_STORE_PATH` | `data/discord_sessions.json` |
+| `discord.conversation_title` | `OC_DISCORD_CONVERSATION_TITLE` | `Discord chat` |
+| `discord.history_limit` | `OC_DISCORD_HISTORY_LIMIT` | `5` |
 
 **`router.rules`** — interaction router thresholds.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `router.rules.enabled` | `OC_ROUTER_ENABLED` | `true` |
 | `router.rules.log_reasons` | `OC_ROUTER_LOG_REASONS` | `false` |
 | `router.rules.nsfw_route_gte` | `OC_ROUTER_NSFW_ROUTE_GTE` | `0.70` |
@@ -166,7 +203,7 @@ or a CSV string (`ollama:100,openai:20`) in the env var.
 **`router.assist`** — optional ML-assisted routing.
 
 | Field | Env Override | Default |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `router.assist.enabled` | `OC_ROUTER_ASSIST_ENABLED` | `false` |
 | `router.assist.backend` | `OC_ROUTER_ASSIST_BACKEND` | `linear` |
 | `router.assist.model_path` | `OC_ROUTER_ASSIST_MODEL_PATH` | `""` |
@@ -223,7 +260,7 @@ the information needed to use a model lives in its config file.
 ### Model Config Sections
 
 | Section | Purpose |
-|---------|---------|
+| ------- | ------- |
 | `api_config` | Endpoint, auth, timeout — everything needed to connect |
 | `limits` | Token limits and rate limits (provider-imposed constraints) |
 | `capabilities` | What the model supports (streaming, vision, tools, etc.) |

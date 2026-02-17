@@ -164,8 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     convo_ask_cmd.add_argument("prompt", nargs="?", default=None, help="Prompt text")
     convo_ask_cmd.add_argument("--latest", action="store_true", help="Use most recent conversation")
-    convo_ask_cmd.add_argument("--last-n", type=int, default=10, help="Number of prior turns to include")
-    convo_ask_cmd.add_argument("--top-k-memory", type=int, default=8, help="Number of memory items to include")
+    convo_ask_cmd.add_argument("--last-n", type=int, default=None, help="Number of prior turns to include")
+    convo_ask_cmd.add_argument("--top-k-memory", type=int, default=None, help="Number of memory items to include")
     convo_ask_cmd.add_argument("--explain", action="store_true", help="Explain the turn from events")
     convo_ask_cmd.add_argument("--allow-pii", action="store_true", help="Bypass privacy gate for this request")
     convo_ask_cmd.add_argument(
@@ -177,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     convo_ask_group = convo_ask_cmd.add_mutually_exclusive_group()
     convo_ask_group.add_argument("--include-pinned-memory", dest="include_pinned_memory", action="store_true")
     convo_ask_group.add_argument("--no-include-pinned-memory", dest="include_pinned_memory", action="store_false")
-    convo_ask_cmd.set_defaults(include_pinned_memory=True)
+    convo_ask_cmd.set_defaults(include_pinned_memory=None)
 
     convo_delete_cmd = convo_sub.add_parser("delete", help="Delete conversation and all related data")
     convo_delete_cmd.add_argument("conversation_id")

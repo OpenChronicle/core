@@ -33,7 +33,7 @@ def _cmd_discord_start(args: argparse.Namespace, container: CoreContainer) -> in
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
     try:
-        config = DiscordConfig.from_env()
+        config = DiscordConfig.from_env(file_config=container.file_configs.get("discord"))
     except ValueError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 1

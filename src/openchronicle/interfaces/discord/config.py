@@ -8,42 +8,63 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class DiscordConfig:
-    """Immutable Discord bot configuration loaded from env vars.
+    """Immutable Discord bot configuration loaded from env vars and file config.
 
     Required:
-        DISCORD_BOT_TOKEN — Bot authentication token.
+        DISCORD_BOT_TOKEN — Bot authentication token (env-only, never in config files).
 
-    Optional:
+    Optional (env var > file config > default):
         OC_DISCORD_GUILD_IDS — CSV guild IDs for slash command sync.
         OC_DISCORD_CHANNEL_ALLOWLIST — CSV channel IDs (empty = all channels).
         OC_DISCORD_SESSION_STORE_PATH — Path for session JSON file.
+        OC_DISCORD_CONVERSATION_TITLE — Default title for new Discord conversations.
+        OC_DISCORD_HISTORY_LIMIT — Default number of turns shown by /history.
     """
 
     token: str
     guild_ids: list[int] = field(default_factory=list)
     channel_allowlist: list[int] = field(default_factory=list)
     session_store_path: str = "data/discord_sessions.json"
+    conversation_title: str = "Discord chat"
+    history_limit: int = 5
 
     @classmethod
-    def from_env(cls) -> DiscordConfig:
-        """Load config from environment variables.
+    def from_env(cls, file_config: dict[str, object] | None = None) -> DiscordConfig:
+        """Load config from environment variables with file_config fallback.
 
         Raises:
             ValueError: If DISCORD_BOT_TOKEN is not set or empty.
         """
+        fc = file_config or {}
         token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
         if not token:
             raise ValueError("DISCORD_BOT_TOKEN environment variable is required but not set")
 
-        guild_ids = _parse_int_csv(os.environ.get("OC_DISCORD_GUILD_IDS", ""))
-        channel_allowlist = _parse_int_csv(os.environ.get("OC_DISCORD_CHANNEL_ALLOWLIST", ""))
-        session_store_path = os.environ.get("OC_DISCORD_SESSION_STORE_PATH", "data/discord_sessions.json").strip()
+        guild_ids = _resolve_int_list("OC_DISCORD_GUILD_IDS", fc.get("guild_ids"))
+        channel_allowlist = _resolve_int_list("OC_DISCORD_CHANNEL_ALLOWLIST", fc.get("channel_allowlist"))
+
+        session_store_path = os.environ.get("OC_DISCORD_SESSION_STORE_PATH", "").strip() or _str_or_default(
+            fc.get("session_store_path"), "data/discord_sessions.json"
+        )
+        conversation_title = os.environ.get("OC_DISCORD_CONVERSATION_TITLE", "").strip() or _str_or_default(
+            fc.get("conversation_title"), "Discord chat"
+        )
+        history_limit_env = os.environ.get("OC_DISCORD_HISTORY_LIMIT", "").strip()
+        history_limit_file = fc.get("history_limit")
+        if history_limit_env:
+            history_limit = int(history_limit_env)
+        elif isinstance(history_limit_file, int):
+            history_limit = history_limit_file
+        else:
+            history_limit = 5
 
         return cls(
             token=token,
             guild_ids=guild_ids,
             channel_allowlist=channel_allowlist,
             session_store_path=session_store_path,
+            conversation_title=conversation_title,
+            history_limit=history_limit,
         )
 
 
@@ -60,3 +81,20 @@ def _parse_int_csv(value: str) -> list[int]:
             except ValueError:
                 raise ValueError(f"Invalid integer in CSV: {part!r}") from None
     return result
+
+
+def _resolve_int_list(env_name: str, file_value: object) -> list[int]:
+    """Resolve an int list: env var (CSV) > file_config (list) > empty."""
+    env_val = os.environ.get(env_name, "").strip()
+    if env_val:
+        return _parse_int_csv(env_val)
+    if isinstance(file_value, list):
+        return [int(v) for v in file_value]
+    return []
+
+
+def _str_or_default(value: object, default: str) -> str:
+    """Return value as str if truthy, else default."""
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return default

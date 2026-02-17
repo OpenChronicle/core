@@ -83,7 +83,7 @@ class DiscordBot(commands.Bot):
             storage=self.container.storage,
             convo_store=self.container.storage,
             emit_event=self.container.event_logger.append,
-            title="Discord chat",
+            title=self.config.conversation_title,
         )
         self.sessions.set_conversation_id(discord_user_id, conversation.id)
         return conversation.id
@@ -92,6 +92,7 @@ class DiscordBot(commands.Bot):
         """Run the full conversation turn pipeline (prepare → stream → finalize)."""
         from openchronicle.core.application.services.llm_execution import stream_with_route
 
+        cs = self.container.conversation_settings
         ctx = await ask_conversation.prepare_ask(
             convo_store=self.container.storage,
             memory_store=self.container.storage,
@@ -99,6 +100,11 @@ class DiscordBot(commands.Bot):
             conversation_id=conversation_id,
             prompt_text=prompt,
             interaction_router=self.container.interaction_router,
+            last_n=cs.last_n,
+            top_k_memory=cs.top_k_memory,
+            include_pinned_memory=cs.include_pinned_memory,
+            max_output_tokens=cs.max_output_tokens,
+            temperature=cs.temperature,
             privacy_gate=getattr(self.container, "privacy_gate", None),
             privacy_settings=getattr(self.container, "privacy_settings", None),
         )

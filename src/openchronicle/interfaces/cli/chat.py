@@ -18,6 +18,7 @@ async def _stream_turn(container: CoreContainer, conversation_id: str, prompt: s
     """
     from openchronicle.core.application.services.llm_execution import stream_with_route
 
+    cs = container.conversation_settings
     ctx = await ask_conversation.prepare_ask(
         convo_store=container.storage,
         memory_store=container.storage,
@@ -25,6 +26,11 @@ async def _stream_turn(container: CoreContainer, conversation_id: str, prompt: s
         conversation_id=conversation_id,
         prompt_text=prompt,
         interaction_router=container.interaction_router,
+        last_n=cs.last_n,
+        top_k_memory=cs.top_k_memory,
+        include_pinned_memory=cs.include_pinned_memory,
+        max_output_tokens=cs.max_output_tokens,
+        temperature=cs.temperature,
         privacy_gate=getattr(container, "privacy_gate", None),
         privacy_settings=getattr(container, "privacy_settings", None),
     )
@@ -75,6 +81,7 @@ async def chat_loop(container: CoreContainer, conversation_id: str, *, stream: b
                 print()
                 await _stream_turn(container, conversation_id, stripped)
             else:
+                cs = container.conversation_settings
                 turn = await ask_conversation.execute(
                     convo_store=container.storage,
                     storage=container.storage,
@@ -84,9 +91,11 @@ async def chat_loop(container: CoreContainer, conversation_id: str, *, stream: b
                     emit_event=container.event_logger.append,
                     conversation_id=conversation_id,
                     prompt_text=stripped,
-                    last_n=10,
-                    top_k_memory=8,
-                    include_pinned_memory=True,
+                    last_n=cs.last_n,
+                    top_k_memory=cs.top_k_memory,
+                    include_pinned_memory=cs.include_pinned_memory,
+                    max_output_tokens=cs.max_output_tokens,
+                    temperature=cs.temperature,
                     allow_pii=False,
                     privacy_gate=getattr(container, "privacy_gate", None),
                     privacy_settings=getattr(container, "privacy_settings", None),

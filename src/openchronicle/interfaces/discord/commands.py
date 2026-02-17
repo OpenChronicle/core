@@ -128,9 +128,10 @@ class OpenChronicleCog(commands.Cog):
             await interaction.response.send_message(str(exc))
 
     @app_commands.command(name="history", description="Show recent conversation turns")
-    @app_commands.describe(limit="Number of turns to show (default: 5)")
-    async def history(self, interaction: discord.Interaction, limit: int = 5) -> None:
+    @app_commands.describe(limit="Number of turns to show")
+    async def history(self, interaction: discord.Interaction, limit: int | None = None) -> None:
         """Show recent turns from the current conversation."""
+        effective_limit = limit if limit is not None else self.bot.config.history_limit
         discord_user_id = str(interaction.user.id)
         conversation_id = self.bot.sessions.get_conversation_id(discord_user_id)
 
@@ -138,7 +139,7 @@ class OpenChronicleCog(commands.Cog):
             await interaction.response.send_message("No active conversation.")
             return
 
-        turns = self.bot.container.storage.list_turns(conversation_id, limit=limit)
+        turns = self.bot.container.storage.list_turns(conversation_id, limit=effective_limit)
         if not turns:
             await interaction.response.send_message("No turns in this conversation yet.")
             return

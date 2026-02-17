@@ -19,6 +19,7 @@ from openchronicle.core.infrastructure.config.budget_config import load_budget_p
 from openchronicle.core.infrastructure.config.config_loader import load_config_files
 from openchronicle.core.infrastructure.config.env_helpers import env_override, parse_int
 from openchronicle.core.infrastructure.config.settings import (
+    load_conversation_settings,
     load_privacy_outbound_settings,
     load_router_assist_settings,
     load_telemetry_settings,
@@ -71,6 +72,7 @@ class CoreContainer:
         self.privacy_gate = RulePrivacyGate()
         self.privacy_settings = load_privacy_outbound_settings(file_configs.get("privacy"))
         self.telemetry_settings = load_telemetry_settings(file_configs.get("telemetry"))
+        self.conversation_settings = load_conversation_settings(file_configs.get("conversation"))
         self.budget_policy = load_budget_policy(file_configs.get("budget"))
 
         router_fc = file_configs.get("router")

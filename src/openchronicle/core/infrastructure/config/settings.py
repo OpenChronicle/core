@@ -6,6 +6,7 @@ from typing import Any
 from openchronicle.core.infrastructure.config.env_helpers import (
     env_override,
     parse_bool,
+    parse_float,
     parse_int,
     parse_str,
     parse_str_list,
@@ -132,5 +133,42 @@ def load_router_assist_settings(
         timeout_ms=parse_int(
             env_override("OC_ROUTER_ASSIST_TIMEOUT_MS", fc.get("timeout_ms")),
             default=50,
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class ConversationSettings:
+    temperature: float = 0.2
+    max_output_tokens: int = 512
+    top_k_memory: int = 8
+    last_n: int = 10
+    include_pinned_memory: bool = True
+
+
+def load_conversation_settings(
+    file_config: dict[str, Any] | None = None,
+) -> ConversationSettings:
+    fc = file_config or {}
+    return ConversationSettings(
+        temperature=parse_float(
+            env_override("OC_CONVO_TEMPERATURE", fc.get("temperature")),
+            default=0.2,
+        ),
+        max_output_tokens=parse_int(
+            env_override("OC_CONVO_MAX_OUTPUT_TOKENS", fc.get("max_output_tokens")),
+            default=512,
+        ),
+        top_k_memory=parse_int(
+            env_override("OC_CONVO_TOP_K_MEMORY", fc.get("top_k_memory")),
+            default=8,
+        ),
+        last_n=parse_int(
+            env_override("OC_CONVO_LAST_N", fc.get("last_n")),
+            default=10,
+        ),
+        include_pinned_memory=parse_bool(
+            env_override("OC_CONVO_INCLUDE_PINNED_MEMORY", fc.get("include_pinned_memory")),
+            default=True,
         ),
     )

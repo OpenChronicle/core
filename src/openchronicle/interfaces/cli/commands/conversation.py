@@ -411,6 +411,14 @@ def cmd_convo_ask(args: argparse.Namespace, container: CoreContainer) -> int:
     if resolved is None:
         return 1
     args.conversation_id = resolved
+    cs = container.conversation_settings
+    if args.last_n is None:
+        args.last_n = cs.last_n
+    if args.top_k_memory is None:
+        args.top_k_memory = cs.top_k_memory
+    if args.include_pinned_memory is None:
+        args.include_pinned_memory = cs.include_pinned_memory
+
     if not args.prompt:
         print("prompt is required")
         return 1
