@@ -35,8 +35,8 @@ wrapped in transaction). Write lock starvation (T4) is fixed with a two-layer
 approach: `execute_task()` was split into short transactions so LLM calls no
 longer hold the write lock, and `transaction()` now retries `BEGIN IMMEDIATE`
 with exponential backoff (3 retries, 0.5–2s delays with jitter) when SQLite's
-`busy_timeout` expires. Connection setup uses `autocommit=True` to bypass
-Python's legacy `isolation_level` transaction handling, which silently undermined
+`busy_timeout` expires. Connection setup uses `isolation_level=None` to bypass
+Python's legacy implicit transaction handling, which silently undermined
 explicit `BEGIN IMMEDIATE` in multi-threaded scenarios.
 
 Six operational CLI utilities were added to close day-one gaps: `oc version`,
@@ -199,10 +199,11 @@ proven exploitable by `test_stress.py`. All four have been fixed.
 
 Additional fixes applied during implementation:
 
-- **`autocommit=True`** on connection setup — Python's legacy `isolation_level`
-  handling silently undermined explicit `BEGIN IMMEDIATE` in multi-threaded
-  scenarios. Explicit `COMMIT`/`ROLLBACK` via `execute()` instead of
-  `conn.commit()`/`conn.rollback()`.
+- **`isolation_level=None`** on connection setup — Python's legacy implicit
+  transaction handling silently undermined explicit `BEGIN IMMEDIATE` in
+  multi-threaded scenarios. Uses `isolation_level=None` (works on Python 3.11+)
+  instead of the 3.12+-only `autocommit` attribute. Explicit `COMMIT`/`ROLLBACK`
+  via `execute()` instead of `conn.commit()`/`conn.rollback()`.
 - **Timestamp refresh under lock** — events constructed before lock acquisition
   had `created_at` timestamps that didn't match serialization order, causing
   `ORDER BY created_at` to return stale `prev_hash` values.

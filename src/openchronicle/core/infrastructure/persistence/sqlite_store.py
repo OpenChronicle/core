@@ -60,8 +60,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self._conn.autocommit = True  # type: ignore[attr-defined]  # Python 3.12+
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
         self._transaction_depth = 0
         self._configure_connection()
