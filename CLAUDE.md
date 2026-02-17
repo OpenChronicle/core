@@ -24,6 +24,8 @@ Time context injection is done (current time, last interaction timestamp,
 seconds delta — raw data in every conversation turn for bot time awareness).
 File-based config is done (single `core.json`, enriched model configs, plugin
 configs co-located at `plugins/<name>/config.json`).
+Config externalization is done (conversation defaults + Discord operational
+settings wired through three-layer precedence, hygiene test prevents drift).
 
 ## Build and Development
 

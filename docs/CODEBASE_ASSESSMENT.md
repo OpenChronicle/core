@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-16
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 16 (Discord interface — driving adapter)
+**Revision:** 18 (config externalization — conversation + Discord defaults)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (740+ unit/functional, 20 real-world integration, 6 concurrency
+Tests are strong (758+ unit/functional, 20 real-world integration, 6 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
 from model configs) via a shared `conftest.py` — only `OC_INTEGRATION_TESTS=1` is
@@ -45,9 +45,15 @@ Six operational CLI utilities were added to close day-one gaps: `oc version`,
 domain port additions (`delete_conversation`, `delete_memory`) with cascade
 logic in SqliteStore. CLI command reference documented in `docs/cli/commands.md`.
 
-**What's next:** Discord driver done. Next: security scanner plugin or dev agent runner.
+All subsystems now use three-layer config precedence (env var > `core.json` >
+dataclass default). Conversation defaults and Discord operational settings were
+the last holdouts — both are now externalized with a hygiene test
+(`test_config_completeness.py`) that enforces config-code default synchronization
+via `inspect.signature()`.
 
-**Overall: Core feature-complete, Discord interface operational, concurrency-safe for multi-process deployment.**
+**What's next:** Security scanner plugin or dev agent runner.
+
+**Overall: Core feature-complete, Discord interface operational, config fully externalized, concurrency-safe for multi-process deployment.**
 
 ---
 
@@ -138,11 +144,11 @@ validates against live providers (OpenAI, Anthropic).
 | **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 52+ tests |
 | **STDIO RPC** (24 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (76+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete/scheduler |
-| **File-based configuration** (single `core.json`, three-layer precedence) | Working | `config/core.json` + enriched `models/*.json` (limits, capabilities, cost, performance) + per-plugin JSON + env var overrides |
+| **File-based configuration** (single `core.json`, three-layer precedence) | Working | All subsystems wired: routing, budget, retry, privacy, telemetry, conversation, Discord. Enriched `models/*.json` + per-plugin JSON + env var overrides. Hygiene test enforces config-code default sync |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
-| **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, 60 tests |
-| **Test suite** (740+ unit/functional, 20 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, live provider validation, concurrency race proofs, auto-detecting conftest |
+| **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, config from `core.json`, 60 tests |
+| **Test suite** (758+ unit/functional, 20 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
 
 ### Architecture (Enforced and Clean)
 
@@ -392,9 +398,9 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (119 files, 740+ unit/functional + 20 real-world integration + 6 concurrency stress)
+### Test Suite (120 files, 758+ unit/functional + 20 real-world integration + 6 concurrency stress)
 
-Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (10),
+Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
 advanced (5), data format (4), plugin (2), integration (4 + conftest).
 
@@ -596,4 +602,4 @@ ToolCall, tool_calls on LLMResponse/StreamChunk, tools/tool_choice params on all
 | `services/scheduler.py` | ~250 | Tick-driven scheduler | New (core service) |
 | `interfaces/discord/bot.py` | ~130 | Discord bot | New (commands.Bot, on_message, streaming pipeline) |
 | `interfaces/discord/commands.py` | ~170 | Slash commands | New (6 commands, Cog pattern) |
-| `application/runtime/container.py` | ~189 | DI container | Clean (file-based config, scheduler wired) |
+| `application/runtime/container.py` | ~191 | DI container | Clean (file-based config, all settings wired) |
