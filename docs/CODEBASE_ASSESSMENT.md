@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (758+ unit/functional, 20 real-world integration, 6 concurrency
+Tests are strong (760+ unit/functional, 20 real-world integration, 6 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
 from model configs) via a shared `conftest.py` — only `OC_INTEGRATION_TESTS=1` is
@@ -144,11 +144,11 @@ validates against live providers (OpenAI, Anthropic).
 | **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 52+ tests |
 | **STDIO RPC** (24 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (76+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete/scheduler |
-| **File-based configuration** (single `core.json`, three-layer precedence) | Working | All subsystems wired: routing, budget, retry, privacy, telemetry, conversation, Discord. Enriched `models/*.json` + per-plugin JSON + env var overrides. Hygiene test enforces config-code default sync |
+| **File-based configuration** (single `core.json`, three-layer precedence) | Working | All subsystems wired: routing, budget, retry, privacy, telemetry, conversation, Discord. Secrets (API keys, bot token) follow same precedence — no env-only exceptions. Enriched `models/*.json` + per-plugin JSON. Hygiene test enforces config-code default sync |
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, config from `core.json`, 60 tests |
-| **Test suite** (758+ unit/functional, 20 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
+| **Test suite** (760+ unit/functional, 20 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
 
 ### Architecture (Enforced and Clean)
 
@@ -398,7 +398,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (120 files, 758+ unit/functional + 20 real-world integration + 6 concurrency stress)
+### Test Suite (120 files, 760+ unit/functional + 20 real-world integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
