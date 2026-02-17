@@ -16,8 +16,8 @@ COPY src ./src
 COPY plugins ./plugins
 COPY tools/docker/entrypoint.sh /app/entrypoint.sh
 
-# Install core
-RUN pip install --no-cache-dir .
+# Install with all provider extras and Discord
+RUN pip install --no-cache-dir ".[openai,ollama,anthropic,groq,gemini,discord]"
 
 # Prepare persistent mount points
 RUN mkdir -p /app/data /app/config /app/plugins /app/output \

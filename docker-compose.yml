@@ -16,6 +16,27 @@ services:
       - ./plugins:/plugins
       - oc-output:/output
 
+  discord:
+    build: .
+    entrypoint: ["oc", "discord", "start"]
+    restart: unless-stopped
+    environment:
+      - OC_DB_PATH=/data/openchronicle.db
+      - OC_CONFIG_DIR=/config
+      - OC_PLUGIN_DIR=/plugins
+      - OC_OUTPUT_DIR=/output
+      - OC_LLM_PROVIDER=${OC_LLM_PROVIDER:-openai}
+      - OC_DISCORD_SESSION_STORE_PATH=/data/discord_sessions.json
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - oc-data:/data
+      - oc-config:/config
+      - ./plugins:/plugins
+      - oc-output:/output
+
 volumes:
   oc-data:
   oc-config:
