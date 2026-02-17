@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (680+ unit/functional, 13 real-world integration, 6 concurrency
+Tests are strong (740+ unit/functional, 20 real-world integration, 6 concurrency
 stress), architecture is enforced, and the STDIO RPC daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
 from model configs) via a shared `conftest.py` — only `OC_INTEGRATION_TESTS=1` is
@@ -142,7 +142,7 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, 60 tests |
-| **Test suite** (740+ unit/functional, 13 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, live provider validation, concurrency race proofs, auto-detecting conftest |
+| **Test suite** (740+ unit/functional, 20 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, live provider validation, concurrency race proofs, auto-detecting conftest |
 
 ### Architecture (Enforced and Clean)
 
@@ -392,11 +392,11 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (118 files, 670+ unit/functional + 13 real-world integration + 6 concurrency stress)
+### Test Suite (119 files, 740+ unit/functional + 20 real-world integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (10),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
-advanced (5), data format (4), plugin (2), integration (3 + conftest).
+advanced (5), data format (4), plugin (2), integration (4 + conftest).
 
 **Real-world integration** (`test_real_world.py`): 13 scenarios exercising the
 full stack against live LLM providers — single/multi-turn, memory save/recall,
@@ -405,6 +405,11 @@ privacy gate PII detection, conversation resume, export with verify/explain,
 streaming vs non-streaming, and conversation mode. Validated against OpenAI
 (gpt-4o-mini) and Anthropic (Claude Sonnet 4). Manual checklist covers
 interactive features (streaming visual, chat resume, quit, diagnose).
+
+**Discord integration** (`test_discord_integration.py`): 7 scenarios exercising the
+Discord bot's glue code against real infrastructure — session creation/reuse,
+multi-user isolation, `/newconvo` flow, memory save/recall via Discord path,
+stale session auto-recovery, and event chain integrity verification.
 
 **Integration test auto-detection** (`tests/integration/conftest.py`): Session-scoped
 conftest auto-detects the application's config directory (well-known deployment paths
