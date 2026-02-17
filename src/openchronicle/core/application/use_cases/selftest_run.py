@@ -193,6 +193,7 @@ def execute(
                     prompt_text=prompt,
                     interaction_router=container.interaction_router,
                     last_n=5,
+                    router_policy=container.router_policy,
                     top_k_memory=4,
                     include_pinned_memory=False,
                     max_output_tokens=64,

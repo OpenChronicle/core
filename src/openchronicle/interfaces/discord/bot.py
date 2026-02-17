@@ -100,6 +100,7 @@ class DiscordBot(commands.Bot):
             conversation_id=conversation_id,
             prompt_text=prompt,
             interaction_router=self.container.interaction_router,
+            router_policy=self.container.router_policy,
             last_n=cs.last_n,
             top_k_memory=cs.top_k_memory,
             include_pinned_memory=cs.include_pinned_memory,

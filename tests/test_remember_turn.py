@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import ask_conversation, create_conversation, remember_turn
 from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
@@ -39,6 +40,7 @@ async def test_remember_turn_links_memory_and_emits_event(tmp_path: Path, monkey
         conversation_id=conversation.id,
         interaction_router=RuleInteractionRouter(),
         prompt_text="Hello",
+        router_policy=RouterPolicy(),
         last_n=5,
     )
 

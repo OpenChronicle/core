@@ -5,6 +5,7 @@ from typing import cast
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import ask_conversation, create_conversation, export_convo, remember_turn
 from openchronicle.core.domain.models.project import Event
 from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
@@ -43,6 +44,7 @@ async def test_export_convo_includes_memory_written_ids_and_explain(
         conversation_id=conversation.id,
         interaction_router=RuleInteractionRouter(),
         prompt_text="Hello",
+        router_policy=RouterPolicy(),
         last_n=5,
     )
 

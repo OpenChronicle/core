@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import add_memory, ask_conversation, create_conversation, pin_memory
 from openchronicle.core.domain.models.conversation import Conversation
 from openchronicle.core.domain.models.memory_item import MemoryItem
@@ -224,6 +225,7 @@ async def test_convo_ask_includes_memory(tmp_path: Path) -> None:
         conversation_id=conversation.id,
         interaction_router=RuleInteractionRouter(),
         prompt_text="Tell me about the lighthouse",
+        router_policy=RouterPolicy(),
         last_n=5,
         top_k_memory=5,
         include_pinned_memory=True,

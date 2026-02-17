@@ -5,6 +5,7 @@ from typing import cast
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import (
     add_memory,
     ask_conversation,
@@ -68,6 +69,7 @@ async def test_explain_turn_extracts_events(tmp_path: Path, monkeypatch: pytest.
         conversation_id=conversation.id,
         interaction_router=RuleInteractionRouter(),
         prompt_text="Tell me about the lighthouse",
+        router_policy=RouterPolicy(),
         last_n=5,
         top_k_memory=5,
         include_pinned_memory=True,

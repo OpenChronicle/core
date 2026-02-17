@@ -271,6 +271,7 @@ def _run_acceptance(container: CoreContainer) -> dict[str, object]:
                 emit_event=container.event_logger.append,
                 conversation_id=conversation.id,
                 prompt_text="hello",
+                router_policy=container.router_policy,
                 last_n=5,
                 top_k_memory=3,
                 include_pinned_memory=True,

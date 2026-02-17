@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import ask_conversation, convo_mode, create_conversation
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
@@ -53,6 +54,7 @@ async def test_interaction_router_events_are_safe(tmp_path: Path, monkeypatch: p
         conversation_id=conversation.id,
         interaction_router=RuleInteractionRouter(router_log_reasons=False),
         prompt_text="roleplay explicit scene",
+        router_policy=RouterPolicy(),
         last_n=5,
     )
 
@@ -101,6 +103,7 @@ async def test_interaction_router_missing_nsfw_pool(tmp_path: Path, monkeypatch:
             interaction_router=RuleInteractionRouter(),
             prompt_text="roleplay explicit scene",
             last_n=5,
+            router_policy=RouterPolicy(),
         )
 
     assert exc.value.error_code == "NSFW_POOL_NOT_CONFIGURED"

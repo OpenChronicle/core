@@ -335,6 +335,7 @@ def handle_convo_ask(container: CoreContainer, command: str, args: dict[str, obj
             emit_event=container.event_logger.append,
             conversation_id=conversation_id,
             prompt_text=prompt_text,
+            router_policy=container.router_policy,
             last_n=last_n,
             top_k_memory=top_k_memory,
             include_pinned_memory=include_pinned_memory,
@@ -382,6 +383,7 @@ def handle_convo_ask(container: CoreContainer, command: str, args: dict[str, obj
                 metadata=None,
                 interaction_router=container.interaction_router,
                 emit_event=container.event_logger.append,
+                router_policy=container.router_policy,
             )
             return json_envelope(
                 command=command,
@@ -414,6 +416,7 @@ def handle_convo_ask_async(container: CoreContainer, command: str, args: dict[st
         metadata=metadata,
         interaction_router=container.interaction_router,
         emit_event=container.event_logger.append,
+        router_policy=container.router_policy,
     )
 
     return json_envelope(
@@ -797,6 +800,7 @@ def handle_task_run_one(container: CoreContainer, command: str, args: dict[str, 
                     privacy_settings=getattr(container, "privacy_settings", None),
                     task_id=task.id,
                     task_type=task_type_value,
+                    router_policy=container.router_policy,
                 )
             )
         else:
@@ -966,6 +970,7 @@ def handle_task_run_many(container: CoreContainer, command: str, args: dict[str,
                     privacy_settings=getattr(container, "privacy_settings", None),
                     task_id=task.id,
                     task_type=task_type_value,
+                    router_policy=container.router_policy,
                 )
             )
             status = str(run_many_task_result.get("status"))

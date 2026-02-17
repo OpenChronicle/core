@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import (
     ask_conversation,
     create_conversation,
@@ -54,6 +55,7 @@ async def test_conversation_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
         conversation_id=conversation.id,
         prompt_text="Hello",
         interaction_router=interaction_router,
+        router_policy=RouterPolicy(),
         last_n=10,
     )
 
@@ -66,6 +68,7 @@ async def test_conversation_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
         conversation_id=conversation.id,
         prompt_text="How are you?",
         interaction_router=interaction_router,
+        router_policy=RouterPolicy(),
         last_n=10,
     )
 

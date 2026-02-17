@@ -163,6 +163,7 @@ async def prepare_ask(
     prompt_text: str,
     *,
     interaction_router: InteractionRouterPort,
+    router_policy: RouterPolicy,
     last_n: int = 10,
     top_k_memory: int = 8,
     include_pinned_memory: bool = True,
@@ -293,7 +294,7 @@ async def prepare_ask(
         )
     )
 
-    router = RouterPolicy()
+    router = router_policy
     if router_hint.requires_nsfw_capable_model and effective_mode in {"persona", "story"}:
         nsfw_pool = router.pool_config.nsfw_pool
         if not nsfw_pool:
@@ -647,6 +648,7 @@ async def execute(
     prompt_text: str,
     *,
     interaction_router: InteractionRouterPort,
+    router_policy: RouterPolicy,
     last_n: int = 10,
     top_k_memory: int = 8,
     include_pinned_memory: bool = True,
@@ -664,6 +666,7 @@ async def execute(
         conversation_id=conversation_id,
         prompt_text=prompt_text,
         interaction_router=interaction_router,
+        router_policy=router_policy,
         last_n=last_n,
         top_k_memory=top_k_memory,
         include_pinned_memory=include_pinned_memory,
@@ -715,6 +718,7 @@ def enqueue(
     metadata: dict[str, object] | None,
     interaction_router: InteractionRouterPort,
     emit_event: Callable[[Event], None],
+    router_policy: RouterPolicy,
 ) -> Task:
     conversation = convo_store.get_conversation(conversation_id)
     if conversation is None:
@@ -725,7 +729,7 @@ def enqueue(
     if effective_mode not in {"general", "persona", "story"}:
         effective_mode = "general"
 
-    router = RouterPolicy()
+    router = router_policy
     router_hint = interaction_router.analyze(
         user_text=prompt_text,
         recent_turns=recent_turns,

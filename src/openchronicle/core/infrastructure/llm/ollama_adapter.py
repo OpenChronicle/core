@@ -87,12 +87,6 @@ class OllamaAdapter(LLMPort):
                 status_code=None,
                 error_code=TIMEOUT,
             ) from exc
-        except httpx.HTTPStatusError as exc:
-            raise LLMProviderError(
-                f"Ollama HTTP error {exc.response.status_code}: {exc.response.text}",
-                status_code=exc.response.status_code,
-                error_code=f"http_{exc.response.status_code}",
-            ) from exc
         except httpx.RequestError as exc:
             raise LLMProviderError(
                 f"Ollama connection error: {exc}",
@@ -211,7 +205,13 @@ class OllamaAdapter(LLMPort):
                 httpx.AsyncClient(timeout=60.0) as client,
                 client.stream("POST", f"{self.base_url}/api/chat", json=payload) as response,
             ):
-                response.raise_for_status()
+                if response.status_code >= 400:
+                    await response.aread()
+                    raise LLMProviderError(
+                        f"Ollama HTTP error {response.status_code}: {response.text}",
+                        status_code=response.status_code,
+                        error_code=f"http_{response.status_code}",
+                    )
                 async for line in response.aiter_lines():
                     if not line.strip():
                         continue
@@ -244,18 +244,14 @@ class OllamaAdapter(LLMPort):
                 status_code=None,
                 error_code=TIMEOUT,
             ) from exc
-        except httpx.HTTPStatusError as exc:
-            raise LLMProviderError(
-                f"Ollama HTTP error {exc.response.status_code}: {exc.response.text}",
-                status_code=exc.response.status_code,
-                error_code=f"http_{exc.response.status_code}",
-            ) from exc
         except httpx.RequestError as exc:
             raise LLMProviderError(
                 f"Ollama connection error: {exc}",
                 status_code=None,
                 error_code=CONNECTION_ERROR,
             ) from exc
+        except LLMProviderError:
+            raise
         except Exception as exc:
             raise LLMProviderError(
                 f"Ollama streaming error: {exc}",

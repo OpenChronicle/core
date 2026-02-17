@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-16
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 19 (hex boundary enforcement + posture tests)
+**Revision:** 20 (router policy threading + Ollama streaming fix + Discord integration tests)
 
 ---
 
@@ -156,7 +156,7 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, config from `core.json`, 60 tests |
-| **Test suite** (780+ unit/functional, 20 real-world integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
+| **Test suite** (780+ unit/functional, 20 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
 
 ### Architecture (Enforced and Clean)
 
@@ -412,7 +412,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (120 files, 760+ unit/functional + 20 real-world integration + 6 concurrency stress)
+### Test Suite (120 files, 760+ unit/functional + 20 real-world integration + 14 Discord integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -426,10 +426,13 @@ streaming vs non-streaming, and conversation mode. Validated against OpenAI
 (gpt-4o-mini) and Anthropic (Claude Sonnet 4). Manual checklist covers
 interactive features (streaming visual, chat resume, quit, diagnose).
 
-**Discord integration** (`test_discord_integration.py`): 7 scenarios exercising the
+**Discord integration** (`test_discord_integration.py`): 14 scenarios exercising the
 Discord bot's glue code against real infrastructure — session creation/reuse,
 multi-user isolation, `/newconvo` flow, memory save/recall via Discord path,
-stale session auto-recovery, and event chain integrity verification.
+stale session auto-recovery, event chain integrity verification, plus 7 realistic
+user session simulations (casual greeting, factual Q&A, context retention,
+conversation reset, multi-turn task coherence, concurrent user isolation, and
+turn persistence verification).
 
 **Integration test auto-detection** (`tests/integration/conftest.py`): Session-scoped
 conftest auto-detects the application's config directory (well-known deployment paths

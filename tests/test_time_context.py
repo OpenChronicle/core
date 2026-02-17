@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases.ask_conversation import prepare_ask
 from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.project import Project
@@ -46,6 +47,7 @@ class TestTimeContextFirstTurn:
             conversation_id=convo.id,
             prompt_text="Hello",
             interaction_router=RuleInteractionRouter(),
+            router_policy=RouterPolicy(),
         )
 
         assert ctx.last_interaction_at == convo.created_at
@@ -67,6 +69,7 @@ class TestTimeContextFirstTurn:
             conversation_id=convo.id,
             prompt_text="Hello",
             interaction_router=RuleInteractionRouter(),
+            router_policy=RouterPolicy(),
         )
 
         time_msgs = [m for m in ctx.messages if m["role"] == "system" and "Last interaction:" in m["content"]]
@@ -106,6 +109,7 @@ class TestTimeContextSubsequentTurn:
             conversation_id=convo.id,
             prompt_text="Follow-up",
             interaction_router=RuleInteractionRouter(),
+            router_policy=RouterPolicy(),
         )
 
         # Should reference the turn (30 min ago), not the conversation (1 day ago)
@@ -132,6 +136,7 @@ class TestTimeContextFormat:
             conversation_id=convo.id,
             prompt_text="Hello",
             interaction_router=RuleInteractionRouter(),
+            router_policy=RouterPolicy(),
         )
 
         time_msgs = [m for m in ctx.messages if m["role"] == "system" and "Last interaction:" in m["content"]]
@@ -163,6 +168,7 @@ class TestTimeContextFormat:
             conversation_id=convo.id,
             prompt_text="New question",
             interaction_router=RuleInteractionRouter(),
+            router_policy=RouterPolicy(),
         )
 
         # Find positions

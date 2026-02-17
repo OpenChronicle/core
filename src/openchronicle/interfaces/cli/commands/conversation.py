@@ -434,6 +434,7 @@ def cmd_convo_ask(args: argparse.Namespace, container: CoreContainer) -> int:
                 emit_event=container.event_logger.append,
                 conversation_id=args.conversation_id,
                 prompt_text=args.prompt,
+                router_policy=container.router_policy,
                 last_n=args.last_n,
                 top_k_memory=args.top_k_memory,
                 include_pinned_memory=args.include_pinned_memory,
@@ -458,6 +459,7 @@ def cmd_convo_ask(args: argparse.Namespace, container: CoreContainer) -> int:
                         metadata=None,
                         interaction_router=container.interaction_router,
                         emit_event=container.event_logger.append,
+                        router_policy=container.router_policy,
                     )
                 except (ValueError, LLMProviderError) as enqueue_exc:
                     exc = enqueue_exc

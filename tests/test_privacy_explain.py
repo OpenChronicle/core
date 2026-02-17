@@ -6,6 +6,7 @@ from typing import Any, cast
 import pytest
 
 from openchronicle.core.application.config.settings import PrivacyOutboundSettings
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import ask_conversation, create_conversation, explain_turn
 from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
@@ -47,6 +48,7 @@ async def test_privacy_explain_warn(tmp_path: Path) -> None:
         prompt_text="contact me at user@example.com",
         privacy_gate=RulePrivacyGate(),
         privacy_settings=settings,
+        router_policy=RouterPolicy(),
     )
 
     explain = explain_turn.execute(storage=storage, conversation_id=conversation.id, turn_id=turn.id)
@@ -93,6 +95,7 @@ async def test_privacy_explain_override(tmp_path: Path) -> None:
         allow_pii=True,
         privacy_gate=RulePrivacyGate(),
         privacy_settings=settings,
+        router_policy=RouterPolicy(),
     )
 
     explain = explain_turn.execute(storage=storage, conversation_id=conversation.id, turn_id=turn.id)

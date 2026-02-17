@@ -4,6 +4,7 @@ import time
 from collections.abc import Callable
 
 from openchronicle.core.application.config.settings import PrivacyOutboundSettings
+from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.use_cases import ask_conversation
 from openchronicle.core.domain.errors.error_codes import INTERNAL_ERROR, INVALID_ARGUMENT
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
@@ -40,6 +41,7 @@ async def _execute_task(
     emit_event: Callable[[Event], None],
     privacy_gate: PrivacyGatePort | None = None,
     privacy_settings: PrivacyOutboundSettings | None = None,
+    router_policy: RouterPolicy,
 ) -> dict[str, object]:
     storage.update_task_status(task.id, TaskStatus.RUNNING.value)
     emit_event(
@@ -71,6 +73,7 @@ async def _execute_task(
             allow_pii=allow_pii,
             privacy_gate=privacy_gate,
             privacy_settings=privacy_settings,
+            router_policy=router_policy,
         )
 
         storage.update_task_status(task.id, TaskStatus.COMPLETED.value)
@@ -144,6 +147,7 @@ async def execute(
     privacy_gate: PrivacyGatePort | None = None,
     privacy_settings: PrivacyOutboundSettings | None = None,
     task_type: str = "convo.ask",
+    router_policy: RouterPolicy,
 ) -> dict[str, object]:
     tasks = _collect_tasks(storage)
     eligible = _eligible_tasks(tasks, task_type)
@@ -168,6 +172,7 @@ async def execute(
         emit_event=emit_event,
         privacy_gate=privacy_gate,
         privacy_settings=privacy_settings,
+        router_policy=router_policy,
     )
     return {
         "ran": True,
@@ -187,6 +192,7 @@ async def execute_task_by_id(
     privacy_gate: PrivacyGatePort | None = None,
     privacy_settings: PrivacyOutboundSettings | None = None,
     task_type: str = "convo.ask",
+    router_policy: RouterPolicy,
 ) -> dict[str, object]:
     task = storage.get_task(task_id)
     if task is None or task.status != TaskStatus.PENDING or task.type != task_type:
@@ -209,6 +215,7 @@ async def execute_task_by_id(
         emit_event=emit_event,
         privacy_gate=privacy_gate,
         privacy_settings=privacy_settings,
+        router_policy=router_policy,
     )
     return {
         "ran": True,
@@ -227,6 +234,7 @@ async def execute_many(
     privacy_gate: PrivacyGatePort | None = None,
     privacy_settings: PrivacyOutboundSettings | None = None,
     task_type: str = "convo.ask",
+    router_policy: RouterPolicy,
     limit: int = 10,
     max_seconds: float = 0.0,
 ) -> dict[str, object]:
@@ -270,6 +278,7 @@ async def execute_many(
             emit_event=emit_event,
             privacy_gate=privacy_gate,
             privacy_settings=privacy_settings,
+            router_policy=router_policy,
         )
         results.append(result)
         if result.get("status") == "completed":

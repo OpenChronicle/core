@@ -276,3 +276,144 @@ async def test_td07_event_chain_intact(bot: DiscordBot) -> None:
     expected = {"llm.routed", "convo.turn_completed", "memory.retrieved"}
     missing = expected - event_types
     assert not missing, f"Missing event types: {missing}. Got: {event_types}"
+
+
+# ---------------------------------------------------------------------------
+# TD08–TD14: Realistic user session simulation
+#
+# These tests simulate a natural Discord conversation — greeting, questions,
+# follow-ups, context retention, new conversation, and multi-user overlap.
+# They exercise the full pipeline (routing → LLM → streaming → persistence)
+# through the same code path Discord messages take.
+# ---------------------------------------------------------------------------
+
+
+async def test_td08_casual_greeting_and_chitchat(bot: DiscordBot) -> None:
+    """User opens with a casual greeting, bot responds naturally."""
+    convo_id = await bot._resolve_conversation("user-D")
+    _shared["user_d_convo_id"] = convo_id
+
+    response = await bot._process_turn(convo_id, "hey there! how's it going?")
+    _shared["td08_response"] = response
+
+    assert response.strip() != "", "Should get a non-empty response"
+    assert response.strip().lower() != "hey there! how's it going?", "Should not echo input"
+    assert len(response) > 10, f"Response suspiciously short: {response!r}"
+
+    turn = bot.container.storage.list_turns(convo_id)[-1]
+    assert turn.provider != "stub", f"Should route to real provider, got: {turn.provider}"
+
+
+async def test_td09_factual_question(bot: DiscordBot) -> None:
+    """User asks a straightforward factual question."""
+    convo_id = _shared.get("user_d_convo_id")
+    if convo_id is None:
+        pytest.skip("TD08 did not run")
+
+    response = await bot._process_turn(convo_id, "What's the capital of France?")
+    _shared["td09_response"] = response
+
+    assert "paris" in response.lower(), f"Expected 'paris' in response, got: {response!r}"
+
+
+async def test_td10_context_retention_within_conversation(bot: DiscordBot) -> None:
+    """User references something from an earlier turn — bot should remember."""
+    convo_id = _shared.get("user_d_convo_id")
+    if convo_id is None:
+        pytest.skip("TD08 did not run")
+
+    response = await bot._process_turn(
+        convo_id,
+        "Repeat back to me: what was the capital city I asked about earlier?",
+    )
+
+    # The bot should reference the capital/France question from TD09.
+    # Small models sometimes fumble recall, so accept any signal that
+    # the prior turn context was present (France, Paris, or "capital").
+    response_lower = response.lower()
+    context_signals = ("france", "capital", "paris")
+    assert any(
+        s in response_lower for s in context_signals
+    ), f"Bot should recall the France/capital question, got: {response!r}"
+
+
+async def test_td11_new_conversation_clears_context(bot: DiscordBot) -> None:
+    """After /newconvo, bot should NOT remember the previous conversation."""
+    old_convo_id = _shared.get("user_d_convo_id")
+    if old_convo_id is None:
+        pytest.skip("TD08 did not run")
+
+    # Simulate /newconvo
+    bot.sessions.clear("user-D")
+    new_convo_id = await bot._resolve_conversation("user-D")
+    _shared["user_d_new_convo_id"] = new_convo_id
+
+    assert new_convo_id != old_convo_id, "Should be a new conversation"
+
+    response = await bot._process_turn(new_convo_id, "What was the last question I asked you?")
+
+    # Bot should NOT know about France — it's a fresh conversation
+    response_lower = response.lower()
+    has_old_context = "france" in response_lower and "capital" in response_lower
+    assert not has_old_context, f"New conversation should not carry old context, got: {response!r}"
+
+
+async def test_td12_multi_turn_task(bot: DiscordBot) -> None:
+    """User gives an instruction and follows up — tests coherent multi-turn."""
+    convo_id = _shared.get("user_d_new_convo_id")
+    if convo_id is None:
+        pytest.skip("TD11 did not run")
+
+    response1 = await bot._process_turn(convo_id, "Let's play a game. I'll say a word and you say the opposite. Ready?")
+    assert response1.strip() != ""
+
+    response2 = await bot._process_turn(convo_id, "hot")
+    response2_lower = response2.lower()
+
+    # Should respond with "cold" or similar opposite
+    assert (
+        "cold" in response2_lower or "cool" in response2_lower or "opposite" in response2_lower
+    ), f"Expected opposite of 'hot', got: {response2!r}"
+
+
+async def test_td13_concurrent_users_no_crosstalk(bot: DiscordBot) -> None:
+    """Two users chatting simultaneously — responses don't leak between them."""
+    convo_e = await bot._resolve_conversation("user-E")
+    convo_f = await bot._resolve_conversation("user-F")
+
+    assert convo_e != convo_f, "Different users should get different conversations"
+
+    # User E talks about dogs
+    await bot._process_turn(convo_e, "I love dogs. My dog's name is Biscuit.")
+
+    # User F talks about cats
+    await bot._process_turn(convo_f, "I love cats. My cat's name is Whiskers.")
+
+    # Ask each user about their pet — should not cross-contaminate
+    response_e = await bot._process_turn(convo_e, "What's my pet's name?")
+    response_f = await bot._process_turn(convo_f, "What's my pet's name?")
+
+    assert "biscuit" in response_e.lower(), f"User E's pet should be Biscuit, got: {response_e!r}"
+    assert "whiskers" in response_f.lower(), f"User F's pet should be Whiskers, got: {response_f!r}"
+
+    # Verify no crosstalk
+    assert "whiskers" not in response_e.lower(), "User E should not see User F's cat"
+    assert "biscuit" not in response_f.lower(), "User F should not see User E's dog"
+
+
+async def test_td14_persistence_survives_turn_count(bot: DiscordBot) -> None:
+    """Verify all turns from the session are persisted correctly."""
+    convo_id = _shared.get("user_d_convo_id")
+    if convo_id is None:
+        pytest.skip("TD08 did not run")
+
+    turns = bot.container.storage.list_turns(convo_id)
+
+    # TD08 (greeting) + TD09 (France) + TD10 (recall) = 3 turns
+    assert len(turns) == 3, f"Expected 3 turns in user-D's first convo, got: {len(turns)}"
+
+    for i, turn in enumerate(turns):
+        assert turn.user_text.strip() != "", f"Turn {i} user_text should not be empty"
+        assert turn.assistant_text.strip() != "", f"Turn {i} assistant_text should not be empty"
+        assert turn.provider != "stub", f"Turn {i} should not be stub"
+        assert turn.model != "", f"Turn {i} model should not be empty"

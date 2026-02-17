@@ -95,6 +95,7 @@ async def test_t01_single_turn_real_response(container: CoreContainer) -> None:
         conversation_id=convo.id,
         prompt_text="What is 2+2? Reply with just the number.",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
         privacy_gate=container.privacy_gate,
         privacy_settings=container.privacy_settings,
     )
@@ -131,6 +132,7 @@ async def test_t02_multi_turn_context_retention(container: CoreContainer) -> Non
         conversation_id=convo.id,
         prompt_text="My name is Zephyr. Remember that.",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
     _shared["t2_turn_1"] = turn1
     assert turn1.turn_index == 1, f"First turn should be index 1, got: {turn1.turn_index}"
@@ -144,6 +146,7 @@ async def test_t02_multi_turn_context_retention(container: CoreContainer) -> Non
         conversation_id=convo.id,
         prompt_text="What is my name?",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
     _shared["t2_turn_2"] = turn2
     assert turn2.turn_index == 2, f"Second turn should be index 2, got: {turn2.turn_index}"
@@ -190,6 +193,7 @@ async def test_t03_memory_save_and_recall(container: CoreContainer) -> None:
         prompt_text="What is my favorite programming language?",
         top_k_memory=8,
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     assert "Haskell" in turn.assistant_text, f"Expected 'Haskell' in response, got: {turn.assistant_text!r}"
@@ -249,6 +253,7 @@ async def test_t04_pinned_memory_always_included(container: CoreContainer) -> No
         prompt_text="Say hello",
         include_pinned_memory=True,
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     # Verify pinned memory was retrieved
@@ -400,6 +405,7 @@ async def test_t08_privacy_gate_pii_detection(container: CoreContainer) -> None:
         privacy_gate=container.privacy_gate,
         privacy_settings=privacy_settings,
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     # Turn should complete (warn mode doesn't block)
@@ -451,6 +457,7 @@ async def test_t09_conversation_resume(container: CoreContainer) -> None:
         conversation_id=convo.id,
         prompt_text="Say 'ACK' and nothing else.",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     # Retrieve latest conversation
@@ -468,6 +475,7 @@ async def test_t09_conversation_resume(container: CoreContainer) -> None:
         conversation_id=latest[0].id,
         prompt_text="What did I just ask you to say?",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     assert turn2.turn_index == 2, f"Expected turn_index=2, got: {turn2.turn_index}"
@@ -552,6 +560,7 @@ async def test_t11_non_streaming_turn(container: CoreContainer) -> None:
         conversation_id=convo.id,
         prompt_text="What color is the sky on a clear day? One word.",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     # Complete response (not chunked)
@@ -592,6 +601,7 @@ async def test_t12_streaming_turn(container: CoreContainer) -> None:
         conversation_id=convo.id,
         prompt_text="Count from 1 to 5, one number per line.",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
 
     # Phase 6: stream with route
@@ -671,6 +681,7 @@ async def test_t13_conversation_mode(container: CoreContainer) -> None:
         conversation_id=convo.id,
         prompt_text="Hello",
         interaction_router=container.interaction_router,
+        router_policy=container.router_policy,
     )
     assert turn.assistant_text.strip() != ""
 

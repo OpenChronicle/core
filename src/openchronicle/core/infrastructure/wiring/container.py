@@ -123,6 +123,7 @@ class CoreContainer:
             file_config=file_configs,
             pool_config=pool_config,
         )
+        self.router_policy = router_policy
 
         # Build rate limiter — per-model rate limits live in model configs.
         # Global rate limiter only respects env var overrides as system-wide ceiling.
