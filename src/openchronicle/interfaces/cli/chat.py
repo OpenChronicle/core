@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import ask_conversation, create_conversation
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 async def _stream_turn(container: CoreContainer, conversation_id: str, prompt: str) -> str:

@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Callable
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.chat import cmd_chat
 
 from . import conversation, db, debug, discord, memory, project, scheduler, system, task

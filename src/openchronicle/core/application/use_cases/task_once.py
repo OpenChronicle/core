@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
+from openchronicle.core.application.config.settings import PrivacyOutboundSettings
 from openchronicle.core.application.use_cases import ask_conversation
 from openchronicle.core.domain.errors.error_codes import INTERNAL_ERROR, INVALID_ARGUMENT
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
@@ -12,7 +13,6 @@ from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
-from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
 
 
 def _eligible_tasks(tasks: list[Task], task_type: str) -> list[Task]:

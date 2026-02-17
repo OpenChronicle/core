@@ -13,9 +13,9 @@ from typing import Any
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases.replay_project import ReplayService
 from openchronicle.core.domain.models.project import Event, Task
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 @pytest.fixture

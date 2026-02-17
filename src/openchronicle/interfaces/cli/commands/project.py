@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     continue_project,
     create_project,
@@ -16,6 +15,7 @@ from openchronicle.core.application.use_cases import (
 from openchronicle.core.application.use_cases.replay_project import (
     ReplayService as ProjectReplayService,
 )
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 def cmd_init_project(args: argparse.Namespace, container: CoreContainer) -> int:

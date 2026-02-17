@@ -6,7 +6,7 @@ import inspect
 
 import pytest
 
-from openchronicle.core.infrastructure.config.settings import (
+from openchronicle.core.application.config.settings import (
     ConversationSettings,
     load_conversation_settings,
     load_privacy_outbound_settings,

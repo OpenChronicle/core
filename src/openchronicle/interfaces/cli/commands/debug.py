@@ -6,7 +6,6 @@ import argparse
 import asyncio
 import json
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     ask_conversation,
     create_conversation,
@@ -17,6 +16,7 @@ from openchronicle.core.application.use_cases import (
 )
 from openchronicle.core.domain.errors.error_codes import INTERNAL_ERROR
 from openchronicle.core.domain.models.failure_category import failure_category_description
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.stdio import dispatch_request
 
 from ._helpers import ensure_demo_agents, json_envelope, json_error_payload, print_json
@@ -102,12 +102,15 @@ def cmd_smoke_live(args: argparse.Namespace, container: CoreContainer) -> int:
 
 
 def cmd_selftest(args: argparse.Namespace, container: CoreContainer) -> int:
+    from openchronicle.core.infrastructure.wiring.selftest_factory import create_selftest_container
+
     selftest_result: dict[str, object] = selftest_run.execute(
         args.base_dir,
         json_output=args.json,
         keep_artifacts=args.keep_artifacts,
         with_plugins=not args.no_plugins,
         telemetry_self_report=args.telemetry_self_report,
+        container_factory=create_selftest_container,
     )
     ok = selftest_result.get("ok") is True
 

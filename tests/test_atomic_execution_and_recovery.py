@@ -5,11 +5,11 @@ from typing import Any
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.project import Event, Project, Span, SpanStatus, Task, TaskStatus
 from openchronicle.core.domain.services.verification import VerificationService
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 @pytest.mark.asyncio

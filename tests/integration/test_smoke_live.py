@@ -14,12 +14,12 @@ import os
 import pytest
 
 from openchronicle.core.application.config.model_config import ModelConfigLoader
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import smoke_live
 from openchronicle.core.domain.models.failure_category import (
     classify_failure_category,
     failure_category_description,
 )
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 # Skip entire module unless integration test env var is set
 pytestmark = pytest.mark.skipif(

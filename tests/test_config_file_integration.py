@@ -12,14 +12,14 @@ from typing import Any
 
 import pytest
 
-from openchronicle.core.application.routing.pool_config import load_pool_config
-from openchronicle.core.infrastructure.config.budget_config import load_budget_policy
-from openchronicle.core.infrastructure.config.config_loader import CORE_CONFIG_NAME, load_config_files
-from openchronicle.core.infrastructure.config.settings import (
+from openchronicle.core.application.config.budget_config import load_budget_policy
+from openchronicle.core.application.config.settings import (
     load_privacy_outbound_settings,
     load_router_assist_settings,
     load_telemetry_settings,
 )
+from openchronicle.core.application.routing.pool_config import load_pool_config
+from openchronicle.core.infrastructure.config.config_loader import CORE_CONFIG_NAME, load_config_files
 
 
 def _write_core(tmp_path: Path, data: dict[str, Any]) -> None:

@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.project import Task, TaskStatus
 from openchronicle.core.domain.services.replay import ReplayMode, ReplayService
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 @pytest.fixture

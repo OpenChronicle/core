@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     ask_conversation,
     convo_mode,
@@ -18,6 +17,7 @@ from openchronicle.core.application.use_cases import (
 )
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 from ._helpers import json_envelope, json_error_payload, print_json
 

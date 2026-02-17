@@ -39,8 +39,7 @@ class DiscordConfig:
         token = os.environ.get("DISCORD_BOT_TOKEN", "").strip() or _str_or_default(fc.get("token"), "")
         if not token:
             raise ValueError(
-                "Bot token not found. Set DISCORD_BOT_TOKEN env var or add"
-                ' "token" to the discord section in core.json'
+                'Bot token not found. Set DISCORD_BOT_TOKEN env var or add "token" to the discord section in core.json'
             )
 
         guild_ids = _resolve_int_list("OC_DISCORD_GUILD_IDS", fc.get("guild_ids"))

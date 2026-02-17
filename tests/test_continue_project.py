@@ -7,9 +7,9 @@ from unittest.mock import patch
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import continue_project
 from openchronicle.core.domain.models.project import TaskStatus
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 @pytest.fixture

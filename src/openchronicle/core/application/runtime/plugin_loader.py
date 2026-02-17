@@ -4,12 +4,17 @@ import importlib.util
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from openchronicle.core.application.runtime.task_registry import HandlerCollisionError, TaskHandlerRegistry
 from openchronicle.core.domain.errors import PLUGIN_COLLISION, PLUGIN_ID_COLLISION
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry, TaskHandler
-from openchronicle.core.infrastructure.config.config_loader import load_plugin_config
+
+
+class PluginConfigLoaderPort(Protocol):
+    """Port for loading per-plugin JSON config files."""
+
+    def __call__(self, plugins_dir: str | Path, plugin_name: str) -> dict: ...
 
 
 class PluginCollisionError(Exception):
@@ -68,13 +73,15 @@ class PluginLoader:
         self,
         plugins_dir: str = "plugins",
         handler_registry: TaskHandlerRegistry | None = None,
+        config_loader: PluginConfigLoaderPort | None = None,
     ) -> None:
         self.plugins_dir = Path(plugins_dir)
         self.registry = InMemoryPluginRegistry()
         self.allow_collisions = os.getenv("OC_PLUGIN_ALLOW_COLLISIONS", "0") == "1"
         # Create handler registry with collision checking enabled (unless collisions are allowed)
         self.handler_registry = handler_registry or TaskHandlerRegistry(check_collisions=not self.allow_collisions)
-        self._plugin_sources: dict[str, str] = {}  # plugin_name -> source_path  # plugin_name -> source_path
+        self._config_loader: PluginConfigLoaderPort = config_loader or (lambda _dir, _name: {})
+        self._plugin_sources: dict[str, str] = {}  # plugin_name -> source_path
 
     def _find_repo_root(self) -> Path:
         """Find repository root by walking up until pyproject.toml is found."""
@@ -132,7 +139,7 @@ class PluginLoader:
 
             # Inject per-plugin JSON config into context (co-located with plugin code)
             plugin_context = dict(context) if context else {}
-            plugin_cfg = load_plugin_config(plugins_root, plugin_name)
+            plugin_cfg = self._config_loader(plugins_root, plugin_name)
             if plugin_cfg:
                 plugin_context["config"] = plugin_cfg
 

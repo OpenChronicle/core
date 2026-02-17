@@ -24,10 +24,10 @@ import pytest
 
 discord_lib = pytest.importorskip("discord", reason="discord.py not installed")
 
-from openchronicle.core.application.runtime.container import CoreContainer  # noqa: E402
 from openchronicle.core.application.use_cases import add_memory  # noqa: E402
 from openchronicle.core.domain.models.memory_item import MemoryItem  # noqa: E402
 from openchronicle.core.domain.services.verification import VerificationService  # noqa: E402
+from openchronicle.core.infrastructure.wiring.container import CoreContainer  # noqa: E402
 from openchronicle.interfaces.discord.bot import DiscordBot  # noqa: E402
 from openchronicle.interfaces.discord.config import DiscordConfig  # noqa: E402
 

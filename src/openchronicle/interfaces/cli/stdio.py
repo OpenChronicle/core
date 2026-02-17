@@ -12,7 +12,11 @@ from io import TextIOBase
 from queue import Empty, Queue
 from typing import TextIO
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.application.config.settings import (
+    PrivacyOutboundSettings,
+    TelemetrySettings,
+    load_telemetry_settings,
+)
 from openchronicle.core.domain.errors.error_codes import (
     HANDLER_ERROR,
     INTERNAL_ERROR,
@@ -25,11 +29,7 @@ from openchronicle.core.domain.errors.error_codes import (
 )
 from openchronicle.core.domain.models.project import Event, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMUsage
-from openchronicle.core.infrastructure.config.settings import (
-    PrivacyOutboundSettings,
-    TelemetrySettings,
-    load_telemetry_settings,
-)
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 STDIO_RPC_PROTOCOL_VERSION = "1"
 MAX_REQUEST_CACHE_ENTRIES = 256

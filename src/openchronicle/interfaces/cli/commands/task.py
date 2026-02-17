@@ -6,11 +6,11 @@ import argparse
 import asyncio
 import json
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import run_task, show_task
 from openchronicle.core.domain.services.replay import ReplayMode
 from openchronicle.core.domain.services.replay import ReplayService as DomainReplayService
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 from ._helpers import parse_json, print_verification_result
 

@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import os
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import convo_mode
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.commands import COMMANDS, PRE_CONTAINER_COMMANDS
 from openchronicle.interfaces.cli.commands._helpers import json_envelope, json_error_payload, print_json
 

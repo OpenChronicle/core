@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Callable
 from pathlib import Path
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 from ._helpers import json_envelope, print_json
 

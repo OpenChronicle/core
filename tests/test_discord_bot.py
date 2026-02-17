@@ -71,7 +71,7 @@ def _make_config(
 
 
 def _make_container() -> Any:
-    from openchronicle.core.infrastructure.config.settings import ConversationSettings
+    from openchronicle.core.application.config.settings import ConversationSettings
 
     container = MagicMock()
     container.storage = MagicMock()

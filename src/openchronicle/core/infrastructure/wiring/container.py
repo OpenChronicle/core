@@ -4,6 +4,14 @@ import os
 from pathlib import Path
 from typing import Any
 
+from openchronicle.core.application.config.budget_config import load_budget_policy
+from openchronicle.core.application.config.env_helpers import env_override, parse_int
+from openchronicle.core.application.config.settings import (
+    load_conversation_settings,
+    load_privacy_outbound_settings,
+    load_router_assist_settings,
+    load_telemetry_settings,
+)
 from openchronicle.core.application.policies.rate_limiter import RateLimitConfig, RateLimiter
 from openchronicle.core.application.policies.retry_policy import RetryConfig, RetryPolicy
 from openchronicle.core.application.routing.pool_config import load_pool_config
@@ -15,15 +23,7 @@ from openchronicle.core.application.services.scheduler import SchedulerService
 from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.router_assist_port import RouterAssistPort
-from openchronicle.core.infrastructure.config.budget_config import load_budget_policy
-from openchronicle.core.infrastructure.config.config_loader import load_config_files
-from openchronicle.core.infrastructure.config.env_helpers import env_override, parse_int
-from openchronicle.core.infrastructure.config.settings import (
-    load_conversation_settings,
-    load_privacy_outbound_settings,
-    load_router_assist_settings,
-    load_telemetry_settings,
-)
+from openchronicle.core.infrastructure.config.config_loader import load_config_files, load_plugin_config
 from openchronicle.core.infrastructure.llm.provider_facade import create_provider_aware_llm
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
@@ -149,6 +149,7 @@ class CoreContainer:
         self.plugin_loader = PluginLoader(
             plugins_dir=str(plugin_dir_resolved),
             handler_registry=self.handler_registry,
+            config_loader=load_plugin_config,
         )
         self.plugin_loader.load_plugins()
         self.orchestrator = OrchestratorService(

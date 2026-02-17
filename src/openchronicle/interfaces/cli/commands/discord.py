@@ -6,7 +6,7 @@ import argparse
 import logging
 import sys
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 def cmd_discord(args: argparse.Namespace, container: CoreContainer) -> int:

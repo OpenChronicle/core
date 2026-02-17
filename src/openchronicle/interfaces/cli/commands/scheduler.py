@@ -7,11 +7,11 @@ import json
 from collections.abc import Callable
 from datetime import UTC, datetime
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.services.scheduler import (
     InvalidTransitionError,
     JobNotFoundError,
 )
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 from ._helpers import json_envelope, print_json
 

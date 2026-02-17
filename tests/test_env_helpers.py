@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from openchronicle.core.infrastructure.config.env_helpers import (
+from openchronicle.core.application.config.env_helpers import (
     env_override,
     parse_bool,
     parse_float,

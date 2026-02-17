@@ -9,9 +9,9 @@ import pytest
 from openchronicle.core.application.policies.retry_controller import (
     RetryController,
 )
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.retry_policy import TaskRetryPolicy
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 def test_retry_policy_no_retry() -> None:

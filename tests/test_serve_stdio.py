@@ -4,10 +4,10 @@ import io
 import json
 from pathlib import Path
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import create_conversation
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli import stdio as cli_stdio
 
 

@@ -9,10 +9,10 @@ from unittest.mock import patch
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import create_conversation, create_project
 from openchronicle.core.domain.models.conversation import Turn
 from openchronicle.core.domain.models.memory_item import MemoryItem
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.main import main
 
 

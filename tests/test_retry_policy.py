@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from openchronicle.core.application.policies.rate_limiter import RateLimitTimeoutError
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.project import TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMProviderError, LLMResponse
 from openchronicle.core.domain.ports.llm_port import LLMUsage as LLMUsageModel
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 @pytest.fixture

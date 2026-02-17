@@ -19,7 +19,7 @@ from openchronicle.interfaces.discord.formatting import format_error, split_mess
 from openchronicle.interfaces.discord.session import SessionManager
 
 if TYPE_CHECKING:
-    from openchronicle.core.application.runtime.container import CoreContainer
+    from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 logger = logging.getLogger(__name__)
 

@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.project import SpanStatus, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 class _FakeLLMSuccess(LLMPort):

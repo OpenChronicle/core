@@ -22,7 +22,7 @@ from typing import Any
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.application.config.settings import PrivacyOutboundSettings
 from openchronicle.core.application.services.llm_execution import stream_with_route
 from openchronicle.core.application.use_cases import (
     add_memory,
@@ -34,7 +34,7 @@ from openchronicle.core.application.use_cases import (
 )
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.services.verification import VerificationService
-from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 # Skip entire module unless integration test env var is set
 pytestmark = [

@@ -7,13 +7,6 @@ from dataclasses import dataclass
 from openchronicle.core.domain.models.privacy_report import PrivacyReport
 from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 
-_LOCAL_PROVIDERS = {"ollama", "stub"}
-
-
-def is_external_provider(provider: str) -> bool:
-    return provider.strip().lower() not in _LOCAL_PROVIDERS
-
-
 _EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 _PHONE_RE = re.compile(r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?){1}\d{3}[-.\s]?\d{4}\b")
 _IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")

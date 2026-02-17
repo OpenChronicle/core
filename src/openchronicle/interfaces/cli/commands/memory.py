@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     add_memory,
     list_memory,
@@ -13,6 +12,7 @@ from openchronicle.core.application.use_cases import (
     show_memory,
 )
 from openchronicle.core.domain.models.memory_item import MemoryItem
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 def cmd_memory(args: argparse.Namespace, container: CoreContainer) -> int:

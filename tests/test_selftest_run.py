@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from openchronicle.core.application.use_cases import selftest_run
+from openchronicle.core.infrastructure.wiring.selftest_factory import create_selftest_container
 
 
 def test_selftest_use_case(tmp_path: Path) -> None:
@@ -12,6 +13,7 @@ def test_selftest_use_case(tmp_path: Path) -> None:
         json_output=False,
         keep_artifacts=True,
         with_plugins=True,
+        container_factory=create_selftest_container,
     )
 
     assert result["ok"] is True

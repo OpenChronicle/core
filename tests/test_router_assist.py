@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.infrastructure.router_assist.linear_assist import LinearRouterAssist
 from openchronicle.core.infrastructure.routing.hybrid_router import HybridInteractionRouter
 from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 def _fixture_model_path() -> str:

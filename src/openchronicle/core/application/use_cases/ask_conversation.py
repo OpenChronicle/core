@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
+from openchronicle.core.application.config.env_helpers import parse_bool, parse_float, parse_int
+from openchronicle.core.application.config.settings import PrivacyOutboundSettings
+from openchronicle.core.application.policies.provider_policy import is_external_provider
 from openchronicle.core.application.routing.router_policy import RouteDecision, RouterPolicy
 from openchronicle.core.application.services.llm_execution import execute_with_route
 from openchronicle.core.application.services.orchestrator import OrchestratorService
@@ -27,10 +30,6 @@ from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, 
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
-from openchronicle.core.infrastructure.config.env_helpers import parse_bool, parse_float, parse_int
-from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
-from openchronicle.core.infrastructure.privacy.rule_privacy import is_external_provider
-from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 
 class TelemetryRecorder(Protocol):
@@ -163,7 +162,7 @@ async def prepare_ask(
     conversation_id: str,
     prompt_text: str,
     *,
-    interaction_router: InteractionRouterPort | None = None,
+    interaction_router: InteractionRouterPort,
     last_n: int = 10,
     top_k_memory: int = 8,
     include_pinned_memory: bool = True,
@@ -270,7 +269,6 @@ async def prepare_ask(
         context_assemble_ms = (time.perf_counter() - context_started_at) * 1000
         telemetry.record_perf(context_assemble_ms=context_assemble_ms)
 
-    interaction_router = interaction_router or RuleInteractionRouter()
     router_hint = interaction_router.analyze(user_text=prompt_text, recent_turns=prior_turns)
     thresholds = _router_thresholds(interaction_router)
 
@@ -648,7 +646,7 @@ async def execute(
     conversation_id: str,
     prompt_text: str,
     *,
-    interaction_router: InteractionRouterPort | None = None,
+    interaction_router: InteractionRouterPort,
     last_n: int = 10,
     top_k_memory: int = 8,
     include_pinned_memory: bool = True,
@@ -715,7 +713,7 @@ def enqueue(
     include_explain: bool,
     allow_pii: bool,
     metadata: dict[str, object] | None,
-    interaction_router: InteractionRouterPort | None,
+    interaction_router: InteractionRouterPort,
     emit_event: Callable[[Event], None],
 ) -> Task:
     conversation = convo_store.get_conversation(conversation_id)
@@ -728,7 +726,7 @@ def enqueue(
         effective_mode = "general"
 
     router = RouterPolicy()
-    router_hint = (interaction_router or RuleInteractionRouter()).analyze(
+    router_hint = interaction_router.analyze(
         user_text=prompt_text,
         recent_turns=recent_turns,
     )

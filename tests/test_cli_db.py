@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.main import main
 
 

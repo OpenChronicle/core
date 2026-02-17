@@ -7,8 +7,8 @@ import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
+from typing import Any, Protocol
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     ask_conversation,
     create_conversation,
@@ -17,7 +17,12 @@ from openchronicle.core.application.use_cases import (
     run_task,
 )
 from openchronicle.core.domain.services.verification import VerificationService
-from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
+
+
+class SelftestContainerFactory(Protocol):
+    """Port for creating a wired container for selftest scenarios."""
+
+    def __call__(self, *, db_path: str, config_dir: str, plugin_dir: str, output_dir: str) -> Any: ...
 
 
 def _find_repo_root(start: Path) -> Path:
@@ -121,6 +126,7 @@ def execute(
     keep_artifacts: bool,
     with_plugins: bool = True,
     telemetry_self_report: bool = False,
+    container_factory: SelftestContainerFactory,
 ) -> dict[str, object]:
     base_path = Path(base_dir).resolve()
     workspace: dict[str, Path] | None = None
@@ -161,12 +167,11 @@ def execute(
         export_path = workspace["output_dir"] / "selftest_export.json"
 
         with _temporary_env(env_overrides):
-            container = CoreContainer(
+            container = container_factory(
                 db_path=str(db_path),
                 config_dir=str(workspace["config_dir"]),
                 plugin_dir=str(workspace["plugins_dir"]),
                 output_dir=str(workspace["output_dir"]),
-                llm=StubLLMAdapter(),
             )
 
             conversation = create_conversation.execute(

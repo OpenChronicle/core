@@ -8,9 +8,9 @@ import logging
 import os
 import sys
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import init_config, init_runtime, provider_setup
 from openchronicle.core.domain.errors.error_codes import INVALID_JSON, INVALID_REQUEST
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.commands._helpers import json_envelope, json_error_payload, print_json
 from openchronicle.interfaces.cli.stdio import (
     STDIO_RPC_PROTOCOL_VERSION,
@@ -89,14 +89,14 @@ def cmd_config_show(args: argparse.Namespace) -> int:
     from dataclasses import asdict
     from pathlib import Path
 
-    from openchronicle.core.application.routing.pool_config import load_pool_config
-    from openchronicle.core.infrastructure.config.budget_config import load_budget_policy
-    from openchronicle.core.infrastructure.config.config_loader import load_config_files
-    from openchronicle.core.infrastructure.config.settings import (
+    from openchronicle.core.application.config.budget_config import load_budget_policy
+    from openchronicle.core.application.config.settings import (
         load_privacy_outbound_settings,
         load_router_assist_settings,
         load_telemetry_settings,
     )
+    from openchronicle.core.application.routing.pool_config import load_pool_config
+    from openchronicle.core.infrastructure.config.config_loader import load_config_files
 
     # Resolved paths
     config_dir = os.getenv("OC_CONFIG_DIR", "config")

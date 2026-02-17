@@ -6,10 +6,10 @@ from typing import Any
 
 import pytest
 
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.domain.models.project import TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse, LLMUsage
 from openchronicle.core.infrastructure.llm.provider_facade import ProviderAwareLLMFacade
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 class FakeOpenAIAdapter(LLMPort):

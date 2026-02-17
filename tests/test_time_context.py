@@ -12,6 +12,7 @@ from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.project import Project
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
+from openchronicle.core.infrastructure.routing.rule_router import RuleInteractionRouter
 
 
 def _setup(tmp_path: Path) -> tuple[SqliteStore, EventLogger, str]:
@@ -44,6 +45,7 @@ class TestTimeContextFirstTurn:
             emit_event=event_logger.append,
             conversation_id=convo.id,
             prompt_text="Hello",
+            interaction_router=RuleInteractionRouter(),
         )
 
         assert ctx.last_interaction_at == convo.created_at
@@ -64,6 +66,7 @@ class TestTimeContextFirstTurn:
             emit_event=event_logger.append,
             conversation_id=convo.id,
             prompt_text="Hello",
+            interaction_router=RuleInteractionRouter(),
         )
 
         time_msgs = [m for m in ctx.messages if m["role"] == "system" and "Last interaction:" in m["content"]]
@@ -102,6 +105,7 @@ class TestTimeContextSubsequentTurn:
             emit_event=event_logger.append,
             conversation_id=convo.id,
             prompt_text="Follow-up",
+            interaction_router=RuleInteractionRouter(),
         )
 
         # Should reference the turn (30 min ago), not the conversation (1 day ago)
@@ -127,6 +131,7 @@ class TestTimeContextFormat:
             emit_event=event_logger.append,
             conversation_id=convo.id,
             prompt_text="Hello",
+            interaction_router=RuleInteractionRouter(),
         )
 
         time_msgs = [m for m in ctx.messages if m["role"] == "system" and "Last interaction:" in m["content"]]
@@ -157,6 +162,7 @@ class TestTimeContextFormat:
             emit_event=event_logger.append,
             conversation_id=convo.id,
             prompt_text="New question",
+            interaction_router=RuleInteractionRouter(),
         )
 
         # Find positions

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 
-from openchronicle.core.application.runtime.container import CoreContainer
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.discord.bot import DiscordBot
 from openchronicle.interfaces.discord.commands import setup_commands
 from openchronicle.interfaces.discord.config import DiscordConfig

@@ -15,8 +15,9 @@ import time
 from collections.abc import Callable
 from typing import cast
 
+from openchronicle.core.application.config.settings import PrivacyOutboundSettings
+from openchronicle.core.application.policies.provider_policy import is_external_provider
 from openchronicle.core.application.routing.pool_config import load_pool_config
-from openchronicle.core.application.runtime.container import CoreContainer
 from openchronicle.core.application.use_cases import (
     convo_mode,
     explain_turn,
@@ -47,8 +48,7 @@ from openchronicle.core.domain.models.project import Event, Task, TaskStatus
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 from openchronicle.core.domain.services.verification import VerificationResult, VerificationService
-from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
-from openchronicle.core.infrastructure.privacy.rule_privacy import is_external_provider
+from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.stdio import (
     METRICS,
     RUNNABLE_TASK_TYPES,

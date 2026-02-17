@@ -5,8 +5,8 @@ from typing import Any, cast
 
 import pytest
 
+from openchronicle.core.application.config.settings import PrivacyOutboundSettings
 from openchronicle.core.application.use_cases import ask_conversation, create_conversation, explain_turn
-from openchronicle.core.infrastructure.config.settings import PrivacyOutboundSettings
 from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter
 from openchronicle.core.infrastructure.logging.event_logger import EventLogger
 from openchronicle.core.infrastructure.persistence.sqlite_store import SqliteStore
