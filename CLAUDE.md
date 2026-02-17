@@ -88,6 +88,8 @@ for the full directory tree and layer descriptions.
 - **Task Handlers**: Async functions registered by handler name (e.g., `hello.echo`, `story.draft`)
 - **Plugins**: Discovered from `plugins/` directory, loaded via `importlib.util`
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
+- **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
+- **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
 
 ## Conventions
 
@@ -134,5 +136,7 @@ telemetry, and more): [docs/configuration/env_vars.md](docs/configuration/env_va
 - `docs/design/design_decisions.md` - Core subsystem design rationale
 - `docs/protocol/stdio_rpc_v1.md` - RPC protocol specification
 - `docs/BACKLOG.md` - Feature and implementation backlog
+- `tests/test_architectural_posture.py` - Posture enforcement (core agnostic, session isolation, enqueue allowlist)
+- `tests/test_hexagonal_boundaries.py` - Layer boundary enforcement (domain, application, core vs discord)
 - `src/openchronicle/core/application/services/orchestrator.py` - Main orchestrator
 - `src/openchronicle/interfaces/cli/main.py` - CLI entry point (`oc` command)

@@ -208,7 +208,7 @@ Additional fixes applied during implementation:
   had `created_at` timestamps that didn't match serialization order, causing
   `ORDER BY created_at` to return stale `prev_hash` values.
 
-**Multi-process safe.** Scheduler plugin, Discord driver, and concurrent
+**Multi-process safe.** Scheduler service, Discord driver, and concurrent
 processes can now share the database.
 
 ---
@@ -244,8 +244,8 @@ surface. No backwards compatibility concerns. No production deployment yet.
 | ONNX router assist | Linear model works; ONNX is a performance optimization |
 | Embeddings / vector memory search | Keyword search works for v0; embeddings are a plugin concern |
 | Docker hardening | Not needed until deployment |
-| Scheduler plugin | First plugin after core done |
-| Discord driver | Needs scheduler first |
+| ~~Scheduler~~ | ✅ Core service (`application/services/scheduler.py`, 52+ tests) |
+| ~~Discord driver~~ | ✅ Interfaces driver (`interfaces/discord/`, 60 tests, optional extra) |
 
 ---
 

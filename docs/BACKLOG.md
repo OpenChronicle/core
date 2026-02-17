@@ -50,28 +50,33 @@ This document tracks planned features, implementation gaps, and future work for 
 
 ## Priority 1 — Client Integrations
 
-### 1.1 Discord Driver Plugin
+### 1.1 Discord Interface (Core Driver)
 
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** Scheduler (recommended, not required)
-**Documentation:** `docs/integrations/discord_driver_contract.md`
+**Status:** ✅ Implemented
+**Location:** `src/openchronicle/interfaces/discord/` (optional `[discord]` extra)
+**Tests:** 60 unit tests (`test_discord_*.py`) + 7 integration tests
 
-**Requirements:**
+Implemented as a core interfaces driver per Decision #4 (hybrid taxonomy).
+The driver interacts with core directly via the container (same process), not
+via STDIO RPC. Core remains fully functional without Discord installed — the
+`discord.py` package is an optional extra, all discord imports are lazy and
+confined to `interfaces/discord/` and `interfaces/cli/commands/discord.py`.
 
-- [ ] Discord bot receiving messages
-- [ ] Map to `convo.ask` / `convo.ask_async` RPC
-- [ ] Honor conversation modes
-- [ ] Honor privacy gates and NSFW filtering
-- [ ] Explicit network and credential configuration
-- [ ] Rate limiting + retry policy with clear logs
-- [ ] Sync mode (simple) and Async mode (recommended)
+**Implemented:**
 
-**Constraints:**
+- [x] Discord bot receiving messages (`commands.Bot` subclass)
+- [x] 6 slash commands: `/newconvo`, `/remember`, `/forget`, `/explain`, `/mode`, `/history`
+- [x] Session-to-conversation mapping (file-backed, multi-user)
+- [x] Message splitting for Discord's 2000-char limit
+- [x] Privacy gate and interaction routing honored
+- [x] Config from `core.json` + env vars (three-layer precedence)
+- [x] `oc discord start` CLI command with lazy import guard
 
-- Core must remain fully functional without Discord
-- Integrate via STDIO RPC, not by importing core internals
-- Explicit PII handling with allow_pii bypass confirmation
+**Architectural posture (enforced by tests):**
+
+- Core must remain fully functional without Discord (`test_architectural_posture.py`)
+- No `core.*` module imports discord (`test_hexagonal_boundaries.py`)
+- Multi-session isolation: no module-level mutable state (`test_architectural_posture.py`)
 
 ---
 
@@ -81,7 +86,7 @@ This document tracks planned features, implementation gaps, and future work for 
 
 **Status:** 🔴 Not Started
 **Effort:** Medium
-**Depends On:** Scheduler Plugin
+**Depends On:** Scheduler Service (core)
 
 **Requirements:**
 
@@ -93,11 +98,11 @@ This document tracks planned features, implementation gaps, and future work for 
 - [ ] Deterministic scan runs with stable tool versions
 - [ ] Reports stored in output directory with timestamps + "latest" pointer
 - [ ] Alert channels: CLI/RPC retrieval
-- [ ] Optional Discord alerts (if Discord plugin installed)
+- [ ] Optional Discord alerts (if Discord interface configured)
 
 **Acceptance Criteria:**
 
-- Scans run on schedule via scheduler plugin
+- Scans run on schedule via scheduler service
 - Reports are JSON-serializable and timestamped
 - No false positives in baseline scan of clean repo
 
@@ -350,15 +355,14 @@ Recommended order based on dependencies:
 
 ```text
 1. Scheduler Service (P0) ✅
-   └── Foundation for all downstream features
+   └── Core service in application/services/
 
-2. Security Scanner Plugin (P2)
-   └── Runs via scheduler
+2. Discord Interface (P1) ✅
+   └── Core driver in interfaces/discord/
+
+3. Security Scanner Plugin (P2)
+   └── Runs via scheduler service
    └── Safety rail for dev agent
-
-3. Discord Driver Plugin (P1)
-   └── Uses core via RPC
-   └── Can use scheduler for async
 
 4. HTTP API (Infrastructure)
    └── Web integrations
@@ -375,7 +379,7 @@ Recommended order based on dependencies:
    └── After sandbox exists
 
 8. Goose Integration (P5.2)
-   └── After scheduler + scanner + sandbox baseline
+   └── After scanner + sandbox baseline
    └── Replaceable agent runtime driver
 
 9. Mixture-of-Experts (P4)

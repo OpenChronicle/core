@@ -16,53 +16,47 @@ This document captures all known plugin/extension ideas discussed to date, order
 
 These provide immediate leverage for all other plugins and should be implemented early.
 
-### 0.1 Scheduler / Background Jobs Plugin
+### 0.1 Scheduler / Background Jobs ✅ (Moved to Core)
 
-**Problem:** We want scheduled tasks/responses and periodic background work without baking a daemon scheduler into core.
+**Status:** Implemented as a core service in `application/services/scheduler.py`
+per Decision #4 (hybrid taxonomy). The scheduler needs persistent storage,
+lifecycle hooks, and direct service access — all of which the plugin API lacks.
 
-**Minimum capability:**
+**What was built (52+ tests, 6 CLI + 6 RPC commands):**
 
-- Define a job store (plugin-local SQLite under runtime directory).
-- Job types:
-  - one-shot at timestamp
-  - recurring (interval or cron-like later)
-- Deterministic selection/order:
-  - `due_at ASC`, `created_at ASC`, `job_id ASC`
-- Execution is explicit and auditable:
-  - `scheduler.tick(now, max_jobs)` -> enqueues tasks via core (`task.submit`), returns run metadata
-- No threads required to start:
-  - Initial version can be “tick-driven” (via `oc rpc` or external driver).
-  - Optional later: long-running `scheduler.serve` loop (still plugin-side).
+- Job store in core SQLite (`scheduled_jobs` table)
+- One-shot + recurring jobs (interval-based)
+- Deterministic ordering: `next_due_at ASC`, `created_at ASC`, `id ASC`
+- `scheduler.tick(now, max_jobs)` — atomic claim via `BEGIN IMMEDIATE`
+- `scheduler.serve()` — async polling loop with clean shutdown
+- Events: `scheduler.job_created/paused/resumed/cancelled/fired/tick_completed`
 
-**Why high priority:** It unlocks scheduled responses, scans, metrics snapshots, and future automation with minimal core impact.
+See `docs/BACKLOG.md` section 0.1 for full details.
 
 ---
 
 ## Priority 1 — Front-end / Client integrations (core remains standalone)
 
-### 1.1 Discord Integration (Driver Plugin)
+### 1.1 Discord Integration ✅ (Moved to Core)
 
-**Problem:** Provide a real “app feel” by letting Discord act as a UI client.
+**Status:** Implemented as a core interfaces driver in `interfaces/discord/`
+per Decision #4 (hybrid taxonomy). Discord is an interface like CLI or STDIO
+RPC — it needs the same level of access as core services.
 
-**Minimum capability:**
+**What was built (60 unit tests + 7 integration tests):**
 
-- Discord bot that:
-  - receives messages
-  - maps them to `convo.ask` (RPC)
-  - posts responses back
-- Must honor:
-  - conversation modes
-  - privacy gate / PII checks
-  - routing decisions (NSFW-capable model selection)
-- Explicit network and credential configuration.
-- Rate limiting + retry policy (plugin-side), with clear logs.
+- `commands.Bot` subclass with message handling
+- 6 slash commands: `/newconvo`, `/remember`, `/forget`, `/explain`, `/mode`, `/history`
+- Session-to-conversation mapping (file-backed, multi-user)
+- Message splitting for Discord's 2000-char limit
+- Config from `core.json` + env vars (three-layer precedence)
+- `oc discord start` CLI command with lazy import guard
+- Optional `[discord]` extra — core runs without discord.py installed
 
-**Notes:**
+**Posture enforcement:** `test_architectural_posture.py` + `test_hexagonal_boundaries.py`
+verify core agnosticism, no inward imports, and session isolation.
 
-- Core must remain fully functional without Discord.
-- Prefer integrating via STDIO RPC process orchestration; do not import core internals directly unless we explicitly allow it.
-
-**Why high priority:** Most visible UX win once core is stable.
+See `docs/BACKLOG.md` section 1.1 for full details.
 
 ---
 
@@ -211,6 +205,8 @@ These provide immediate leverage for all other plugins and should be implemented
 
 These were discussed as plugin candidates but were (correctly) handled in core because they are foundational:
 
+- **Scheduler service** — `application/services/scheduler.py` (52+ tests)
+- **Discord interface** — `interfaces/discord/` (60 tests, optional extra)
 - **Router assist seam + local classifier baseline**
 - **Privacy gate / PII controls + override**
 - **Deterministic metrics surface + telemetry hooks**
@@ -221,9 +217,9 @@ These were discussed as plugin candidates but were (correctly) handled in core b
 
 ## Implementation sequencing recommendation (high-level)
 
-1. **Scheduler plugin MVP**
-2. **Security scanner plugin** (runs via scheduler)
-3. **Discord driver plugin** (uses core via RPC; can also schedule via scheduler)
+1. ~~**Scheduler service**~~ ✅ (core — `application/services/scheduler.py`)
+2. ~~**Discord interface**~~ ✅ (core — `interfaces/discord/`)
+3. **Security scanner plugin** (runs via scheduler service)
 4. **Sandbox dev-agent runner** (uses scheduler + scanner as safety rails)
 5. **Serena MCP capabilities inside sandbox runner**
 6. **Mixture-of-experts mode** (optional advanced UX)

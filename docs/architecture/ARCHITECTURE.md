@@ -167,8 +167,11 @@ The `oc` CLI provides:
 
 See `docs/BACKLOG.md` for planned features including:
 
-- Scheduler plugin for background jobs
-- Discord driver integration
 - Security scanner plugin
 - Dev agent runner (sandboxed)
 - HTTP API implementation
+
+Already implemented as core capabilities (not plugins — see Decision #4):
+
+- Scheduler service (`application/services/scheduler.py`, 52+ tests)
+- Discord interface (`interfaces/discord/`, 60 tests, optional `[discord]` extra)
