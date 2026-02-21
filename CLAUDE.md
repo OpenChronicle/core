@@ -15,9 +15,10 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** OC MCP server interface (Decision #5), security scanner plugin,
-or dev agent runner. MCP server unblocks Goose + Serena triangle and VS Code
-integration.
+**Next action:** Security scanner plugin, dev agent runner, or Goose integration
+(MCP server now unblocks all three).
+MCP server is done (`interfaces/mcp/`, 10 tools, 21 tests + 7 posture, `oc mcp serve`
+CLI, stdio + SSE transports, lazy import guard).
 Discord interface is done (`interfaces/discord/`, `commands.Bot` subclass, 6 slash
 commands, session mapping, message splitting, 60 tests, `oc discord start` CLI).
 Scheduler service is done (tick-driven, atomic claim, 52+ tests, CLI + RPC).
@@ -39,6 +40,7 @@ pip install -e ".[dev]"
 pip install -e ".[openai]"    # OpenAI support
 pip install -e ".[ollama]"    # Ollama support
 pip install -e ".[discord]"   # Discord bot support
+pip install -e ".[mcp]"      # MCP server support
 
 # Setup pre-commit hooks
 pip install pre-commit && pre-commit install
@@ -92,6 +94,7 @@ for the full directory tree and layer descriptions.
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
+- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 10 tools, FastMCP)
 
 ## Conventions
 
@@ -140,6 +143,6 @@ telemetry, and more): [docs/configuration/env_vars.md](docs/configuration/env_va
 - `docs/integrations/mcp_server_spec.md` - OC MCP server spec (Goose/Serena triangle)
 - `docs/BACKLOG.md` - Feature and implementation backlog
 - `tests/test_architectural_posture.py` - Posture enforcement (core agnostic, session isolation, enqueue allowlist)
-- `tests/test_hexagonal_boundaries.py` - Layer boundary enforcement (domain, application, core vs discord)
+- `tests/test_hexagonal_boundaries.py` - Layer boundary enforcement (domain, application, core vs discord/mcp)
 - `src/openchronicle/core/application/services/orchestrator.py` - Main orchestrator
 - `src/openchronicle/interfaces/cli/main.py` - CLI entry point (`oc` command)

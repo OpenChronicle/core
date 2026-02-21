@@ -136,3 +136,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "discord.*"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "mcp.*"
+ignore_missing_imports = true

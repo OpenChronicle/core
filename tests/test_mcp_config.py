@@ -1,0 +1,66 @@
+"""Tests for MCP server configuration."""
+
+from __future__ import annotations
+
+import os
+from unittest.mock import patch
+
+import pytest
+
+mcp_mod = pytest.importorskip("mcp")  # noqa: F841
+
+from openchronicle.interfaces.mcp.config import MCPConfig  # noqa: E402
+
+
+class TestMCPConfigDefaults:
+    def test_defaults(self) -> None:
+        config = MCPConfig()
+        assert config.transport == "stdio"
+        assert config.host == "127.0.0.1"
+        assert config.port == 8080
+        assert config.server_name == "openchronicle"
+
+    def test_from_env_defaults(self) -> None:
+        with patch.dict(os.environ, {}, clear=False):
+            # Remove any OC_MCP_ env vars that might exist
+            for key in list(os.environ):
+                if key.startswith("OC_MCP_"):
+                    del os.environ[key]
+            config = MCPConfig.from_env()
+        assert config.transport == "stdio"
+        assert config.host == "127.0.0.1"
+        assert config.port == 8080
+
+
+class TestMCPConfigEnvPrecedence:
+    def test_env_overrides_file_config(self) -> None:
+        file_config = {"transport": "sse", "host": "0.0.0.0", "port": 9090}
+        with patch.dict(os.environ, {"OC_MCP_TRANSPORT": "stdio", "OC_MCP_HOST": "localhost", "OC_MCP_PORT": "7070"}):
+            config = MCPConfig.from_env(file_config=file_config)
+        assert config.transport == "stdio"
+        assert config.host == "localhost"
+        assert config.port == 7070
+
+    def test_file_config_used_when_no_env(self) -> None:
+        file_config = {"transport": "sse", "host": "0.0.0.0", "port": 9090}
+        env = {k: v for k, v in os.environ.items() if not k.startswith("OC_MCP_")}
+        with patch.dict(os.environ, env, clear=True):
+            config = MCPConfig.from_env(file_config=file_config)
+        assert config.transport == "sse"
+        assert config.host == "0.0.0.0"
+        assert config.port == 9090
+
+
+class TestMCPConfigValidation:
+    def test_invalid_transport_raises(self) -> None:
+        with pytest.raises(ValueError, match="Invalid MCP transport"):
+            MCPConfig.from_env(file_config={"transport": "websocket"})
+
+    def test_valid_transports(self) -> None:
+        for transport in ("stdio", "sse"):
+            config = MCPConfig.from_env(file_config={"transport": transport})
+            assert config.transport == transport
+
+    def test_server_name_from_file_config(self) -> None:
+        config = MCPConfig.from_env(file_config={"server_name": "my-oc"})
+        assert config.server_name == "my-oc"

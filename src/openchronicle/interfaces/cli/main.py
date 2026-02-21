@@ -336,6 +336,16 @@ def main(argv: list[str] | None = None) -> int:
     discord_start = discord_sub.add_parser("start", help="Start the Discord bot (long-running)")
     discord_start.add_argument("--force", action="store_true", help="Ignore existing PID file and start anyway")
 
+    # --- MCP commands ---
+    mcp_cmd = sub.add_parser("mcp", help="MCP server commands")
+    mcp_sub = mcp_cmd.add_subparsers(dest="mcp_command")
+    mcp_serve = mcp_sub.add_parser("serve", help="Start the MCP server")
+    mcp_serve.add_argument(
+        "--transport", choices=["stdio", "sse"], default=None, help="Transport protocol (default: stdio)"
+    )
+    mcp_serve.add_argument("--host", default=None, help="Bind address for SSE transport (default: 127.0.0.1)")
+    mcp_serve.add_argument("--port", type=int, default=None, help="Port for SSE transport (default: 8080)")
+
     # --- System commands ---
     init_config_cmd = sub.add_parser("init-config", help="Initialize model configuration with examples")
     init_config_cmd.add_argument(

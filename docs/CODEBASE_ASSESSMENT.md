@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-17
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 21 (router policy fix, Ollama streaming fix, PID file, Discord integration tests)
+**Revision:** 22 (OC MCP server: 10 tools, FastMCP, stdio + SSE, 21+7 tests, posture-enforced)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (791 unit/functional, 20 real-world integration, 14 Discord
+Tests are strong (825 unit/functional, 20 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -73,11 +73,11 @@ cleans it up on shutdown. If a prior instance is still alive, startup exits with
 an error. `--force` overrides the check. Cross-platform: uses `PermissionError`
 vs generic `OSError` distinction since Windows doesn't raise `ProcessLookupError`.
 
-**What's next:** OC MCP server interface (Decision #5), security scanner plugin,
-or dev agent runner. MCP server unblocks Goose + Serena triangle and VS Code
-integration.
+**What's next:** Security scanner plugin, dev agent runner, or Goose integration.
+MCP server (Decision #5) is implemented — unblocks Goose + Serena triangle, VS
+Code integration, and any MCP-compatible client.
 
-**Overall: Core feature-complete, Discord interface operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment.**
+**Overall: Core feature-complete, Discord + MCP interfaces operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment.**
 
 ---
 
@@ -172,12 +172,13 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
-| **Test suite** (791 unit/functional, 20 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 13 test categories + Discord, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
+| **MCP server interface** (10 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, health tools; lazy import guard; posture-enforced isolation; 21 unit + 7 posture tests |
+| **Test suite** (825 unit/functional, 20 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 13 test categories + Discord + MCP, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest |
 
 ### Architecture (Enforced and Clean)
 
 ```text
-interfaces/ (CLI, RPC, Discord, API stub)
+interfaces/ (CLI, RPC, Discord, MCP, API stub)
     ↓ calls
 application/ (use cases, orchestrator, policies, routing, config)
     ↓ depends on
@@ -186,10 +187,10 @@ domain/ (models, ports, services)
 infrastructure/ (LLM adapters, SQLite, privacy, router assist, wiring)
 ```
 
-Boundary discipline enforced by `test_hexagonal_boundaries.py` (3 tests) and
-`test_architectural_posture.py` (19 tests): domain imports nothing outward,
+Boundary discipline enforced by `test_hexagonal_boundaries.py` (4 tests) and
+`test_architectural_posture.py` (26 tests): domain imports nothing outward,
 application imports nothing from infrastructure, core imports nothing from
-Discord. Composition root (`CoreContainer`) lives in `infrastructure/wiring/`.
+Discord or MCP. Composition root (`CoreContainer`) lives in `infrastructure/wiring/`.
 
 Enforced by: `test_hexagonal_boundaries.py`, `test_core_agnosticism.py`,
 `test_policies_purity.py`. Domain has zero infrastructure imports. Application has
@@ -275,6 +276,7 @@ surface. No backwards compatibility concerns. No production deployment yet.
 | Docker hardening | Not needed until deployment |
 | ~~Scheduler~~ | ✅ Core service (`application/services/scheduler.py`, 52+ tests) |
 | ~~Discord driver~~ | ✅ Interfaces driver (`interfaces/discord/`, 60 tests, optional extra) |
+| ~~OC MCP Server~~ | ✅ Interfaces driver (`interfaces/mcp/`, 10 tools, 21+7 tests, optional extra) |
 
 ---
 
@@ -428,7 +430,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (120 files, 760+ unit/functional + 20 real-world integration + 14 Discord integration + 6 concurrency stress)
+### Test Suite (123 files, 825 unit/functional + 20 real-world integration + 14 Discord integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -516,7 +518,7 @@ Core Done
   ✓ LLMPort: function calling / tool use (done)
   ✓ Scheduler (core — application/services)
   ✓ Discord Driver (core — interfaces/)
-  → OC MCP Server (core — interfaces/mcp, Decision #5)
+  ✓ OC MCP Server (core — interfaces/mcp, Decision #5)
   → Security Scanner (plugin — stateless handler)
   → Dev Agent Runner (core — needs LLM + sandbox)
   → Serena MCP (core — inside sandbox only)

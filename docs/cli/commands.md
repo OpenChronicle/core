@@ -450,6 +450,31 @@ oc rpc [--request JSON]
 
 ---
 
+## MCP Server
+
+### `oc mcp serve`
+
+Start the MCP server. Exposes OC's memory and conversation capabilities to any
+MCP-compatible client (Goose, Claude Desktop, VS Code).
+
+```text
+oc mcp serve [--transport {stdio,sse}] [--host HOST] [--port PORT]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--transport` | Transport protocol: `stdio` (default) or `sse` |
+| `--host` | Bind address for SSE transport (default: `127.0.0.1`) |
+| `--port` | Port for SSE transport (default: `8080`) |
+
+Requires the `[mcp]` extra: `pip install -e ".[mcp]"`.
+
+**MCP tools exposed:** `health`, `memory_search`, `memory_save`, `memory_list`,
+`memory_pin`, `conversation_ask`, `conversation_history`, `conversation_list`,
+`conversation_create`, `context_recent`.
+
+---
+
 ## Testing / Debug
 
 ### `oc selftest`

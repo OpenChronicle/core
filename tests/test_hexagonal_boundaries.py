@@ -111,3 +111,27 @@ def test_core_has_no_interfaces_discord_imports() -> None:
     if violations:
         msg = "Core has forbidden Discord imports:\n" + "\n".join(f"  - {v}" for v in violations)
         raise AssertionError(msg)
+
+
+def test_core_has_no_interfaces_mcp_imports() -> None:
+    """
+    Core layers must not import from interfaces.mcp.
+
+    MCP is a driving adapter that depends on core, not the reverse.
+    Core must remain runnable without MCP SDK installed.
+    """
+    src_root = Path(__file__).parent.parent / "src"
+    core_path = src_root / "openchronicle" / "core"
+
+    violations = _scan_layer_for_forbidden_imports(
+        core_path,
+        [
+            "openchronicle.interfaces.mcp",
+            "mcp",
+        ],
+        src_root=src_root,
+    )
+
+    if violations:
+        msg = "Core has forbidden MCP imports:\n" + "\n".join(f"  - {v}" for v in violations)
+        raise AssertionError(msg)

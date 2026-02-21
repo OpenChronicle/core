@@ -84,9 +84,9 @@ confined to `interfaces/discord/` and `interfaces/cli/commands/discord.py`.
 
 ### 2.1 MCP Server Interface
 
-**Status:** 🔴 Not Started
+**Status:** ✅ Implemented
 **Location:** `src/openchronicle/interfaces/mcp/` (optional `[mcp]` extra)
-**Effort:** Medium
+**Tests:** 21 unit tests (`test_mcp_config.py`, `test_mcp_tools.py`) + 7 posture tests
 **Spec:** [`docs/integrations/mcp_server_spec.md`](integrations/mcp_server_spec.md)
 
 Exposes OC's persistent memory and conversation capabilities via Model Context
@@ -99,31 +99,28 @@ use OC without custom integration code. See Decision #5 in assessment.
 - OC MCP = persistent memory (what was DECIDED and WHY)
 - Goose = agent execution (hands that do the work)
 
-**MCP Tools (10):**
+**Implemented:**
 
-- [ ] `memory_search` — keyword search across memory items
-- [ ] `memory_save` — store a memory item (tagged, optionally pinned)
-- [ ] `memory_list` — list memories (by conversation, project, or all)
-- [ ] `memory_pin` — pin/unpin a memory for persistent retrieval
-- [ ] `conversation_ask` — send a message through full OC pipeline
-- [ ] `conversation_history` — retrieve recent turns
-- [ ] `conversation_list` — list conversations
-- [ ] `conversation_create` — create a new conversation
-- [ ] `context_recent` — recent activity summary for a topic/conversation
-- [ ] `health` — health check
+- [x] `memory_search` — keyword search across memory items
+- [x] `memory_save` — store a memory item (tagged, optionally pinned)
+- [x] `memory_list` — list memories (by conversation, project, or all)
+- [x] `memory_pin` — pin/unpin a memory for persistent retrieval
+- [x] `conversation_ask` — send a message through full OC pipeline (async)
+- [x] `conversation_history` — retrieve recent turns
+- [x] `conversation_list` — list conversations
+- [x] `conversation_create` — create a new conversation
+- [x] `context_recent` — recent activity summary for a topic/conversation
+- [x] `health` — health check (runtime diagnostics)
+- [x] `oc mcp serve` CLI command (stdio transport)
+- [x] Optional SSE transport (`--transport sse --port 8080`)
+- [x] Posture tests (core runs without MCP SDK, no inward imports)
+- [x] `python -m openchronicle.interfaces.mcp` entry point
 
-**Infrastructure:**
+**Architectural posture (enforced by tests):**
 
-- [ ] `oc mcp serve` CLI command (stdio transport)
-- [ ] Optional SSE transport (`--transport sse --port 8080`)
-- [ ] Posture tests (core runs without MCP SDK, no inward imports)
-
-**Acceptance Criteria:**
-
-- All 10 tools map to existing ports/use cases (no new domain logic)
-- Privacy gate honored on all conversation tools
-- Core functional without `mcp` extra installed
-- Manual validation with Goose + Serena triangle
+- Core must remain fully functional without MCP SDK (`test_architectural_posture.py`)
+- No `core.*` module imports mcp (`test_hexagonal_boundaries.py`)
+- All MCP imports are lazy, confined to `interfaces/mcp/` and `cli/commands/mcp_cmd.py`
 
 ---
 
@@ -421,7 +418,7 @@ Recommended order based on dependencies:
 2. Discord Interface (P1) ✅
    └── Core driver in interfaces/discord/
 
-3. OC MCP Server (P2) ← NEW (Decision #5)
+3. OC MCP Server (P2) ✅
    └── Core interface in interfaces/mcp/
    └── 10 tools, maps to existing ports/use cases
    └── Unblocks: Goose, VS Code, Claude Desktop, any MCP client
