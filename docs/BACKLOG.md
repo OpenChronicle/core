@@ -547,6 +547,7 @@ categorization, bill/subscription monitoring, and investment overview.
 
 | Issue                               | Location                               | Priority |
 | ----------------------------------- | -------------------------------------- | -------- |
+| FTS5 rebuild on every startup       | `infrastructure/persistence/sqlite_store.py` `_ensure_fts5()` | Low |
 | Ollama token counts are estimates   | `infrastructure/llm/ollama_adapter.py` | Low      |
 | ~~Unicode encoding on Windows CLI~~ | `interfaces/cli/main.py`               | ✅ Fixed |
 | ~~Test subprocess PATH issue~~      | `tests/test_task_submit_rpc.py`        | ✅ Fixed |
