@@ -475,6 +475,38 @@ Requires the `[mcp]` extra: `pip install -e ".[mcp]"`.
 
 ---
 
+## Onboarding
+
+### `oc onboard git`
+
+Bootstrap OC memories from git history. Extracts commits, filters noise (merges,
+formatting, version bumps), clusters by temporal proximity and file overlap, then
+synthesizes each cluster into a memory via LLM (or raw format with `--no-llm`).
+
+```text
+oc onboard git --project-id <id> [--repo-path .] [--max-commits 500]
+               [--max-memories 15] [--force] [--no-llm] [--dry-run]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--project-id` | **Required.** Project to associate memories with |
+| `--repo-path` | Path to git repository (default: `.`) |
+| `--max-commits` | Max commits to analyze (default: `500`) |
+| `--max-memories` | Max memories/clusters to create (default: `15`) |
+| `--force` | Delete existing git-onboard memories and re-run |
+| `--no-llm` | Skip LLM synthesis, use structured raw format |
+| `--dry-run` | Show clusters without saving any memories |
+
+**Idempotency:** If git-onboard memories already exist for the project, the command
+refuses to run unless `--force` is passed (which deletes existing memories first).
+
+**MCP equivalent:** The `onboard_git` MCP tool performs the same extraction and
+clustering but returns structured data for the host LLM to synthesize and save
+via `memory_save`.
+
+---
+
 ## Testing / Debug
 
 ### `oc selftest`

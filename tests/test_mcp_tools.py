@@ -123,6 +123,7 @@ class TestServerCreation:
             "tool_stats",
             "moe_stats",
             "search_turns",
+            "onboard_git",
         ]
         assert sorted(tool_names) == sorted(expected)
 

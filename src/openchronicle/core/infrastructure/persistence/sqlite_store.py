@@ -618,6 +618,17 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         rows = cur.execute(sql, params).fetchall()
         return [row_to_memory_item(r) for r in rows]
 
+    def list_memory_by_source(self, source: str, project_id: str | None = None) -> list[MemoryItem]:
+        """List memory items filtered by source (duck-typed, not on port)."""
+        cur = self._conn.cursor()
+        if project_id is not None:
+            sql = "SELECT * FROM memory_items WHERE source = ? AND project_id = ? ORDER BY created_at DESC"
+            rows = cur.execute(sql, (source, project_id)).fetchall()
+        else:
+            sql = "SELECT * FROM memory_items WHERE source = ? ORDER BY created_at DESC"
+            rows = cur.execute(sql, (source,)).fetchall()
+        return [row_to_memory_item(r) for r in rows]
+
     def set_pinned(self, memory_id: str, pinned: bool) -> None:
         cur = self._conn.cursor()
         cur.execute(

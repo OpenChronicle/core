@@ -420,6 +420,25 @@ def main(argv: list[str] | None = None) -> int:
     acceptance_cmd = sub.add_parser("acceptance", help="Run deterministic acceptance workflow")
     acceptance_cmd.add_argument("--json", action="store_true", help="Emit JSON output")
 
+    # --- Onboard commands ---
+    onboard_cmd = sub.add_parser("onboard", help="Onboarding commands")
+    onboard_sub = onboard_cmd.add_subparsers(dest="onboard_command")
+
+    onboard_git_cmd = onboard_sub.add_parser("git", help="Bootstrap memories from git history")
+    onboard_git_cmd.add_argument("--project-id", dest="project_id", required=True, help="Project ID")
+    onboard_git_cmd.add_argument("--repo-path", dest="repo_path", default=".", help="Path to git repo (default: .)")
+    onboard_git_cmd.add_argument(
+        "--max-commits", dest="max_commits", type=int, default=500, help="Max commits to analyze (default: 500)"
+    )
+    onboard_git_cmd.add_argument(
+        "--max-memories", dest="max_memories", type=int, default=15, help="Max memories to create (default: 15)"
+    )
+    onboard_git_cmd.add_argument("--force", action="store_true", help="Delete existing git-onboard memories and re-run")
+    onboard_git_cmd.add_argument(
+        "--no-llm", dest="no_llm", action="store_true", help="Skip LLM synthesis, use raw format"
+    )
+    onboard_git_cmd.add_argument("--dry-run", dest="dry_run", action="store_true", help="Show clusters without saving")
+
     # --- Chat ---
     chat_cmd = sub.add_parser("chat", help="Interactive chat session")
     chat_cmd.add_argument("--conversation-id", default=None, help="Resume specific conversation by ID")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, cast
 
 from mcp.server.fastmcp import Context, FastMCP
@@ -68,6 +69,7 @@ def register(mcp: FastMCP) -> None:
         pinned: bool = False,
         conversation_id: str | None = None,
         project_id: str | None = None,
+        created_at: str | None = None,
     ) -> dict[str, Any]:
         """Save a memory item for persistent retrieval across sessions.
 
@@ -80,6 +82,7 @@ def register(mcp: FastMCP) -> None:
             pinned: If True, memory is always included in context retrieval.
             conversation_id: Optional conversation to associate the memory with.
             project_id: Project to store the memory under.
+            created_at: Optional ISO datetime to backdate the memory (e.g. "2026-01-15T12:00:00+00:00").
         """
         container = _get_container(ctx)
 
@@ -94,14 +97,17 @@ def register(mcp: FastMCP) -> None:
         if not resolved_project_id:
             raise ValueError("project_id is required (provide directly or via conversation_id)")
 
-        item = MemoryItem(
-            content=content,
-            tags=tags or [],
-            pinned=pinned,
-            conversation_id=conversation_id,
-            project_id=resolved_project_id,
-            source="mcp",
-        )
+        kwargs: dict[str, Any] = {
+            "content": content,
+            "tags": tags or [],
+            "pinned": pinned,
+            "conversation_id": conversation_id,
+            "project_id": resolved_project_id,
+            "source": "mcp",
+        }
+        if created_at is not None:
+            kwargs["created_at"] = datetime.fromisoformat(created_at)
+        item = MemoryItem(**kwargs)
         saved = add_memory.execute(
             store=container.storage,
             emit_event=container.event_logger.append,
