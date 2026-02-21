@@ -1,91 +1,100 @@
-# OpenChronicle Core v2
+# OpenChronicle
 
-An orchestration core for a manager/supervisor/worker LLM system, built with
-hexagonal architecture in Python 3.11+.
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io%2Fopenchronicle%2Fcore-blue?logo=docker)](https://ghcr.io/openchronicle/core)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://python.org)
+[![CI](https://github.com/OpenChronicle/core/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/OpenChronicle/core/actions/workflows/docker-publish.yml)
 
-- Source root: `src/openchronicle/`
-- Plugins: `plugins/`
-- Docker: `ghcr.io/openchronicle/core`
+**Persistent memory and context for LLM conversations.**
 
-## Installation
+Chat context dies between sessions. OpenChronicle fixes that — it's an
+orchestration core that gives any LLM durable memory, explainable routing,
+and auditable decision history across conversations, sessions, and tools.
+
+## Features
+
+- **Persistent memory** — keyword search, pinning, tagging; conversations
+  resume where you left off
+- **Multi-provider routing** — OpenAI, Anthropic, Groq, Gemini, Ollama with
+  pool-based selection and automatic fallback
+- **Mixture-of-Experts** — consensus answers from multiple models via
+  `--moe` flag
+- **Streaming responses** — token-by-token output with `--no-stream` opt-out
+- **Hash-chained event log** — tamper-evident audit trail for every decision
+- **MCP server** — 20 tools exposing memory, conversation, and context to
+  any MCP-compatible client (Claude Code, Goose, VS Code)
+- **Discord bot** — slash commands, session mapping, multi-user isolation
+- **Scheduler** — tick-driven job execution with atomic claim and drift
+  prevention
+- **Asset management** — file storage with SHA-256 dedup and generic linking
+- **Plugin system** — extend with stateless task handlers
+- **Privacy gate** — PII detection (6 categories, Luhn validation) before
+  data leaves your machine
+- **Hexagonal architecture** — enforced by tests, not convention
+
+## Quick Start
 
 ```bash
-pip install -e .                # Base install (includes stub provider)
-pip install -e ".[openai]"      # OpenAI support
-pip install -e ".[ollama]"      # Ollama local inference
-pip install -e ".[dev]"         # Development dependencies
-```
-
-Use `oc --help` to explore the CLI.
-
-## Provider Selection
-
-Control which LLM provider to use via `OC_LLM_PROVIDER`:
-
-- **`stub` (default)**: Deterministic stub for testing/demos
-- **`openai`**: OpenAI API (requires `OPENAI_API_KEY`)
-- **`ollama`**: Local Ollama instance
-- **`anthropic`**: Anthropic Claude API
-
-```bash
-# Use local Ollama
-export OC_LLM_PROVIDER=ollama
-oc demo-summary <project_id> "Your text here"
-
-# Use OpenAI
-export OC_LLM_PROVIDER=openai
+pip install -e ".[openai]"
+oc init
 export OPENAI_API_KEY=your_key_here
-oc demo-summary <project_id> "Your text here"
+oc chat
 ```
 
-For the full list of environment variables (budget, rate limiting, routing,
-privacy, telemetry, and more), see
-[docs/configuration/env_vars.md](docs/configuration/env_vars.md).
+That's it. You're in a persistent conversation with memory, streaming, and
+full audit trail.
 
-## Secret Management
-
-OpenChronicle follows a **zero-secrets-in-repo** policy enforced by
-`tests/test_no_secrets_committed.py`.
-
-- Use `.env.local` (git-ignored) or `config/` directory for secrets
-- Use obvious placeholders in examples: `changeme`, `replace_me`,
-  `your_key_here`, `test-key`
-
-## Docker
-
-The Docker setup separates **immutable core** (application code baked into the
-image) from **persistent userland** (data, config, plugins, outputs mounted on
-the host).
+## Quick Start (Docker)
 
 ```bash
-# Quick start
-docker compose run --rm openchronicle --help
-docker compose run --rm openchronicle smoke-live "Hello" --provider stub
+docker pull ghcr.io/openchronicle/core:latest
+docker compose run --rm openchronicle chat
 ```
 
-Persistent volumes:
+Persistent volumes: `/data` (SQLite DB), `/config`, `/plugins`, `/output`.
 
-- `/data` -- SQLite DB
-- `/config` -- Optional config files
-- `/plugins` -- Plugin packages
-- `/output` -- Artifact exports
+## Interfaces
+
+| Interface | Entry point | Use case |
+|-----------|-------------|----------|
+| **CLI** | `oc chat`, `oc convo ask` | Interactive and scripted use |
+| **STDIO RPC** | `oc serve` / `oc rpc` | Programmatic integration |
+| **MCP Server** | `oc mcp serve` | Agent interop (Goose, Claude Code) |
+| **Discord** | `oc discord start` | Chat bot with slash commands |
+
+## Supported Providers
+
+| Provider | Extra | Streaming | Tool Use |
+|----------|-------|-----------|----------|
+| OpenAI | `.[openai]` | Yes | Yes |
+| Anthropic | `.[anthropic]` | Yes | Yes |
+| Groq | `.[groq]` | Yes | Yes |
+| Gemini | `.[gemini]` | Yes | Yes |
+| Ollama | `.[ollama]` | Yes | Yes |
+| Stub | *(built-in)* | Yes | Yes |
 
 ## Documentation
 
 | Document | Description |
-| -------- | ----------- |
-| [Architecture](docs/architecture/ARCHITECTURE.md) | Hexagonal architecture, layers, event model |
-| [Plugin Guide](docs/architecture/PLUGINS.md) | Full plugin development guide |
-| [Plugin Contract](docs/plugins/plugin_contract.md) | Plugin guarantees and requirements |
-| [Plugin Quickstart](docs/plugins/plugin_quickstart.md) | Get a plugin running fast |
-| [Environment Variables](docs/configuration/env_vars.md) | All ~60 configuration variables |
+|----------|-------------|
+| [Architecture](docs/architecture/ARCHITECTURE.md) | Hexagonal layers, event model, directory tree |
+| [CLI Commands](docs/cli/commands.md) | Full `oc` command reference |
+| [Environment Variables](docs/configuration/env_vars.md) | All ~60 configuration knobs |
+| [MCP Server Spec](docs/integrations/mcp_server_spec.md) | Tool list, transports, integration guide |
+| [Plugin Guide](docs/architecture/PLUGINS.md) | Build and register task handlers |
 | [Design Decisions](docs/design/design_decisions.md) | Rationale for core subsystems |
 | [RPC Protocol](docs/protocol/stdio_rpc_v1.md) | JSON-RPC stdio protocol spec |
-| [Backlog](docs/BACKLOG.md) | Feature and implementation backlog |
-| [CLAUDE.md](CLAUDE.md) | AI assistant instructions for this repo |
+| [Backlog](docs/BACKLOG.md) | Roadmap and feature backlog |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
 
 ## License
 
-[AGPL-3.0](LICENSE) — free to use, modify, and share. If you run a modified
-version as a network service, you must publish your source under the same
-license.
+[AGPL-3.0](LICENSE) — free to use, modify, and share. Network service use
+requires publishing source under the same license.
