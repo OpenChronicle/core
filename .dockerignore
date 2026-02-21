@@ -1,6 +1,3 @@
-# Never ship historical reference
-v1.reference/
-
 # VCS / caches
 .git/
 __pycache__/

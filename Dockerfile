@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OC_DB_PATH=/app/data/openchronicle.db \
     OC_CONFIG_DIR=/app/config \
     OC_PLUGIN_DIR=/app/plugins \
-    OC_OUTPUT_DIR=/app/output
+    OC_OUTPUT_DIR=/app/output \
+    OC_ASSETS_DIR=/app/assets
 
 WORKDIR /app
 
@@ -17,10 +18,10 @@ COPY plugins ./plugins
 COPY tools/docker/entrypoint.sh /app/entrypoint.sh
 
 # Install with all provider extras and Discord
-RUN pip install --no-cache-dir ".[openai,ollama,anthropic,groq,gemini,discord]"
+RUN pip install --no-cache-dir ".[openai,ollama,anthropic,groq,gemini,discord,mcp]"
 
 # Prepare persistent mount points
-RUN mkdir -p /app/data /app/config /app/plugins /app/output \
+RUN mkdir -p /app/data /app/config /app/plugins /app/output /app/assets \
     && chmod +x /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]
