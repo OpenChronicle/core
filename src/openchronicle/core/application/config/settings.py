@@ -172,3 +172,50 @@ def load_conversation_settings(
             default=True,
         ),
     )
+
+
+def _parse_optional_float(value: object) -> float | None:
+    """Parse a float, returning None if unset or empty string."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            return None
+    return None
+
+
+@dataclass(frozen=True)
+class MoESettings:
+    """Mixture-of-Experts execution configuration."""
+
+    enabled: bool = False
+    min_experts: int = 2
+    temperature: float | None = None
+
+
+def load_moe_settings(
+    file_config: dict[str, Any] | None = None,
+) -> MoESettings:
+    fc = file_config or {}
+    return MoESettings(
+        enabled=parse_bool(
+            env_override("OC_MOE_ENABLED", fc.get("enabled")),
+            default=False,
+        ),
+        min_experts=parse_int(
+            env_override("OC_MOE_MIN_EXPERTS", fc.get("min_experts")),
+            default=2,
+        ),
+        temperature=_parse_optional_float(
+            env_override("OC_MOE_TEMPERATURE", fc.get("temperature")),
+        ),
+    )

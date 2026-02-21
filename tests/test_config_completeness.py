@@ -10,6 +10,7 @@ from openchronicle.core.application.config.budget_config import load_budget_poli
 from openchronicle.core.application.config.settings import (
     ConversationSettings,
     load_conversation_settings,
+    load_moe_settings,
     load_privacy_outbound_settings,
     load_router_assist_settings,
     load_telemetry_settings,
@@ -59,6 +60,14 @@ class TestConfigLoadersExist:
     def test_pool_config_loader_with_none(self) -> None:
         config = load_pool_config(None)
         assert config is not None
+
+    def test_moe_config_loader(self) -> None:
+        settings = load_moe_settings({})
+        assert settings is not None
+
+    def test_moe_config_loader_with_none(self) -> None:
+        settings = load_moe_settings(None)
+        assert settings is not None
 
 
 # ---------------------------------------------------------------------------

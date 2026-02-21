@@ -178,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     convo_ask_group.add_argument("--include-pinned-memory", dest="include_pinned_memory", action="store_true")
     convo_ask_group.add_argument("--no-include-pinned-memory", dest="include_pinned_memory", action="store_false")
     convo_ask_cmd.set_defaults(include_pinned_memory=None)
+    convo_ask_cmd.add_argument("--moe", action="store_true", help="Use Mixture-of-Experts consensus mode")
 
     convo_delete_cmd = convo_sub.add_parser("delete", help="Delete conversation and all related data")
     convo_delete_cmd.add_argument("conversation_id")
@@ -425,6 +426,7 @@ def main(argv: list[str] | None = None) -> int:
     chat_cmd.add_argument("--resume", action="store_true", help="Resume most recent conversation")
     chat_cmd.add_argument("--title", default=None, help="Title for new conversation")
     chat_cmd.add_argument("--no-stream", dest="no_stream", action="store_true", help="Disable streaming output")
+    chat_cmd.add_argument("--moe", action="store_true", help="Use Mixture-of-Experts consensus mode")
 
     # --- Parse ---
     args = parser.parse_args(argv)

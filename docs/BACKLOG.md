@@ -193,10 +193,10 @@ use OC without custom integration code. See Decision #5 in assessment.
 
 ### 5.1 Mixture-of-Experts Mode (Core — Execution Strategy)
 
-**Status:** 🔴 Not Started (Optional)
-**Location:** `src/openchronicle/core/application/services/` (execution strategy)
+**Status:** ✅ Implemented
+**Location:** `src/openchronicle/core/application/services/moe_execution.py`
 **Effort:** Medium
-**Priority:** Low — may not be required for core usefulness
+**Priority:** Implemented
 
 **Why core, not plugin:** MoE needs `LLMPort` to make N expert calls with
 explicit model selection, `RouterPolicy` / `ProviderFacade` to route each expert
@@ -204,22 +204,22 @@ to a different provider/model, and response aggregation logic. The plugin API
 provides `(task, context) → result` with no LLM access. MoE is an execution
 strategy (like streaming vs non-streaming), not a stateless handler.
 
-**Requirements:**
+**Implementation:**
 
-- [ ] Run N experts (default 3) via LLMPort with different model selections
-- [ ] Select output via agreement rules
-- [ ] Produce aggregator decision with explainability:
-  - Which experts agreed (provider + model per expert)
-  - Conflict summary
-  - Why final output was chosen
-  - Cost breakdown per expert
-- [ ] Deterministic selection rules with stable tie-breakers
-- [ ] Event emission: `moe.consensus_run` with full expert breakdown
+- [x] Run N experts via LLMPort with different model selections (quality pool candidates)
+- [x] Select output via Jaccard-based consensus scoring (deterministic, no LLM-as-judge)
+- [x] Produce aggregator decision with explainability via `moe.consensus_run` event
+- [x] Deterministic selection rules with weight tiebreaker + stable sort
+- [x] Event emission: `moe.consensus_run` with full expert breakdown
+- [x] Config: `MoESettings` in `core.json` `"moe"` section, env var overrides
+- [x] CLI: `oc chat --moe`, `oc convo ask --moe`
+- [x] MCP: `conversation_ask(moe=true)`
+- [x] 32 tests (consensus scoring, execute_moe, config loading, hygiene)
 
-**Constraints:**
+**Constraints (preserved):**
 
-- Must be optional, not default UX
-- Clear cost implications documented (N× the token cost)
+- Optional, not default UX (per-call `--moe` flag)
+- Clear cost implications (N× token cost)
 - Opt-in per conversation or per ask (not global default)
 
 ---

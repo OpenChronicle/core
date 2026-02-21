@@ -660,6 +660,7 @@ async def execute(
     privacy_gate: PrivacyGatePort | None = None,
     privacy_settings: PrivacyOutboundSettings | None = None,
     telemetry: TelemetryRecorder | None = None,
+    moe: bool = False,
 ) -> Turn:
     ctx = await prepare_ask(
         convo_store=convo_store,
@@ -683,13 +684,68 @@ async def execute(
     perf_enabled = ctx.started_at > 0.0
     provider_started_at = time.perf_counter() if perf_enabled else 0.0
     try:
-        response = await execute_with_route(
-            llm,
-            ctx.route_decision,
-            ctx.messages[:-1] + [{"role": "user", "content": ctx.effective_prompt}],
-            max_output_tokens=ctx.max_output_tokens,
-            temperature=ctx.temperature,
-        )
+        if moe:
+            from openchronicle.core.application.services.moe_execution import execute_moe
+
+            candidates = router_policy.pool_config.quality_pool
+            moe_result = await execute_moe(
+                llm=llm,
+                candidates=candidates,
+                messages=ctx.messages[:-1] + [{"role": "user", "content": ctx.effective_prompt}],
+                max_output_tokens=ctx.max_output_tokens,
+                temperature=ctx.temperature,
+            )
+            response = LLMResponse(
+                content=moe_result.winner.content,
+                provider=moe_result.winner.provider,
+                model=moe_result.winner.model,
+                usage=moe_result.winner.usage,
+                latency_ms=moe_result.winner.latency_ms,
+            )
+            # Override route_decision so finalize_turn records the winning provider/model
+            ctx.route_decision = RouteDecision(
+                provider=moe_result.winner.provider,
+                model=moe_result.winner.model,
+                mode="quality",
+                reasons=[
+                    f"moe_winner:{moe_result.winner.provider}:{moe_result.winner.model}",
+                    f"consensus_score={moe_result.winner.consensus_score:.4f}",
+                    f"agreement_ratio={moe_result.agreement_ratio:.4f}",
+                ],
+            )
+            # Emit MoE event
+            emit_event(
+                Event(
+                    project_id=ctx.conversation.project_id,
+                    type="moe.consensus_run",
+                    payload={
+                        "conversation_id": ctx.conversation_id,
+                        "expert_count": len(moe_result.experts),
+                        "successful_count": len([e for e in moe_result.experts if e.error is None]),
+                        "agreement_ratio": round(moe_result.agreement_ratio, 4),
+                        "winner_provider": moe_result.winner.provider,
+                        "winner_model": moe_result.winner.model,
+                        "winner_consensus_score": round(moe_result.winner.consensus_score, 4),
+                        "experts": [
+                            {
+                                "provider": e.provider,
+                                "model": e.model,
+                                "consensus_score": round(e.consensus_score, 4),
+                                "error": e.error,
+                            }
+                            for e in moe_result.experts
+                        ],
+                    },
+                )
+            )
+        else:
+            response = await execute_with_route(
+                llm,
+                ctx.route_decision,
+                ctx.messages[:-1] + [{"role": "user", "content": ctx.effective_prompt}],
+                max_output_tokens=ctx.max_output_tokens,
+                temperature=ctx.temperature,
+            )
     except LLMProviderError as exc:
         _record_error_telemetry(ctx, exc, provider_started_at, telemetry, emit_event)
         raise

@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-17
 **Branch:** `refactor/new-core-from-scratch`
-**Revision:** 23 (MCP project tools: 12 tools total, 23+7 tests, project_create/project_list)
+**Revision:** 24 (MoE execution strategy: consensus scoring, CLI/MCP --moe, 32 new tests)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (827 unit/functional, 20 real-world integration, 14 Discord
+Tests are strong (859 unit/functional, 20 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -74,10 +74,12 @@ an error. `--force` overrides the check. Cross-platform: uses `PermissionError`
 vs generic `OSError` distinction since Windows doesn't raise `ProcessLookupError`.
 
 **What's next:** Security scanner plugin, dev agent runner, or Goose integration.
+MoE (Mixture-of-Experts) execution strategy is implemented — Jaccard-based
+consensus scoring, `--moe` CLI/MCP flag, quality pool parallel execution, 32 tests.
 MCP server (Decision #5) is implemented — unblocks Goose + Serena triangle, VS
 Code integration, and any MCP-compatible client.
 
-**Overall: Core feature-complete, Discord + MCP interfaces operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment.**
+**Overall: Core feature-complete, Discord + MCP interfaces operational, MoE consensus execution implemented, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment.**
 
 ---
 
@@ -522,7 +524,7 @@ Core Done
   → Security Scanner (plugin — stateless handler)
   → Dev Agent Runner (core — needs LLM + sandbox)
   → Serena MCP (core — inside sandbox only)
-  → MoE Mode (core — application/services, needs LLMPort + routing)
+  → MoE Mode ✅ (core — application/services/moe_execution.py, uses LLMPort + routing)
   → HTTP API (core — interfaces/)
   → VS Code / Copilot SDK (MCP client or external via RPC)
   → Goose Integration (MCP client — uses OC MCP + Serena MCP)

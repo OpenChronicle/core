@@ -113,6 +113,7 @@ def register(mcp: FastMCP) -> None:
         conversation_id: str,
         prompt: str,
         ctx: Context,
+        moe: bool = False,
     ) -> dict[str, Any]:
         """Send a message through OpenChronicle's full pipeline.
 
@@ -122,6 +123,7 @@ def register(mcp: FastMCP) -> None:
         Args:
             conversation_id: The conversation to continue.
             prompt: The user message to send.
+            moe: Use Mixture-of-Experts consensus mode.
         """
         container = _get_container(ctx)
         turn = await ask_conversation.execute(
@@ -137,5 +139,6 @@ def register(mcp: FastMCP) -> None:
             allow_pii=False,
             privacy_gate=container.privacy_gate,
             privacy_settings=container.privacy_settings,
+            moe=moe,
         )
         return _turn_to_dict(turn)

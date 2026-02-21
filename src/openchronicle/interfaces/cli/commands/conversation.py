@@ -441,6 +441,7 @@ def cmd_convo_ask(args: argparse.Namespace, container: CoreContainer) -> int:
                 allow_pii=args.allow_pii,
                 privacy_gate=getattr(container, "privacy_gate", None),
                 privacy_settings=getattr(container, "privacy_settings", None),
+                moe=getattr(args, "moe", False),
             )
         except (ValueError, LLMProviderError) as exc:
             if (

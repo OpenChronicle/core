@@ -61,9 +61,12 @@ async def _stream_turn(container: CoreContainer, conversation_id: str, prompt: s
     return turn.assistant_text
 
 
-async def chat_loop(container: CoreContainer, conversation_id: str, *, stream: bool = True) -> int:
+async def chat_loop(container: CoreContainer, conversation_id: str, *, stream: bool = True, moe: bool = False) -> int:
     """Interactive chat REPL."""
-    print(f"Chat ({conversation_id[:8]}...) — type /quit to exit")
+    label = f"Chat ({conversation_id[:8]}...)"
+    if moe:
+        label += " [MoE]"
+    print(f"{label} — type /quit to exit")
     while True:
         try:
             user_input = input("\n> ")
@@ -101,6 +104,7 @@ async def chat_loop(container: CoreContainer, conversation_id: str, *, stream: b
                     allow_pii=False,
                     privacy_gate=getattr(container, "privacy_gate", None),
                     privacy_settings=getattr(container, "privacy_settings", None),
+                    moe=moe,
                 )
                 print(f"\n{turn.assistant_text}")
         except (ValueError, LLMProviderError) as exc:
@@ -133,9 +137,12 @@ def _resolve_conversation(args: argparse.Namespace, container: CoreContainer) ->
 
 
 def cmd_chat(args: argparse.Namespace, container: CoreContainer) -> int:
-    """oc chat [--conversation-id ID] [--resume] [--title TITLE] [--no-stream]"""
+    """oc chat [--conversation-id ID] [--resume] [--title TITLE] [--no-stream] [--moe]"""
     convo_id = _resolve_conversation(args, container)
     if convo_id is None:
         return 1
+    moe = getattr(args, "moe", False)
     stream = not getattr(args, "no_stream", False)
-    return asyncio.run(chat_loop(container, convo_id, stream=stream))
+    if moe:
+        stream = False  # MoE V0 is non-streaming
+    return asyncio.run(chat_loop(container, convo_id, stream=stream, moe=moe))
