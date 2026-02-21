@@ -158,7 +158,12 @@ Configure in `.claude/settings.json` (project-level):
 
 ### Project Identity
 
-Use `project_id: "openchronicle-core"` in all `memory_save` calls.
+Use `project_id: "0db2b2ff-f995-4f59-b059-0fae5c78909d"` in all `memory_save`
+calls. This is a FK to the projects table — freeform strings will fail.
+
+> **Gap:** There is no `project_create` MCP tool yet. This UUID was created
+> manually. If the DB is recreated, a new project must be created via
+> `conversation_create` (which auto-creates a project) and the UUID updated here.
 
 ### Session Protocol Addition
 
