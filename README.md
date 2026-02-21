@@ -13,8 +13,8 @@ and auditable decision history across conversations, sessions, and tools.
 
 ## Features
 
-- **Persistent memory** — keyword search, pinning, tagging; conversations
-  resume where you left off
+- **Persistent memory** — full-text search (FTS5) with deterministic
+  fallback, pinning, tagging; conversations resume where you left off
 - **Multi-provider routing** — OpenAI, Anthropic, Groq, Gemini, Ollama with
   pool-based selection and automatic fallback
 - **Mixture-of-Experts** — consensus answers from multiple models via
