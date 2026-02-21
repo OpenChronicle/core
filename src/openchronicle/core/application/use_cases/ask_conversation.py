@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from openchronicle.core.application.config.env_helpers import parse_bool, parse_float, parse_int
 from openchronicle.core.application.config.settings import PrivacyOutboundSettings
@@ -30,6 +31,11 @@ from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, 
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.privacy_gate_port import PrivacyGatePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
+
+_logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from openchronicle.core.domain.models.moe_result import MoEResult
 
 
 class TelemetryRecorder(Protocol):
@@ -518,6 +524,50 @@ def _record_error_telemetry(
     )
 
 
+def _record_moe_usage(
+    storage: StoragePort,
+    moe_result: MoEResult,
+    conversation_id: str,
+) -> None:
+    """Best-effort persist MoE usage stats. Never raises."""
+    try:
+        import uuid
+
+        insert = getattr(storage, "insert_moe_usage", None)
+        if insert is None:
+            return
+
+        experts = moe_result.experts
+        successful = [e for e in experts if e.error is None]
+
+        # Sum tokens across ALL experts (the real cost)
+        total_input = sum((e.usage.input_tokens or 0) if e.usage else 0 for e in experts)
+        total_output = sum((e.usage.output_tokens or 0) if e.usage else 0 for e in experts)
+        total_tokens = sum((e.usage.total_tokens or 0) if e.usage else 0 for e in experts)
+
+        # Wall-clock = max latency (parallel execution)
+        total_latency = max((e.latency_ms or 0) for e in experts) if experts else 0
+
+        insert(
+            id=uuid.uuid4().hex,
+            conversation_id=conversation_id,
+            expert_count=len(experts),
+            successful_count=len(successful),
+            agreement_ratio=round(moe_result.agreement_ratio, 4),
+            winner_provider=moe_result.winner.provider,
+            winner_model=moe_result.winner.model,
+            winner_consensus_score=round(moe_result.winner.consensus_score, 4),
+            total_latency_ms=total_latency,
+            total_input_tokens=total_input,
+            total_output_tokens=total_output,
+            total_tokens=total_tokens,
+            failure_count=len(experts) - len(successful),
+            created_at=datetime.now(UTC).isoformat(),
+        )
+    except Exception:
+        _logger.debug("Failed to record MoE usage", exc_info=True)
+
+
 async def finalize_turn(
     ctx: PreparedContext,
     assistant_text: str,
@@ -738,6 +788,8 @@ async def execute(
                     },
                 )
             )
+            # Record MoE usage stats
+            _record_moe_usage(storage, moe_result, ctx.conversation_id)
         else:
             response = await execute_with_route(
                 llm,

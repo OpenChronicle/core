@@ -121,6 +121,7 @@ class TestServerCreation:
             "conversation_ask",
             "context_recent",
             "tool_stats",
+            "moe_stats",
         ]
         assert sorted(tool_names) == sorted(expected)
 

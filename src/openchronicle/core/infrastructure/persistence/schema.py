@@ -179,6 +179,25 @@ CREATE TABLE IF NOT EXISTS mcp_tool_usage (
 );
 """
 
+MOE_USAGE_TABLE = """
+CREATE TABLE IF NOT EXISTS moe_usage (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    expert_count INTEGER NOT NULL,
+    successful_count INTEGER NOT NULL,
+    agreement_ratio REAL NOT NULL,
+    winner_provider TEXT NOT NULL,
+    winner_model TEXT NOT NULL,
+    winner_consensus_score REAL NOT NULL,
+    total_latency_ms INTEGER NOT NULL,
+    total_input_tokens INTEGER NOT NULL,
+    total_output_tokens INTEGER NOT NULL,
+    total_tokens INTEGER NOT NULL,
+    failure_count INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+);
+"""
+
 INDEXES = [
     # Tasks: optimize project queries with ordering
     "CREATE INDEX IF NOT EXISTS idx_tasks_project_created ON tasks(project_id, created_at, id)",
@@ -218,6 +237,10 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_mcp_tool_usage_tool_created ON mcp_tool_usage(tool_name, created_at, id)",
     # MCP tool usage: optimize time-range queries
     "CREATE INDEX IF NOT EXISTS idx_mcp_tool_usage_created ON mcp_tool_usage(created_at, id)",
+    # MoE usage: optimize time-range queries
+    "CREATE INDEX IF NOT EXISTS idx_moe_usage_created ON moe_usage(created_at, id)",
+    # MoE usage: optimize winner provider/model queries
+    "CREATE INDEX IF NOT EXISTS idx_moe_usage_winner ON moe_usage(winner_provider, winner_model, created_at, id)",
 ]
 
 ALL_TABLES = [
@@ -233,4 +256,5 @@ ALL_TABLES = [
     MEMORY_ITEMS_TABLE,
     SCHEDULED_JOBS_TABLE,
     MCP_TOOL_USAGE_TABLE,
+    MOE_USAGE_TABLE,
 ]

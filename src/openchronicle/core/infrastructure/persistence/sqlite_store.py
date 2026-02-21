@@ -1224,3 +1224,109 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             }
             for row in rows
         ]
+
+    # ── MoE usage tracking ───────────────────────────────────────────
+
+    def insert_moe_usage(
+        self,
+        *,
+        id: str,
+        conversation_id: str,
+        expert_count: int,
+        successful_count: int,
+        agreement_ratio: float,
+        winner_provider: str,
+        winner_model: str,
+        winner_consensus_score: float,
+        total_latency_ms: int,
+        total_input_tokens: int,
+        total_output_tokens: int,
+        total_tokens: int,
+        failure_count: int,
+        created_at: str,
+    ) -> None:
+        """Record a MoE consensus run for usage tracking."""
+        cur = self._conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO moe_usage (
+                id, conversation_id, expert_count, successful_count,
+                agreement_ratio, winner_provider, winner_model,
+                winner_consensus_score, total_latency_ms,
+                total_input_tokens, total_output_tokens, total_tokens,
+                failure_count, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                id,
+                conversation_id,
+                expert_count,
+                successful_count,
+                agreement_ratio,
+                winner_provider,
+                winner_model,
+                winner_consensus_score,
+                total_latency_ms,
+                total_input_tokens,
+                total_output_tokens,
+                total_tokens,
+                failure_count,
+                created_at,
+            ),
+        )
+        self._commit_if_needed()
+
+    def get_moe_stats(
+        self,
+        winner_provider: str | None = None,
+        winner_model: str | None = None,
+        since: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Aggregate MoE usage stats, grouped by winner provider/model.
+
+        Returns list of dicts with: winner_provider, winner_model, run_count,
+        avg_agreement_ratio, avg_total_tokens, avg_latency_ms, total_failures,
+        last_run_at.
+        """
+        sql = """
+            SELECT
+                winner_provider,
+                winner_model,
+                COUNT(*) AS run_count,
+                ROUND(AVG(agreement_ratio), 4) AS avg_agreement_ratio,
+                CAST(AVG(total_tokens) AS INTEGER) AS avg_total_tokens,
+                CAST(AVG(total_latency_ms) AS INTEGER) AS avg_latency_ms,
+                SUM(failure_count) AS total_failures,
+                MAX(created_at) AS last_run_at
+            FROM moe_usage
+        """
+        conditions: list[str] = []
+        params: list[str] = []
+        if winner_provider:
+            conditions.append("winner_provider = ?")
+            params.append(winner_provider)
+        if winner_model:
+            conditions.append("winner_model = ?")
+            params.append(winner_model)
+        if since:
+            conditions.append("created_at >= ?")
+            params.append(since)
+        if conditions:
+            sql += " WHERE " + " AND ".join(conditions)
+        sql += " GROUP BY winner_provider, winner_model ORDER BY run_count DESC"
+
+        cur = self._conn.cursor()
+        rows = cur.execute(sql, params).fetchall()
+        return [
+            {
+                "winner_provider": row[0],
+                "winner_model": row[1],
+                "run_count": row[2],
+                "avg_agreement_ratio": row[3],
+                "avg_total_tokens": row[4],
+                "avg_latency_ms": row[5],
+                "total_failures": row[6],
+                "last_run_at": row[7],
+            }
+            for row in rows
+        ]

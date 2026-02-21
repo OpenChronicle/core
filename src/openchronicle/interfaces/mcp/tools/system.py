@@ -56,3 +56,29 @@ def register(mcp: FastMCP) -> None:
             tool_name=tool_name,
             since=since,
         )
+
+    @mcp.tool()
+    @track_tool
+    def moe_stats(
+        ctx: Context,
+        winner_provider: str | None = None,
+        winner_model: str | None = None,
+        since: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """MoE (Mixture-of-Experts) usage statistics.
+
+        Returns per-winner-provider/model aggregate stats: run_count,
+        avg_agreement_ratio, avg_total_tokens, avg_latency_ms,
+        total_failures, last_run_at.
+
+        Args:
+            winner_provider: Optional — filter to a single provider.
+            winner_model: Optional — filter to a single model.
+            since: Optional — ISO datetime cutoff (only runs after this time).
+        """
+        container = _get_container(ctx)
+        return container.storage.get_moe_stats(
+            winner_provider=winner_provider,
+            winner_model=winner_model,
+            since=since,
+        )

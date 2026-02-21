@@ -76,6 +76,7 @@ Canonical reference for all OpenChronicle environment variables.
 | `OC_TELEMETRY_MEMORY_ENABLED` | `true` | Enable memory telemetry |
 | `OC_TELEMETRY_MEMORY_SELF_REPORT_ENABLED` | `false` | Enable LLM memory self-reporting |
 | `OC_TELEMETRY_MCP_TRACKING_ENABLED` | `true` | Track MCP tool invocations (name, latency, success) |
+| `OC_TELEMETRY_MOE_TRACKING_ENABLED` | `true` | Track MoE consensus runs (agreement, tokens, winner) |
 
 ## Router Assist (ML-based routing)
 
