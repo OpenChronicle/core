@@ -19,6 +19,7 @@ from openchronicle.core.application.routing.pool_config import load_pool_config
 from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.runtime.plugin_loader import PluginLoader
 from openchronicle.core.application.runtime.task_registry import TaskHandlerRegistry
+from openchronicle.core.application.services.asset_storage import AssetFileStorage
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.application.services.scheduler import SchedulerService
 from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR
@@ -170,6 +171,9 @@ class CoreContainer:
             submit_task=self.orchestrator.submit_task,
             emit_event=self.event_logger.append,
         )
+
+        assets_dir = os.getenv("OC_ASSETS_DIR", "data/assets")
+        self.asset_file_storage = AssetFileStorage(base_dir=assets_dir)
 
         # Store for config show and diagnostics
         self.file_configs = file_configs

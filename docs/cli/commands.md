@@ -413,6 +413,56 @@ oc memory delete <memory_id> [--json]
 
 ---
 
+## Assets
+
+### `oc asset upload`
+
+Upload a file as an asset. Computes SHA-256 hash for dedup — if the same
+content already exists in the project, returns the existing asset.
+
+```text
+oc asset upload <project_id> <source_path> [--filename NAME] [--mime-type TYPE]
+                [--link-to-type TYPE] [--link-to-id ID] [--link-role ROLE]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--filename` | Override original filename |
+| `--mime-type` | Override auto-detected MIME type |
+| `--link-to-type` | Entity type to link to (`project`, `conversation`, `turn`, `memory_item`, `event`, `agent`) |
+| `--link-to-id` | Entity ID to link to |
+| `--link-role` | Link role (default: `input`) |
+
+### `oc asset list`
+
+List assets in a project.
+
+```text
+oc asset list <project_id> [--limit N] [--json]
+```
+
+### `oc asset show`
+
+Show asset metadata and linked entities.
+
+```text
+oc asset show <asset_id> [--json]
+```
+
+### `oc asset link`
+
+Link an existing asset to any entity.
+
+```text
+oc asset link <asset_id> <target_type> <target_id> [--role ROLE]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--role` | Link role (default: `reference`) |
+
+---
+
 ## Chat
 
 ### `oc chat`
@@ -471,7 +521,9 @@ Requires the `[mcp]` extra: `pip install -e ".[mcp]"`.
 
 **MCP tools exposed:** `health`, `memory_search`, `memory_save`, `memory_list`,
 `memory_pin`, `conversation_ask`, `conversation_history`, `conversation_list`,
-`conversation_create`, `context_recent`.
+`conversation_create`, `context_recent`, `tool_stats`, `moe_stats`,
+`onboard_git`, `project_create`, `project_list`, `context_recent`,
+`asset_upload`, `asset_list`, `asset_get`, `asset_link`.
 
 ---
 

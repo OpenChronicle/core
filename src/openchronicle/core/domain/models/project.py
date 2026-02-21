@@ -95,17 +95,6 @@ class Event:
 
 
 @dataclass
-class Resource:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    project_id: str = ""
-    kind: str = ""
-    path: str = ""
-    content_hash: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=_utc_now)
-
-
-@dataclass
 class Span:
     """Represents a logical execution block (e.g., supervisor.received_task, worker.execute)."""
 

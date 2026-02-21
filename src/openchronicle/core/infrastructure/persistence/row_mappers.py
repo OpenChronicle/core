@@ -6,6 +6,7 @@ import json
 import sqlite3
 from datetime import datetime
 
+from openchronicle.core.domain.models.asset import Asset, AssetLink
 from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import (
@@ -13,7 +14,6 @@ from openchronicle.core.domain.models.project import (
     Event,
     LLMUsage,
     Project,
-    Resource,
     Span,
     SpanStatus,
     Task,
@@ -75,18 +75,6 @@ def row_to_event(row: sqlite3.Row) -> Event:
         created_at=_parse_dt(row["created_at"]),
         prev_hash=row["prev_hash"],
         hash=row["hash"],
-    )
-
-
-def row_to_resource(row: sqlite3.Row) -> Resource:
-    return Resource(
-        id=row["id"],
-        project_id=row["project_id"],
-        kind=row["kind"],
-        path=row["path"],
-        content_hash=row["content_hash"],
-        metadata=json.loads(row["metadata"] or "{}"),
-        created_at=_parse_dt(row["created_at"]),
     )
 
 
@@ -193,4 +181,29 @@ def row_to_scheduled_job(row: sqlite3.Row) -> ScheduledJob:
         last_task_id=row["last_task_id"],
         created_at=_parse_dt(row["created_at"]),
         updated_at=_parse_dt(row["updated_at"]),
+    )
+
+
+def row_to_asset(row: sqlite3.Row) -> Asset:
+    return Asset(
+        id=row["id"],
+        project_id=row["project_id"],
+        filename=row["filename"],
+        mime_type=row["mime_type"],
+        file_path=row["file_path"],
+        size_bytes=row["size_bytes"],
+        content_hash=row["content_hash"],
+        metadata=json.loads(row["metadata"] or "{}"),
+        created_at=_parse_dt(row["created_at"]),
+    )
+
+
+def row_to_asset_link(row: sqlite3.Row) -> AssetLink:
+    return AssetLink(
+        id=row["id"],
+        asset_id=row["asset_id"],
+        target_type=row["target_type"],
+        target_id=row["target_id"],
+        role=row["role"],
+        created_at=_parse_dt(row["created_at"]),
     )

@@ -72,6 +72,10 @@ def test_fresh_database_has_all_indexes(fresh_db: SqliteStore) -> None:
         "idx_mcp_tool_usage_created",
         "idx_moe_usage_created",
         "idx_moe_usage_winner",
+        "ux_assets_project_hash",
+        "idx_assets_project_created",
+        "idx_asset_links_asset",
+        "idx_asset_links_target",
     }
 
     assert index_names == expected, f"Missing or unexpected indexes. Got {index_names}, expected {expected}"
@@ -109,6 +113,10 @@ def test_migration_creates_indexes_on_existing_db(migrated_db: SqliteStore) -> N
         "idx_mcp_tool_usage_created",
         "idx_moe_usage_created",
         "idx_moe_usage_winner",
+        "ux_assets_project_hash",
+        "idx_assets_project_created",
+        "idx_asset_links_asset",
+        "idx_asset_links_target",
     }
 
     assert index_names == expected
@@ -218,6 +226,10 @@ def test_index_creation_is_idempotent(tmp_path: Path) -> None:
         "idx_mcp_tool_usage_created",
         "idx_moe_usage_created",
         "idx_moe_usage_winner",
+        "ux_assets_project_hash",
+        "idx_assets_project_created",
+        "idx_asset_links_asset",
+        "idx_asset_links_target",
     }
 
     assert index_names == expected

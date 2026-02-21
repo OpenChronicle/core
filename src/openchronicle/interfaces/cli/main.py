@@ -439,6 +439,29 @@ def main(argv: list[str] | None = None) -> int:
     )
     onboard_git_cmd.add_argument("--dry-run", dest="dry_run", action="store_true", help="Show clusters without saving")
 
+    # --- Asset commands ---
+    asset_cmd = sub.add_parser("asset", help="Asset management commands")
+    asset_sub = asset_cmd.add_subparsers(dest="asset_command")
+
+    asset_upload_cmd = asset_sub.add_parser("upload", help="Upload a file as an asset")
+    asset_upload_cmd.add_argument("project_id", help="Project ID")
+    asset_upload_cmd.add_argument("source_path", help="Path to file to upload")
+    asset_upload_cmd.add_argument("--filename", default=None, help="Override filename")
+    asset_upload_cmd.add_argument("--mime-type", dest="mime_type", default=None, help="Override MIME type")
+
+    asset_list_cmd = asset_sub.add_parser("list", help="List assets in a project")
+    asset_list_cmd.add_argument("project_id", help="Project ID")
+    asset_list_cmd.add_argument("--limit", type=int, default=None, help="Limit number of assets shown")
+
+    asset_show_cmd = asset_sub.add_parser("show", help="Show asset details and links")
+    asset_show_cmd.add_argument("asset_id", help="Asset ID")
+
+    asset_link_cmd = asset_sub.add_parser("link", help="Link an asset to an entity")
+    asset_link_cmd.add_argument("asset_id", help="Asset ID")
+    asset_link_cmd.add_argument("target_type", help="Entity type (project, conversation, turn, memory_item)")
+    asset_link_cmd.add_argument("target_id", help="Entity ID")
+    asset_link_cmd.add_argument("--role", default="reference", help="Link role (default: reference)")
+
     # --- Chat ---
     chat_cmd = sub.add_parser("chat", help="Interactive chat session")
     chat_cmd.add_argument("--conversation-id", default=None, help="Resume specific conversation by ID")

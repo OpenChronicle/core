@@ -198,6 +198,33 @@ CREATE TABLE IF NOT EXISTS moe_usage (
 );
 """
 
+ASSETS_TABLE = """
+CREATE TABLE IF NOT EXISTS assets (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    content_hash TEXT NOT NULL,
+    metadata TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+"""
+
+ASSET_LINKS_TABLE = """
+CREATE TABLE IF NOT EXISTS asset_links (
+    id TEXT PRIMARY KEY,
+    asset_id TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(asset_id) REFERENCES assets(id)
+);
+"""
+
 INDEXES = [
     # Tasks: optimize project queries with ordering
     "CREATE INDEX IF NOT EXISTS idx_tasks_project_created ON tasks(project_id, created_at, id)",
@@ -243,6 +270,20 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_moe_usage_winner ON moe_usage(winner_provider, winner_model, created_at, id)",
 ]
 
+ASSET_INDEXES = [
+    # Assets: dedup by project + content_hash
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_assets_project_hash ON assets(project_id, content_hash)",
+    # Assets: optimize project listing with ordering
+    "CREATE INDEX IF NOT EXISTS idx_assets_project_created ON assets(project_id, created_at, id)",
+    # Asset links: optimize asset lookup with ordering
+    "CREATE INDEX IF NOT EXISTS idx_asset_links_asset ON asset_links(asset_id, created_at, id)",
+    # Asset links: optimize target lookup with ordering
+    "CREATE INDEX IF NOT EXISTS idx_asset_links_target ON asset_links(target_type, target_id, created_at, id)",
+]
+
+# Combine all indexes for init_schema
+INDEXES = INDEXES + ASSET_INDEXES
+
 ALL_TABLES = [
     PROJECTS_TABLE,
     AGENTS_TABLE,
@@ -257,6 +298,8 @@ ALL_TABLES = [
     SCHEDULED_JOBS_TABLE,
     MCP_TOOL_USAGE_TABLE,
     MOE_USAGE_TABLE,
+    ASSETS_TABLE,
+    ASSET_LINKS_TABLE,
 ]
 
 # ── FTS5 virtual tables & triggers ──────────────────────────────────────

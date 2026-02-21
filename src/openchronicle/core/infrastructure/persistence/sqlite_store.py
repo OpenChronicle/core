@@ -13,6 +13,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from openchronicle.core.domain.models.asset import Asset, AssetLink
 from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import (
@@ -20,25 +21,26 @@ from openchronicle.core.domain.models.project import (
     Event,
     LLMUsage,
     Project,
-    Resource,
     Span,
     SpanStatus,
     Task,
     TaskStatus,
 )
 from openchronicle.core.domain.models.scheduled_job import JobStatus, ScheduledJob
+from openchronicle.core.domain.ports.asset_store_port import AssetStorePort
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
 from openchronicle.core.infrastructure.persistence import schema
 from openchronicle.core.infrastructure.persistence.row_mappers import (
     row_to_agent,
+    row_to_asset,
+    row_to_asset_link,
     row_to_conversation,
     row_to_event,
     row_to_llm_usage,
     row_to_memory_item,
     row_to_project,
-    row_to_resource,
     row_to_scheduled_job,
     row_to_span,
     row_to_task,
@@ -67,7 +69,7 @@ def _fts5_available(conn: sqlite3.Connection) -> bool:
         return False
 
 
-class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
+class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStorePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -308,27 +310,106 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         rows = cur.execute(sql, params).fetchall()
         return [row_to_event(r) for r in rows]
 
-    # Resources
-    def add_resource(self, resource: Resource) -> None:
+    # Assets
+    def add_asset(self, asset: Asset) -> None:
         cur = self._conn.cursor()
         cur.execute(
-            "INSERT INTO resources (id, project_id, kind, path, content_hash, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            """INSERT INTO assets
+            (id, project_id, filename, mime_type, file_path, size_bytes, content_hash, metadata, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                resource.id,
-                resource.project_id,
-                resource.kind,
-                resource.path,
-                resource.content_hash,
-                json.dumps(resource.metadata),
-                resource.created_at.isoformat(),
+                asset.id,
+                asset.project_id,
+                asset.filename,
+                asset.mime_type,
+                asset.file_path,
+                asset.size_bytes,
+                asset.content_hash,
+                json.dumps(asset.metadata),
+                asset.created_at.isoformat(),
             ),
         )
         self._commit_if_needed()
 
-    def list_resources(self, project_id: str) -> list[Resource]:
+    def get_asset(self, asset_id: str) -> Asset | None:
         cur = self._conn.cursor()
-        rows = cur.execute("SELECT * FROM resources WHERE project_id=?", (project_id,)).fetchall()
-        return [row_to_resource(r) for r in rows]
+        row = cur.execute("SELECT * FROM assets WHERE id=?", (asset_id,)).fetchone()
+        return row_to_asset(row) if row else None
+
+    def get_asset_by_hash(self, project_id: str, content_hash: str) -> Asset | None:
+        cur = self._conn.cursor()
+        row = cur.execute(
+            "SELECT * FROM assets WHERE project_id=? AND content_hash=?",
+            (project_id, content_hash),
+        ).fetchone()
+        return row_to_asset(row) if row else None
+
+    def list_assets(self, project_id: str, limit: int | None = None) -> list[Asset]:
+        cur = self._conn.cursor()
+        sql = "SELECT * FROM assets WHERE project_id=? ORDER BY created_at DESC, id DESC"
+        params: list[str | int] = [project_id]
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+        rows = cur.execute(sql, params).fetchall()
+        return [row_to_asset(r) for r in rows]
+
+    def delete_asset(self, asset_id: str) -> bool:
+        with self.transaction():
+            cur = self._conn.cursor()
+            # Delete associated links first
+            cur.execute("DELETE FROM asset_links WHERE asset_id=?", (asset_id,))
+            cur.execute("DELETE FROM assets WHERE id=?", (asset_id,))
+            return cur.rowcount > 0
+
+    def add_asset_link(self, link: AssetLink) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            """INSERT INTO asset_links (id, asset_id, target_type, target_id, role, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)""",
+            (
+                link.id,
+                link.asset_id,
+                link.target_type,
+                link.target_id,
+                link.role,
+                link.created_at.isoformat(),
+            ),
+        )
+        self._commit_if_needed()
+
+    def list_asset_links(
+        self,
+        *,
+        asset_id: str | None = None,
+        target_type: str | None = None,
+        target_id: str | None = None,
+    ) -> list[AssetLink]:
+        cur = self._conn.cursor()
+        conditions: list[str] = []
+        params: list[str] = []
+        if asset_id is not None:
+            conditions.append("asset_id=?")
+            params.append(asset_id)
+        if target_type is not None:
+            conditions.append("target_type=?")
+            params.append(target_type)
+        if target_id is not None:
+            conditions.append("target_id=?")
+            params.append(target_id)
+        sql = "SELECT * FROM asset_links"
+        if conditions:
+            sql += " WHERE " + " AND ".join(conditions)
+        sql += " ORDER BY created_at ASC, id ASC"
+        rows = cur.execute(sql, params).fetchall()
+        return [row_to_asset_link(r) for r in rows]
+
+    def delete_asset_link(self, link_id: str) -> bool:
+        cur = self._conn.cursor()
+        cur.execute("DELETE FROM asset_links WHERE id=?", (link_id,))
+        deleted = cur.rowcount > 0
+        self._commit_if_needed()
+        return deleted
 
     # Spans
     def add_span(self, span: Span) -> None:

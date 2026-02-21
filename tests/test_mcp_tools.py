@@ -124,6 +124,10 @@ class TestServerCreation:
             "moe_stats",
             "search_turns",
             "onboard_git",
+            "asset_upload",
+            "asset_list",
+            "asset_get",
+            "asset_link",
         ]
         assert sorted(tool_names) == sorted(expected)
 

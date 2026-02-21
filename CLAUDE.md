@@ -19,8 +19,11 @@ See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 (MCP server now unblocks all three).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
-MCP server is done (`interfaces/mcp/`, 16 tools, 40 tests + 7 posture, `oc mcp serve`
+MCP server is done (`interfaces/mcp/`, 20 tools, 40 tests + 7 posture, `oc mcp serve`
 CLI, stdio + SSE transports, lazy import guard).
+Asset management is done (`domain/models/asset.py`, `application/services/asset_storage.py`,
+`application/use_cases/upload_asset.py`, `application/use_cases/link_asset.py`,
+4 MCP tools, 4 CLI commands, SHA-256 dedup, generic linking, 40 tests).
 Discord interface is done (`interfaces/discord/`, `commands.Bot` subclass, 6 slash
 commands, session mapping, message splitting, 60 tests, `oc discord start` CLI).
 Scheduler service is done (tick-driven, atomic claim, 52+ tests, CLI + RPC).
@@ -96,8 +99,9 @@ for the full directory tree and layer descriptions.
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
-- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 16 tools, FastMCP)
+- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 20 tools, FastMCP)
 - **MoE Execution**: `application/services/moe_execution.py` — Mixture-of-Experts consensus strategy (`--moe` flag)
+- **Asset Management**: `domain/models/asset.py` + `application/services/asset_storage.py` — filesystem storage, SHA-256 dedup, generic entity linking
 
 ## Conventions
 

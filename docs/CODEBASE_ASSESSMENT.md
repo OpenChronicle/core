@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (947 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (987 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -176,8 +176,9 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
-| **MCP server interface** (16 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, system, onboard tools (health, tool_stats, moe_stats, onboard_git); `@track_tool` decorator; lazy import guard; posture-enforced isolation |
-| **Test suite** (947 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 13 test categories + Discord + MCP, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **MCP server interface** (20 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, system, onboard, asset tools (health, tool_stats, moe_stats, onboard_git, asset_upload/list/get/link); `@track_tool` decorator; lazy import guard; posture-enforced isolation |
+| **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 40 tests |
+| **Test suite** (987 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 13 test categories + Discord + MCP + Assets, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -434,7 +435,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (123 files, 947 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
+### Test Suite (129 files, 987 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),

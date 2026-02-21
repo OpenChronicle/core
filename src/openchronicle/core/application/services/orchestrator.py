@@ -23,7 +23,7 @@ from openchronicle.core.application.runtime.task_registry import TaskHandlerRegi
 from openchronicle.core.application.services.llm_execution import execute_with_explicit_provider
 from openchronicle.core.domain.exceptions import BudgetExceededError
 from openchronicle.core.domain.models.execution_record import LLMExecutionRecord
-from openchronicle.core.domain.models.project import Agent, Event, Project, Resource, Span, SpanStatus, Task, TaskStatus
+from openchronicle.core.domain.models.project import Agent, Event, Project, Span, SpanStatus, Task, TaskStatus
 from openchronicle.core.domain.models.retry_policy import TaskRetryPolicy
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError, LLMResponse
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry
@@ -322,15 +322,6 @@ class OrchestratorService:
             raise handler_error
 
         return handler_result
-
-    def record_resource(self, resource: Resource) -> None:
-        self.storage.add_resource(resource)
-        event = Event(
-            project_id=resource.project_id,
-            type="resource_added",
-            payload={"kind": resource.kind, "path": resource.path},
-        )
-        self.emit_event(event)
 
     def _hash_text(self, text: str) -> str:
         return hashlib.sha256(text.encode("utf-8")).hexdigest() if text else ""

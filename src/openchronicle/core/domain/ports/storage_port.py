@@ -6,7 +6,7 @@ from contextlib import AbstractContextManager
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
-from openchronicle.core.domain.models.project import Agent, Event, LLMUsage, Project, Resource, Span, Task
+from openchronicle.core.domain.models.project import Agent, Event, LLMUsage, Project, Span, Task
 
 if TYPE_CHECKING:
     from openchronicle.core.domain.models.scheduled_job import ScheduledJob
@@ -71,13 +71,6 @@ class StoragePort(ABC):
 
     @abstractmethod
     def list_events(self, task_id: str | None = None, *, project_id: str | None = None) -> list[Event]: ...
-
-    # Resources
-    @abstractmethod
-    def add_resource(self, resource: Resource) -> None: ...
-
-    @abstractmethod
-    def list_resources(self, project_id: str) -> list[Resource]: ...
 
     # Spans
     @abstractmethod
