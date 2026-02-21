@@ -141,45 +141,51 @@ See `docs/BACKLOG.md` section 1.1 for full details.
 
 ## Priority 4 — Multi-LLM orchestration features (advanced, optional)
 
-### 4.1 Mixture-of-Experts Mode (Manager/Worker Future)
+### 4.1 Mixture-of-Experts Mode ✅ (Moved to Core)
 
-**Problem:** Improve answer quality and reliability by asking 3 models and selecting output via agreement rules.
+**Status:** Reclassified as a core execution strategy in
+`application/services/` per Decision #4 taxonomy review (2026-02-20).
 
-**Minimum capability:**
+MoE needs `LLMPort` to make N expert calls with explicit model selection,
+`RouterPolicy` / `ProviderFacade` to route each expert to a different
+provider/model, and response aggregation logic. The plugin API provides
+`(task, context) → result` with no LLM access — MoE cannot work within
+those constraints.
 
-- A “consensus run” mode:
-  - run N experts (default 3)
-  - produce an aggregator decision with explainability:
-    - which experts agreed
-    - conflict summary
-    - why final output was chosen
-- Deterministic selection rules:
-  - exact match or structured rubric
-  - tie-breakers are stable and logged
-- Must be optional and not the default UX.
+MoE is an **execution strategy** (like streaming vs non-streaming), not a
+stateless handler. It belongs in `application/services/`, not `plugins/`.
 
-**Why later:** Powerful, but not required for core usefulness; adds complexity.
+See `docs/BACKLOG.md` section 5.1 for full requirements.
 
 ---
 
 ## Priority 5 — IDE / Developer platform integrations
 
-### 5.1 VS Code Copilot SDK Integration (Plugin)
+### 5.1 VS Code / Copilot SDK Integration (MCP Client — Not a Plugin)
 
-**Problem:** Use Copilot SDK capabilities to enhance coding workflows (especially for MCP plugins).
+**Status:** Reclassified per Decision #5 (MCP-first integration strategy,
+2026-02-20). VS Code supports MCP servers natively. Primary integration path
+is OC MCP server — no plugin code needed.
 
-**Minimum capability:**
+**Approach:** VS Code connects to `oc mcp serve` as an MCP server, gaining
+access to OC's persistent memory and conversation capabilities. Same mechanism
+as the Goose integration. A custom Copilot SDK integration is a secondary
+option only if deeper IDE-specific features are needed.
 
-- A plugin that can:
-  - authenticate explicitly (user-managed)
-  - submit a request payload
-  - return structured output + logs
-- Must obey network policy:
-  - explicit opt-in
-  - full audit logging of endpoints contacted
-  - sanitize payloads / respect PII gate
+See `docs/BACKLOG.md` section 6.1 for requirements.
 
-**Why later:** High value, but external API surface + auth + policy complexity. Better once sandbox runner exists.
+### 5.2 Goose Integration (MCP Client — Not a Plugin)
+
+**Status:** Reclassified per Decision #5 (MCP-first integration strategy,
+2026-02-20). Goose supports MCP servers natively. No custom Goose extension
+or OC plugin needed.
+
+**Approach:** Goose connects to both OC MCP server and Serena MCP server,
+forming the triangle: persistent memory (OC) + code understanding (Serena) +
+agent execution (Goose). Zero custom glue code.
+
+See `docs/BACKLOG.md` section 6.2 and `docs/integrations/mcp_server_spec.md`
+for full details.
 
 ---
 
@@ -203,15 +209,24 @@ See `docs/BACKLOG.md` section 1.1 for full details.
 
 ## Already implemented / belongs in Core (for reference)
 
-These were discussed as plugin candidates but were (correctly) handled in core because they are foundational:
+These were discussed as plugin candidates but were (correctly) handled in core
+because they are foundational:
 
 - **Scheduler service** — `application/services/scheduler.py` (52+ tests)
 - **Discord interface** — `interfaces/discord/` (60 tests, optional extra)
+- **OC MCP server** — `interfaces/mcp/` (Decision #5, spec'd not yet built)
+- **MoE mode** — `application/services/` (needs LLMPort + routing, not stateless)
 - **Router assist seam + local classifier baseline**
 - **Privacy gate / PII controls + override**
 - **Deterministic metrics surface + telemetry hooks**
 - **Daemon-friendly STDIO RPC + oneshot RPC**
 - **Acceptance harness (`oc init`, `oc acceptance`)**
+
+External clients (not plugins, not core — compose via MCP or RPC):
+
+- **Goose** — MCP client connecting to OC MCP + Serena MCP (Decision #5)
+- **VS Code / Copilot SDK** — MCP client connecting to OC MCP
+- **Claude Desktop** — MCP client connecting to OC MCP
 
 ---
 
@@ -219,12 +234,16 @@ These were discussed as plugin candidates but were (correctly) handled in core b
 
 1. ~~**Scheduler service**~~ ✅ (core — `application/services/scheduler.py`)
 2. ~~**Discord interface**~~ ✅ (core — `interfaces/discord/`)
-3. **Security scanner plugin** (runs via scheduler service)
-4. **Sandbox dev-agent runner** (uses scheduler + scanner as safety rails)
-5. **Serena MCP capabilities inside sandbox runner**
-6. **Mixture-of-experts mode** (optional advanced UX)
-7. **Copilot SDK plugin** (networked, opt-in)
-8. **Private Git server integration** (platform + sandbox workflows)
+3. **OC MCP server** (core — `interfaces/mcp/`, Decision #5)
+4. **Security scanner plugin** (runs via scheduler service)
+5. **Goose integration** (MCP client — unblocked by #3, config only)
+6. **Sandbox dev-agent runner** (uses scheduler + scanner as safety rails)
+7. **Serena MCP capabilities inside sandbox runner**
+8. **Mixture-of-experts mode** (core — `application/services/`, optional)
+9. **VS Code / Copilot SDK** (MCP client — unblocked by #3)
+10. **Private Git server integration** (platform + sandbox workflows)
+
+See `docs/BACKLOG.md` for the authoritative sequence with full details.
 
 ---
 

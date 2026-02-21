@@ -520,7 +520,7 @@ Core Done
   → Security Scanner (plugin — stateless handler)
   → Dev Agent Runner (core — needs LLM + sandbox)
   → Serena MCP (core — inside sandbox only)
-  → MoE Mode (plugin — stateless handler)
+  → MoE Mode (core — application/services, needs LLMPort + routing)
   → HTTP API (core — interfaces/)
   → VS Code / Copilot SDK (MCP client or external via RPC)
   → Goose Integration (MCP client — uses OC MCP + Serena MCP)
@@ -607,9 +607,9 @@ is an optional bolt-on — they need the same level of access as core services.
 
 | Feature needs... | Lives in... | Examples |
 |------------------|-------------|----------|
-| Persistent state, lifecycle, service access | Core (`application/` or `interfaces/`) | Scheduler, Discord, HTTP API, Dev Agent Runner |
+| Persistent state, lifecycle, service access, or LLM orchestration | Core (`application/` or `interfaces/`) | Scheduler, Discord, MCP server, HTTP API, Dev Agent Runner, MoE Mode |
 | Stateless input→output processing | Plugin (`plugins/`) | Story generation, analysis, formatting, security scan |
-| External process composing via RPC | External client | VS Code extension, Goose, CI integrations |
+| External process composing via MCP or RPC | External client | Goose, VS Code, Claude Desktop, CI integrations |
 
 **Action:** Build scheduler in `application/services/`, Discord driver in
 `interfaces/discord/`. Keep the plugin system for what it's good at. Close one

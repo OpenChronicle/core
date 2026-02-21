@@ -194,26 +194,36 @@ use OC without custom integration code. See Decision #5 in assessment.
 
 ## Priority 5 — Advanced LLM Features
 
-### 5.1 Mixture-of-Experts Mode
+### 5.1 Mixture-of-Experts Mode (Core — Execution Strategy)
 
 **Status:** 🔴 Not Started (Optional)
+**Location:** `src/openchronicle/core/application/services/` (execution strategy)
 **Effort:** Medium
 **Priority:** Low — may not be required for core usefulness
 
+**Why core, not plugin:** MoE needs `LLMPort` to make N expert calls with
+explicit model selection, `RouterPolicy` / `ProviderFacade` to route each expert
+to a different provider/model, and response aggregation logic. The plugin API
+provides `(task, context) → result` with no LLM access. MoE is an execution
+strategy (like streaming vs non-streaming), not a stateless handler.
+
 **Requirements:**
 
-- [ ] Run N experts (default 3)
+- [ ] Run N experts (default 3) via LLMPort with different model selections
 - [ ] Select output via agreement rules
 - [ ] Produce aggregator decision with explainability:
-  - Which experts agreed
+  - Which experts agreed (provider + model per expert)
   - Conflict summary
   - Why final output was chosen
+  - Cost breakdown per expert
 - [ ] Deterministic selection rules with stable tie-breakers
+- [ ] Event emission: `moe.consensus_run` with full expert breakdown
 
 **Constraints:**
 
 - Must be optional, not default UX
-- Clear cost implications documented
+- Clear cost implications documented (N× the token cost)
+- Opt-in per conversation or per ask (not global default)
 
 ---
 
