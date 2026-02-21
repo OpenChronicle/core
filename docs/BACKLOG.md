@@ -2,7 +2,7 @@
 
 This document tracks planned features, implementation gaps, and future work for the OpenChronicle v2 project.
 
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-21
 
 ---
 
@@ -356,6 +356,118 @@ prerequisite for both approaches.
 
 ---
 
+## Priority 9 — Personal Life Connectors
+
+These connectors extend OC beyond developer tooling into personal AI
+assistant territory. All connectors are **read-only by default** — OC
+observes and advises, it does not impersonate or take actions on the
+user's behalf. Each connector is a plugin or core driver (classification
+TBD at implementation time based on how deeply it needs core access).
+
+### 9.1 Google Account Connector
+
+**Status:** 🔴 Not Started
+**Effort:** Medium-Large
+**Depends On:** Asset System (for Drive file references), Scheduler (for periodic sync)
+
+Read-only integration with Google Workspace services. OC becomes a
+time-aware assistant that knows your schedule, can summarize emails, and
+has context from your documents — without impersonating you.
+
+**Scope (read-only, no impersonation):**
+
+- [ ] **Google Calendar** — event awareness, schedule context, upcoming reminders.
+      OC knows what's on the calendar and can factor it into conversations.
+- [ ] **Gmail** — email summaries, search, thread context. OC can summarize
+      unread mail, find past emails by topic, surface relevant threads.
+- [ ] **Google Drive** — file listing, document context, search. Ties into
+      the asset system for file references without duplicating storage.
+
+**Technical approach:**
+
+- [ ] OAuth 2.0 flow (offline access, refresh tokens)
+- [ ] Google API client (`google-api-python-client`)
+- [ ] Credential storage (encrypted at rest, git-ignored)
+- [ ] Periodic sync via scheduler (calendar events, recent emails)
+- [ ] MCP tools: `google_calendar_today`, `google_email_summary`,
+      `google_drive_search` (tentative)
+
+**Security constraints:**
+
+- Read-only OAuth scopes only (no send, no modify, no delete)
+- Credentials never logged or stored in event trail
+- PII gate applies to all Google-sourced content
+
+### 9.2 Plex Media Server Connector
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Depends On:** Scheduler (for periodic sync)
+
+Integration with a local Plex Media Server. OC tracks your media library,
+remembers what you've watched, and can monitor server health.
+
+**Scope:**
+
+- [ ] **Library management** — browse libraries, search media, metadata
+      access. OC knows what's in your collection.
+- [ ] **Watch history / recommendations** — track viewed content, suggest
+      unwatched items based on preferences and history.
+- [ ] **Server monitoring** — transcoding status, storage usage, active
+      streams, server health checks.
+
+**Technical approach:**
+
+- [ ] Plex API via `plexapi` Python library (or direct REST)
+- [ ] Plex token authentication
+- [ ] Periodic library/watch-history sync via scheduler
+- [ ] MCP tools: `plex_search`, `plex_recently_watched`, `plex_server_status`
+      (tentative)
+- [ ] Memory integration: watch history stored as OC memories for
+      cross-session recommendations
+
+### 9.3 Personal Finance Connector
+
+**Status:** 🔴 Not Started
+**Effort:** Large
+**Depends On:** Scheduler (for periodic sync)
+**Risk:** Medium — financial data requires careful security handling
+
+OC helps manage personal finances: transaction tracking, spending
+categorization, bill/subscription monitoring, and investment overview.
+
+**Scope:**
+
+- [ ] **Transaction aggregation** — pull transactions from bank accounts,
+      categorize spending, track against budgets. Plaid or similar
+      aggregation service.
+- [ ] **Bill / subscription tracking** — identify recurring charges, track
+      due dates, flag unusual amounts or new subscriptions.
+- [ ] **Investment tracking** — portfolio overview, market data, basic
+      performance metrics.
+
+**Technical approach:**
+
+- [ ] Plaid API for bank/transaction aggregation (or open-source
+      alternative)
+- [ ] Market data API for investment tracking (Alpha Vantage, Yahoo
+      Finance, or similar)
+- [ ] Encrypted credential storage (separate from general config)
+- [ ] Periodic transaction sync via scheduler
+- [ ] MCP tools: `finance_transactions`, `finance_bills`,
+      `finance_portfolio` (tentative)
+- [ ] Spending categorization (rule-based initially, LLM-assisted later)
+
+**Security constraints (non-negotiable):**
+
+- All financial credentials encrypted at rest
+- No financial data in event trail or general logs
+- PII gate enforced on all financial content
+- No write/transfer capabilities (read-only aggregation)
+- Audit log for every data access
+
+---
+
 ## Infrastructure Gaps
 
 ### HTTP API
@@ -371,6 +483,14 @@ prerequisite for both approaches.
 - [ ] Streaming response support
 - [ ] OpenAPI documentation
 - [ ] Rate limiting middleware
+- [ ] **Webhooks (outbound + inbound)** — Outbound: HTTP POST for OC
+      events. Register endpoint URLs, subscribe to event types, delivery
+      retry with backoff, HMAC signature verification, delivery tracking.
+      Natural extension of the existing internal event system. Inbound:
+      generic endpoint that accepts POSTs, validates signatures, and emits
+      internal events. Connectors register payload transform functions for
+      their format (Gmail, Plex, Plaid, etc.). Straightforward since OC
+      runs as a daemon with the HTTP API already listening.
 
 ### Output Directory Utilization
 
@@ -494,6 +614,18 @@ Recommended order based on dependencies:
 
 12. Private Git Server (P8)
     └── Platform infrastructure
+
+13. Google Account Connector (P9.1)
+    └── Read-only Calendar + Gmail + Drive
+    └── OAuth 2.0, periodic sync via scheduler
+
+14. Plex Media Server Connector (P9.2)
+    └── Library, watch history, server monitoring
+    └── Plex API, scheduler-driven sync
+
+15. Personal Finance Connector (P9.3)
+    └── Transactions, bills, investments
+    └── Plaid API, encrypted credentials, strict security
 ```
 
 ---
