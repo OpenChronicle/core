@@ -542,6 +542,8 @@ class OrchestratorService:
             "reasons": route_decision.reasons,
             "task_type": task.type,
             "agent_id": agent_id,
+            "predictor_hint": route_decision.predictor_hint,
+            "predictor_source": route_decision.predictor_source,
         }
         if route_decision.candidates:
             route_payload["candidates_considered"] = [

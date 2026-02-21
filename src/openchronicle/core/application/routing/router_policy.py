@@ -24,6 +24,10 @@ class RouteDecision:
     mode: str  # "fast" or "quality"
     reasons: list[str]
     candidates: list[tuple[str, str, int]] | None = None  # [(provider, model, weight), ...]
+    # Predictor seam: reserved for future router-predictor integration.
+    # Always None today — no predictor is implemented.
+    predictor_hint: str | None = None
+    predictor_source: str | None = None
 
 
 class RouterPolicy:

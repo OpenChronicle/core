@@ -117,6 +117,8 @@ def execute(
         "routing_reasons": routed_payload.get("reasons", [])
         if isinstance(routed_payload.get("reasons", []), list)
         else [],
+        "predictor_hint": routed_payload.get("predictor_hint"),
+        "predictor_source": routed_payload.get("predictor_source"),
         "memory": {
             "pinned_ids": memory_payload.get("pinned_ids", []) if memory_payload else [],
             "relevant_ids": memory_payload.get("relevant_ids", []) if memory_payload else [],

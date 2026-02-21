@@ -131,6 +131,8 @@ async def execute(
                 "reasons": route_decision.reasons,
                 "task_type": task_type,
                 "agent_id": agent.id,
+                "predictor_hint": route_decision.predictor_hint,
+                "predictor_source": route_decision.predictor_source,
             },
         )
     )

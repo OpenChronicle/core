@@ -393,6 +393,8 @@ async def prepare_ask(
                 "provider": route_decision.provider,
                 "model": route_decision.model,
                 "reasons": route_decision.reasons,
+                "predictor_hint": route_decision.predictor_hint,
+                "predictor_source": route_decision.predictor_source,
             },
         )
     )
