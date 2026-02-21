@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Literal, cast
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,7 @@ class MCPConfig:
         OC_MCP_PORT — port for SSE transport (default: 8080)
     """
 
-    transport: str = "stdio"
+    transport: Literal["stdio", "sse"] = "stdio"
     host: str = "127.0.0.1"
     port: int = 8080
     server_name: str = "openchronicle"
@@ -45,7 +46,7 @@ class MCPConfig:
 
         server_name = _str_or_default(fc.get("server_name"), "openchronicle")
 
-        return cls(transport=transport, host=host, port=port, server_name=server_name)
+        return cls(transport=cast(Literal["stdio", "sse"], transport), host=host, port=port, server_name=server_name)
 
 
 def _str_or_default(value: object, default: str) -> str:

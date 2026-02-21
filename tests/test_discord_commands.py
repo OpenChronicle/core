@@ -72,6 +72,13 @@ def _make_interaction(user_id: int = 12345) -> MagicMock:
     return interaction
 
 
+# discord.py's @app_commands.command() decorator transforms function signatures.
+# mypy sees the *decorated* type where `interaction` is param 1, but `.callback` is
+# the *original* function where `self` IS param 1. mypy can't follow the decorator
+# transformation — known discord.py limitation. All `.callback()` calls below carry
+# type-ignore comments for this reason.
+
+
 class TestNewConvo:
     @pytest.mark.asyncio
     async def test_clears_session(self, tmp_path: Any) -> None:
@@ -80,7 +87,7 @@ class TestNewConvo:
 
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
-        await cog.newconvo.callback(cog, interaction)
+        await cog.newconvo.callback(cog, interaction)  # type: ignore[arg-type, call-arg]
 
         assert bot.sessions.get_conversation_id("12345") is None
         interaction.response.send_message.assert_called_once()
@@ -94,7 +101,7 @@ class TestRemember:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.remember.callback(cog, interaction, text="remember this")
+        await cog.remember.callback(cog, interaction, text="remember this")  # type: ignore[arg-type, misc]
         interaction.response.send_message.assert_called_once()
         assert "No active" in interaction.response.send_message.call_args[0][0]
 
@@ -111,7 +118,7 @@ class TestRemember:
             "openchronicle.interfaces.discord.commands.add_memory.execute",
             return_value=FakeMemoryItem(),
         ) as mock_add:
-            await cog.remember.callback(cog, interaction, text="remember this")
+            await cog.remember.callback(cog, interaction, text="remember this")  # type: ignore[arg-type, misc]
             mock_add.assert_called_once()
             interaction.response.send_message.assert_called_once()
             assert "Remembered" in interaction.response.send_message.call_args[0][0]
@@ -126,7 +133,7 @@ class TestForget:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.forget.callback(cog, interaction, memory_id="nonexistent")
+        await cog.forget.callback(cog, interaction, memory_id="nonexistent")  # type: ignore[arg-type, misc]
         interaction.response.send_message.assert_called_once()
         assert "not found" in interaction.response.send_message.call_args[0][0]
 
@@ -138,7 +145,7 @@ class TestForget:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.forget.callback(cog, interaction, memory_id="mem-1")
+        await cog.forget.callback(cog, interaction, memory_id="mem-1")  # type: ignore[arg-type, misc]
         bot.container.storage.delete_memory.assert_called_once_with("mem-1")
         assert "Deleted" in interaction.response.send_message.call_args[0][0]
 
@@ -150,7 +157,7 @@ class TestExplain:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.explain.callback(cog, interaction)
+        await cog.explain.callback(cog, interaction)  # type: ignore[arg-type, call-arg]
         assert "No active" in interaction.response.send_message.call_args[0][0]
 
     @pytest.mark.asyncio
@@ -162,7 +169,7 @@ class TestExplain:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.explain.callback(cog, interaction)
+        await cog.explain.callback(cog, interaction)  # type: ignore[arg-type, call-arg]
         reply = interaction.response.send_message.call_args[0][0]
         assert "stub" in reply
         assert "stub-model" in reply
@@ -178,7 +185,7 @@ class TestMode:
         choice = MagicMock()
         choice.value = "fast"
 
-        await cog.mode.callback(cog, interaction, mode=choice)
+        await cog.mode.callback(cog, interaction, mode=choice)  # type: ignore[arg-type, misc]
         assert "No active" in interaction.response.send_message.call_args[0][0]
 
     @pytest.mark.asyncio
@@ -196,7 +203,7 @@ class TestMode:
             "openchronicle.interfaces.discord.commands.convo_mode.set_mode",
             return_value="general",
         ):
-            await cog.mode.callback(cog, interaction, mode=choice)
+            await cog.mode.callback(cog, interaction, mode=choice)  # type: ignore[arg-type, misc]
             assert "general" in interaction.response.send_message.call_args[0][0]
 
 
@@ -207,7 +214,7 @@ class TestHistory:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.history.callback(cog, interaction, limit=5)
+        await cog.history.callback(cog, interaction, limit=5)  # type: ignore[arg-type, misc]
         assert "No active" in interaction.response.send_message.call_args[0][0]
 
     @pytest.mark.asyncio
@@ -222,7 +229,7 @@ class TestHistory:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.history.callback(cog, interaction, limit=5)
+        await cog.history.callback(cog, interaction, limit=5)  # type: ignore[arg-type, misc]
         reply = interaction.response.send_message.call_args[0][0]
         assert "Turn 0" in reply
         assert "Turn 1" in reply
@@ -236,5 +243,5 @@ class TestHistory:
         cog = OpenChronicleCog(bot)
         interaction = _make_interaction()
 
-        await cog.history.callback(cog, interaction, limit=5)
+        await cog.history.callback(cog, interaction, limit=5)  # type: ignore[arg-type, misc]
         assert "No turns" in interaction.response.send_message.call_args[0][0]
