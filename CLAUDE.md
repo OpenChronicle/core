@@ -17,7 +17,7 @@ See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
 **Next action:** Security scanner plugin, dev agent runner, or Goose integration
 (MCP server now unblocks all three).
-MCP server is done (`interfaces/mcp/`, 10 tools, 21 tests + 7 posture, `oc mcp serve`
+MCP server is done (`interfaces/mcp/`, 12 tools, 23 tests + 7 posture, `oc mcp serve`
 CLI, stdio + SSE transports, lazy import guard).
 Discord interface is done (`interfaces/discord/`, `commands.Bot` subclass, 6 slash
 commands, session mapping, message splitting, 60 tests, `oc discord start` CLI).
@@ -94,7 +94,7 @@ for the full directory tree and layer descriptions.
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
-- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 10 tools, FastMCP)
+- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 12 tools, FastMCP)
 
 ## Conventions
 
@@ -161,9 +161,8 @@ Configure in `.claude/settings.json` (project-level):
 Use `project_id: "0db2b2ff-f995-4f59-b059-0fae5c78909d"` in all `memory_save`
 calls. This is a FK to the projects table — freeform strings will fail.
 
-> **Gap:** There is no `project_create` MCP tool yet. This UUID was created
-> manually. If the DB is recreated, a new project must be created via
-> `conversation_create` (which auto-creates a project) and the UUID updated here.
+If the DB is recreated, create a new project with `project_create` and update
+this UUID.
 
 ### Session Protocol Addition
 

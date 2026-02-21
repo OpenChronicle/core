@@ -420,7 +420,7 @@ Recommended order based on dependencies:
 
 3. OC MCP Server (P2) ✅
    └── Core interface in interfaces/mcp/
-   └── 10 tools, maps to existing ports/use cases
+   └── 12 tools, maps to existing ports/use cases
    └── Unblocks: Goose, VS Code, Claude Desktop, any MCP client
 
 4. Security Scanner Plugin (P3)

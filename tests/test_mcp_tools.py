@@ -12,6 +12,7 @@ mcp_mod = pytest.importorskip("mcp")  # noqa: F841
 
 from openchronicle.core.domain.models.conversation import Conversation, Turn  # noqa: E402
 from openchronicle.core.domain.models.memory_item import MemoryItem  # noqa: E402
+from openchronicle.core.domain.models.project import Project  # noqa: E402
 from openchronicle.interfaces.mcp.config import MCPConfig  # noqa: E402
 from openchronicle.interfaces.mcp.server import create_server  # noqa: E402
 
@@ -86,6 +87,17 @@ def _sample_turn(**overrides: Any) -> Turn:
     return Turn(**defaults)
 
 
+def _sample_project(**overrides: Any) -> Project:
+    defaults: dict[str, Any] = {
+        "id": "proj-1",
+        "name": "Test Project",
+        "metadata": {"type": "test"},
+        "created_at": _NOW,
+    }
+    defaults.update(overrides)
+    return Project(**defaults)
+
+
 # ── Server creation ──────────────────────────────────────────────
 
 
@@ -97,6 +109,8 @@ class TestServerCreation:
         tool_names = list(server._tool_manager._tools.keys())
         expected = [
             "health",
+            "project_create",
+            "project_list",
             "memory_search",
             "memory_save",
             "memory_list",
@@ -108,6 +122,46 @@ class TestServerCreation:
             "context_recent",
         ]
         assert sorted(tool_names) == sorted(expected)
+
+
+# ── Project tools ─────────────────────────────────────────────────
+
+
+class TestProjectCreate:
+    def test_creates_project(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+        proj = _sample_project()
+        with patch("openchronicle.interfaces.mcp.tools.project.create_project") as mock_uc:
+            mock_uc.execute.return_value = proj
+            from openchronicle.interfaces.mcp.tools.project import register
+
+            mcp_server = MagicMock()
+            registered: dict[str, Any] = {}
+            mcp_server.tool.return_value = lambda fn: registered.update({fn.__name__: fn}) or fn
+            register(mcp_server)
+            result = registered["project_create"](name="My Project", ctx=ctx)
+        assert result["id"] == "proj-1"
+        assert result["name"] == "Test Project"
+
+
+class TestProjectList:
+    def test_lists_projects(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+        projects = [_sample_project(), _sample_project(id="proj-2", name="Second")]
+        with patch("openchronicle.interfaces.mcp.tools.project.list_projects") as mock_uc:
+            mock_uc.execute.return_value = projects
+            from openchronicle.interfaces.mcp.tools.project import register
+
+            mcp_server = MagicMock()
+            registered: dict[str, Any] = {}
+            mcp_server.tool.return_value = lambda fn: registered.update({fn.__name__: fn}) or fn
+            register(mcp_server)
+            result = registered["project_list"](ctx=ctx)
+        assert len(result) == 2
+        assert result[0]["id"] == "proj-1"
+        assert result[1]["id"] == "proj-2"
 
 
 # ── Memory tools ──────────────────────────────────────────────────

@@ -45,6 +45,13 @@ Design principle: expose OC's existing capabilities through MCP tool semantics.
 No new domain logic — this is a new interface to existing use cases, like Discord
 and CLI before it.
 
+### Project Tools
+
+| Tool | Description | Maps to |
+|------|-------------|---------|
+| `project_create` | Create a new project (top-level organizer for conversations and memories) | `create_project.execute()` |
+| `project_list` | List all projects | `list_projects.execute()` |
+
 ### Memory Tools
 
 | Tool | Description | Maps to |
@@ -77,7 +84,7 @@ and CLI before it.
 
 ### Tool Count
 
-10 tools. Tight surface. Each maps directly to an existing port method or use
+12 tools. Tight surface. Each maps directly to an existing port method or use
 case — no new domain logic required.
 
 ---

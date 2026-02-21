@@ -41,9 +41,10 @@ def create_server(container: CoreContainer, config: MCPConfig) -> FastMCP:
     )
 
     # Register tool modules
-    from openchronicle.interfaces.mcp.tools import context, conversation, memory, system
+    from openchronicle.interfaces.mcp.tools import context, conversation, memory, project, system
 
     system.register(mcp)
+    project.register(mcp)
     memory.register(mcp)
     conversation.register(mcp)
     context.register(mcp)
