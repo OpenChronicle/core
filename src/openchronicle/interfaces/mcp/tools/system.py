@@ -82,3 +82,37 @@ def register(mcp: FastMCP) -> None:
             winner_model=winner_model,
             since=since,
         )
+
+    @mcp.tool()
+    @track_tool
+    def search_turns(
+        query: str,
+        ctx: Context,
+        top_k: int = 10,
+        conversation_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search conversation turns by keyword.
+
+        Args:
+            query: Keywords to search for in turn content.
+            top_k: Maximum number of results to return (default 10).
+            conversation_id: Optional — restrict search to a specific conversation.
+        """
+        container = _get_container(ctx)
+        turns = container.storage.search_turns(query, top_k=top_k, conversation_id=conversation_id)
+        return [_turn_to_dict(t) for t in turns]
+
+
+def _turn_to_dict(t: Any) -> dict[str, Any]:
+    """Convert a Turn dataclass to a JSON-safe dict."""
+    return {
+        "id": t.id,
+        "conversation_id": t.conversation_id,
+        "turn_index": t.turn_index,
+        "user_text": t.user_text,
+        "assistant_text": t.assistant_text,
+        "provider": t.provider,
+        "model": t.model,
+        "routing_reasons": t.routing_reasons,
+        "created_at": t.created_at.isoformat(),
+    }

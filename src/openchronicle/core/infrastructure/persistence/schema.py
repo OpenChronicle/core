@@ -258,3 +258,49 @@ ALL_TABLES = [
     MCP_TOOL_USAGE_TABLE,
     MOE_USAGE_TABLE,
 ]
+
+# ── FTS5 virtual tables & triggers ──────────────────────────────────────
+# NOT in ALL_TABLES — FTS5 requires runtime detection before creation.
+# These are applied conditionally by SqliteStore._ensure_fts5().
+
+FTS5_TABLES = [
+    """CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+        content, tags,
+        content='memory_items', content_rowid='rowid'
+    )""",
+    """CREATE VIRTUAL TABLE IF NOT EXISTS turns_fts USING fts5(
+        user_text, assistant_text,
+        content='turns', content_rowid='rowid'
+    )""",
+]
+
+FTS5_TRIGGERS = [
+    # ── memory_items triggers ──
+    """CREATE TRIGGER IF NOT EXISTS memory_fts_ai AFTER INSERT ON memory_items BEGIN
+        INSERT INTO memory_fts(rowid, content, tags) VALUES (new.rowid, new.content, new.tags);
+    END""",
+    """CREATE TRIGGER IF NOT EXISTS memory_fts_ad AFTER DELETE ON memory_items BEGIN
+        INSERT INTO memory_fts(memory_fts, rowid, content, tags)
+            VALUES('delete', old.rowid, old.content, old.tags);
+    END""",
+    """CREATE TRIGGER IF NOT EXISTS memory_fts_au AFTER UPDATE ON memory_items BEGIN
+        INSERT INTO memory_fts(memory_fts, rowid, content, tags)
+            VALUES('delete', old.rowid, old.content, old.tags);
+        INSERT INTO memory_fts(rowid, content, tags) VALUES (new.rowid, new.content, new.tags);
+    END""",
+    # ── turns triggers ──
+    """CREATE TRIGGER IF NOT EXISTS turns_fts_ai AFTER INSERT ON turns BEGIN
+        INSERT INTO turns_fts(rowid, user_text, assistant_text)
+            VALUES (new.rowid, new.user_text, new.assistant_text);
+    END""",
+    """CREATE TRIGGER IF NOT EXISTS turns_fts_ad AFTER DELETE ON turns BEGIN
+        INSERT INTO turns_fts(turns_fts, rowid, user_text, assistant_text)
+            VALUES('delete', old.rowid, old.user_text, old.assistant_text);
+    END""",
+    """CREATE TRIGGER IF NOT EXISTS turns_fts_au AFTER UPDATE ON turns BEGIN
+        INSERT INTO turns_fts(turns_fts, rowid, user_text, assistant_text)
+            VALUES('delete', old.rowid, old.user_text, old.assistant_text);
+        INSERT INTO turns_fts(rowid, user_text, assistant_text)
+            VALUES (new.rowid, new.user_text, new.assistant_text);
+    END""",
+]

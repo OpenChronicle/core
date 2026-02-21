@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import random
 import sqlite3
 import string
@@ -56,6 +57,16 @@ _BEGIN_MAX_RETRIES = 3
 _BEGIN_BASE_DELAY = 0.5  # seconds; exponential: 0.5, 1.0, 2.0
 
 
+def _fts5_available(conn: sqlite3.Connection) -> bool:
+    """Probe whether the SQLite build includes FTS5."""
+    try:
+        conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS _fts5_probe USING fts5(x)")
+        conn.execute("DROP TABLE IF EXISTS _fts5_probe")
+        return True
+    except sqlite3.OperationalError:
+        return False
+
+
 class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
@@ -64,6 +75,8 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         self._conn.row_factory = sqlite3.Row
         self._transaction_depth = 0
         self._configure_connection()
+        self._fts5_user_enabled = os.getenv("OC_SEARCH_FTS5_ENABLED", "1").lower() in {"1", "true", "yes", "on"}
+        self._fts5_active: bool = False
 
     def init_schema(self) -> None:
         cur = self._conn.cursor()
@@ -75,6 +88,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         self._ensure_conversation_mode_column()
         self._ensure_turn_memory_written_column()
         self._ensure_indexes()
+        self._ensure_fts5()
         # Ensure crash recovery runs even for reused databases
         self.recover_stale_tasks()
 
@@ -614,6 +628,121 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             raise ValueError(f"Memory not found: {memory_id}")
         self._commit_if_needed()
 
+    def _fetch_pinned_items(
+        self,
+        conversation_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[MemoryItem]:
+        """Fetch pinned memory items with optional scope filters."""
+        cur = self._conn.cursor()
+        params: list[Any] = []
+
+        if conversation_id is not None:
+            sql = """
+                SELECT * FROM memory_items
+                WHERE pinned=1 AND (conversation_id=? OR conversation_id IS NULL)
+                ORDER BY created_at DESC, id DESC
+            """
+            params = [conversation_id]
+        elif project_id is not None:
+            sql = """
+                SELECT * FROM memory_items
+                WHERE pinned=1 AND (project_id=? OR project_id IS NULL)
+                ORDER BY created_at DESC, id DESC
+            """
+            params = [project_id]
+        else:
+            sql = """
+                SELECT * FROM memory_items
+                WHERE pinned=1
+                ORDER BY created_at DESC, id DESC
+            """
+
+        return [row_to_memory_item(r) for r in cur.execute(sql, params).fetchall()]
+
+    def _fts5_search_memory(
+        self,
+        query: str,
+        limit: int,
+        conversation_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[MemoryItem]:
+        """Search non-pinned memory items using FTS5 MATCH."""
+        escaped = self._fts5_escape(query)
+        if not escaped:
+            return []
+
+        cur = self._conn.cursor()
+        params: list[Any] = [escaped]
+        scope_clause = ""
+
+        if conversation_id is not None:
+            scope_clause = "AND m.conversation_id = ?"
+            params.append(conversation_id)
+        elif project_id is not None:
+            scope_clause = "AND m.project_id = ?"
+            params.append(project_id)
+
+        params.append(limit)
+
+        sql = f"""
+            SELECT m.* FROM memory_fts fts
+            JOIN memory_items m ON m.rowid = fts.rowid
+            WHERE memory_fts MATCH ?
+            AND m.pinned = 0
+            {scope_clause}
+            ORDER BY fts.rank, m.created_at DESC, m.id ASC
+            LIMIT ?
+        """
+        return [row_to_memory_item(r) for r in cur.execute(sql, params).fetchall()]
+
+    def _fallback_search_memory(
+        self,
+        query: str,
+        limit: int,
+        conversation_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[MemoryItem]:
+        """Search non-pinned memory items using in-memory keyword scoring."""
+        q_tokens = self._normalize_tokens(query)
+        cur = self._conn.cursor()
+        params: list[Any] = []
+
+        if conversation_id is not None:
+            sql = """
+                SELECT * FROM memory_items
+                WHERE conversation_id=? AND pinned=0
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+            """
+            params = [conversation_id, _MEMORY_SEARCH_LIMIT]
+        elif project_id is not None:
+            sql = """
+                SELECT * FROM memory_items
+                WHERE project_id=? AND pinned=0
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+            """
+            params = [project_id, _MEMORY_SEARCH_LIMIT]
+        else:
+            sql = """
+                SELECT * FROM memory_items
+                WHERE pinned=0
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+            """
+            params = [_MEMORY_SEARCH_LIMIT]
+
+        items = [row_to_memory_item(r) for r in cur.execute(sql, params).fetchall()]
+
+        def _score(item: MemoryItem) -> tuple[int, int, datetime, str]:
+            tag_matches = self._tag_match_count(item.tags, q_tokens)
+            keyword_matches = self._keyword_match_count(item.content, q_tokens)
+            return (tag_matches, keyword_matches, item.created_at, item.id)
+
+        items.sort(key=_score, reverse=True)
+        return items[:limit]
+
     def search_memory(
         self,
         query: str,
@@ -623,82 +752,25 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         project_id: str | None = None,
         include_pinned: bool = True,
     ) -> list[MemoryItem]:
-        q_tokens = self._normalize_tokens(query)
-
-        cur = self._conn.cursor()
-        params: list[Any] = []
-        if conversation_id is not None:
-            if include_pinned:
-                sql = """
-                    SELECT * FROM memory_items
-                    WHERE conversation_id=? OR pinned=1
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT ?
-                """
-                params = [conversation_id, _MEMORY_SEARCH_LIMIT]
-            else:
-                sql = """
-                    SELECT * FROM memory_items
-                    WHERE conversation_id=?
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT ?
-                """
-                params = [conversation_id, _MEMORY_SEARCH_LIMIT]
-        elif project_id is not None:
-            if include_pinned:
-                sql = """
-                    SELECT * FROM memory_items
-                    WHERE project_id=? OR pinned=1
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT ?
-                """
-                params = [project_id, _MEMORY_SEARCH_LIMIT]
-            else:
-                sql = """
-                    SELECT * FROM memory_items
-                    WHERE project_id=?
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT ?
-                """
-                params = [project_id, _MEMORY_SEARCH_LIMIT]
-        else:
-            if include_pinned:
-                sql = """
-                    SELECT * FROM memory_items
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT ?
-                """
-                params = [_MEMORY_SEARCH_LIMIT]
-            else:
-                sql = """
-                    SELECT * FROM memory_items
-                    WHERE pinned=0
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT ?
-                """
-                params = [_MEMORY_SEARCH_LIMIT]
-
-        rows = cur.execute(sql, params).fetchall()
-        items = [row_to_memory_item(r) for r in rows]
-
-        pinned_items = [i for i in items if i.pinned] if include_pinned else []
-        non_pinned_items = [i for i in items if not i.pinned]
-
-        pinned_items.sort(key=lambda i: (i.created_at, i.id), reverse=True)
-
-        def _score(item: MemoryItem) -> tuple[int, int, datetime, str]:
-            tag_matches = self._tag_match_count(item.tags, q_tokens)
-            keyword_matches = self._keyword_match_count(item.content, q_tokens)
-            return (tag_matches, keyword_matches, item.created_at, item.id)
-
-        non_pinned_items.sort(key=_score, reverse=True)
-
-        results: list[MemoryItem] = []
+        # Pinned items — always included regardless of query
+        pinned_items: list[MemoryItem] = []
         if include_pinned:
-            results.extend(pinned_items)
+            pinned_items = self._fetch_pinned_items(conversation_id, project_id)
 
-        remaining = max(top_k - len(results), 0)
-        results.extend(non_pinned_items[:remaining])
+        remaining = max(top_k - len(pinned_items), 0)
+
+        # Non-pinned search — FTS5 or fallback
+        if self._fts5_active:
+            non_pinned = self._fts5_search_memory(query, remaining, conversation_id, project_id)
+        else:
+            non_pinned = self._fallback_search_memory(query, remaining, conversation_id, project_id)
+
+        # Deduplicate — pinned items might overlap with search results
+        pinned_ids = {i.id for i in pinned_items}
+        non_pinned = [i for i in non_pinned if i.id not in pinned_ids]
+
+        results: list[MemoryItem] = list(pinned_items)
+        results.extend(non_pinned[:remaining])
         return results
 
     # ---- helpers ----
@@ -724,6 +796,44 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
             return 0
         content_lower = content.lower()
         return sum(1 for token in q_tokens if token in content_lower)
+
+    def search_turns(
+        self,
+        query: str,
+        *,
+        top_k: int = 10,
+        conversation_id: str | None = None,
+    ) -> list[Turn]:
+        """Search turns using FTS5 full-text search.
+
+        Returns empty list if FTS5 is not active.
+        """
+        if not self._fts5_active:
+            return []
+
+        escaped = self._fts5_escape(query)
+        if not escaped:
+            return []
+
+        cur = self._conn.cursor()
+        params: list[Any] = [escaped]
+        scope_clause = ""
+
+        if conversation_id is not None:
+            scope_clause = "AND t.conversation_id = ?"
+            params.append(conversation_id)
+
+        params.append(top_k)
+
+        sql = f"""
+            SELECT t.* FROM turns_fts fts
+            JOIN turns t ON t.rowid = fts.rowid
+            WHERE turns_fts MATCH ?
+            {scope_clause}
+            ORDER BY fts.rank, t.created_at DESC, t.id ASC
+            LIMIT ?
+        """
+        return [row_to_turn(r) for r in cur.execute(sql, params).fetchall()]
 
     def _configure_connection(self) -> None:
         self._conn.execute("PRAGMA foreign_keys = ON;")
@@ -772,6 +882,50 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort):
         for index_stmt in schema.INDEXES:
             cur.execute(index_stmt)
         self._commit_if_needed()
+
+    def _ensure_fts5(self) -> None:
+        """Create FTS5 virtual tables and triggers if available and enabled."""
+        if not self._fts5_user_enabled:
+            _logger.info("FTS5 disabled by OC_SEARCH_FTS5_ENABLED")
+            self._fts5_active = False
+            return
+        if not _fts5_available(self._conn):
+            _logger.info("FTS5 not available in this SQLite build — using fallback search")
+            self._fts5_active = False
+            return
+
+        cur = self._conn.cursor()
+        for stmt in schema.FTS5_TABLES:
+            cur.execute(stmt)
+        for stmt in schema.FTS5_TRIGGERS:
+            cur.execute(stmt)
+        self._commit_if_needed()
+
+        # Idempotent backfill — re-reads all content rows from source tables.
+        cur.execute("INSERT INTO memory_fts(memory_fts) VALUES('rebuild')")
+        cur.execute("INSERT INTO turns_fts(turns_fts) VALUES('rebuild')")
+        self._commit_if_needed()
+        self._fts5_active = True
+        _logger.info("FTS5 full-text search enabled")
+
+    @staticmethod
+    def _fts5_escape(query: str) -> str:
+        """Escape a user query for safe use in FTS5 MATCH.
+
+        Wraps each token in double quotes to neutralize FTS5 operators
+        (AND, OR, NOT, *, ^, NEAR, :). Joins with OR for partial-match
+        semantics (BM25 ranks multi-word matches higher).
+        Returns empty string for empty input.
+        """
+        if not query or not query.strip():
+            return ""
+        tokens = query.split()
+        escaped = []
+        for token in tokens:
+            clean = token.replace('"', "")
+            if clean:
+                escaped.append(f'"{clean}"')
+        return " OR ".join(escaped)
 
     def _append_event_with_hash(self, event: Event) -> None:
         existing = self.list_events(task_id=event.task_id) if event.task_id else []

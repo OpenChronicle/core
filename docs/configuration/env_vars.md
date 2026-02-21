@@ -65,6 +65,12 @@ Canonical reference for all OpenChronicle environment variables.
 | `OC_PRIVACY_OUTBOUND_REDACT_STYLE` | `mask` | Redaction style (`mask`, `remove`) |
 | `OC_PRIVACY_OUTBOUND_LOG` | `true` | Log privacy events |
 
+## Search
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `OC_SEARCH_FTS5_ENABLED` | `1` | Enable FTS5 full-text search when available (`1`/`true`/`yes`/`on` = enabled) |
+
 ## Telemetry
 
 | Variable | Default | Description |
