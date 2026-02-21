@@ -131,6 +131,121 @@ Most-used variables for quick reference:
 Full reference (~60 variables covering budget, rate limiting, routing, privacy,
 telemetry, and more): [docs/configuration/env_vars.md](docs/configuration/env_vars.md)
 
+## OpenChronicle Memory Integration
+
+OC is available as an MCP server. It provides persistent memory that
+survives context compression and session boundaries. **Use it.**
+
+Context compression loses the "why" — decisions made, approaches
+rejected, working state, user preferences expressed mid-session. The
+status doc (`CODEBASE_ASSESSMENT.md`) tracks project-level state but
+not conversational context. OC memory fills that gap.
+
+### Setup
+
+Configure in `.claude/settings.json` (project-level):
+
+```json
+{
+  "mcpServers": {
+    "openchronicle": {
+      "command": "oc",
+      "args": ["mcp", "serve"]
+    }
+  }
+}
+```
+
+### Project Identity
+
+Use `project_id: "openchronicle-core"` in all `memory_save` calls.
+
+### Session Protocol Addition
+
+After the standard session protocol (Serena onboarding, status doc,
+CLAUDE.md sprint), add:
+
+- Call `memory_search` with keywords relevant to the current task or
+  the user's first message. Review results for prior decisions,
+  rejected approaches, and working context from previous sessions.
+
+This step is **especially critical after context compression**, where
+the compression summary is a lossy snapshot. OC memory is the lossless
+record.
+
+### When to Save
+
+Call `memory_save` when any of these happen during a session:
+
+- **Decision made.** Architecture, design, or approach chosen. Include
+  what was decided, alternatives considered, and the reasoning.
+- **Approach rejected.** Something was tried and didn't work. Save what
+  it was, why it failed, and what replaced it.
+- **Milestone completed.** A feature or significant unit of work is done.
+  Summarize what was built and any non-obvious gotchas.
+- **User preference expressed.** The user states a workflow preference,
+  convention, or standing instruction that isn't already in CLAUDE.md
+  or working-style.md.
+- **Scope change.** The user redirects mid-task. Save what changed and
+  why, so future sessions don't re-tread the old path.
+- **Pre-compression.** If a session is getting long (many tool calls,
+  complex multi-step work), proactively save working context — what
+  we're doing, where we are in it, what's left. Don't wait to be asked.
+  There is no hook for compression; the only mitigation is saving early.
+
+**Tagging convention:**
+
+| Tag | When |
+|-----|------|
+| `decision` | Architectural or design decisions |
+| `rejected` | Approaches tried and abandoned |
+| `milestone` | Completed work summaries |
+| `context` | Working state snapshots (proactive saves) |
+| `convention` | Patterns, preferences, recurring gotchas |
+| `scope` | Scope changes and reprioritizations |
+
+Pin memories that represent standing rules or conventions.
+
+**Don't save:**
+
+- Routine file edits or commands (too granular, no retrieval value)
+- Anything already captured in `docs/CODEBASE_ASSESSMENT.md`
+- Speculative plans that haven't been confirmed by the user
+
+### When to Load
+
+Call `memory_search` at these points:
+
+- **Session start / post-compression.** Search for the current task
+  topic. This is non-negotiable after compression.
+- **Before starting a new area of work.** Check if prior context exists.
+- **When something feels familiar.** If a problem seems like it was
+  discussed before, search before re-deriving from scratch.
+
+### Tools to Use / Avoid
+
+| Tool | Use | Notes |
+|------|-----|-------|
+| `memory_save` | **Yes** | Primary persistence mechanism |
+| `memory_search` | **Yes** | Primary retrieval mechanism |
+| `memory_list` | Occasionally | Browse recent memories when search terms are unclear |
+| `memory_pin` | Yes | Pin standing conventions and rules |
+| `context_recent` | Occasionally | Catch up on prior OC activity |
+| `health` | Rarely | Diagnostics only |
+| `conversation_ask` | **Never** | Routes through a second LLM — you ARE the LLM |
+| `conversation_*` | **No** | Not needed for Claude Code use case |
+
+### Known Gaps
+
+- **No compression hook.** We can't detect when compression is about to
+  happen. Mitigation: save-as-you-go discipline.
+- **Search is keyword-based.** Quality depends on good content and tags.
+  Write memories as if future-you is searching for them with obvious
+  keywords.
+- **Untested in real sessions.** This integration is new. If memory
+  retrieval isn't useful, or save cadence is wrong, flag it so we can
+  iterate on these rules.
+
 ## Key Files
 
 - `pyproject.toml` - Project config, dependencies, tool settings
