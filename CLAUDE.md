@@ -8,6 +8,9 @@
 
 - **No backwards compatibility.** Personal project, no public users, no production.
   Break whatever needs breaking.
+- **`main` is v2.** The v1 codebase is archived on `archive/openchronicle.v1`.
+  The `refactor/new-core-from-scratch` branch no longer exists — all development
+  happens on `main`.
 
 ## Current Sprint
 
