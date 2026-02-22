@@ -24,7 +24,6 @@
   - expose these as module-level constants in plugin.py (PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_ENTRYPOINT)
 - Deterministic output for the same inputs.
 - Do not log or emit secrets, prompts, or tokens in plain text.
-- Must not import from v1.reference at runtime.
 
 ## Testing expectations
 

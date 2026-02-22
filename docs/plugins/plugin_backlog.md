@@ -165,7 +165,7 @@ See `docs/BACKLOG.md` section 5.1 for full requirements.
 
 **Status:** 🔴 Not Started (demo handler exists in `plugins/storytelling/`)
 **Effort:** Large
-**Reference:** `v1.reference/` directory contains the full v1 implementation
+**Reference:** `archive/openchronicle.v1` branch contains the full v1 implementation
 
 V1 was a comprehensive narrative AI engine. V2 stripped to domain-agnostic core.
 The v1 features belong in a plugin suite built on v2's stable foundation.
@@ -182,7 +182,7 @@ The v1 features belong in a plugin suite built on v2's stable foundation.
 - **Bookmark system** — scene bookmarking, chapters, navigation
 
 **Approach:** Each subsystem can be an independent plugin or grouped into a
-storytelling suite. The `v1.reference/` directory serves as both design reference
+storytelling suite. The `archive/openchronicle.v1` branch serves as both design reference
 and implementation roadmap. Rebuild incrementally — character + scene management
 first (highest user value), then narrative engines, then image generation.
 

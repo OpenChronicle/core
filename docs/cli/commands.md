@@ -522,7 +522,7 @@ Requires the `[mcp]` extra: `pip install -e ".[mcp]"`.
 **MCP tools exposed:** `health`, `memory_search`, `memory_save`, `memory_list`,
 `memory_pin`, `conversation_ask`, `conversation_history`, `conversation_list`,
 `conversation_create`, `context_recent`, `tool_stats`, `moe_stats`,
-`onboard_git`, `project_create`, `project_list`, `context_recent`,
+`search_turns`, `onboard_git`, `project_create`, `project_list`,
 `asset_upload`, `asset_list`, `asset_get`, `asset_link`.
 
 ---

@@ -376,7 +376,7 @@ updated. `sqlite_store.py` reduced by ~165 lines.
 - **Privacy gate** — 6 PII categories, Luhn validation, provider-aware. Blocking
   dependency for Discord integration
 - **Memory v0** — "Dumb but correct" keyword search is the right starting point
-- **`v1.reference/` directory** — Keep as design reference and plugin feature roadmap
+- **`archive/openchronicle.v1` branch** — Preserved as design reference and plugin feature roadmap
 
 ---
 
@@ -507,7 +507,7 @@ command-level testing.
 | Database integrity | Cryptographic integrity | Hash-chained events are the upgrade |
 
 **The v2 strategy is correct:** Build a hardcore core with clean boundaries, then
-re-implement v1 features as plugins. The `v1.reference/` directory is both
+re-implement v1 features as plugins. The `archive/openchronicle.v1` branch is both
 historical context and a feature roadmap for the plugin phase.
 
 ---

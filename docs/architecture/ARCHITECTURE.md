@@ -7,7 +7,7 @@
 - Pluggable task handlers and agent templates via registry/loader
 - Multi-provider LLM support with routing, fallback, and rate limiting
 - Privacy-aware outbound request filtering
-- No runtime dependency on v1; v1 is preserved under `v1.reference/`
+- No runtime dependency on v1; v1 is preserved on the `archive/openchronicle.v1` branch
 
 ## Layout
 
@@ -42,8 +42,27 @@ src/openchronicle/
     │   ├── commands/            # Dispatch tables + handler modules
     │   ├── chat.py              # Interactive chat REPL (oc chat)
     │   ├── main.py              # Argparse definitions + slim dispatch
-    │   ├── rpc_handlers.py      # 18 RPC handler functions
+    │   ├── rpc_handlers.py      # 24 RPC handler functions
     │   └── stdio.py             # STDIO server loop + utilities
+    ├── discord/                 # Discord bot driver (optional [discord] extra)
+    │   ├── bot.py               # commands.Bot subclass + message handling
+    │   ├── commands.py          # Slash command definitions
+    │   ├── config.py            # Three-layer config (env > core.json > default)
+    │   ├── formatting.py        # Message splitting for 2000-char limit
+    │   ├── session.py           # Session-to-conversation mapping
+    │   └── pid_file.py          # PID file management
+    ├── mcp/                     # MCP server (optional [mcp] extra, 20 tools)
+    │   ├── server.py            # FastMCP setup + tool registration
+    │   ├── config.py            # MCP server configuration
+    │   ├── tracking.py          # Tool call statistics
+    │   └── tools/               # Tool handler modules
+    │       ├── memory.py        # memory_* tools
+    │       ├── conversation.py  # conversation_* tools
+    │       ├── context.py       # context_recent tool
+    │       ├── system.py        # health, tool_stats, moe_stats tools
+    │       ├── project.py       # project_* tools
+    │       ├── onboard.py       # onboard_git tool
+    │       └── asset.py         # asset_* tools
     └── api/                     # HTTP API stub (FastAPI placeholder)
 
 plugins/

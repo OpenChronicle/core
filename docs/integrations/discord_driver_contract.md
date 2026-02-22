@@ -198,4 +198,3 @@ Readiness check:
 ## Notes
 
 - No Discord code is included here.
-- v1.reference is not used.

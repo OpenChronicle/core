@@ -81,11 +81,29 @@ and CLI before it.
 | Tool | Description | Maps to |
 |------|-------------|---------|
 | `health` | Health check (storage reachable, config valid) | `system.health` RPC |
+| `tool_stats` | Per-tool MCP call statistics (count, latency, errors) | `SqliteStore.get_mcp_tool_stats()` |
+| `moe_stats` | MoE consensus run statistics (per provider/model) | `SqliteStore.get_moe_stats()` |
+| `search_turns` | Full-text search across conversation turns | `SqliteStore.search_turns()` |
+
+### Onboarding Tools
+
+| Tool | Description | Maps to |
+|------|-------------|---------|
+| `onboard_git` | Analyze git history, return commit clusters for host LLM synthesis | `git_onboard` service |
+
+### Asset Tools
+
+| Tool | Description | Maps to |
+|------|-------------|---------|
+| `asset_upload` | Upload a file as an asset (SHA-256 dedup) | `upload_asset.execute()` |
+| `asset_list` | List assets in a project | `AssetStorePort.list_assets()` |
+| `asset_get` | Get asset metadata and links | `AssetStorePort.get_asset()` |
+| `asset_link` | Link an asset to any entity | `link_asset.execute()` |
 
 ### Tool Count
 
-12 tools. Tight surface. Each maps directly to an existing port method or use
-case — no new domain logic required.
+20 tools. Each maps directly to an existing port method or use case — no new
+domain logic required.
 
 ---
 
@@ -110,12 +128,17 @@ Lower priority than tools — tools alone are sufficient for the triangle.
 src/openchronicle/interfaces/mcp/
   __init__.py
   server.py          # MCP server setup, tool registration
+  config.py          # MCP server configuration
+  tracking.py        # Tool call statistics persistence
   tools/
     __init__.py
     memory.py         # memory_* tool handlers
     conversation.py   # conversation_* tool handlers
-    context.py        # context_* tool handler
-    system.py         # health tool handler
+    context.py        # context_recent tool handler
+    system.py         # health, tool_stats, moe_stats, search_turns tools
+    project.py        # project_* tool handlers
+    onboard.py        # onboard_git tool handler
+    asset.py          # asset_* tool handlers
 ```
 
 Same tier as `interfaces/cli/`, `interfaces/discord/`, `interfaces/api/`.
