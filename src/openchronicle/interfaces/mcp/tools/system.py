@@ -10,6 +10,7 @@ from mcp.server.fastmcp import Context, FastMCP
 from openchronicle.core.application.use_cases import diagnose_runtime
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
+from openchronicle.interfaces.serializers import turn_to_dict
 
 
 def _get_container(ctx: Context) -> CoreContainer:
@@ -100,19 +101,4 @@ def register(mcp: FastMCP) -> None:
         """
         container = _get_container(ctx)
         turns = container.storage.search_turns(query, top_k=top_k, conversation_id=conversation_id)
-        return [_turn_to_dict(t) for t in turns]
-
-
-def _turn_to_dict(t: Any) -> dict[str, Any]:
-    """Convert a Turn dataclass to a JSON-safe dict."""
-    return {
-        "id": t.id,
-        "conversation_id": t.conversation_id,
-        "turn_index": t.turn_index,
-        "user_text": t.user_text,
-        "assistant_text": t.assistant_text,
-        "provider": t.provider,
-        "model": t.model,
-        "routing_reasons": t.routing_reasons,
-        "created_at": t.created_at.isoformat(),
-    }
+        return [turn_to_dict(t) for t in turns]

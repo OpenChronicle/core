@@ -73,7 +73,13 @@ cleans it up on shutdown. If a prior instance is still alive, startup exits with
 an error. `--force` overrides the check. Cross-platform: uses `PermissionError`
 vs generic `OSError` distinction since Windows doesn't raise `ProcessLookupError`.
 
-**What's next:** Security scanner plugin, dev agent runner, or Goose integration.
+**What's next:** HTTP API (always-on daemon interface, Decision #6), then
+capability-aware routing and media generation (Decision #7). HTTP API is core
+infrastructure — FastAPI/uvicorn are core dependencies, starts with `oc serve`,
+mirrors MCP tools as REST endpoints. Media generation introduces a new port
+(`MediaGenerationPort`) with Ollama and OpenAI adapters, flowing through the
+existing asset system.
+
 MoE (Mixture-of-Experts) execution strategy is implemented — Jaccard-based
 consensus scoring, `--moe` CLI/MCP flag, quality pool parallel execution, 32 tests.
 MCP server (Decision #5) is implemented — unblocks Goose + Serena triangle, VS
@@ -81,7 +87,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment.**
+**Overall: Core feature-complete, Discord + MCP interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. HTTP API and media generation are next (Decisions #6, #7).**
 
 ---
 
@@ -183,7 +189,7 @@ validates against live providers (OpenAI, Anthropic).
 ### Architecture (Enforced and Clean)
 
 ```text
-interfaces/ (CLI, RPC, Discord, MCP, API stub)
+interfaces/ (CLI, RPC, Discord, MCP, API)
     ↓ calls
 application/ (use cases, orchestrator, policies, routing, config)
     ↓ depends on
@@ -275,7 +281,7 @@ surface. No backwards compatibility concerns. No production deployment yet.
 
 | Item | Reason |
 |------|--------|
-| HTTP API | CLI + RPC cover the chatbot use case |
+| ~~HTTP API~~ | ✅ Core interface (`interfaces/api/`, FastAPI, always-on daemon) |
 | ONNX router assist | Linear model works; ONNX is a performance optimization |
 | Embeddings / vector memory search | Keyword search works for v0; embeddings are a plugin concern |
 | ~~Docker hardening~~ | ✅ CI builds multi-arch image to `ghcr.io/openchronicle/core` on push to main |
@@ -502,7 +508,7 @@ command-level testing.
 | Scene management, narrative engines | Not ported | Plugin territory |
 | Image generation | Not ported | Plugin territory |
 | Plugin: full domain/app/infra per plugin | Plugin: handler + register() | Intentionally simpler |
-| Web UI templates | Not ported | HTTP API deferred |
+| Web UI templates | Not ported | HTTP API is core; web UI is separate concern |
 | CLI commands only | CLI + STDIO RPC daemon | Headless operation enabled |
 | Database integrity | Cryptographic integrity | Hash-chained events are the upgrade |
 
@@ -525,11 +531,16 @@ Core Done
   ✓ Discord Driver (core — interfaces/)
   ✓ OC MCP Server (core — interfaces/mcp, Decision #5)
   ✓ Docker CI (ghcr.io/openchronicle/core, multi-arch, GitHub Actions)
+  ✓ MoE Mode (core — application/services/moe_execution.py, uses LLMPort + routing)
+  → HTTP API (core — interfaces/api, always-on daemon, Decision #6)
+  → Capability-Aware Routing (core — wire model config capabilities into routing)
+  → Media Generation (core — new port + adapters, Decision #7)
+  → Multimodal Conversation Input (core — vision input via asset system)
+  → Webhooks (core service — event subscriptions, inbound/outbound HTTP)
   → Security Scanner (plugin — stateless handler)
   → Dev Agent Runner (core — needs LLM + sandbox)
   → Serena MCP (core — inside sandbox only)
-  → MoE Mode ✅ (core — application/services/moe_execution.py, uses LLMPort + routing)
-  → HTTP API (core — interfaces/)
+  → Memory Embeddings (core — MemoryStorePort enhancement)
   → VS Code / Copilot SDK (MCP client or external via RPC)
   → Goose Integration (MCP client — uses OC MCP + Serena MCP)
   → Private Git Server (plugin or external)
@@ -675,6 +686,86 @@ interfaces/mcp/
 imports lazy, confined to `interfaces/mcp/`. Enforced by posture tests.
 
 **Spec:** [`docs/integrations/mcp_server_spec.md`](integrations/mcp_server_spec.md)
+
+### 6. HTTP API is always-on core infrastructure (Decision: 2026-02-22)
+
+**Decision:** The HTTP API is a core interface that starts automatically as part
+of `oc serve`. FastAPI and uvicorn are core dependencies, not an optional extra.
+The implementation lives in `interfaces/api/`.
+
+**Rationale:** The HTTP API is the same tier as CLI, STDIO RPC, Discord, and
+MCP — an interface layer that needs the full `CoreContainer`. It is not an
+optional bolt-on because:
+
+1. **Daemon infrastructure.** When OC runs as a daemon, the HTTP API is always
+   listening. Webhooks (both inbound and outbound) depend on it. External
+   integrations (connectors, plugins with route registration) compose through it.
+2. **Plugin route registration.** Plugins can register HTTP routes (mounted under
+   `/api/v1/plugins/` namespace), enabling webhook consumption and custom
+   endpoints without modifying core.
+3. **Standard REST surface.** Mirrors MCP tools 1:1 as REST endpoints, plus
+   streaming (SSE), webhooks, and plugin routes. Any HTTP client gets the same
+   capabilities as MCP clients.
+
+Unlike Discord and MCP (optional extras with lazy imports), the HTTP API has no
+optional SDK dependency — FastAPI is lightweight and always installed. No posture
+test for "core runs without HTTP API" because it is core infrastructure.
+
+**Architecture:**
+
+```text
+interfaces/api/
+  app.py              # FastAPI app factory (create_app(container, config))
+  config.py           # HTTPConfig (host, port, auth settings)
+  middleware/
+    auth.py            # API key / token auth
+    privacy.py         # Privacy gate middleware
+    rate_limit.py      # Per-client rate limiting
+  routes/
+    memory.py          # /api/v1/memory/*
+    conversation.py    # /api/v1/conversation/*
+    project.py         # /api/v1/project/*
+    asset.py           # /api/v1/asset/*
+    system.py          # /api/v1/health, /api/v1/stats
+```
+
+**Posture:** Core dependency (not optional). Hexagonal boundary enforced — no
+`core.*` module imports from `interfaces/api/`.
+
+### 7. Media generation is a core capability (Decision: 2026-02-22)
+
+**Decision:** Locally hosted media generation (image, video) is a core capability
+with its own port (`MediaGenerationPort`), adapters, and capability-aware routing.
+It is not a plugin.
+
+**Rationale:** Media generation needs:
+
+1. **Its own port.** Different input/output types from text completion (prompts →
+   binary media), different cost model, different routing needs. Extending
+   `LLMPort` would violate interface segregation.
+2. **Capability-aware routing.** The `capabilities` field in model configs is
+   currently dead data (declared, never read by routing). Media generation
+   requires routing to models with `image_generation: true` or
+   `video_generation: true`. Wiring capabilities into routing benefits text
+   routing too (vision-capable model selection).
+3. **Asset integration.** Generated media flows through the existing asset system
+   (SHA-256 dedup, generic linking). A use case orchestrates port + asset storage.
+4. **Provider adapters.** Ollama now supports open-source image/video generation
+   models. OpenAI has DALL-E. Each needs an adapter normalizing to `MediaResult`.
+
+**Architecture:**
+
+```text
+core/domain/ports/media_generation_port.py    # MediaRequest, MediaResult, port ABC
+core/infrastructure/media/
+  ollama_media_adapter.py                      # Ollama image/video models
+  openai_media_adapter.py                      # DALL-E
+  stub_media_adapter.py                        # Testing
+core/application/use_cases/generate_media.py   # Orchestrates port + asset storage
+```
+
+**Implementation:** Deferred to a future sprint. Depends on capability-aware
+routing being wired first.
 
 ---
 

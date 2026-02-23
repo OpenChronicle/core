@@ -7,22 +7,13 @@ from typing import Any, cast
 from mcp.server.fastmcp import Context, FastMCP
 
 from openchronicle.core.application.use_cases import create_project, list_projects
-from openchronicle.core.domain.models.project import Project
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
+from openchronicle.interfaces.serializers import project_to_dict
 
 
 def _get_container(ctx: Context) -> CoreContainer:
     return cast(CoreContainer, ctx.request_context.lifespan_context["container"])
-
-
-def _project_to_dict(p: Project) -> dict[str, Any]:
-    return {
-        "id": p.id,
-        "name": p.name,
-        "metadata": p.metadata,
-        "created_at": p.created_at.isoformat(),
-    }
 
 
 def register(mcp: FastMCP) -> None:
@@ -51,7 +42,7 @@ def register(mcp: FastMCP) -> None:
             name=name,
             metadata=metadata,
         )
-        return _project_to_dict(project)
+        return project_to_dict(project)
 
     @mcp.tool()
     @track_tool
@@ -65,4 +56,4 @@ def register(mcp: FastMCP) -> None:
         """
         container = _get_container(ctx)
         projects = list_projects.execute(orchestrator=container.orchestrator)
-        return [_project_to_dict(p) for p in projects]
+        return [project_to_dict(p) for p in projects]

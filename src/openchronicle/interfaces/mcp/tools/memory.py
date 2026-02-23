@@ -11,23 +11,11 @@ from openchronicle.core.application.use_cases import add_memory, list_memory, pi
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
+from openchronicle.interfaces.serializers import memory_to_dict
 
 
 def _get_container(ctx: Context) -> CoreContainer:
     return cast(CoreContainer, ctx.request_context.lifespan_context["container"])
-
-
-def _memory_to_dict(m: MemoryItem) -> dict[str, Any]:
-    return {
-        "id": m.id,
-        "content": m.content,
-        "tags": m.tags,
-        "pinned": m.pinned,
-        "conversation_id": m.conversation_id,
-        "project_id": m.project_id,
-        "source": m.source,
-        "created_at": m.created_at.isoformat(),
-    }
 
 
 def register(mcp: FastMCP) -> None:
@@ -58,7 +46,7 @@ def register(mcp: FastMCP) -> None:
             conversation_id=conversation_id,
             project_id=project_id,
         )
-        return [_memory_to_dict(m) for m in results]
+        return [memory_to_dict(m) for m in results]
 
     @mcp.tool()
     @track_tool
@@ -113,7 +101,7 @@ def register(mcp: FastMCP) -> None:
             emit_event=container.event_logger.append,
             item=item,
         )
-        return _memory_to_dict(saved)
+        return memory_to_dict(saved)
 
     @mcp.tool()
     @track_tool
@@ -134,7 +122,7 @@ def register(mcp: FastMCP) -> None:
             limit=limit,
             pinned_only=pinned_only,
         )
-        return [_memory_to_dict(m) for m in results]
+        return [memory_to_dict(m) for m in results]
 
     @mcp.tool()
     @track_tool

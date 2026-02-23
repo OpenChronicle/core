@@ -324,7 +324,48 @@ def cmd_list_handlers(args: argparse.Namespace, container: CoreContainer) -> int
 
 def cmd_serve(args: argparse.Namespace, container: CoreContainer) -> int:
     _configure_stdio_logging()
+
+    # Start the HTTP API server in a daemon thread
+    _start_http_api_background(container)
+
     return serve_stdio(container, idle_timeout_seconds=args.idle_timeout_seconds)
+
+
+def _start_http_api_background(container: CoreContainer) -> None:
+    """Start the HTTP API server in a daemon thread.
+
+    The thread dies automatically when the main thread exits (e.g. STDIO EOF
+    or shutdown command), so no explicit shutdown coordination is needed.
+    """
+    import threading
+
+    import uvicorn
+
+    from openchronicle.interfaces.api.app import create_app
+    from openchronicle.interfaces.api.config import HTTPConfig
+
+    log = logging.getLogger(__name__)
+
+    config = HTTPConfig.from_env(file_config=container.file_configs.get("api"))
+    app = create_app(container, config)
+
+    uv_config = uvicorn.Config(
+        app,
+        host=config.host,
+        port=config.port,
+        log_level="info",
+    )
+    server = uvicorn.Server(uv_config)
+
+    def _run_server() -> None:
+        try:
+            server.run()
+        except Exception:
+            log.exception("HTTP API server failed to start or crashed")
+
+    thread = threading.Thread(target=_run_server, name="oc-http-api", daemon=True)
+    thread.start()
+    log.info("HTTP API thread started (binding to %s:%d)", config.host, config.port)
 
 
 def cmd_rpc(args: argparse.Namespace, container: CoreContainer) -> int:

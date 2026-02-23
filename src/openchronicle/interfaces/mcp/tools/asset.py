@@ -7,38 +7,13 @@ from typing import Any, cast
 from mcp.server.fastmcp import Context, FastMCP
 
 from openchronicle.core.application.use_cases import link_asset, upload_asset
-from openchronicle.core.domain.models.asset import Asset, AssetLink
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
+from openchronicle.interfaces.serializers import asset_link_to_dict, asset_to_dict
 
 
 def _get_container(ctx: Context) -> CoreContainer:
     return cast(CoreContainer, ctx.request_context.lifespan_context["container"])
-
-
-def _asset_to_dict(a: Asset) -> dict[str, Any]:
-    return {
-        "id": a.id,
-        "project_id": a.project_id,
-        "filename": a.filename,
-        "mime_type": a.mime_type,
-        "file_path": a.file_path,
-        "size_bytes": a.size_bytes,
-        "content_hash": a.content_hash,
-        "metadata": a.metadata,
-        "created_at": a.created_at.isoformat(),
-    }
-
-
-def _link_to_dict(link: AssetLink) -> dict[str, Any]:
-    return {
-        "id": link.id,
-        "asset_id": link.asset_id,
-        "target_type": link.target_type,
-        "target_id": link.target_id,
-        "role": link.role,
-        "created_at": link.created_at.isoformat(),
-    }
 
 
 def register(mcp: FastMCP) -> None:
@@ -83,7 +58,7 @@ def register(mcp: FastMCP) -> None:
             link_target_id=link_target_id,
             link_role=link_role,
         )
-        result = _asset_to_dict(asset)
+        result = asset_to_dict(asset)
         result["is_new"] = is_new
         return result
 
@@ -102,7 +77,7 @@ def register(mcp: FastMCP) -> None:
         """
         container = _get_container(ctx)
         assets = container.storage.list_assets(project_id, limit=limit)
-        return [_asset_to_dict(a) for a in assets]
+        return [asset_to_dict(a) for a in assets]
 
     @mcp.tool()
     @track_tool
@@ -119,9 +94,9 @@ def register(mcp: FastMCP) -> None:
         asset = container.storage.get_asset(asset_id)
         if asset is None:
             raise ValueError(f"Asset not found: {asset_id}")
-        result = _asset_to_dict(asset)
+        result = asset_to_dict(asset)
         links = container.storage.list_asset_links(asset_id=asset_id)
-        result["links"] = [_link_to_dict(link) for link in links]
+        result["links"] = [asset_link_to_dict(link) for link in links]
         return result
 
     @mcp.tool()
@@ -150,4 +125,4 @@ def register(mcp: FastMCP) -> None:
             target_id=target_id,
             role=role,
         )
-        return _link_to_dict(link)
+        return asset_link_to_dict(link)

@@ -12,39 +12,13 @@ from openchronicle.core.application.use_cases import (
     list_conversations,
     show_conversation,
 )
-from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
+from openchronicle.interfaces.serializers import conversation_to_dict, turn_to_dict
 
 
 def _get_container(ctx: Context) -> CoreContainer:
     return cast(CoreContainer, ctx.request_context.lifespan_context["container"])
-
-
-def _turn_to_dict(t: Turn) -> dict[str, Any]:
-    """Convert a Turn dataclass to a JSON-safe dict."""
-    return {
-        "id": t.id,
-        "conversation_id": t.conversation_id,
-        "turn_index": t.turn_index,
-        "user_text": t.user_text,
-        "assistant_text": t.assistant_text,
-        "provider": t.provider,
-        "model": t.model,
-        "routing_reasons": t.routing_reasons,
-        "created_at": t.created_at.isoformat(),
-    }
-
-
-def _convo_to_dict(c: Conversation) -> dict[str, Any]:
-    """Convert a Conversation dataclass to a JSON-safe dict."""
-    return {
-        "id": c.id,
-        "project_id": c.project_id,
-        "title": c.title,
-        "mode": c.mode,
-        "created_at": c.created_at.isoformat(),
-    }
 
 
 def register(mcp: FastMCP) -> None:
@@ -68,7 +42,7 @@ def register(mcp: FastMCP) -> None:
             emit_event=container.event_logger.append,
             title=title,
         )
-        return _convo_to_dict(convo)
+        return conversation_to_dict(convo)
 
     @mcp.tool()
     @track_tool
@@ -86,7 +60,7 @@ def register(mcp: FastMCP) -> None:
             convo_store=container.storage,
             limit=limit,
         )
-        return [_convo_to_dict(c) for c in convos]
+        return [conversation_to_dict(c) for c in convos]
 
     @mcp.tool()
     @track_tool
@@ -108,8 +82,8 @@ def register(mcp: FastMCP) -> None:
             limit=limit,
         )
         return {
-            "conversation": _convo_to_dict(convo),
-            "turns": [_turn_to_dict(t) for t in turns],
+            "conversation": conversation_to_dict(convo),
+            "turns": [turn_to_dict(t) for t in turns],
         }
 
     @mcp.tool()
@@ -146,4 +120,4 @@ def register(mcp: FastMCP) -> None:
             privacy_settings=container.privacy_settings,
             moe=moe,
         )
-        return _turn_to_dict(turn)
+        return turn_to_dict(turn)
