@@ -199,13 +199,13 @@ The `oc` CLI provides:
 
 See `docs/BACKLOG.md` for planned features including:
 
-- Capability-aware routing
 - Media generation port
 - Security scanner plugin
 - Dev agent runner (sandboxed)
+- Memory System Phase 2 (context assembly, turn recording)
 
 Already implemented as core capabilities (not plugins — see Decision #4):
 
 - HTTP API (`interfaces/api/`, 51 tests, FastAPI, auto-starts with `oc serve`)
-- Scheduler service (`application/services/scheduler.py`, 52+ tests)
-- Discord interface (`interfaces/discord/`, 60 tests, optional `[discord]` extra)
+- Scheduler service (`application/services/scheduler.py`, 53 tests)
+- Discord interface (`interfaces/discord/`, 85 tests, optional `[discord]` extra)

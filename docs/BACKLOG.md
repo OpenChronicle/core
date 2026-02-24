@@ -44,7 +44,7 @@ This document tracks planned features, implementation gaps, and future work for 
 - [x] Jobs persist across restarts (SQLite)
 - [x] Deterministic ordering verified by tests
 - [x] No double-fire under concurrent tick() (concurrency stress test T6)
-- [x] 52+ tests (28 service, 13 storage, 11 CLI)
+- [x] 53 tests (28 service, 13 storage, 12 CLI)
 
 ---
 
@@ -54,7 +54,7 @@ This document tracks planned features, implementation gaps, and future work for 
 
 **Status:** ✅ Implemented
 **Location:** `src/openchronicle/interfaces/discord/` (optional `[discord]` extra)
-**Tests:** 60 unit tests (`test_discord_*.py`) + 7 integration tests
+**Tests:** 71 unit tests (`test_discord_*.py`) + 14 integration tests
 
 Implemented as a core interfaces driver per Decision #4 (hybrid taxonomy).
 The driver interacts with core directly via the container (same process), not
@@ -250,7 +250,7 @@ SDK dependency — FastAPI is lightweight and always installed.
 - [x] `HTTPConfig` dataclass (host, port, api_key), three-layer precedence
 - [x] Authentication middleware (API key, configurable exempt paths)
 - [x] Per-client rate limiting middleware (sliding window, thread-safe, memory leak eviction)
-- [x] Core routes mirroring MCP surface (21 endpoints):
+- [x] Core routes mirroring MCP surface (19 endpoints):
   - [x] `/api/v1/memory/*` (search, save, list, pin, update)
   - [x] `/api/v1/conversation/*` (ask, history, list, create, context_recent)
   - [x] `/api/v1/project/*` (create, list)
@@ -298,22 +298,22 @@ Webhooks are a core service that the HTTP API exposes, not just an HTTP feature.
 
 ### 7.1 Capability-Aware Routing
 
-**Status:** 🔴 Not Started
+**Status:** ✅ Implemented
 **Effort:** Small
 **Classification:** Core enhancement (routing + model config)
 
-The `capabilities` field in model configs is currently dead data — declared but
-never read by routing. Wire it into model selection so routing can filter by
-capability (e.g., vision, image generation).
+`ModelConfigLoader` parses the `capabilities` dict from model configs.
+`RouterPolicy` filters pool candidates by `required_capabilities` (opt-in).
+`NO_CAPABLE_MODEL` error when no candidate matches. 12 tests.
 
 **Requirements:**
 
-- [ ] Parse `capabilities` dict in `ModelConfigLoader`
-- [ ] Add capability filter to routing — select only models matching required
+- [x] Parse `capabilities` dict in `ModelConfigLoader`
+- [x] Add capability filter to routing — select only models matching required
       capabilities
-- [ ] New capability flags: `text_generation`, `image_generation`,
+- [x] New capability flags: `text_generation`, `image_generation`,
       `video_generation`, `vision`
-- [ ] Optional `generation_pool` in `PoolConfig` for media generation models
+- [x] Optional `generation_pool` in `PoolConfig` for media generation models
 
 ### 7.2 Media Generation (Core Capability)
 
@@ -363,6 +363,44 @@ deferred in `docs/architecture/ASSETS.md`.
 ---
 
 ## Priority 8 — Memory Enhancement
+
+Memory improvements are tracked in two dimensions:
+
+- **Search technology:** v0 (keyword/FTS5) → v1 (embeddings/semantic)
+- **Improvement phases:** Phase 1 (update + tag filter) → Phase 2 (context
+  assembly + turn recording) → Phase 3 (incremental onboard)
+
+### 8.0 Memory Phase 1 (Update + Tag-Filtered Search)
+
+**Status:** ✅ Implemented
+**Commit:** `d19617c`
+
+- [x] `memory_update` use case — update content and/or tags, `updated_at` tracking
+- [x] Tag-filtered search — AND-logic tag parameter on `search_memory()`
+- [x] Schema migration (`updated_at` column, idempotent ALTER TABLE)
+- [x] All interfaces: MCP tool, API endpoint, CLI command, serializer
+- [x] 19 new tests (11 update, 8 tag search)
+
+### 8.0.1 Memory Phase 2 (Context Assembly + Turn Recording)
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Classification:** Core enhancement
+
+- [ ] **Standalone context assembly** — expose OC's internal context assembly
+      logic (`prepare_ask()` retrieval) as a standalone capability. MCP clients
+      and API callers get retrieval intelligence without forcing an LLM call.
+- [ ] **External turn recording** — allow MCP clients and API callers to record
+      their conversation turns in OC. More data → better retrieval → better
+      context in future interactions.
+
+### 8.0.2 Memory Phase 3 (Incremental Git Onboard)
+
+**Status:** 🔴 Not Started
+**Effort:** Small-Medium
+
+- [ ] Add watermark tracking so `onboard_git` processes only new commits since
+      last run, enabling continuous narrative capture.
 
 ### 8.1 Memory v1 (Embeddings / Semantic Search)
 
@@ -416,6 +454,32 @@ option if deeper IDE integration is needed.
 - [ ] VS Code MCP config pointing to `oc mcp serve`
 - [ ] Authenticate explicitly (user-managed)
 - [ ] Sanitize payloads / respect PII gate
+
+### 9.1.1 IDE Event-Triggered Memory Integration
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Depends On:** OC MCP Server (P2), Memory Phase 2 (P8.0.1)
+
+Configure MCP so that IDE events (session start, file save, commit, context
+compression, etc.) automatically trigger OC memory operations without manual
+tool invocation. The goal is seamless, automatic memory utilization.
+
+**Target IDEs:**
+
+- [ ] **Claude Code** — hooks system (`user_prompt_submit`, session start/end)
+      for auto-save/load of working context
+- [ ] **Goose** — MCP event subscriptions for auto-memory on session boundaries
+- [ ] **VS Code** — extension events (workspace open, file save) mapped to OC
+      memory operations via MCP
+
+**Requirements:**
+
+- [ ] Define event-to-action mapping (which IDE events trigger which OC operations)
+- [ ] MCP server-side event subscription capability (or polling)
+- [ ] Auto-context injection on session start (load relevant memories)
+- [ ] Auto-save working context on session end / context compression
+- [ ] User-configurable triggers (enable/disable per event type)
 
 ### 9.2 Goose (Block) Integration (MCP Client)
 
@@ -654,6 +718,21 @@ categorization, bill/subscription monitoring, and investment overview.
 - [ ] **Debugging Guide** — Troubleshooting procedures, common issues
 - [ ] **Security Hardening Guide** — Production hardening beyond privacy gate
 - [ ] **Contribution Guidelines** — CONTRIBUTING.md with PR process
+- [ ] **Plugin development entry point** — consolidate 4 plugin docs into single
+      learning path with end-to-end tutorial (audit M3)
+- [ ] **Docker minimal build guide** — document building provider-specific images,
+      size optimization (audit L1)
+- [ ] **Pre-commit hooks in README** — add quick-start note for hook setup (audit L2)
+
+### Audit Findings (2026-02-23, Medium/Low)
+
+Deferred items from fresh-eyes usability audit:
+
+| ID | Finding | Severity | Notes |
+|----|---------|----------|-------|
+| M1 | HTTP API has 19 endpoints, not 21 — delta is `search_turns` and `context_recent` as standalone MCP tool | Medium | Decide if API should gain these 2 endpoints |
+| M4 | ARCHITECTURE.md route section structure correct but endpoint count was wrong | Medium | Fixed in C1 pass |
+| M6 | Routing terminology inconsistent ("Router assist" vs "Router policy" vs "Smart routing") | Low | Context usually clarifies; glossary entry would help |
 
 ---
 

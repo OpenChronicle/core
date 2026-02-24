@@ -22,26 +22,25 @@ See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 media generation port, security scanner plugin, or webhooks.
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
-HTTP API is done (`interfaces/api/`, FastAPI, 21 REST endpoints mirroring MCP tools,
+HTTP API is done (`interfaces/api/`, FastAPI, 19 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51 tests, auto-starts with `oc serve`).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
-MCP server is done (`interfaces/mcp/`, 21 tools, 40 tests + 7 posture, `oc mcp serve`
+MCP server is done (`interfaces/mcp/`, 21 tools, 37 tests + 7 posture, `oc mcp serve`
 CLI, stdio + SSE transports, lazy import guard).
 Asset management is done (`domain/models/asset.py`, `application/services/asset_storage.py`,
 `application/use_cases/upload_asset.py`, `application/use_cases/link_asset.py`,
 4 MCP tools, 4 CLI commands, SHA-256 dedup, generic linking, 40 tests).
 Discord interface is done (`interfaces/discord/`, `commands.Bot` subclass, 6 slash
-commands, session mapping, message splitting, 60 tests, `oc discord start` CLI).
-Scheduler service is done (tick-driven, atomic claim, 52+ tests, CLI + RPC).
-LLMPort function calling/tool use is done (all 6 adapters, 30 contract tests).
+commands, session mapping, message splitting, 85 tests, `oc discord start` CLI).
+Scheduler service is done (tick-driven, atomic claim, 53 tests, CLI + RPC).
+LLMPort function calling/tool use is done (all 6 adapters, 53 contract tests).
 Time context injection is done (current time, last interaction timestamp,
 seconds delta — raw data in every conversation turn for bot time awareness).
 File-based config is done (single `core.json`, enriched model configs, plugin
 configs co-located at `plugins/<name>/config.json`).
 Memory System Phase 1 is done (`memory_update` use case with `updated_at` tracking,
-tag-filtered search with AND logic on `search_memory`, 21 MCP tools, 21 API endpoints,
-19 new tests).
+tag-filtered search with AND logic on `search_memory`, 19 new tests).
 Config externalization is done (conversation defaults + Discord operational
 settings wired through three-layer precedence, hygiene test prevents drift).
 Docker CI is done (GitHub Actions multi-arch build to `ghcr.io/openchronicle/core`,
@@ -111,8 +110,8 @@ for the full directory tree and layer descriptions.
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
-- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 20 tools, FastMCP)
-- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 20 REST endpoints, auto-starts with `oc serve`)
+- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 21 tools, FastMCP)
+- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 19 REST endpoints, auto-starts with `oc serve`)
 - **MoE Execution**: `application/services/moe_execution.py` — Mixture-of-Experts consensus strategy (`--moe` flag)
 - **Asset Management**: `domain/models/asset.py` + `application/services/asset_storage.py` — filesystem storage, SHA-256 dedup, generic entity linking
 
@@ -144,8 +143,11 @@ Most-used variables for quick reference:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `OC_LLM_PROVIDER` | Provider selection (`stub`, `openai`, `ollama`, `anthropic`) | `stub` |
+| `OC_LLM_PROVIDER` | Provider selection (`stub`, `openai`, `ollama`, `anthropic`, `groq`, `gemini`) | `stub` |
 | `OPENAI_API_KEY` | OpenAI authentication | - |
+| `ANTHROPIC_API_KEY` | Anthropic authentication | - |
+| `GROQ_API_KEY` | Groq authentication | - |
+| `GEMINI_API_KEY` | Gemini authentication (also accepts `GOOGLE_API_KEY`) | - |
 | `OC_DB_PATH` | SQLite database location | `data/openchronicle.db` |
 
 Full reference (~60 variables covering budget, rate limiting, routing, privacy,

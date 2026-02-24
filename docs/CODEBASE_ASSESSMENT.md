@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,069 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,113 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -74,7 +74,7 @@ an error. `--force` overrides the check. Cross-platform: uses `PermissionError`
 vs generic `OSError` distinction since Windows doesn't raise `ProcessLookupError`.
 
 **HTTP API** (Decision #6) is implemented — FastAPI/uvicorn are core dependencies,
-21 REST endpoints mirroring the MCP tool surface, starts automatically with
+19 REST endpoints mirroring the MCP tool surface, starts automatically with
 `oc serve` in a daemon thread. Includes API key auth (timing-safe), per-client
 rate limiting (thread-safe sliding window), optional CORS, and proper HTTP error
 codes. Shared serializers (`interfaces/serializers.py`) eliminate duplication
@@ -180,7 +180,7 @@ validates against live providers (OpenAI, Anthropic).
 | **Memory v0** (keyword search, pinned, tagged, update, tag-filtered search) | Working | Deterministic retrieval, no embeddings; `memory_update` preserves identity, tag-filtered `search_memory` (AND logic) |
 | **Budget/rate limiting** | Working | Token limits, call limits, rate gates |
 | **Plugin system** (discover, load, register, invoke) | Working | 2 example plugins, collision detection |
-| **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 52+ tests |
+| **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 53 tests |
 | **STDIO RPC** (24 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (76+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete/scheduler |
 | **File-based configuration** (single `core.json`, three-layer precedence) | Working | All subsystems wired: routing, budget, retry, privacy, telemetry, conversation, Discord. Secrets (API keys, bot token) follow same precedence — no env-only exceptions. Enriched `models/*.json` + per-plugin JSON. Hygiene test enforces config-code default sync |
@@ -188,8 +188,8 @@ validates against live providers (OpenAI, Anthropic).
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
 | **MCP server interface** (21 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, system, onboard, asset tools (health, tool_stats, moe_stats, onboard_git, asset_upload/list/get/link, memory_update); `@track_tool` decorator; lazy import guard; posture-enforced isolation |
-| **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 40 tests |
-| **HTTP API interface** (FastAPI, always-on daemon, 21 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51 tests |
+| **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 48 tests |
+| **HTTP API interface** (FastAPI, always-on daemon, 19 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51 tests |
 | **Test suite** (1069 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 14 test categories + Discord + MCP + Assets + HTTP API, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
@@ -291,8 +291,8 @@ surface. No backwards compatibility concerns. No production deployment yet.
 | ONNX router assist | Linear model works; ONNX is a performance optimization |
 | Embeddings / vector memory search | Keyword search works for v0; embeddings are a plugin concern |
 | ~~Docker hardening~~ | ✅ CI builds multi-arch image to `ghcr.io/openchronicle/core` on push to main |
-| ~~Scheduler~~ | ✅ Core service (`application/services/scheduler.py`, 52+ tests) |
-| ~~Discord driver~~ | ✅ Interfaces driver (`interfaces/discord/`, 60 tests, optional extra) |
+| ~~Scheduler~~ | ✅ Core service (`application/services/scheduler.py`, 53 tests) |
+| ~~Discord driver~~ | ✅ Interfaces driver (`interfaces/discord/`, 85 tests, optional extra) |
 | ~~OC MCP Server~~ | ✅ Interfaces driver (`interfaces/mcp/`, 16 tools, 40+7 tests, optional extra) |
 
 ---
@@ -640,7 +640,7 @@ is an optional bolt-on — they need the same level of access as core services.
 `interfaces/discord/`. Keep the plugin system for what it's good at. Close one
 core gap first: add function calling / tool use to LLMPort (done — ToolDefinition,
 ToolCall, tool_calls on LLMResponse/StreamChunk, tools/tool_choice params on all
-6 adapters + facade + execution layer, 30 contract tests).
+6 adapters + facade + execution layer, 53 contract tests).
 
 ### 5. MCP-first integration strategy: OC as an MCP server (Decision: 2026-02-20)
 
