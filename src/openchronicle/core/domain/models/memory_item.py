@@ -19,3 +19,4 @@ class MemoryItem:
     conversation_id: str | None = None
     project_id: str | None = None
     source: str = "manual"
+    updated_at: datetime | None = None

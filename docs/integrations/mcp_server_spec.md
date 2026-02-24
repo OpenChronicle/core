@@ -59,7 +59,8 @@ and CLI before it.
 | `memory_search` | Keyword search across memory items | `MemoryStorePort.search()` |
 | `memory_save` | Store a memory item (tagged, optionally pinned) | `MemoryStorePort.save()` |
 | `memory_list` | List memories (by conversation, project, or all) | `MemoryStorePort.list()` |
-| `memory_pin` | Pin/unpin a memory for persistent retrieval | `MemoryStorePort.update()` |
+| `memory_pin` | Pin/unpin a memory for persistent retrieval | `MemoryStorePort.set_pinned()` |
+| `memory_update` | Update content and/or tags of an existing memory | `MemoryStorePort.update_memory()` |
 
 ### Conversation Tools
 
@@ -102,7 +103,7 @@ and CLI before it.
 
 ### Tool Count
 
-20 tools. Each maps directly to an existing port method or use case — no new
+21 tools. Each maps directly to an existing port method or use case — no new
 domain logic required.
 
 ---

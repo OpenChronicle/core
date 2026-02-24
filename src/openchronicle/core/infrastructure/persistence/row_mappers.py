@@ -151,6 +151,7 @@ def row_to_turn(row: sqlite3.Row) -> Turn:
 
 def row_to_memory_item(row: sqlite3.Row) -> MemoryItem:
     tags_raw = row["tags"] or "[]"
+    updated_at_raw = row["updated_at"]
     return MemoryItem(
         id=row["id"],
         content=row["content"],
@@ -160,6 +161,7 @@ def row_to_memory_item(row: sqlite3.Row) -> MemoryItem:
         conversation_id=row["conversation_id"],
         project_id=row["project_id"],
         source=row["source"],
+        updated_at=_parse_dt(updated_at_raw) if updated_at_raw else None,
     )
 
 

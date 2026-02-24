@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS memory_items (
     conversation_id TEXT,
     project_id TEXT,
     source TEXT NOT NULL,
+    updated_at TEXT,
     FOREIGN KEY(conversation_id) REFERENCES conversations(id),
     FOREIGN KEY(project_id) REFERENCES projects(id)
 );

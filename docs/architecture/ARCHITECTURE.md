@@ -51,7 +51,7 @@ src/openchronicle/
     │   ├── formatting.py        # Message splitting for 2000-char limit
     │   ├── session.py           # Session-to-conversation mapping
     │   └── pid_file.py          # PID file management
-    ├── mcp/                     # MCP server (optional [mcp] extra, 20 tools)
+    ├── mcp/                     # MCP server (optional [mcp] extra, 21 tools)
     │   ├── server.py            # FastMCP setup + tool registration
     │   ├── config.py            # MCP server configuration
     │   ├── tracking.py          # Tool call statistics

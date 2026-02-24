@@ -18,14 +18,15 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Media generation port, security scanner plugin, or webhooks.
+**Next action:** Memory System Phase 2 (standalone context assembly, external turn recording),
+media generation port, security scanner plugin, or webhooks.
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
-HTTP API is done (`interfaces/api/`, FastAPI, 20 REST endpoints mirroring MCP tools,
+HTTP API is done (`interfaces/api/`, FastAPI, 21 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51 tests, auto-starts with `oc serve`).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
-MCP server is done (`interfaces/mcp/`, 20 tools, 40 tests + 7 posture, `oc mcp serve`
+MCP server is done (`interfaces/mcp/`, 21 tools, 40 tests + 7 posture, `oc mcp serve`
 CLI, stdio + SSE transports, lazy import guard).
 Asset management is done (`domain/models/asset.py`, `application/services/asset_storage.py`,
 `application/use_cases/upload_asset.py`, `application/use_cases/link_asset.py`,
@@ -38,6 +39,9 @@ Time context injection is done (current time, last interaction timestamp,
 seconds delta — raw data in every conversation turn for bot time awareness).
 File-based config is done (single `core.json`, enriched model configs, plugin
 configs co-located at `plugins/<name>/config.json`).
+Memory System Phase 1 is done (`memory_update` use case with `updated_at` tracking,
+tag-filtered search with AND logic on `search_memory`, 21 MCP tools, 21 API endpoints,
+19 new tests).
 Config externalization is done (conversation defaults + Discord operational
 settings wired through three-layer precedence, hygiene test prevents drift).
 Docker CI is done (GitHub Actions multi-arch build to `ghcr.io/openchronicle/core`,
@@ -250,6 +254,7 @@ Call `memory_search` at these points:
 | `memory_search` | **Yes** | Primary retrieval mechanism |
 | `memory_list` | Occasionally | Browse recent memories when search terms are unclear |
 | `memory_pin` | Yes | Pin standing conventions and rules |
+| `memory_update` | Yes | Update content/tags of existing memories |
 | `context_recent` | Occasionally | Catch up on prior OC activity |
 | `health` | Rarely | Diagnostics only |
 | `conversation_ask` | **Never** | Routes through a second LLM — you ARE the LLM |

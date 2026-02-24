@@ -12,6 +12,7 @@ def execute(
     conversation_id: str | None = None,
     project_id: str | None = None,
     include_pinned: bool = True,
+    tags: list[str] | None = None,
 ) -> list[MemoryItem]:
     return store.search_memory(
         query,
@@ -19,4 +20,5 @@ def execute(
         conversation_id=conversation_id,
         project_id=project_id,
         include_pinned=include_pinned,
+        tags=tags,
     )

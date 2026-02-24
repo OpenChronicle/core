@@ -230,10 +230,16 @@ def main(argv: list[str] | None = None) -> int:
     memory_search_cmd.add_argument("--top-k", type=int, default=8, help="Number of memory items to return")
     memory_search_cmd.add_argument("--conversation-id", default=None, help="Restrict to conversation")
     memory_search_cmd.add_argument("--project-id", default=None, help="Restrict to project")
+    memory_search_cmd.add_argument("--tags", default=None, help="Filter by tags (comma-separated, AND logic)")
     memory_search_group = memory_search_cmd.add_mutually_exclusive_group()
     memory_search_group.add_argument("--include-pinned", dest="include_pinned", action="store_true")
     memory_search_group.add_argument("--no-include-pinned", dest="include_pinned", action="store_false")
     memory_search_cmd.set_defaults(include_pinned=True)
+
+    memory_update_cmd = memory_sub.add_parser("update", help="Update a memory item")
+    memory_update_cmd.add_argument("memory_id")
+    memory_update_cmd.add_argument("--content", default=None, help="New content (replaces existing)")
+    memory_update_cmd.add_argument("--tags", default=None, help="New tags, comma-separated (replaces existing)")
 
     # --- Provider commands ---
     provider_cmd = sub.add_parser("provider", help="Provider setup and management")

@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from mcp.server.fastmcp import Context, FastMCP
 
-from openchronicle.core.application.use_cases import add_memory, list_memory, pin_memory, search_memory
+from openchronicle.core.application.use_cases import add_memory, list_memory, pin_memory, search_memory, update_memory
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
@@ -29,6 +29,7 @@ def register(mcp: FastMCP) -> None:
         top_k: int = 8,
         conversation_id: str | None = None,
         project_id: str | None = None,
+        tags: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Search memory items by keyword.
 
@@ -37,6 +38,7 @@ def register(mcp: FastMCP) -> None:
             top_k: Maximum number of results to return (default 8).
             conversation_id: Optional — restrict search to a specific conversation.
             project_id: Optional — restrict search to a specific project.
+            tags: Optional — filter results to items having ALL specified tags (AND logic).
         """
         container = _get_container(ctx)
         results = search_memory.execute(
@@ -45,6 +47,7 @@ def register(mcp: FastMCP) -> None:
             top_k=top_k,
             conversation_id=conversation_id,
             project_id=project_id,
+            tags=tags,
         )
         return [memory_to_dict(m) for m in results]
 
@@ -148,3 +151,31 @@ def register(mcp: FastMCP) -> None:
             pinned=pinned,
         )
         return {"status": "ok", "memory_id": memory_id, "pinned": str(pinned)}
+
+    @mcp.tool()
+    @track_tool
+    def memory_update(
+        memory_id: str,
+        ctx: Context,
+        content: str | None = None,
+        tags: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing memory item's content and/or tags.
+
+        Preserves identity (id, created_at). Sets updated_at automatically.
+        At least one of content or tags must be provided.
+
+        Args:
+            memory_id: The ID of the memory to update.
+            content: New content (replaces existing). Omit to keep current.
+            tags: New tags (replaces existing). Omit to keep current.
+        """
+        container = _get_container(ctx)
+        updated = update_memory.execute(
+            store=container.storage,
+            emit_event=container.event_logger.append,
+            memory_id=memory_id,
+            content=content,
+            tags=tags,
+        )
+        return memory_to_dict(updated)

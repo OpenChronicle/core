@@ -19,6 +19,19 @@ class MemoryStorePort(ABC):
     def set_pinned(self, memory_id: str, pinned: bool) -> None: ...
 
     @abstractmethod
+    def update_memory(
+        self,
+        memory_id: str,
+        content: str | None = None,
+        tags: list[str] | None = None,
+    ) -> MemoryItem:
+        """Update a memory item's content and/or tags.
+
+        Sets updated_at. Raises ValueError if not found.
+        """
+        ...
+
+    @abstractmethod
     def search_memory(
         self,
         query: str,
@@ -27,6 +40,7 @@ class MemoryStorePort(ABC):
         conversation_id: str | None = None,
         project_id: str | None = None,
         include_pinned: bool = True,
+        tags: list[str] | None = None,
     ) -> list[MemoryItem]: ...
 
     @abstractmethod

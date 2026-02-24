@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,050 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,069 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -74,7 +74,7 @@ an error. `--force` overrides the check. Cross-platform: uses `PermissionError`
 vs generic `OSError` distinction since Windows doesn't raise `ProcessLookupError`.
 
 **HTTP API** (Decision #6) is implemented — FastAPI/uvicorn are core dependencies,
-20 REST endpoints mirroring the MCP tool surface, starts automatically with
+21 REST endpoints mirroring the MCP tool surface, starts automatically with
 `oc serve` in a daemon thread. Includes API key auth (timing-safe), per-client
 rate limiting (thread-safe sliding window), optional CORS, and proper HTTP error
 codes. Shared serializers (`interfaces/serializers.py`) eliminate duplication
@@ -92,7 +92,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Capability-aware routing and media generation are next (Decision #7).**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system enhanced with `memory_update` (partial update preserving identity) and tag-filtered search (AND logic). Capability-aware routing and media generation are next (Decision #7).**
 
 ---
 
@@ -177,7 +177,7 @@ validates against live providers (OpenAI, Anthropic).
 | **Hash-chained events** (SHA256, prev_hash → hash) | Working | Verification + replay services |
 | **Privacy gate** (6 PII categories, Luhn validation) | Working | Rule-based, provider-aware |
 | **Interaction routing** (rule + hybrid ML assist) | Working | NSFW scoring, mode detection |
-| **Memory v0** (keyword search, pinned, tagged) | Working | Deterministic retrieval, no embeddings |
+| **Memory v0** (keyword search, pinned, tagged, update, tag-filtered search) | Working | Deterministic retrieval, no embeddings; `memory_update` preserves identity, tag-filtered `search_memory` (AND logic) |
 | **Budget/rate limiting** | Working | Token limits, call limits, rate gates |
 | **Plugin system** (discover, load, register, invoke) | Working | 2 example plugins, collision detection |
 | **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 52+ tests |
@@ -187,10 +187,10 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
-| **MCP server interface** (20 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, system, onboard, asset tools (health, tool_stats, moe_stats, onboard_git, asset_upload/list/get/link); `@track_tool` decorator; lazy import guard; posture-enforced isolation |
+| **MCP server interface** (21 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, system, onboard, asset tools (health, tool_stats, moe_stats, onboard_git, asset_upload/list/get/link, memory_update); `@track_tool` decorator; lazy import guard; posture-enforced isolation |
 | **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 40 tests |
-| **HTTP API interface** (FastAPI, always-on daemon, 20 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51 tests |
-| **Test suite** (1038 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 14 test categories + Discord + MCP + Assets + HTTP API, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **HTTP API interface** (FastAPI, always-on daemon, 21 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51 tests |
+| **Test suite** (1069 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 14 test categories + Discord + MCP + Assets + HTTP API, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -429,7 +429,7 @@ Clean and well-typed. Key models:
 - **`InteractionHint`, `RouterAssistResult`** — Routing decision outputs
 
 Ports define clean contracts: `StoragePort` (38 methods), `ConversationStorePort`
-(12 methods, including cascade delete), `MemoryStorePort` (7 methods, including
+(12 methods, including cascade delete), `MemoryStorePort` (8 methods, including
 delete with turn reference cleanup), `LLMPort` (2 methods), plus single-method
 ports for routing, privacy, and plugin hosting.
 

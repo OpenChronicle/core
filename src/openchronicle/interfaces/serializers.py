@@ -33,6 +33,7 @@ def memory_to_dict(m: MemoryItem) -> dict[str, Any]:
         "project_id": m.project_id,
         "source": m.source,
         "created_at": m.created_at.isoformat(),
+        "updated_at": m.updated_at.isoformat() if m.updated_at else None,
     }
 
 

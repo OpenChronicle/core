@@ -89,6 +89,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         self._ensure_task_result_columns()
         self._ensure_conversation_mode_column()
         self._ensure_turn_memory_written_column()
+        self._ensure_updated_at_column()
         self._ensure_indexes()
         self._ensure_fts5()
         # Ensure crash recovery runs even for reused databases
@@ -661,8 +662,8 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         cur = self._conn.cursor()
         cur.execute(
             """
-            INSERT INTO memory_items (id, content, tags, created_at, pinned, conversation_id, project_id, source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO memory_items (id, content, tags, created_at, pinned, conversation_id, project_id, source, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 item.id,
@@ -673,6 +674,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
                 item.conversation_id,
                 item.project_id,
                 item.source,
+                item.updated_at.isoformat() if item.updated_at else None,
             ),
         )
         self._commit_if_needed()
@@ -720,6 +722,35 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
             raise ValueError(f"Memory not found: {memory_id}")
         self._commit_if_needed()
 
+    def update_memory(
+        self,
+        memory_id: str,
+        content: str | None = None,
+        tags: list[str] | None = None,
+    ) -> MemoryItem:
+        existing = self.get_memory(memory_id)
+        if existing is None:
+            raise ValueError(f"Memory not found: {memory_id}")
+
+        now_iso = datetime.now(UTC).isoformat()
+        cur = self._conn.cursor()
+        set_clauses: list[str] = ["updated_at = ?"]
+        params: list[Any] = [now_iso]
+
+        if content is not None:
+            set_clauses.append("content = ?")
+            params.append(content)
+        if tags is not None:
+            set_clauses.append("tags = ?")
+            params.append(json.dumps(tags, sort_keys=True))
+
+        params.append(memory_id)
+        sql = f"UPDATE memory_items SET {', '.join(set_clauses)} WHERE id = ?"
+        cur.execute(sql, params)
+        self._commit_if_needed()
+
+        return self.get_memory(memory_id)  # type: ignore[return-value]
+
     def _fetch_pinned_items(
         self,
         conversation_id: str | None = None,
@@ -758,6 +789,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         limit: int,
         conversation_id: str | None = None,
         project_id: str | None = None,
+        tags: list[str] | None = None,
     ) -> list[MemoryItem]:
         """Search non-pinned memory items using FTS5 MATCH."""
         escaped = self._fts5_escape(query)
@@ -775,7 +807,9 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
             scope_clause = "AND m.project_id = ?"
             params.append(project_id)
 
-        params.append(limit)
+        # Over-fetch when tag filter active so post-filter doesn't starve results
+        fetch_limit = limit * 4 if tags else limit
+        params.append(fetch_limit)
 
         sql = f"""
             SELECT m.* FROM memory_fts fts
@@ -786,7 +820,12 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
             ORDER BY fts.rank, m.created_at DESC, m.id ASC
             LIMIT ?
         """
-        return [row_to_memory_item(r) for r in cur.execute(sql, params).fetchall()]
+        items = [row_to_memory_item(r) for r in cur.execute(sql, params).fetchall()]
+
+        if tags:
+            items = [i for i in items if all(t in i.tags for t in tags)]
+
+        return items[:limit]
 
     def _fallback_search_memory(
         self,
@@ -794,6 +833,7 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         limit: int,
         conversation_id: str | None = None,
         project_id: str | None = None,
+        tags: list[str] | None = None,
     ) -> list[MemoryItem]:
         """Search non-pinned memory items using in-memory keyword scoring."""
         q_tokens = self._normalize_tokens(query)
@@ -827,6 +867,9 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
 
         items = [row_to_memory_item(r) for r in cur.execute(sql, params).fetchall()]
 
+        if tags:
+            items = [i for i in items if all(t in i.tags for t in tags)]
+
         def _score(item: MemoryItem) -> tuple[int, int, datetime, str]:
             tag_matches = self._tag_match_count(item.tags, q_tokens)
             keyword_matches = self._keyword_match_count(item.content, q_tokens)
@@ -843,19 +886,23 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         conversation_id: str | None = None,
         project_id: str | None = None,
         include_pinned: bool = True,
+        tags: list[str] | None = None,
     ) -> list[MemoryItem]:
         # Pinned items — always included regardless of query
         pinned_items: list[MemoryItem] = []
         if include_pinned:
             pinned_items = self._fetch_pinned_items(conversation_id, project_id)
+            # Apply tag filter to pinned items if active
+            if tags:
+                pinned_items = [i for i in pinned_items if all(t in i.tags for t in tags)]
 
         remaining = max(top_k - len(pinned_items), 0)
 
         # Non-pinned search — FTS5 or fallback
         if self._fts5_active:
-            non_pinned = self._fts5_search_memory(query, remaining, conversation_id, project_id)
+            non_pinned = self._fts5_search_memory(query, remaining, conversation_id, project_id, tags=tags)
         else:
-            non_pinned = self._fallback_search_memory(query, remaining, conversation_id, project_id)
+            non_pinned = self._fallback_search_memory(query, remaining, conversation_id, project_id, tags=tags)
 
         # Deduplicate — pinned items might overlap with search results
         pinned_ids = {i.id for i in pinned_items}
@@ -966,6 +1013,13 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         columns = [row[1] for row in cur.execute("PRAGMA table_info(conversations)").fetchall()]
         if "mode" not in columns:
             cur.execute("ALTER TABLE conversations ADD COLUMN mode TEXT NOT NULL DEFAULT 'general'")
+            self._commit_if_needed()
+
+    def _ensure_updated_at_column(self) -> None:
+        cur = self._conn.cursor()
+        columns = [row[1] for row in cur.execute("PRAGMA table_info(memory_items)").fetchall()]
+        if "updated_at" not in columns:
+            cur.execute("ALTER TABLE memory_items ADD COLUMN updated_at TEXT")
             self._commit_if_needed()
 
     def _ensure_indexes(self) -> None:

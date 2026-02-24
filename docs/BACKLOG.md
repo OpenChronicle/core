@@ -105,6 +105,8 @@ use OC without custom integration code. See Decision #5 in assessment.
 - [x] `memory_save` — store a memory item (tagged, optionally pinned)
 - [x] `memory_list` — list memories (by conversation, project, or all)
 - [x] `memory_pin` — pin/unpin a memory for persistent retrieval
+- [x] `memory_update` — update content and/or tags of an existing memory
+- [x] `memory_search` tag filter — AND-logic tag filtering on search results
 - [x] `conversation_ask` — send a message through full OC pipeline (async)
 - [x] `conversation_history` — retrieve recent turns
 - [x] `conversation_list` — list conversations
@@ -248,8 +250,8 @@ SDK dependency — FastAPI is lightweight and always installed.
 - [x] `HTTPConfig` dataclass (host, port, api_key), three-layer precedence
 - [x] Authentication middleware (API key, configurable exempt paths)
 - [x] Per-client rate limiting middleware (sliding window, thread-safe, memory leak eviction)
-- [x] Core routes mirroring MCP surface (20 endpoints):
-  - [x] `/api/v1/memory/*` (search, save, list, pin)
+- [x] Core routes mirroring MCP surface (21 endpoints):
+  - [x] `/api/v1/memory/*` (search, save, list, pin, update)
   - [x] `/api/v1/conversation/*` (ask, history, list, create, context_recent)
   - [x] `/api/v1/project/*` (create, list)
   - [x] `/api/v1/asset/*` (upload, list, get, link)
@@ -693,7 +695,7 @@ Recommended order based on dependencies:
 
 3. OC MCP Server (P2) ✅
    └── Core interface in interfaces/mcp/
-   └── 20 tools, maps to existing ports/use cases
+   └── 21 tools, maps to existing ports/use cases
    └── Unblocks: Goose, VS Code, Claude Desktop, any MCP client
 
 4. Mixture-of-Experts (P5) ✅
@@ -702,7 +704,7 @@ Recommended order based on dependencies:
 
 5. HTTP API (P6) ✅
    └── Core interface in interfaces/api/
-   └── FastAPI, 20 REST endpoints, API key auth, rate limiting, 51 tests
+   └── FastAPI, 21 REST endpoints, API key auth, rate limiting, 51 tests
    └── Starts with oc serve, shared serializers with MCP
 
 6. Capability-Aware Routing (P7.1) ✅

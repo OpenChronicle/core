@@ -8,7 +8,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from openchronicle.core.application.use_cases import add_memory, list_memory, pin_memory, search_memory
+from openchronicle.core.application.use_cases import add_memory, list_memory, pin_memory, search_memory, update_memory
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.api.deps import get_container
@@ -26,14 +26,20 @@ def memory_search(
     top_k: int = 8,
     conversation_id: str | None = None,
     project_id: str | None = None,
+    tags: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Search memory items by keyword."""
+    """Search memory items by keyword.
+
+    Tags parameter accepts comma-separated tag names for AND filtering.
+    """
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     results = search_memory.execute(
         store=container.storage,
         query=query,
         top_k=top_k,
         conversation_id=conversation_id,
         project_id=project_id,
+        tags=tag_list,
     )
     return [memory_to_dict(m) for m in results]
 
@@ -119,3 +125,28 @@ def memory_pin(
         pinned=body.pinned,
     )
     return {"status": "ok", "memory_id": memory_id, "pinned": str(body.pinned)}
+
+
+class MemoryUpdateRequest(BaseModel):
+    content: str | None = None
+    tags: list[str] | None = None
+
+
+@router.put("/{memory_id}")
+def memory_update(
+    memory_id: str,
+    body: MemoryUpdateRequest,
+    container: ContainerDep,
+) -> dict[str, Any]:
+    """Update an existing memory item's content and/or tags."""
+    try:
+        updated = update_memory.execute(
+            store=container.storage,
+            emit_event=container.event_logger.append,
+            memory_id=memory_id,
+            content=body.content,
+            tags=body.tags,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return memory_to_dict(updated)

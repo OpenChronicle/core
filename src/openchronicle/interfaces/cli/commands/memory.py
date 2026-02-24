@@ -10,6 +10,7 @@ from openchronicle.core.application.use_cases import (
     pin_memory,
     search_memory,
     show_memory,
+    update_memory,
 )
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
@@ -26,6 +27,7 @@ def cmd_memory(args: argparse.Namespace, container: CoreContainer) -> int:
         "pin": cmd_memory_pin,
         "search": cmd_memory_search,
         "delete": cmd_memory_delete,
+        "update": cmd_memory_update,
     }
     handler = memory_dispatch.get(args.memory_command)
     if handler is None:
@@ -85,6 +87,7 @@ def cmd_memory_show(args: argparse.Namespace, container: CoreContainer) -> int:
     print(f"id: {item.id}")
     print(f"pinned: {item.pinned}")
     print(f"created_at: {item.created_at.isoformat()}")
+    print(f"updated_at: {item.updated_at.isoformat() if item.updated_at else ''}")
     print(f"tags: {','.join(item.tags)}")
     print(f"source: {item.source}")
     print(f"conversation_id: {item.conversation_id or ''}")
@@ -105,6 +108,7 @@ def cmd_memory_pin(args: argparse.Namespace, container: CoreContainer) -> int:
 
 
 def cmd_memory_search(args: argparse.Namespace, container: CoreContainer) -> int:
+    tag_list = [tag.strip() for tag in args.tags.split(",") if tag.strip()] if args.tags else None
     items = search_memory.execute(
         store=container.storage,
         query=args.query,
@@ -112,6 +116,7 @@ def cmd_memory_search(args: argparse.Namespace, container: CoreContainer) -> int
         conversation_id=args.conversation_id,
         project_id=args.project_id,
         include_pinned=args.include_pinned,
+        tags=tag_list,
     )
     for item in items:
         tags_str = ",".join(item.tags)
@@ -154,4 +159,29 @@ def cmd_memory_delete(args: argparse.Namespace, container: CoreContainer) -> int
         return 0
 
     print(f"Deleted memory item {args.memory_id}")
+    return 0
+
+
+def cmd_memory_update(args: argparse.Namespace, container: CoreContainer) -> int:
+    """Update an existing memory item's content and/or tags."""
+    tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()] if args.tags else None
+    content = args.content if args.content else None
+
+    if content is None and tags is None:
+        print("At least one of --content or --tags must be provided")
+        return 1
+
+    try:
+        updated = update_memory.execute(
+            store=container.storage,
+            emit_event=container.event_logger.append,
+            memory_id=args.memory_id,
+            content=content,
+            tags=tags,
+        )
+    except ValueError as exc:
+        print(str(exc))
+        return 1
+
+    print(updated.id)
     return 0

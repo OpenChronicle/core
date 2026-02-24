@@ -115,6 +115,7 @@ class TestServerCreation:
             "memory_save",
             "memory_list",
             "memory_pin",
+            "memory_update",
             "conversation_create",
             "conversation_list",
             "conversation_history",
