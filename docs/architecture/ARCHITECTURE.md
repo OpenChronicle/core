@@ -63,7 +63,20 @@ src/openchronicle/
     │       ├── project.py       # project_* tools
     │       ├── onboard.py       # onboard_git tool
     │       └── asset.py         # asset_* tools
-    └── api/                     # HTTP API stub (FastAPI placeholder)
+    ├── api/                     # HTTP API (FastAPI, auto-starts with oc serve)
+    │   ├── app.py               # FastAPI app factory (create_app)
+    │   ├── config.py            # HTTPConfig (host, port, api_key)
+    │   ├── deps.py              # Dependency injection helpers
+    │   ├── middleware/           # Auth, rate limiting, CORS
+    │   │   ├── auth.py          # API key middleware
+    │   │   └── rate_limit.py    # Sliding-window rate limiter
+    │   └── routes/              # REST endpoints mirroring MCP tools
+    │       ├── memory.py        # /api/v1/memory/*
+    │       ├── conversation.py  # /api/v1/conversation/*
+    │       ├── project.py       # /api/v1/project/*
+    │       ├── asset.py         # /api/v1/asset/*
+    │       └── system.py        # /api/v1/health, /api/v1/stats
+    └── serializers.py           # Shared dict serializers (MCP + API)
 
 plugins/
 ├── hello_plugin/                # Minimal example plugin
@@ -186,11 +199,13 @@ The `oc` CLI provides:
 
 See `docs/BACKLOG.md` for planned features including:
 
+- Capability-aware routing
+- Media generation port
 - Security scanner plugin
 - Dev agent runner (sandboxed)
-- HTTP API implementation
 
 Already implemented as core capabilities (not plugins — see Decision #4):
 
+- HTTP API (`interfaces/api/`, 51 tests, FastAPI, auto-starts with `oc serve`)
 - Scheduler service (`application/services/scheduler.py`, 52+ tests)
 - Discord interface (`interfaces/discord/`, 60 tests, optional `[discord]` extra)

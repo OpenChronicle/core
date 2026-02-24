@@ -484,11 +484,26 @@ oc chat [--conversation-id ID] [--resume] [--title TITLE] [--no-stream]
 
 ### `oc serve`
 
-Run the STDIO JSON RPC server.
+Run the STDIO JSON RPC server and HTTP API. The HTTP API starts in a background
+daemon thread and binds to `127.0.0.1:8000` by default. Both servers share the
+same `CoreContainer` instance.
 
 ```text
 oc serve [--idle-timeout-seconds N]
 ```
+
+The HTTP API is configured via environment variables or the `api` section in
+`core.json`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OC_API_HOST` | `127.0.0.1` | Bind address |
+| `OC_API_PORT` | `8000` | Port number |
+| `OC_API_KEY` | - | API key for authentication (disabled if unset) |
+| `OC_API_CORS_ORIGINS` | - | Comma-separated allowed origins (CORS disabled if unset) |
+
+The HTTP API mirrors the MCP tool surface as REST endpoints under `/api/v1/`.
+See `docs/architecture/ARCHITECTURE.md` for the full route listing.
 
 ### `oc rpc`
 

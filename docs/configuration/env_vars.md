@@ -107,6 +107,15 @@ Canonical reference for all OpenChronicle environment variables.
 | `OC_CONVO_LAST_N` | `10` | Number of prior turns in context |
 | `OC_CONVO_INCLUDE_PINNED_MEMORY` | `true` | Include pinned memory items |
 
+## HTTP API
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `OC_API_HOST` | `127.0.0.1` | Bind address for the HTTP API server |
+| `OC_API_PORT` | `8000` | Port number for the HTTP API server |
+| `OC_API_KEY` | - | API key for authentication (disabled if unset) |
+| `OC_API_CORS_ORIGINS` | - | Comma-separated allowed origins for CORS (disabled if unset) |
+
 ## Discord Bot
 
 | Variable | Default | Description |

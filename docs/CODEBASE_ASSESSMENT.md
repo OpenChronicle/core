@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-02-17
+**Date:** 2026-02-23
 **Branch:** `main`
-**Revision:** 28 (Docker CI via ghcr.io, MCP extra in image, asset dir support)
+**Revision:** 29 (HTTP API always-on core, shared serializers, review fixes)
 
 ---
 
@@ -73,12 +73,17 @@ cleans it up on shutdown. If a prior instance is still alive, startup exits with
 an error. `--force` overrides the check. Cross-platform: uses `PermissionError`
 vs generic `OSError` distinction since Windows doesn't raise `ProcessLookupError`.
 
-**What's next:** HTTP API (always-on daemon interface, Decision #6), then
-capability-aware routing and media generation (Decision #7). HTTP API is core
-infrastructure — FastAPI/uvicorn are core dependencies, starts with `oc serve`,
-mirrors MCP tools as REST endpoints. Media generation introduces a new port
-(`MediaGenerationPort`) with Ollama and OpenAI adapters, flowing through the
-existing asset system.
+**HTTP API** (Decision #6) is implemented — FastAPI/uvicorn are core dependencies,
+20 REST endpoints mirroring the MCP tool surface, starts automatically with
+`oc serve` in a daemon thread. Includes API key auth (timing-safe), per-client
+rate limiting (thread-safe sliding window), optional CORS, and proper HTTP error
+codes. Shared serializers (`interfaces/serializers.py`) eliminate duplication
+between MCP tools and API routes.
+
+**What's next:** Capability-aware routing and media generation (Decision #7).
+Media generation introduces a new port (`MediaGenerationPort`) with Ollama and
+OpenAI adapters, flowing through the existing asset system. Capability-aware
+routing wires the `capabilities` field in model configs into provider selection.
 
 MoE (Mixture-of-Experts) execution strategy is implemented — Jaccard-based
 consensus scoring, `--moe` CLI/MCP flag, quality pool parallel execution, 32 tests.
@@ -87,7 +92,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. HTTP API and media generation are next (Decisions #6, #7).**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Capability-aware routing and media generation are next (Decision #7).**
 
 ---
 
@@ -184,7 +189,8 @@ validates against live providers (OpenAI, Anthropic).
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
 | **MCP server interface** (20 tools, FastMCP, stdio + SSE) | Working | Memory, conversation, context, system, onboard, asset tools (health, tool_stats, moe_stats, onboard_git, asset_upload/list/get/link); `@track_tool` decorator; lazy import guard; posture-enforced isolation |
 | **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 40 tests |
-| **Test suite** (987 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 13 test categories + Discord + MCP + Assets, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **HTTP API interface** (FastAPI, always-on daemon, 20 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51 tests |
+| **Test suite** (1038 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 14 test categories + Discord + MCP + Assets + HTTP API, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -441,7 +447,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (129 files, 987 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
+### Test Suite (130 files, 1038 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -532,7 +538,7 @@ Core Done
   ✓ OC MCP Server (core — interfaces/mcp, Decision #5)
   ✓ Docker CI (ghcr.io/openchronicle/core, multi-arch, GitHub Actions)
   ✓ MoE Mode (core — application/services/moe_execution.py, uses LLMPort + routing)
-  → HTTP API (core — interfaces/api, always-on daemon, Decision #6)
+  ✓ HTTP API (core — interfaces/api, always-on daemon, Decision #6)
   → Capability-Aware Routing (core — wire model config capabilities into routing)
   → Media Generation (core — new port + adapters, Decision #7)
   → Multimodal Conversation Input (core — vision input via asset system)
@@ -788,4 +794,8 @@ routing being wired first.
 | `interfaces/discord/bot.py` | ~130 | Discord bot | Clean (commands.Bot, on_message, streaming pipeline) |
 | `interfaces/discord/pid_file.py` | ~60 | PID file guard | New (atomic write, cross-platform alive check) |
 | `interfaces/discord/commands.py` | ~170 | Slash commands | New (6 commands, Cog pattern) |
+| `interfaces/api/app.py` | ~68 | HTTP API app factory | New (FastAPI, lifespan, middleware, route registration) |
+| `interfaces/api/middleware/auth.py` | ~65 | API key auth | New (timing-safe, Bearer + X-API-Key, configurable exemptions) |
+| `interfaces/api/middleware/rate_limit.py` | ~70 | Rate limiting | New (thread-safe sliding window, memory-leak-safe) |
+| `interfaces/serializers.py` | ~90 | Shared model serializers | New (6 functions, used by MCP tools + API routes) |
 | `infrastructure/wiring/container.py` | ~191 | DI container | Clean (file-based config, exposes router_policy) |

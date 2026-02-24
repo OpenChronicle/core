@@ -18,8 +18,10 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Security scanner plugin, dev agent runner, or Goose integration
-(MCP server now unblocks all three).
+**Next action:** Capability-aware routing (wire model capabilities into routing
+decisions), media generation port, or security scanner plugin.
+HTTP API is done (`interfaces/api/`, FastAPI, 20 REST endpoints mirroring MCP tools,
+API key auth, rate limiting, shared serializers, 51 tests, auto-starts with `oc serve`).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
 MCP server is done (`interfaces/mcp/`, 20 tools, 40 tests + 7 posture, `oc mcp serve`
@@ -105,6 +107,7 @@ for the full directory tree and layer descriptions.
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
 - **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 20 tools, FastMCP)
+- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 20 REST endpoints, auto-starts with `oc serve`)
 - **MoE Execution**: `application/services/moe_execution.py` — Mixture-of-Experts consensus strategy (`--moe` flag)
 - **Asset Management**: `domain/models/asset.py` + `application/services/asset_storage.py` — filesystem storage, SHA-256 dedup, generic entity linking
 
@@ -276,4 +279,6 @@ Call `memory_search` at these points:
 - `tests/test_architectural_posture.py` - Posture enforcement (core agnostic, session isolation, enqueue allowlist)
 - `tests/test_hexagonal_boundaries.py` - Layer boundary enforcement (domain, application, core vs discord/mcp)
 - `src/openchronicle/core/application/services/orchestrator.py` - Main orchestrator
+- `src/openchronicle/interfaces/api/app.py` - HTTP API app factory (FastAPI)
+- `src/openchronicle/interfaces/serializers.py` - Shared dict serializers (MCP + API)
 - `src/openchronicle/interfaces/cli/main.py` - CLI entry point (`oc` command)

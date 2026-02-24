@@ -23,6 +23,8 @@ and auditable decision history across conversations, sessions, and tools.
 - **Hash-chained event log** — tamper-evident audit trail for every decision
 - **MCP server** — 20 tools exposing memory, conversation, and context to
   any MCP-compatible client (Claude Code, Goose, VS Code)
+- **HTTP API** — 20 REST endpoints mirroring MCP tools, API key auth, rate
+  limiting, auto-starts with `oc serve`
 - **Discord bot** — slash commands, session mapping, multi-user isolation
 - **Scheduler** — tick-driven job execution with atomic claim and drift
   prevention
@@ -59,6 +61,7 @@ Persistent volumes: `/data` (SQLite DB), `/config`, `/plugins`, `/output`.
 |-----------|-------------|----------|
 | **CLI** | `oc chat`, `oc convo ask` | Interactive and scripted use |
 | **STDIO RPC** | `oc serve` / `oc rpc` | Programmatic integration |
+| **HTTP API** | Auto-starts with `oc serve` | REST clients, webhooks, web UIs |
 | **MCP Server** | `oc mcp serve` | Agent interop (Goose, Claude Code) |
 | **Discord** | `oc discord start` | Chat bot with slash commands |
 
