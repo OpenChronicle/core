@@ -3,6 +3,12 @@
   "model": "mistral:7b",
   "display_name": "Ollama - Mistral 7B",
   "description": "Local Mistral 7B model via Ollama",
+  "capabilities": {
+    "text_generation": true,
+    "streaming": true,
+    "function_calling": false,
+    "vision": false
+  },
   "api_config": {
     "endpoint": "http://localhost:11434/api/chat",
     "default_base_url": "http://localhost:11434",

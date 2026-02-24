@@ -162,3 +162,91 @@ def test_sort_helper_orders_deterministically() -> None:
     ]
     sorted_items = sort_model_configs(items)
     assert [i.filename for i in sorted_items] == ["a.json", "z.json"]
+
+
+# ---- Capability parsing ----
+
+
+def test_capabilities_parsed_from_config_json() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        models_dir = Path(tmpdir) / "models"
+        models_dir.mkdir(parents=True)
+
+        _write_config(
+            models_dir / "model.json",
+            {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "capabilities": {"text_generation": True, "vision": True, "function_calling": True},
+                "api_config": {},
+            },
+        )
+
+        loader = ModelConfigLoader(tmpdir)
+        cfg = loader.list_all()[0]
+        assert cfg.capabilities == {"text_generation": True, "vision": True, "function_calling": True}
+
+
+def test_missing_capabilities_defaults_to_empty_dict() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        models_dir = Path(tmpdir) / "models"
+        models_dir.mkdir(parents=True)
+
+        _write_config(
+            models_dir / "model.json",
+            {"provider": "openai", "model": "gpt", "api_config": {}},
+        )
+
+        loader = ModelConfigLoader(tmpdir)
+        cfg = loader.list_all()[0]
+        assert cfg.capabilities == {}
+
+
+def test_invalid_capabilities_type_treated_as_empty() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        models_dir = Path(tmpdir) / "models"
+        models_dir.mkdir(parents=True)
+
+        _write_config(
+            models_dir / "model.json",
+            {"provider": "openai", "model": "gpt", "capabilities": "not-a-dict", "api_config": {}},
+        )
+
+        loader = ModelConfigLoader(tmpdir)
+        cfg = loader.list_all()[0]
+        assert cfg.capabilities == {}
+
+
+def test_get_capabilities_returns_correct_dict() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        models_dir = Path(tmpdir) / "models"
+        models_dir.mkdir(parents=True)
+
+        _write_config(
+            models_dir / "model.json",
+            {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "capabilities": {"vision": True, "streaming": True},
+                "api_config": {},
+            },
+        )
+
+        loader = ModelConfigLoader(tmpdir)
+        caps = loader.get_capabilities("openai", "gpt-4o")
+        assert caps == {"vision": True, "streaming": True}
+
+
+def test_get_capabilities_unknown_model_returns_empty() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        models_dir = Path(tmpdir) / "models"
+        models_dir.mkdir(parents=True)
+
+        _write_config(
+            models_dir / "model.json",
+            {"provider": "openai", "model": "gpt", "api_config": {}},
+        )
+
+        loader = ModelConfigLoader(tmpdir)
+        caps = loader.get_capabilities("nonexistent", "model")
+        assert caps == {}

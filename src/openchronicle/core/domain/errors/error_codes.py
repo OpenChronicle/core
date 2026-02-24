@@ -31,6 +31,9 @@ SELF_REPORT_INVALID = "SELF_REPORT_INVALID"
 # MoE execution
 MOE_INSUFFICIENT_EXPERTS = "MOE_INSUFFICIENT_EXPERTS"
 
+# Capability-aware routing
+NO_CAPABLE_MODEL = "NO_CAPABLE_MODEL"
+
 # Provider selection / configuration (existing provider error codes)
 PROVIDER_REQUIRED = "provider_required"
 PROVIDER_NOT_CONFIGURED = "provider_not_configured"
@@ -70,6 +73,7 @@ __all__ = [
     "NSFW_POOL_NOT_CONFIGURED",
     "SELF_REPORT_INVALID",
     "MOE_INSUFFICIENT_EXPERTS",
+    "NO_CAPABLE_MODEL",
     "PROVIDER_REQUIRED",
     "PROVIDER_NOT_CONFIGURED",
     "INVALID_PROVIDER",

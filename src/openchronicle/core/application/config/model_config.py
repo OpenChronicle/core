@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 from collections.abc import Iterable
@@ -24,6 +25,7 @@ class ModelConfigEntry:
     filename: str
     display_name: str | None
     api_config: dict[str, Any]
+    capabilities: dict[str, bool] = dataclasses.field(default_factory=dict)
 
 
 @dataclass
@@ -70,6 +72,13 @@ class ModelConfigLoader:
         """Providers present in enabled configs (deterministic order not required)."""
         return {cfg.provider for cfg in self.list_enabled()}
 
+    def get_capabilities(self, provider: str, model: str) -> dict[str, bool]:
+        """Return capabilities for a provider/model pair, or {} if not found."""
+        for cfg in self._configs:
+            if cfg.provider == provider and cfg.model == model:
+                return dict(cfg.capabilities)
+        return {}
+
     def resolve(self, provider: str, model: str) -> ResolvedModelConfig:
         """
         Resolve a specific provider/model combination.
@@ -105,6 +114,9 @@ class ModelConfigLoader:
 
             api_config = raw.get("api_config", {}) if isinstance(raw.get("api_config", {}), dict) else {}
 
+            raw_caps = raw.get("capabilities", {})
+            capabilities = raw_caps if isinstance(raw_caps, dict) else {}
+
             entries.append(
                 ModelConfigEntry(
                     provider=str(provider),
@@ -113,6 +125,7 @@ class ModelConfigLoader:
                     filename=path.name,
                     display_name=raw.get("display_name"),
                     api_config=api_config,
+                    capabilities=capabilities,
                 )
             )
 

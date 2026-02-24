@@ -18,8 +18,9 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Capability-aware routing (wire model capabilities into routing
-decisions), media generation port, or security scanner plugin.
+**Next action:** Media generation port, security scanner plugin, or webhooks.
+Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
+`RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
 HTTP API is done (`interfaces/api/`, FastAPI, 20 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51 tests, auto-starts with `oc serve`).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard

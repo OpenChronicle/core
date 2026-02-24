@@ -3,6 +3,12 @@
   "model": "llama-3.3-70b-versatile",
   "display_name": "Groq - Llama 3.3 70B",
   "description": "Llama 3.3 70B via Groq inference (fast)",
+  "capabilities": {
+    "text_generation": true,
+    "streaming": true,
+    "function_calling": true,
+    "vision": false
+  },
   "api_config": {
     "endpoint": "https://api.groq.com/openai/v1/chat/completions",
     "default_base_url": "https://api.groq.com/openai/v1",

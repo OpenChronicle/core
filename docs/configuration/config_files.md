@@ -265,7 +265,7 @@ the information needed to use a model lives in its config file.
 | ------- | ------- |
 | `api_config` | Endpoint, auth, timeout — everything needed to connect |
 | `limits` | Token limits and rate limits (provider-imposed constraints) |
-| `capabilities` | What the model supports (streaming, vision, tools, etc.) |
+| `capabilities` | What the model supports — used by `RouterPolicy` for capability-filtered routing |
 | `cost_tracking` | Per-1K token costs for budget calculations |
 | `performance` | Priority tier and recommended use cases for routing |
 

@@ -11,6 +11,7 @@ Tests cover:
 7. Explicit quality hint override
 """
 
+import json
 import os
 from collections.abc import Generator
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from openchronicle.core.application.config.model_config import ModelConfigLoader
 from openchronicle.core.application.routing.router_policy import RouterPolicy
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.domain.models.project import Agent
@@ -1285,3 +1287,265 @@ class TestDynamicMix:
         assert len(plan_events) == 1
         assert plan_events[0].payload["worker_modes"] == ["quality", "quality"]
         assert plan_events[0].payload["rationale"] == "desired_quality_replicated"
+
+
+class TestCapabilityFiltering:
+    """Test capability-aware routing filter."""
+
+    def _make_loader_with_caps(self, tmp_path: Any, configs: list[dict[str, Any]]) -> ModelConfigLoader:
+        """Helper to create a ModelConfigLoader with given model configs."""
+        models_dir = tmp_path / "models"
+        models_dir.mkdir(parents=True, exist_ok=True)
+        for i, cfg in enumerate(configs):
+            (models_dir / f"model_{i}.json").write_text(json.dumps(cfg), encoding="utf-8")
+        return ModelConfigLoader(str(tmp_path))
+
+    def test_no_required_capabilities_does_not_filter(self, tmp_path: Any) -> None:
+        """required_capabilities=None does not filter (opt-in behavior)."""
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini,ollama:mistral",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100,ollama:50",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy()  # no model_config_loader
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                desired_quality="fast",
+                required_capabilities=None,
+            )
+            # All candidates preserved
+            assert decision.candidates is not None
+            assert len(decision.candidates) == 2
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    def test_incapable_models_excluded(self, tmp_path: Any) -> None:
+        """Models without required capabilities are filtered out."""
+        loader = self._make_loader_with_caps(
+            tmp_path,
+            [
+                {
+                    "provider": "openai",
+                    "model": "gpt-4o-mini",
+                    "capabilities": {"vision": True, "text_generation": True},
+                    "api_config": {},
+                },
+                {
+                    "provider": "ollama",
+                    "model": "mistral",
+                    "capabilities": {"text_generation": True, "vision": False},
+                    "api_config": {},
+                },
+            ],
+        )
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini,ollama:mistral",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:50,ollama:100",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy(model_config_loader=loader)
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                desired_quality="fast",
+                required_capabilities={"vision"},
+            )
+            # ollama filtered out despite higher weight
+            assert decision.provider == "openai"
+            assert decision.model == "gpt-4o-mini"
+            assert decision.candidates is not None
+            assert len(decision.candidates) == 1
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    def test_multiple_required_capabilities_all_checked(self, tmp_path: Any) -> None:
+        """All required capabilities must be present (AND semantics)."""
+        loader = self._make_loader_with_caps(
+            tmp_path,
+            [
+                {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "capabilities": {"vision": True, "function_calling": True},
+                    "api_config": {},
+                },
+                {
+                    "provider": "ollama",
+                    "model": "mistral",
+                    "capabilities": {"vision": True, "function_calling": False},
+                    "api_config": {},
+                },
+            ],
+        )
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o,ollama:mistral",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:50,ollama:100",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy(model_config_loader=loader)
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                desired_quality="fast",
+                required_capabilities={"vision", "function_calling"},
+            )
+            # ollama has vision but not function_calling
+            assert decision.provider == "openai"
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    def test_no_match_raises_no_capable_model(self, tmp_path: Any) -> None:
+        """Empty pool after filtering raises LLMProviderError with NO_CAPABLE_MODEL."""
+        from openchronicle.core.domain.errors.error_codes import NO_CAPABLE_MODEL
+        from openchronicle.core.domain.ports.llm_port import LLMProviderError
+
+        loader = self._make_loader_with_caps(
+            tmp_path,
+            [
+                {
+                    "provider": "openai",
+                    "model": "gpt-4o-mini",
+                    "capabilities": {"text_generation": True},
+                    "api_config": {},
+                },
+            ],
+        )
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy(model_config_loader=loader)
+            with pytest.raises(LLMProviderError) as exc_info:
+                router.route(
+                    task_type="test",
+                    agent_role="worker",
+                    desired_quality="fast",
+                    required_capabilities={"vision"},
+                )
+            assert exc_info.value.error_code == NO_CAPABLE_MODEL
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    def test_audit_trail_includes_capability_filter(self, tmp_path: Any) -> None:
+        """Routing reasons include capability_filter entry."""
+        loader = self._make_loader_with_caps(
+            tmp_path,
+            [
+                {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "capabilities": {"vision": True},
+                    "api_config": {},
+                },
+                {
+                    "provider": "ollama",
+                    "model": "mistral",
+                    "capabilities": {"vision": False},
+                    "api_config": {},
+                },
+            ],
+        )
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o,ollama:mistral",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:50,ollama:100",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy(model_config_loader=loader)
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                desired_quality="fast",
+                required_capabilities={"vision"},
+            )
+            cap_reasons = [r for r in decision.reasons if r.startswith("capability_filter:")]
+            assert len(cap_reasons) == 1
+            assert "matched=1/2" in cap_reasons[0]
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    def test_capability_filter_composes_with_provider_preference(self, tmp_path: Any) -> None:
+        """Capability filter and provider preference compose correctly."""
+        loader = self._make_loader_with_caps(
+            tmp_path,
+            [
+                {
+                    "provider": "openai",
+                    "model": "gpt-4o",
+                    "capabilities": {"vision": True},
+                    "api_config": {},
+                },
+                {
+                    "provider": "anthropic",
+                    "model": "claude",
+                    "capabilities": {"vision": True},
+                    "api_config": {},
+                },
+            ],
+        )
+
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o,anthropic:claude",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100,anthropic:50",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy(model_config_loader=loader)
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                desired_quality="fast",
+                required_capabilities={"vision"},
+                provider_preference="anthropic",
+            )
+            # Both pass capability filter, but provider_preference selects anthropic
+            assert decision.provider == "anthropic"
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)
+
+    def test_no_config_loader_skips_filter_gracefully(self, tmp_path: Any) -> None:
+        """Without a model config loader, capability filter is skipped."""
+        pool_env = {
+            "OC_LLM_FAST_POOL": "openai:gpt-4o-mini,ollama:mistral",
+            "OC_LLM_PROVIDER_WEIGHTS": "openai:100,ollama:50",
+            "OC_LLM_PROVIDER": "stub",
+        }
+        os.environ.update(pool_env)
+        try:
+            router = RouterPolicy()  # no model_config_loader
+            decision = router.route(
+                task_type="test",
+                agent_role="worker",
+                desired_quality="fast",
+                required_capabilities={"vision"},  # requested but no loader
+            )
+            # All candidates preserved, filter skipped
+            assert decision.candidates is not None
+            assert len(decision.candidates) == 2
+            skip_reasons = [r for r in decision.reasons if "no_config_loader" in r]
+            assert len(skip_reasons) == 1
+        finally:
+            for key in pool_env:
+                os.environ.pop(key, None)

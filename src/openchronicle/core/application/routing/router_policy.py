@@ -12,7 +12,10 @@ from openchronicle.core.application.config.env_helpers import (
     parse_int,
     parse_str,
 )
+from openchronicle.core.application.config.model_config import ModelConfigLoader
 from openchronicle.core.application.routing.pool_config import PoolConfig, ProviderCandidate, load_pool_config
+from openchronicle.core.domain.errors.error_codes import NO_CAPABLE_MODEL
+from openchronicle.core.domain.ports.llm_port import LLMProviderError
 
 
 @dataclass
@@ -48,13 +51,16 @@ class RouterPolicy:
         file_config: dict[str, Any] | None = None,
         *,
         pool_config: PoolConfig | None = None,
+        model_config_loader: ModelConfigLoader | None = None,
     ) -> None:
         """Initialize router with JSON config + env var overrides.
 
         Args:
             file_config: Parsed app.json contents (or None for env-only).
             pool_config: Pre-built PoolConfig (avoids double loading in container).
+            model_config_loader: Optional loader for capability-based filtering.
         """
+        self.model_config_loader = model_config_loader
         fc = file_config or {}
 
         # Provider selection
@@ -106,6 +112,7 @@ class RouterPolicy:
         max_tokens_per_task: int | None = None,
         rate_limit_triggered: bool = False,
         rpm_limit: int | None = None,
+        required_capabilities: set[str] | None = None,
     ) -> RouteDecision:
         """
         Route LLM call to appropriate provider and model.
@@ -153,7 +160,7 @@ class RouterPolicy:
 
         if pool:
             # Pool-based routing
-            return self._route_from_pool(pool, mode, reasons, provider_preference)
+            return self._route_from_pool(pool, mode, reasons, provider_preference, required_capabilities)
 
         # Single-provider mode when pools not configured
         provider = provider_preference or self.default_provider
@@ -178,9 +185,10 @@ class RouterPolicy:
         mode: str,
         provider_preference: str | None = None,
         reasons: list[str] | None = None,
+        required_capabilities: set[str] | None = None,
     ) -> RouteDecision:
         route_reasons = reasons or []
-        return self._route_from_pool(pool, mode, route_reasons, provider_preference)
+        return self._route_from_pool(pool, mode, route_reasons, provider_preference, required_capabilities)
 
     def _route_from_pool(
         self,
@@ -188,6 +196,7 @@ class RouterPolicy:
         mode: str,
         reasons: list[str],
         provider_preference: str | None,
+        required_capabilities: set[str] | None = None,
     ) -> RouteDecision:
         """
         Route from a provider pool using weighted selection.
@@ -197,6 +206,7 @@ class RouterPolicy:
             mode: Routing mode (fast/quality)
             reasons: List to append routing reasons to
             provider_preference: Optional provider override
+            required_capabilities: Optional set of required capability names
 
         Returns:
             RouteDecision with selected provider, model, and candidate list
@@ -207,6 +217,9 @@ class RouterPolicy:
             reasons.append(f"empty_pool_fallback:{provider}")
             model = self._select_model(mode, provider, reasons)
             return RouteDecision(provider=provider, model=model, mode=mode, reasons=reasons)
+
+        # Apply capability filter (before provider preference)
+        pool = self._filter_by_capabilities(pool, required_capabilities, reasons)
 
         # Apply provider override if specified
         if provider_preference:
@@ -234,6 +247,45 @@ class RouterPolicy:
             reasons=reasons,
             candidates=candidates,
         )
+
+    def _filter_by_capabilities(
+        self,
+        pool: list[ProviderCandidate],
+        required_capabilities: set[str] | None,
+        reasons: list[str],
+    ) -> list[ProviderCandidate]:
+        """Filter pool candidates to those declaring all required capabilities.
+
+        Returns the original pool unchanged if no capabilities are required
+        or no model config loader is available.
+
+        Raises LLMProviderError with NO_CAPABLE_MODEL if filtering empties the pool.
+        """
+        if not required_capabilities:
+            return pool
+
+        if self.model_config_loader is None:
+            reasons.append("capability_filter:skipped:no_config_loader")
+            return pool
+
+        capable: list[ProviderCandidate] = []
+        for candidate in pool:
+            caps = self.model_config_loader.get_capabilities(candidate.provider, candidate.model)
+            if required_capabilities.issubset({k for k, v in caps.items() if v}):
+                capable.append(candidate)
+
+        if not capable:
+            raise LLMProviderError(
+                f"No model in pool supports required capabilities: {sorted(required_capabilities)}",
+                error_code=NO_CAPABLE_MODEL,
+                details={
+                    "required": sorted(required_capabilities),
+                    "pool": [(c.provider, c.model) for c in pool],
+                },
+            )
+
+        reasons.append(f"capability_filter:required={sorted(required_capabilities)}:matched={len(capable)}/{len(pool)}")
+        return capable
 
     def _determine_mode(
         self,

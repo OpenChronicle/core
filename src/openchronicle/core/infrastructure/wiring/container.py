@@ -6,6 +6,7 @@ from typing import Any
 
 from openchronicle.core.application.config.budget_config import load_budget_policy
 from openchronicle.core.application.config.env_helpers import env_override, parse_int
+from openchronicle.core.application.config.model_config import ModelConfigLoader
 from openchronicle.core.application.config.settings import (
     load_conversation_settings,
     load_moe_settings,
@@ -83,9 +84,15 @@ class CoreContainer:
             router_fc.get("assist") if isinstance(router_fc, dict) else None
         )
 
+        # Shared model config loader (used by LLM facade and router policy)
+        self.model_config_loader = ModelConfigLoader(config_dir_str)
+
         # Use provider-aware facade if no explicit LLM provided
         if llm is None:
-            llm = create_provider_aware_llm(config_dir=config_dir_str)
+            llm = create_provider_aware_llm(
+                config_dir=config_dir_str,
+                model_config_loader=self.model_config_loader,
+            )
 
         self.llm = llm
 
@@ -125,6 +132,7 @@ class CoreContainer:
         router_policy = RouterPolicy(
             file_config=file_configs,
             pool_config=pool_config,
+            model_config_loader=self.model_config_loader,
         )
         self.router_policy = router_policy
 

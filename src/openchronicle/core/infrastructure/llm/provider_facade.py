@@ -188,12 +188,14 @@ class ProviderAwareLLMFacade(LLMPort):
 
 
 def create_provider_aware_llm(
-    providers: list[str] | None = None, config_dir: str | None = None
+    providers: list[str] | None = None,
+    config_dir: str | None = None,
+    model_config_loader: ModelConfigLoader | None = None,
 ) -> ProviderAwareLLMFacade:
     """Factory function to create provider-aware LLM facade with config-driven routing."""
 
     resolved_config_dir: str = config_dir if config_dir is not None else (os.getenv("OC_CONFIG_DIR") or "config")
-    loader = ModelConfigLoader(resolved_config_dir)
+    loader = model_config_loader if model_config_loader is not None else ModelConfigLoader(resolved_config_dir)
 
     # Always include stub adapter for tests
     from openchronicle.core.infrastructure.llm.stub_adapter import StubLLMAdapter

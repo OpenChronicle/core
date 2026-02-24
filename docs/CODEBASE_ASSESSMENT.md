@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (987 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,050 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -770,8 +770,10 @@ core/infrastructure/media/
 core/application/use_cases/generate_media.py   # Orchestrates port + asset storage
 ```
 
-**Implementation:** Deferred to a future sprint. Depends on capability-aware
-routing being wired first.
+**Implementation:** Deferred to a future sprint. Capability-aware routing is
+now wired (P7.1 complete): `ModelConfigLoader` parses `capabilities` from
+model configs, `RouterPolicy` filters by `required_capabilities` opt-in param,
+`NO_CAPABLE_MODEL` error code on no match.
 
 ---
 

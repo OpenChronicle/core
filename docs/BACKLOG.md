@@ -705,9 +705,10 @@ Recommended order based on dependencies:
    └── FastAPI, 20 REST endpoints, API key auth, rate limiting, 51 tests
    └── Starts with oc serve, shared serializers with MCP
 
-6. Capability-Aware Routing (P7.1)
-   └── Wire model config capabilities into routing
-   └── Small change, unblocks media generation
+6. Capability-Aware Routing (P7.1) ✅
+   └── capabilities dict parsed in ModelConfigLoader, get_capabilities() method
+   └── RouterPolicy filters pool by required_capabilities (opt-in)
+   └── NO_CAPABLE_MODEL error code, audit trail, 12 new tests
 
 7. Media Generation (P7.2)
    └── New port + adapters (Ollama, OpenAI), Decision #7
