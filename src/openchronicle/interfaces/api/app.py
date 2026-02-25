@@ -94,6 +94,7 @@ def create_app(container: CoreContainer, config: HTTPConfig) -> FastAPI:
         memory,
         project,
         system,
+        webhook,
     )
 
     app.include_router(system.router, prefix="/api/v1", tags=["system"])
@@ -101,5 +102,6 @@ def create_app(container: CoreContainer, config: HTTPConfig) -> FastAPI:
     app.include_router(memory.router, prefix="/api/v1", tags=["memory"])
     app.include_router(conversation.router, prefix="/api/v1", tags=["conversation"])
     app.include_router(asset.router, prefix="/api/v1", tags=["asset"])
+    app.include_router(webhook.router, prefix="/api/v1", tags=["webhook"])
 
     return app

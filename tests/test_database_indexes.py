@@ -77,6 +77,10 @@ def test_fresh_database_has_all_indexes(fresh_db: SqliteStore) -> None:
         "idx_assets_project_created",
         "idx_asset_links_asset",
         "idx_asset_links_target",
+        "idx_webhooks_project",
+        "idx_webhooks_active",
+        "idx_webhook_deliveries_sub",
+        "idx_webhook_deliveries_event",
     }
 
     assert index_names == expected, f"Missing or unexpected indexes. Got {index_names}, expected {expected}"
@@ -119,6 +123,10 @@ def test_migration_creates_indexes_on_existing_db(migrated_db: SqliteStore) -> N
         "idx_assets_project_created",
         "idx_asset_links_asset",
         "idx_asset_links_target",
+        "idx_webhooks_project",
+        "idx_webhooks_active",
+        "idx_webhook_deliveries_sub",
+        "idx_webhook_deliveries_event",
     }
 
     assert index_names == expected
@@ -233,6 +241,10 @@ def test_index_creation_is_idempotent(tmp_path: Path) -> None:
         "idx_assets_project_created",
         "idx_asset_links_asset",
         "idx_asset_links_target",
+        "idx_webhooks_project",
+        "idx_webhooks_active",
+        "idx_webhook_deliveries_sub",
+        "idx_webhook_deliveries_event",
     }
 
     assert index_names == expected

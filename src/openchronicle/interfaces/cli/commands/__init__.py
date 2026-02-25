@@ -13,7 +13,21 @@ from collections.abc import Callable
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.cli.chat import cmd_chat
 
-from . import asset, conversation, db, debug, discord, mcp_cmd, memory, onboard, project, scheduler, system, task
+from . import (
+    asset,
+    conversation,
+    db,
+    debug,
+    discord,
+    mcp_cmd,
+    memory,
+    onboard,
+    project,
+    scheduler,
+    system,
+    task,
+    webhook_cmd,
+)
 
 # Pre-container commands (no CoreContainer needed)
 PRE_CONTAINER_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
@@ -65,6 +79,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace, CoreContainer], int]] = {
     "rpc": system.cmd_rpc,
     # Asset
     "asset": asset.cmd_asset,
+    # Webhook
+    "webhook": webhook_cmd.cmd_webhook,
     # Chat
     "chat": cmd_chat,
     # Debug/demo

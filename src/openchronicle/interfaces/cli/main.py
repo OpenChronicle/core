@@ -475,6 +475,27 @@ def main(argv: list[str] | None = None) -> int:
     asset_link_cmd.add_argument("target_id", help="Entity ID")
     asset_link_cmd.add_argument("--role", default="reference", help="Link role (default: reference)")
 
+    # --- Webhook commands ---
+    webhook_cmd = sub.add_parser("webhook", help="Webhook subscription commands")
+    webhook_sub = webhook_cmd.add_subparsers(dest="webhook_command")
+
+    webhook_reg_cmd = webhook_sub.add_parser("register", help="Register a new webhook subscription")
+    webhook_reg_cmd.add_argument("url", help="Target endpoint URL")
+    webhook_reg_cmd.add_argument("--project-id", dest="project_id", required=True, help="Project ID")
+    webhook_reg_cmd.add_argument("--filter", default="*", help="Event filter glob pattern (default: *)")
+    webhook_reg_cmd.add_argument("--description", default="", help="Human-readable description")
+
+    webhook_list_cmd = webhook_sub.add_parser("list", help="List webhook subscriptions")
+    webhook_list_cmd.add_argument("--project-id", dest="project_id", default=None, help="Filter by project ID")
+    webhook_list_cmd.add_argument("--active-only", dest="active_only", action="store_true", help="Show only active")
+
+    webhook_del_cmd = webhook_sub.add_parser("delete", help="Delete a webhook subscription")
+    webhook_del_cmd.add_argument("webhook_id", help="Webhook subscription ID")
+
+    webhook_deliv_cmd = webhook_sub.add_parser("deliveries", help="List delivery attempts for a webhook")
+    webhook_deliv_cmd.add_argument("webhook_id", help="Webhook subscription ID")
+    webhook_deliv_cmd.add_argument("--limit", type=int, default=20, help="Limit number of deliveries shown")
+
     # --- Chat ---
     chat_cmd = sub.add_parser("chat", help="Interactive chat session")
     chat_cmd.add_argument("--conversation-id", default=None, help="Resume specific conversation by ID")

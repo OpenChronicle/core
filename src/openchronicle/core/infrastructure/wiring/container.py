@@ -24,7 +24,10 @@ from openchronicle.core.application.services.asset_storage import AssetFileStora
 from openchronicle.core.application.services.embedding_service import EmbeddingService
 from openchronicle.core.application.services.orchestrator import OrchestratorService
 from openchronicle.core.application.services.scheduler import SchedulerService
+from openchronicle.core.application.services.webhook_dispatcher import WebhookDispatcher
+from openchronicle.core.application.services.webhook_service import WebhookService
 from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR
+from openchronicle.core.domain.models.project import Event
 from openchronicle.core.domain.ports.embedding_port import EmbeddingPort
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
 from openchronicle.core.domain.ports.router_assist_port import RouterAssistPort
@@ -192,6 +195,14 @@ class CoreContainer:
                 EmbeddingService(self.embedding_port, self.storage) if self.embedding_port is not None else None
             )
 
+            # Webhook service + dispatcher (composite emit_event)
+            self.webhook_service = WebhookService(store=self.storage)
+            self.webhook_dispatcher: WebhookDispatcher | None = None
+            # Check if any webhooks exist at startup; dispatcher starts lazily
+            if self.storage.list_subscriptions(active_only=True):
+                self.webhook_dispatcher = WebhookDispatcher(webhook_service=self.webhook_service, store=self.storage)
+                self.webhook_dispatcher.start()
+
             # Store for config show and diagnostics
             self.file_configs = file_configs
             self.config_dir = str(config_dir_resolved)
@@ -199,8 +210,23 @@ class CoreContainer:
             self.storage.close()
             raise
 
+    def emit_event(self, event: Event) -> None:
+        """Composite event emitter: log + dispatch to webhooks."""
+        self.event_logger.append(event)
+        if self.webhook_dispatcher is not None:
+            self.webhook_dispatcher.enqueue(event)
+
+    def ensure_webhook_dispatcher(self) -> WebhookDispatcher:
+        """Lazily create and start the webhook dispatcher."""
+        if self.webhook_dispatcher is None:
+            self.webhook_dispatcher = WebhookDispatcher(webhook_service=self.webhook_service, store=self.storage)
+            self.webhook_dispatcher.start()
+        return self.webhook_dispatcher
+
     def close(self) -> None:
-        """Close managed resources (storage connection)."""
+        """Close managed resources (storage connection, webhook dispatcher)."""
+        if self.webhook_dispatcher is not None:
+            self.webhook_dispatcher.stop()
         self.storage.close()
 
     def __enter__(self) -> CoreContainer:

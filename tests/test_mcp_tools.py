@@ -136,6 +136,9 @@ class TestServerCreation:
             "asset_list",
             "asset_get",
             "asset_link",
+            "webhook_register",
+            "webhook_list",
+            "webhook_delete",
         ]
         assert sorted(tool_names) == sorted(expected)
 

@@ -12,6 +12,7 @@ from openchronicle.core.domain.models.asset import Asset, AssetLink
 from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import Project
+from openchronicle.core.domain.models.webhook import DeliveryAttempt, WebhookSubscription
 
 
 def project_to_dict(p: Project) -> dict[str, Any]:
@@ -106,4 +107,30 @@ def asset_link_to_dict(link: AssetLink) -> dict[str, Any]:
         "target_id": link.target_id,
         "role": link.role,
         "created_at": link.created_at.isoformat(),
+    }
+
+
+def webhook_to_dict(sub: WebhookSubscription) -> dict[str, Any]:
+    return {
+        "id": sub.id,
+        "project_id": sub.project_id,
+        "url": sub.url,
+        "secret": sub.secret[:8] + "***",  # Mask secret
+        "event_filter": sub.event_filter,
+        "active": sub.active,
+        "created_at": sub.created_at.isoformat(),
+        "description": sub.description,
+    }
+
+
+def delivery_to_dict(d: DeliveryAttempt) -> dict[str, Any]:
+    return {
+        "id": d.id,
+        "subscription_id": d.subscription_id,
+        "event_id": d.event_id,
+        "status_code": d.status_code,
+        "success": d.success,
+        "attempt_number": d.attempt_number,
+        "error_message": d.error_message,
+        "delivered_at": d.delivered_at.isoformat(),
     }

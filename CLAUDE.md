@@ -18,14 +18,14 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Media generation port, webhooks, or Phase 5 IDE automation hooks.
+**Next action:** Media generation port or Phase 5 IDE automation hooks.
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
-HTTP API is done (`interfaces/api/`, FastAPI, 25 REST endpoints mirroring MCP tools,
+HTTP API is done (`interfaces/api/`, FastAPI, 31 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51+ tests, auto-starts with `oc serve`).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
-MCP server is done (`interfaces/mcp/`, 27 tools, 37 tests + 7 posture, `oc mcp serve`
+MCP server is done (`interfaces/mcp/`, 30 tools, 37 tests + 7 posture, `oc mcp serve`
 CLI, stdio + SSE transports, lazy import guard).
 Asset management is done (`domain/models/asset.py`, `application/services/asset_storage.py`,
 `application/use_cases/upload_asset.py`, `application/use_cases/link_asset.py`,
@@ -69,6 +69,11 @@ with stub/OpenAI/Ollama adapters, `EmbeddingService` hybrid FTS5+cosine retrieva
 Reciprocal Rank Fusion, `memory_embeddings` table with BLOB storage and CASCADE cleanup,
 backfill CLI/MCP/API, backwards-compatible default `OC_EMBEDDING_PROVIDER=none`,
 54 new tests, 1291 total).
+Webhook Service (Phase 4) is done (`application/services/webhook_service.py`,
+`application/services/webhook_dispatcher.py`, HMAC-SHA256 signing, background
+dispatcher thread with queue + exponential backoff retry, composite `emit_event`
+pattern, `fnmatch` glob event filtering, 3 MCP tools, 5 API endpoints, 4 CLI
+commands, 74 new tests, 1365 total).
 
 ## Build and Development
 

@@ -18,6 +18,7 @@ from openchronicle.core.domain.errors.error_codes import (
     CONVERSATION_NOT_FOUND,
     MEMORY_NOT_FOUND,
     TASK_NOT_FOUND,
+    WEBHOOK_NOT_FOUND,
 )
 from openchronicle.core.domain.exceptions import NotFoundError
 from openchronicle.core.domain.models.asset import Asset, AssetLink
@@ -34,16 +35,19 @@ from openchronicle.core.domain.models.project import (
     TaskStatus,
 )
 from openchronicle.core.domain.models.scheduled_job import JobStatus, ScheduledJob
+from openchronicle.core.domain.models.webhook import DeliveryAttempt, WebhookSubscription
 from openchronicle.core.domain.ports.asset_store_port import AssetStorePort
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
 from openchronicle.core.domain.ports.storage_port import StoragePort
+from openchronicle.core.domain.ports.webhook_store_port import WebhookStorePort
 from openchronicle.core.infrastructure.persistence import schema
 from openchronicle.core.infrastructure.persistence.row_mappers import (
     row_to_agent,
     row_to_asset,
     row_to_asset_link,
     row_to_conversation,
+    row_to_delivery,
     row_to_event,
     row_to_llm_usage,
     row_to_memory_item,
@@ -52,6 +56,7 @@ from openchronicle.core.infrastructure.persistence.row_mappers import (
     row_to_span,
     row_to_task,
     row_to_turn,
+    row_to_webhook,
 )
 
 _logger = logging.getLogger(__name__)
@@ -76,7 +81,7 @@ def _fts5_available(conn: sqlite3.Connection) -> bool:
         return False
 
 
-class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStorePort):
+class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStorePort, WebhookStorePort):
     def __init__(self, db_path: str = "data/openchronicle.db") -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -429,6 +434,108 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         deleted = cur.rowcount > 0
         self._commit_if_needed()
         return deleted
+
+    # ── Webhooks ────────────────────────────────────────────────────────
+
+    def add_subscription(self, sub: WebhookSubscription) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            """INSERT INTO webhooks
+            (id, project_id, url, secret, event_filter, active, created_at, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                sub.id,
+                sub.project_id,
+                sub.url,
+                sub.secret,
+                sub.event_filter,
+                int(sub.active),
+                sub.created_at.isoformat(),
+                sub.description,
+            ),
+        )
+        self._commit_if_needed()
+
+    def get_subscription(self, sub_id: str) -> WebhookSubscription | None:
+        cur = self._conn.cursor()
+        row = cur.execute("SELECT * FROM webhooks WHERE id=?", (sub_id,)).fetchone()
+        return row_to_webhook(row) if row else None
+
+    def list_subscriptions(self, project_id: str | None = None, active_only: bool = False) -> list[WebhookSubscription]:
+        cur = self._conn.cursor()
+        conditions: list[str] = []
+        params: list[str | int] = []
+        if project_id is not None:
+            conditions.append("project_id=?")
+            params.append(project_id)
+        if active_only:
+            conditions.append("active=1")
+        sql = "SELECT * FROM webhooks"
+        if conditions:
+            sql += " WHERE " + " AND ".join(conditions)
+        sql += " ORDER BY created_at DESC, id DESC"
+        rows = cur.execute(sql, params).fetchall()
+        return [row_to_webhook(r) for r in rows]
+
+    def delete_subscription(self, sub_id: str) -> None:
+        with self.transaction():
+            cur = self._conn.cursor()
+            cur.execute("DELETE FROM webhooks WHERE id=?", (sub_id,))
+            if cur.rowcount == 0:
+                raise NotFoundError(f"Webhook not found: {sub_id}", code=WEBHOOK_NOT_FOUND)
+
+    def update_subscription(
+        self,
+        sub_id: str,
+        *,
+        active: bool | None = None,
+        url: str | None = None,
+        event_filter: str | None = None,
+    ) -> None:
+        sets: list[str] = []
+        params: list[str | int] = []
+        if active is not None:
+            sets.append("active=?")
+            params.append(int(active))
+        if url is not None:
+            sets.append("url=?")
+            params.append(url)
+        if event_filter is not None:
+            sets.append("event_filter=?")
+            params.append(event_filter)
+        if not sets:
+            return
+        params.append(sub_id)
+        cur = self._conn.cursor()
+        cur.execute(f"UPDATE webhooks SET {', '.join(sets)} WHERE id=?", params)
+        if cur.rowcount == 0:
+            raise NotFoundError(f"Webhook not found: {sub_id}", code=WEBHOOK_NOT_FOUND)
+        self._commit_if_needed()
+
+    def add_delivery(self, attempt: DeliveryAttempt) -> None:
+        cur = self._conn.cursor()
+        cur.execute(
+            """INSERT INTO webhook_deliveries
+            (id, subscription_id, event_id, status_code, success, attempt_number, error_message, delivered_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                attempt.id,
+                attempt.subscription_id,
+                attempt.event_id,
+                attempt.status_code,
+                int(attempt.success),
+                attempt.attempt_number,
+                attempt.error_message,
+                attempt.delivered_at.isoformat(),
+            ),
+        )
+        self._commit_if_needed()
+
+    def list_deliveries(self, subscription_id: str, limit: int = 50) -> list[DeliveryAttempt]:
+        cur = self._conn.cursor()
+        sql = "SELECT * FROM webhook_deliveries WHERE subscription_id=? ORDER BY delivered_at DESC, id DESC LIMIT ?"
+        rows = cur.execute(sql, (subscription_id, limit)).fetchall()
+        return [row_to_delivery(r) for r in rows]
 
     # Spans
     def add_span(self, span: Span) -> None:

@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-02-24
+**Date:** 2026-02-25
 **Branch:** `main`
-**Revision:** 34 (Memory v1 — embedding-based semantic search, hybrid FTS5+cosine retrieval via RRF)
+**Revision:** 35 (Phase 4 — Webhook Service with HMAC signing, background dispatcher, composite emit_event)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,291 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,365 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -120,7 +120,7 @@ Gemini adapter error codes: `_classify_gemini_error()` maps exceptions to
 `OLLAMA_HOST` documented in env vars reference.
 21 new tests, 1198 total passing.
 
-**What's next:** Media generation (Decision #7), webhooks, or Phase 5 IDE automation hooks.
+**What's next:** Media generation (Decision #7) or Phase 5 IDE automation hooks.
 Media generation introduces a new port (`MediaGenerationPort`) with Ollama and
 OpenAI adapters, flowing through the existing asset system. Capability-aware
 routing wires the `capabilities` field in model configs into provider selection.
@@ -132,7 +132,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). 27 MCP tools, 26 REST endpoints, 1,291 tests. Enterprise tightening Passes A/B/C complete. Media generation and webhooks are next.**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. 30 MCP tools, 31 REST endpoints, 1,365 tests. Enterprise tightening Passes A/B/C complete. Media generation is next.**
 
 ---
 
@@ -213,7 +213,7 @@ validates against live providers (OpenAI, Anthropic).
 | ----------- | -------- | ---------- |
 | **5 LLM providers** (OpenAI, Anthropic, Groq, Gemini, Ollama) | Working | Async-native adapters, contract tests |
 | **Provider routing** (pools, fallback, NSFW, budget-aware) | Working | 1,278-line test suite |
-| **SQLite persistence** (14 tables, 65+ methods, WAL mode) | Working | Handles tasks, conversations, memory, events, scheduled jobs, delete + cascade, MCP/MoE usage tracking, memory embeddings |
+| **SQLite persistence** (16 tables, 72+ methods, WAL mode) | Working | Handles tasks, conversations, memory, events, scheduled jobs, delete + cascade, MCP/MoE usage tracking, memory embeddings, webhooks + deliveries |
 | **Hash-chained events** (SHA256, prev_hash → hash) | Working | Verification + replay services |
 | **Privacy gate** (6 PII categories, Luhn validation) | Working | Rule-based, provider-aware |
 | **Interaction routing** (rule + hybrid ML assist) | Working | NSFW scoring, mode detection |
@@ -227,10 +227,11 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
-| **MCP server interface** (27 tools, FastMCP, stdio + SSE) | Working | Memory (save/search/list/pin/update/get/delete/stats/embed), conversation, context, system, onboard, asset tools; `@track_tool` decorator; lazy import guard; posture-enforced isolation |
+| **MCP server interface** (30 tools, FastMCP, stdio + SSE) | Working | Memory (save/search/list/pin/update/get/delete/stats/embed), conversation, context, system, onboard, asset, webhook tools; `@track_tool` decorator; lazy import guard; posture-enforced isolation |
 | **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 48 tests |
-| **HTTP API interface** (FastAPI, always-on daemon, 26 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51+ tests |
-| **Test suite** (1291 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 14 test categories + Discord + MCP + Assets + HTTP API + Embedding, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **Webhook service** (outbound HTTP POST, HMAC-SHA256, background dispatch) | Working | WebhookSubscription/DeliveryAttempt models, WebhookStorePort, WebhookService, WebhookDispatcher (daemon thread + queue), composite emit_event, fnmatch glob filtering, exponential backoff retry, 3 MCP tools, 5 REST endpoints, 4 CLI commands, 74 tests |
+| **HTTP API interface** (FastAPI, always-on daemon, 31 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51+ tests |
+| **Test suite** (1365 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -458,7 +459,7 @@ the orchestrator" is unclear. `run_task.py` is 28 lines (pure forwarding) while
 `ask_conversation.py` is 936 lines (full orchestration). The orchestrator also owns
 built-in handler logic that could be use cases.
 
-### Domain Layer (13 models, 8 ports, 3 services)
+### Domain Layer (15 models, 9 ports, 3 services)
 
 Clean and well-typed. Key models:
 
@@ -487,7 +488,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (141 files, 1198 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
+### Test Suite (148 files, 1365 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -582,7 +583,7 @@ Core Done
   → Capability-Aware Routing (core — wire model config capabilities into routing)
   → Media Generation (core — new port + adapters, Decision #7)
   → Multimodal Conversation Input (core — vision input via asset system)
-  → Webhooks (core service — event subscriptions, inbound/outbound HTTP)
+  ✓ Webhooks (core — webhook_service.py + webhook_dispatcher.py, HMAC signing, background dispatch)
   → Security Scanner (plugin — stateless handler)
   → Dev Agent Runner (core — needs LLM + sandbox)
   → Serena MCP (core — inside sandbox only)
@@ -727,6 +728,7 @@ interfaces/mcp/
     context.py        # context_recent
     system.py         # health, tool_stats, moe_stats, search_turns, onboard_git
     asset.py          # asset_upload, asset_list, asset_get, asset_link
+    webhook.py        # webhook_register, webhook_list, webhook_delete
     project.py        # project_create, project_list
 ```
 
@@ -774,6 +776,7 @@ interfaces/api/
     conversation.py    # /api/v1/conversation/*
     project.py         # /api/v1/project/*
     asset.py           # /api/v1/asset/*
+    webhook.py         # /api/v1/webhook/*
     system.py          # /api/v1/health, /api/v1/stats
 ```
 
@@ -842,4 +845,6 @@ model configs, `RouterPolicy` filters by `required_capabilities` opt-in param,
 | `interfaces/api/middleware/auth.py` | ~65 | API key auth | New (timing-safe, Bearer + X-API-Key, configurable exemptions) |
 | `interfaces/api/middleware/rate_limit.py` | ~70 | Rate limiting | New (thread-safe sliding window, memory-leak-safe) |
 | `interfaces/serializers.py` | ~90 | Shared model serializers | New (6 functions, used by MCP tools + API routes) |
-| `infrastructure/wiring/container.py` | ~191 | DI container | Clean (file-based config, exposes router_policy) |
+| `services/webhook_service.py` | ~120 | Webhook CRUD + HMAC + delivery | New (httpx, fnmatch, secrets) |
+| `services/webhook_dispatcher.py` | ~110 | Background event dispatch | New (daemon thread, queue, retry) |
+| `infrastructure/wiring/container.py` | ~220 | DI container | Clean (file-based config, exposes router_policy, composite emit_event) |

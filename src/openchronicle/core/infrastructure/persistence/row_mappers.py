@@ -20,6 +20,7 @@ from openchronicle.core.domain.models.project import (
     TaskStatus,
 )
 from openchronicle.core.domain.models.scheduled_job import JobStatus, ScheduledJob
+from openchronicle.core.domain.models.webhook import DeliveryAttempt, WebhookSubscription
 
 
 def _parse_dt(value: str) -> datetime:
@@ -208,4 +209,30 @@ def row_to_asset_link(row: sqlite3.Row) -> AssetLink:
         target_id=row["target_id"],
         role=row["role"],
         created_at=_parse_dt(row["created_at"]),
+    )
+
+
+def row_to_webhook(row: sqlite3.Row) -> WebhookSubscription:
+    return WebhookSubscription(
+        id=row["id"],
+        project_id=row["project_id"],
+        url=row["url"],
+        secret=row["secret"],
+        event_filter=row["event_filter"],
+        active=bool(row["active"]),
+        created_at=_parse_dt(row["created_at"]),
+        description=row["description"],
+    )
+
+
+def row_to_delivery(row: sqlite3.Row) -> DeliveryAttempt:
+    return DeliveryAttempt(
+        id=row["id"],
+        subscription_id=row["subscription_id"],
+        event_id=row["event_id"],
+        status_code=row["status_code"],
+        success=bool(row["success"]),
+        attempt_number=row["attempt_number"],
+        error_message=row["error_message"],
+        delivered_at=_parse_dt(row["delivered_at"]),
     )

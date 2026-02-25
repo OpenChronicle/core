@@ -5,7 +5,7 @@ for OpenChronicle v2. Organized into phases based on dependencies, effort,
 and value. **This is a living document** — reviewed after each phase
 completion. See `docs/CODEBASE_ASSESSMENT.md` for current project status.
 
-**Last Updated:** 2026-02-24
+**Last Updated:** 2026-02-25
 
 ---
 
@@ -82,9 +82,9 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 - **STDIO RPC** — 24 commands, async, daemon mode (`oc serve`)
 - **Discord Interface** — 6 slash commands, session mapping, 85 tests,
   optional `[discord]` extra (`interfaces/discord/`)
-- **MCP Server** — 27 tools, stdio + SSE transports, 44 tests, optional
+- **MCP Server** — 30 tools, stdio + SSE transports, 44 tests, optional
   `[mcp]` extra (`interfaces/mcp/`)
-- **HTTP API** — FastAPI, 25 REST endpoints, API key auth, rate limiting,
+- **HTTP API** — FastAPI, 31 REST endpoints, API key auth, rate limiting,
   CORS, 54+ tests (`interfaces/api/`)
 - **Docker CI** — GitHub Actions multi-arch build, GHA cache
 
@@ -107,8 +107,8 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 
 </details>
 
-**Totals:** 1,291 tests, 27 MCP tools, 26 REST endpoints, 10 ports, 8
-services, 35 use cases, 5 interfaces.
+**Totals:** 1,365 tests, 30 MCP tools, 31 REST endpoints, 11 ports, 10
+services, 38 use cases, 5 interfaces.
 
 ---
 
@@ -256,28 +256,31 @@ and push events into OC.
 
 ### Webhook Service
 
-**Status:** 🔴 Not Started
+**Status:** ✅ Implemented
 **Effort:** Medium
 **Category:** Core (`application/services/webhook_service.py`)
 **Depends On:** HTTP API ✅
 
-**Requirements:**
+Outbound webhook system with HMAC-SHA256 signing, background dispatcher
+thread, exponential backoff retry, and fnmatch glob event filtering.
 
-- [ ] **Outbound:** Event listener → filter by subscription → HTTP POST
-      with retry + HMAC signing
-- [ ] **Inbound:** Receive POST → validate signature → transform payload →
-      emit internal event
-- [ ] **Storage:** `webhooks` table in SQLite (endpoint, event_types,
-      secret, active)
-- [ ] **Retry:** Existing `RetryController` pattern (exponential backoff
-      with jitter)
-- [ ] **Routes:** CRUD for webhook subscriptions + inbound receiver
-  - `POST /api/v1/webhooks` (register)
-  - `GET /api/v1/webhooks` (list)
-  - `DELETE /api/v1/webhooks/{id}` (remove)
-  - `POST /api/v1/webhooks/inbound/{source}` (receive)
-- [ ] MCP tools: `webhook_register`, `webhook_list`, `webhook_delete`
-- [ ] Events: `webhook.registered`, `webhook.delivered`, `webhook.failed`
+**Implemented:**
+
+- [x] `WebhookSubscription` + `DeliveryAttempt` domain models
+- [x] `WebhookStorePort` ABC with full CRUD + delivery tracking
+- [x] `webhooks` + `webhook_deliveries` tables (FK CASCADE, 4 indexes)
+- [x] `WebhookService` — subscription CRUD, HMAC signing, httpx delivery
+- [x] `WebhookDispatcher` — background daemon thread, `queue.Queue`,
+      exponential backoff retry (3 attempts, 10s/30s/90s + jitter)
+- [x] Composite `emit_event` pattern (event_logger + dispatcher, zero
+      existing call-site changes)
+- [x] `webhook.*` event recursion prevention
+- [x] 3 use cases: `register_webhook`, `list_webhooks`, `delete_webhook`
+- [x] 5 REST endpoints: POST/GET/GET/{id}/DELETE/{id}/GET/{id}/deliveries
+- [x] 3 MCP tools: `webhook_register`, `webhook_list`, `webhook_delete`
+- [x] 4 CLI commands: `oc webhook register|list|delete|deliveries`
+- [x] Events: `webhook.registered`, `webhook.deleted`
+- [x] 74 new tests, 1365 total
 
 ---
 
@@ -844,8 +847,8 @@ CORE INFRA GAPS (small, enable downstream)  │
 PHASE 3: Smarter Memory ✅                  │
 └── Memory Embeddings ✅ ◄─────────────── (no deps)
 
-PHASE 4: Reactive Eventing                 │
-└── Webhooks ◄─────────────────────────── HTTP API ✅
+PHASE 4: Reactive Eventing ✅               │
+└── Webhooks ✅ ◄──────────────────────── HTTP API ✅
 
 PHASE 5: Agent Automation Hooks            │
 └── IDE Event-Triggered Memory ◄───────── MCP Server ✅ + Memory Phase 2 ✅
@@ -888,7 +891,7 @@ Gaps being filled first.
  1. Quick Wins: Goose + VS Code MCP config          [Trivial] ✅
  2. Core Infra: Output Manager + Shell Execution     [Small]
  3. Phase 3: Memory Embeddings                       [Medium-Large] ✅
- 4. Phase 4: Webhooks                                [Medium]
+ 4. Phase 4: Webhooks                                [Medium] ✅
  5. Phase 5: IDE Event-Triggered Memory              [Medium]
  6. Plugins: Storytelling suite (pipeline exercise)   [Medium]
  7. Connector: Plex (daily-use pipeline validator)   [Medium]

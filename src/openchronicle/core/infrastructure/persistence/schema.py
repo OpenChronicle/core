@@ -237,6 +237,34 @@ CREATE TABLE IF NOT EXISTS memory_embeddings (
 );
 """
 
+WEBHOOKS_TABLE = """
+CREATE TABLE IF NOT EXISTS webhooks (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    url TEXT NOT NULL,
+    secret TEXT NOT NULL,
+    event_filter TEXT NOT NULL DEFAULT '*',
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+"""
+
+WEBHOOK_DELIVERIES_TABLE = """
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id TEXT PRIMARY KEY,
+    subscription_id TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    status_code INTEGER,
+    success INTEGER NOT NULL DEFAULT 0,
+    attempt_number INTEGER NOT NULL DEFAULT 1,
+    error_message TEXT,
+    delivered_at TEXT NOT NULL,
+    FOREIGN KEY(subscription_id) REFERENCES webhooks(id) ON DELETE CASCADE
+);
+"""
+
 INDEXES = [
     # Tasks: optimize project queries with ordering
     "CREATE INDEX IF NOT EXISTS idx_tasks_project_created ON tasks(project_id, created_at, id)",
@@ -295,8 +323,19 @@ ASSET_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_asset_links_target ON asset_links(target_type, target_id, created_at, id)",
 ]
 
+WEBHOOK_INDEXES = [
+    # Webhooks: optimize project listing
+    "CREATE INDEX IF NOT EXISTS idx_webhooks_project ON webhooks(project_id, created_at, id)",
+    # Webhooks: optimize active subscription lookups
+    "CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(active, created_at, id)",
+    # Webhook deliveries: optimize subscription lookup with ordering
+    "CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_sub ON webhook_deliveries(subscription_id, delivered_at DESC, id)",
+    # Webhook deliveries: optimize event lookup
+    "CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_event ON webhook_deliveries(event_id, delivered_at, id)",
+]
+
 # Combine all indexes for init_schema
-INDEXES = INDEXES + ASSET_INDEXES
+INDEXES = INDEXES + ASSET_INDEXES + WEBHOOK_INDEXES
 
 ALL_TABLES = [
     PROJECTS_TABLE,
@@ -315,6 +354,8 @@ ALL_TABLES = [
     ASSETS_TABLE,
     ASSET_LINKS_TABLE,
     MEMORY_EMBEDDINGS_TABLE,
+    WEBHOOKS_TABLE,
+    WEBHOOK_DELIVERIES_TABLE,
 ]
 
 # ── FTS5 virtual tables & triggers ──────────────────────────────────────
