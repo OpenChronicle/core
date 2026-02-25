@@ -19,11 +19,10 @@ scheduler and Discord are core features, not plugins (Decision #4 in assessment)
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
 **Next action:** Memory System Phase 2 (standalone context assembly, external turn recording), media generation port,
-(standalone context assembly, external turn recording), media generation port,
 security scanner plugin, or webhooks.
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
-HTTP API is done (`interfaces/api/`, FastAPI, 22 REST endpoints mirroring MCP tools,
+HTTP API is done (`interfaces/api/`, FastAPI, 23 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51+ tests, auto-starts with `oc serve`).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
@@ -128,7 +127,7 @@ for the full directory tree and layer descriptions.
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
 - **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 24 tools, FastMCP)
-- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 22 REST endpoints, auto-starts with `oc serve`)
+- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 23 REST endpoints, auto-starts with `oc serve`)
 - **MoE Execution**: `application/services/moe_execution.py` — Mixture-of-Experts consensus strategy (`--moe` flag)
 - **Asset Management**: `domain/models/asset.py` + `application/services/asset_storage.py` — filesystem storage, SHA-256 dedup, generic entity linking
 
@@ -293,9 +292,8 @@ Call `memory_search` at these points:
 - **Search is keyword-based.** Quality depends on good content and tags.
   Write memories as if future-you is searching for them with obvious
   keywords.
-- **Untested in real sessions.** This integration is new. If memory
-  retrieval isn't useful, or save cadence is wrong, flag it so we can
-  iterate on these rules.
+- **Search is approximate.** Keyword search with no stemming or
+  fuzzy matching. Memories must use obvious keywords to be findable.
 
 ## Key Files
 
