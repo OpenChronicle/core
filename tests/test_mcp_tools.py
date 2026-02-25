@@ -509,3 +509,147 @@ class TestHealth:
         assert result["config_dir"] == "config"
         # Datetime should be serialized
         assert "2026-02-20" in result["timestamp_utc"]
+
+
+class TestSearchTurns:
+    def test_returns_results(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.system import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        container.storage.search_turns = MagicMock(return_value=[_sample_turn()])
+
+        tool_fn = mcp._tool_manager._tools["search_turns"].fn
+        result = tool_fn(query="Hello", ctx=ctx)
+
+        assert len(result) == 1
+        assert result[0]["user_text"] == "Hello"
+        container.storage.search_turns.assert_called_once_with("Hello", top_k=10, conversation_id=None)
+
+    def test_empty_query_rejected(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.system import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        tool_fn = mcp._tool_manager._tools["search_turns"].fn
+        with pytest.raises(DomainValidationError, match="query must be non-empty"):
+            tool_fn(query="", ctx=ctx)
+
+    def test_whitespace_query_rejected(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.system import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        tool_fn = mcp._tool_manager._tools["search_turns"].fn
+        with pytest.raises(DomainValidationError, match="query must be non-empty"):
+            tool_fn(query="   ", ctx=ctx)
+
+
+class TestMCPParameterValidation:
+    """MCP tool parameter validation — clamping and rejection."""
+
+    def test_memory_search_empty_query_rejected(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.memory import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        tool_fn = mcp._tool_manager._tools["memory_search"].fn
+        with pytest.raises(DomainValidationError, match="query must be non-empty"):
+            tool_fn(query="", ctx=ctx)
+
+    def test_memory_save_empty_content_rejected(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.memory import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        tool_fn = mcp._tool_manager._tools["memory_save"].fn
+        with pytest.raises(DomainValidationError, match="content must be non-empty"):
+            tool_fn(content="", ctx=ctx)
+
+    def test_memory_save_overlength_content_rejected(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.memory import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        tool_fn = mcp._tool_manager._tools["memory_save"].fn
+        with pytest.raises(DomainValidationError, match="exceeds maximum length"):
+            tool_fn(content="x" * 100_001, ctx=ctx)
+
+    def test_memory_search_top_k_clamped(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.memory import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        with patch(
+            "openchronicle.interfaces.mcp.tools.memory.search_memory.execute",
+            return_value=[],
+        ) as mock_search:
+            tool_fn = mcp._tool_manager._tools["memory_search"].fn
+            tool_fn(query="test", ctx=ctx, top_k=999_999)
+
+        # top_k should be clamped to 1000
+        call_kwargs = mock_search.call_args[1]
+        assert call_kwargs["top_k"] == 1000
+
+    def test_memory_search_negative_offset_clamped(self) -> None:
+        container = _make_container()
+        ctx = _make_context(container)
+
+        from mcp.server.fastmcp import FastMCP
+
+        from openchronicle.interfaces.mcp.tools.memory import register
+
+        mcp = FastMCP("test")
+        register(mcp)
+
+        with patch(
+            "openchronicle.interfaces.mcp.tools.memory.search_memory.execute",
+            return_value=[],
+        ) as mock_search:
+            tool_fn = mcp._tool_manager._tools["memory_search"].fn
+            tool_fn(query="test", ctx=ctx, offset=-5)
+
+        call_kwargs = mock_search.call_args[1]
+        assert call_kwargs["offset"] == 0

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Field
 
 from openchronicle.core.application.use_cases import (
@@ -57,7 +57,7 @@ def conversation_list(
 
 @router.get("/{conversation_id}/history")
 def conversation_history(
-    conversation_id: str,
+    conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
     container: ContainerDep,
     limit: int | None = Query(default=None, ge=1, le=10_000),
 ) -> dict[str, Any]:
@@ -80,7 +80,7 @@ class ConversationAskRequest(BaseModel):
 
 @router.post("/{conversation_id}/ask")
 async def conversation_ask(
-    conversation_id: str,
+    conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
     body: ConversationAskRequest,
     container: ContainerDep,
 ) -> dict[str, Any]:
@@ -105,7 +105,7 @@ async def conversation_ask(
 
 @router.get("/{conversation_id}/context")
 def context_recent(
-    conversation_id: str,
+    conversation_id: Annotated[str, Path(min_length=1, max_length=200)],
     container: ContainerDep,
     query: str | None = None,
     turn_limit: int = Query(default=5, ge=1, le=1000),
@@ -144,3 +144,16 @@ def context_recent(
         result["memories"] = [memory_to_dict(m) for m in memories]
 
     return result
+
+
+class SearchTurnsRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=10_000)
+    top_k: int = Field(default=10, ge=1, le=1000)
+    conversation_id: str | None = Field(default=None, max_length=200)
+
+
+@router.post("/search-turns")
+def search_turns(body: SearchTurnsRequest, container: ContainerDep) -> list[dict[str, Any]]:
+    """Search conversation turns by keyword."""
+    turns = container.storage.search_turns(body.query, top_k=body.top_k, conversation_id=body.conversation_id)
+    return [turn_to_dict(t) for t in turns]

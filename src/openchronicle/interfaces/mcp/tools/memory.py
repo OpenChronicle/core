@@ -51,6 +51,10 @@ def register(mcp: FastMCP) -> None:
             project_id: Optional — restrict search to a specific project.
             tags: Optional — filter results to items having ALL specified tags (AND logic).
         """
+        if not query or not query.strip():
+            raise DomainValidationError("query must be non-empty")
+        top_k = min(max(top_k, 1), 1000)
+        offset = max(offset, 0)
         container = _get_container(ctx)
         results = search_memory.execute(
             store=container.storage,
@@ -87,6 +91,10 @@ def register(mcp: FastMCP) -> None:
             project_id: Project to store the memory under.
             created_at: Optional ISO datetime to backdate the memory (e.g. "2026-01-15T12:00:00+00:00").
         """
+        if not content or not content.strip():
+            raise DomainValidationError("content must be non-empty")
+        if len(content) > 100_000:
+            raise DomainValidationError("content exceeds maximum length of 100,000 characters")
         container = _get_container(ctx)
 
         # Derive project_id from conversation if needed
@@ -132,6 +140,9 @@ def register(mcp: FastMCP) -> None:
             limit: Maximum number of items to return (None for all).
             pinned_only: If True, only return pinned memories.
         """
+        if limit is not None:
+            limit = min(max(limit, 1), 10_000)
+        offset = max(offset, 0)
         container = _get_container(ctx)
         results = list_memory.execute(
             store=container.storage,
@@ -184,6 +195,8 @@ def register(mcp: FastMCP) -> None:
             content: New content (replaces existing). Omit to keep current.
             tags: New tags (replaces existing). Omit to keep current.
         """
+        if content is not None and len(content) > 100_000:
+            raise DomainValidationError("content exceeds maximum length of 100,000 characters")
         container = _get_container(ctx)
         updated = update_memory.execute(
             store=container.storage,

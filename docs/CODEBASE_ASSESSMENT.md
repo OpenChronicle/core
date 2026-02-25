@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-24
 **Branch:** `main`
-**Revision:** 31 (Pass B — operational hardening, DRY extraction, timeouts, config validation)
+**Revision:** 32 (Pass C — interface hardening, API/MCP parity, parameter validation)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,177 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,198 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -105,7 +105,23 @@ lower_snake values changed to SCREAMING_SNAKE_CASE. CLI bug: removed unreachable
 code in `cmd_memory_delete`, added error handling to `cmd_memory_pin`.
 49 new tests, 1177 total passing.
 
-**What's next:** Enterprise tightening Pass C, then media generation (Decision #7).
+**Enterprise tightening — Pass C (Interface Hardening + API/MCP Parity) is complete.**
+API/MCP parity: `POST /api/v1/conversation/search-turns` closes the last REST
+mirror gap (MCP `search_turns` tool had no HTTP equivalent). Path parameter
+validation: `Annotated[str, Path(min_length=1, max_length=200)]` on all API path
+params (`conversation_id`, `memory_id`, `asset_id`). System route validation:
+`Query(max_length=...)` on `tool_stats` and `moe_stats` query params. MCP tool
+validation: input clamping (`top_k`, `offset`, `limit`, `turn_limit`,
+`memory_limit`) and rejection (empty `query`, empty `content`, overlength
+`content`/`prompt`) across 7 MCP tools — uses graceful clamping for numeric
+bounds (MCP callers are LLM agents), hard rejection for clearly invalid inputs.
+Gemini adapter error codes: `_classify_gemini_error()` maps exceptions to
+`TIMEOUT`, `CONNECTION_ERROR`, `PROVIDER_ERROR`, or `UNKNOWN_ERROR` (was `None`).
+`OLLAMA_HOST` documented in env vars reference.
+21 new tests, 1198 total passing.
+
+**What's next:** Memory System Phase 2 (standalone context assembly, external
+turn recording), media generation (Decision #7).
 Media generation introduces a new port (`MediaGenerationPort`) with Ollama and
 OpenAI adapters, flowing through the existing asset system. Capability-aware
 routing wires the `capabilities` field in model configs into provider selection.
@@ -117,7 +133,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system enhanced with `memory_update`, tag-filtered search, full CRUD parity (get/delete/stats across all interfaces), pagination, and observability events (`memory.search_completed`, `context.assembly_breakdown`). Streaming telemetry fixed. Enterprise tightening Pass A complete (domain exceptions, global error handlers, input validation, rowcount checks). Pass B complete (DRY extraction, adapter timeouts, container lifecycle, config validation, CORS tightening, logging, error code normalization). Pass C and media generation are next.**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system enhanced with `memory_update`, tag-filtered search, full CRUD parity (get/delete/stats across all interfaces), pagination, and observability events (`memory.search_completed`, `context.assembly_breakdown`). Streaming telemetry fixed. Enterprise tightening Pass A complete (domain exceptions, global error handlers, input validation, rowcount checks). Pass B complete (DRY extraction, adapter timeouts, container lifecycle, config validation, CORS tightening, logging, error code normalization). Pass C complete (API/MCP parity, path/query parameter validation, MCP tool input validation, Gemini error codes). Media generation and Memory Phase 2 are next.**
 
 ---
 

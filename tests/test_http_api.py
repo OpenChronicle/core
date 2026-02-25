@@ -867,3 +867,76 @@ class TestInputValidation:
     def test_limit_over_max_rejected(self, client: TestClient) -> None:
         resp = client.get("/api/v1/conversation", params={"limit": 10_001})
         assert resp.status_code == 422
+
+
+class TestSearchTurnsRoute:
+    def test_search_turns_happy_path(self, client: TestClient) -> None:
+        turn = _make_turn()
+        _get_container(client).storage.search_turns.return_value = [turn]
+
+        resp = client.post(
+            "/api/v1/conversation/search-turns",
+            json={"query": "hello"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["user_text"] == "hello"
+
+    def test_search_turns_empty_results(self, client: TestClient) -> None:
+        _get_container(client).storage.search_turns.return_value = []
+
+        resp = client.post(
+            "/api/v1/conversation/search-turns",
+            json={"query": "nonexistent"},
+        )
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_search_turns_empty_query_rejected(self, client: TestClient) -> None:
+        resp = client.post(
+            "/api/v1/conversation/search-turns",
+            json={"query": ""},
+        )
+        assert resp.status_code == 422
+
+    def test_search_turns_with_conversation_id(self, client: TestClient) -> None:
+        turn = _make_turn()
+        _get_container(client).storage.search_turns.return_value = [turn]
+
+        resp = client.post(
+            "/api/v1/conversation/search-turns",
+            json={"query": "hello", "conversation_id": "conv-1", "top_k": 5},
+        )
+        assert resp.status_code == 200
+        _get_container(client).storage.search_turns.assert_called_once_with("hello", top_k=5, conversation_id="conv-1")
+
+
+class TestPathParamValidation:
+    """Path parameters reject empty or overlength values."""
+
+    def test_empty_conversation_id_rejected(self, client: TestClient) -> None:
+        # FastAPI treats /{conversation_id}/history with empty string as 404
+        # because the route won't match — but we can test overlength
+        resp = client.get(f"/api/v1/conversation/{'x' * 201}/history")
+        assert resp.status_code == 422
+
+    def test_empty_memory_id_rejected(self, client: TestClient) -> None:
+        resp = client.get(f"/api/v1/memory/{'x' * 201}")
+        assert resp.status_code == 422
+
+    def test_empty_asset_id_rejected(self, client: TestClient) -> None:
+        resp = client.get(f"/api/v1/asset/{'x' * 201}")
+        assert resp.status_code == 422
+
+
+class TestSystemParamValidation:
+    """System route query parameters reject overlength values."""
+
+    def test_tool_stats_overlength_tool_name(self, client: TestClient) -> None:
+        resp = client.get("/api/v1/stats/tools", params={"tool_name": "x" * 201})
+        assert resp.status_code == 422
+
+    def test_moe_stats_overlength_provider(self, client: TestClient) -> None:
+        resp = client.get("/api/v1/stats/moe", params={"winner_provider": "x" * 201})
+        assert resp.status_code == 422

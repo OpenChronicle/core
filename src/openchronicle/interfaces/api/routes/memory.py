@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 from openchronicle.core.application.config.env_helpers import parse_csv_tags
@@ -148,7 +148,7 @@ def memory_list(
 
 @router.get("/{memory_id}")
 def memory_get(
-    memory_id: str,
+    memory_id: Annotated[str, Path(min_length=1, max_length=200)],
     container: ContainerDep,
 ) -> dict[str, Any]:
     """Get a single memory item by ID."""
@@ -160,7 +160,7 @@ def memory_get(
 
 @router.delete("/{memory_id}")
 def memory_delete(
-    memory_id: str,
+    memory_id: Annotated[str, Path(min_length=1, max_length=200)],
     container: ContainerDep,
 ) -> dict[str, str]:
     """Delete a memory item permanently."""
@@ -178,7 +178,7 @@ class MemoryPinRequest(BaseModel):
 
 @router.put("/{memory_id}/pin")
 def memory_pin(
-    memory_id: str,
+    memory_id: Annotated[str, Path(min_length=1, max_length=200)],
     body: MemoryPinRequest,
     container: ContainerDep,
 ) -> dict[str, str]:
@@ -199,7 +199,7 @@ class MemoryUpdateRequest(BaseModel):
 
 @router.put("/{memory_id}")
 def memory_update(
-    memory_id: str,
+    memory_id: Annotated[str, Path(min_length=1, max_length=200)],
     body: MemoryUpdateRequest,
     container: ContainerDep,
 ) -> dict[str, Any]:

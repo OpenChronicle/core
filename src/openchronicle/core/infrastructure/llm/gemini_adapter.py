@@ -15,7 +15,14 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from collections.abc import AsyncIterator
 
-from openchronicle.core.domain.errors import CLIENT_MISSING, MISSING_API_KEY
+from openchronicle.core.domain.errors import (
+    CLIENT_MISSING,
+    CONNECTION_ERROR,
+    MISSING_API_KEY,
+    PROVIDER_ERROR,
+    TIMEOUT,
+    UNKNOWN_ERROR,
+)
 from openchronicle.core.domain.ports.llm_port import (
     LLMPort,
     LLMProviderError,
@@ -25,6 +32,36 @@ from openchronicle.core.domain.ports.llm_port import (
     ToolCall,
     ToolDefinition,
 )
+
+
+def _classify_gemini_error(exc: Exception) -> str:
+    """Map a Gemini SDK exception to a standard OC error code."""
+    exc_type = type(exc).__name__
+    exc_msg = str(exc).lower()
+
+    # Timeout-class errors
+    if "timeout" in exc_type.lower() or "timeout" in exc_msg:
+        return TIMEOUT
+
+    # Connection-class errors
+    if any(kw in exc_msg for kw in ("connection", "dns", "network", "refused")):
+        return CONNECTION_ERROR
+
+    # Google API errors with HTTP status codes
+    status = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        if status == 429:
+            return PROVIDER_ERROR  # rate limit
+        if 400 <= status < 500:
+            return PROVIDER_ERROR
+        if status >= 500:
+            return PROVIDER_ERROR
+
+    # Known Google API exception types
+    if "GoogleAPIError" in exc_type or "ClientError" in exc_type or "ServerError" in exc_type:
+        return PROVIDER_ERROR
+
+    return UNKNOWN_ERROR
 
 
 class GeminiAdapter(LLMPort):
@@ -159,7 +196,7 @@ class GeminiAdapter(LLMPort):
             response = await self._client.aio.models.generate_content(**kwargs)
         except Exception as exc:
             status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
-            raise LLMProviderError(str(exc), status_code=status, error_code=None) from exc
+            raise LLMProviderError(str(exc), status_code=status, error_code=_classify_gemini_error(exc)) from exc
 
         latency_ms = int((time.perf_counter() - start) * 1000)
 
@@ -317,4 +354,4 @@ class GeminiAdapter(LLMPort):
             )
         except Exception as exc:
             status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
-            raise LLMProviderError(str(exc), status_code=status, error_code=None) from exc
+            raise LLMProviderError(str(exc), status_code=status, error_code=_classify_gemini_error(exc)) from exc

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 from openchronicle.core.application.use_cases import link_asset, upload_asset
@@ -63,7 +63,7 @@ def asset_list(
 
 @router.get("/{asset_id}")
 def asset_get(
-    asset_id: str,
+    asset_id: Annotated[str, Path(min_length=1, max_length=200)],
     container: ContainerDep,
 ) -> dict[str, Any]:
     """Get asset metadata and its links."""

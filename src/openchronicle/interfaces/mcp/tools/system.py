@@ -8,6 +8,7 @@ from typing import Any, cast
 from mcp.server.fastmcp import Context, FastMCP
 
 from openchronicle.core.application.use_cases import diagnose_runtime
+from openchronicle.core.domain.exceptions import ValidationError as DomainValidationError
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
 from openchronicle.interfaces.serializers import turn_to_dict
@@ -99,6 +100,9 @@ def register(mcp: FastMCP) -> None:
             top_k: Maximum number of results to return (default 10).
             conversation_id: Optional — restrict search to a specific conversation.
         """
+        if not query or not query.strip():
+            raise DomainValidationError("query must be non-empty")
+        top_k = min(max(top_k, 1), 1000)
         container = _get_container(ctx)
         turns = container.storage.search_turns(query, top_k=top_k, conversation_id=conversation_id)
         return [turn_to_dict(t) for t in turns]

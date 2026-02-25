@@ -429,6 +429,39 @@ class TestGeminiAdapter:
                 await adapter.complete_async(SAMPLE_MESSAGES, model="gemini-2.0-flash")
 
 
+class TestGeminiErrorClassification:
+    """Verify _classify_gemini_error maps exceptions to standard error codes."""
+
+    def test_timeout_error(self) -> None:
+        from openchronicle.core.domain.errors import TIMEOUT as TIMEOUT_CODE
+        from openchronicle.core.infrastructure.llm.gemini_adapter import _classify_gemini_error
+
+        exc = TimeoutError("Request timed out")
+        assert _classify_gemini_error(exc) == TIMEOUT_CODE
+
+    def test_connection_error(self) -> None:
+        from openchronicle.core.domain.errors import CONNECTION_ERROR as CONN_CODE
+        from openchronicle.core.infrastructure.llm.gemini_adapter import _classify_gemini_error
+
+        exc = Exception("connection refused by host")
+        assert _classify_gemini_error(exc) == CONN_CODE
+
+    def test_http_status_code(self) -> None:
+        from openchronicle.core.domain.errors import PROVIDER_ERROR as PROV_CODE
+        from openchronicle.core.infrastructure.llm.gemini_adapter import _classify_gemini_error
+
+        exc = Exception("rate limit")
+        exc.code = 429  # type: ignore[attr-defined]
+        assert _classify_gemini_error(exc) == PROV_CODE
+
+    def test_unknown_error(self) -> None:
+        from openchronicle.core.domain.errors import UNKNOWN_ERROR as UNK_CODE
+        from openchronicle.core.infrastructure.llm.gemini_adapter import _classify_gemini_error
+
+        exc = Exception("something unexpected")
+        assert _classify_gemini_error(exc) == UNK_CODE
+
+
 # ===================================================================
 # Ollama Adapter (existing, verify contract)
 # ===================================================================

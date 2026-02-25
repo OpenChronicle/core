@@ -12,6 +12,7 @@ from openchronicle.core.application.use_cases import (
     list_conversations,
     show_conversation,
 )
+from openchronicle.core.domain.exceptions import ValidationError as DomainValidationError
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
 from openchronicle.interfaces.mcp.tracking import track_tool
 from openchronicle.interfaces.serializers import conversation_to_dict, turn_to_dict
@@ -104,6 +105,10 @@ def register(mcp: FastMCP) -> None:
             prompt: The user message to send.
             moe: Use Mixture-of-Experts consensus mode.
         """
+        if not prompt or not prompt.strip():
+            raise DomainValidationError("prompt must be non-empty")
+        if len(prompt) > 200_000:
+            raise DomainValidationError("prompt exceeds maximum length of 200,000 characters")
         container = _get_container(ctx)
         turn = await ask_conversation.execute(
             convo_store=container.storage,

@@ -38,6 +38,8 @@ def register(mcp: FastMCP) -> None:
             turn_limit: Max recent turns to include (default 5).
             memory_limit: Max memory items to include (default 5).
         """
+        turn_limit = min(max(turn_limit, 1), 1000)
+        memory_limit = min(max(memory_limit, 1), 1000)
         container = _get_container(ctx)
         result: dict[str, Any] = {}
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from openchronicle.core.application.use_cases import diagnose_runtime
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
@@ -31,8 +31,8 @@ def health() -> dict[str, Any]:
 @router.get("/stats/tools")
 def tool_stats(
     container: ContainerDep,
-    tool_name: str | None = None,
-    since: str | None = None,
+    tool_name: str | None = Query(default=None, max_length=200),
+    since: str | None = Query(default=None, max_length=50),
 ) -> list[dict[str, Any]]:
     """MCP tool usage statistics."""
     return container.storage.get_mcp_tool_stats(
@@ -44,9 +44,9 @@ def tool_stats(
 @router.get("/stats/moe")
 def moe_stats(
     container: ContainerDep,
-    winner_provider: str | None = None,
-    winner_model: str | None = None,
-    since: str | None = None,
+    winner_provider: str | None = Query(default=None, max_length=200),
+    winner_model: str | None = Query(default=None, max_length=200),
+    since: str | None = Query(default=None, max_length=50),
 ) -> list[dict[str, Any]]:
     """MoE (Mixture-of-Experts) usage statistics."""
     return container.storage.get_moe_stats(

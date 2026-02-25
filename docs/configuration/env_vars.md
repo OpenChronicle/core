@@ -59,6 +59,7 @@ code default**. Boolean values accept `1`/`true`/`yes`/`on` (case-insensitive).
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
+| `OLLAMA_HOST` | - | Alias for `OLLAMA_BASE_URL` (read by `provider_facade.py` and `diagnose_runtime.py`) |
 | `OLLAMA_MODEL` | `llama3.1` | Default Ollama model |
 
 ## Budget and Rate Limiting

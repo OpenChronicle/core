@@ -18,7 +18,7 @@
 scheduler and Discord are core features, not plugins (Decision #4 in assessment).
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Enterprise tightening Pass C, then Memory System Phase 2
+**Next action:** Memory System Phase 2 (standalone context assembly, external turn recording), media generation port,
 (standalone context assembly, external turn recording), media generation port,
 security scanner plugin, or webhooks.
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
@@ -58,6 +58,10 @@ LLM adapter timeouts with `OC_LLM_TIMEOUT` env var, container lifecycle `close()
 context manager, config `__post_init__` validation, CORS tightening, logging in 12
 use cases + 2 services, error code normalization to SCREAMING_SNAKE_CASE, CLI bug
 fixes, 49 new tests, 1177 total).
+Enterprise Tightening Pass C is done (API/MCP parity `search_turns` endpoint,
+`Path()` validation on all API path params, `Query()` constraints on system routes,
+MCP tool input validation/clamping across 7 tools, Gemini error code classification,
+`OLLAMA_HOST` documented, 21 new tests, 1198 total).
 
 ## Build and Development
 
