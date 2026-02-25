@@ -1,8 +1,40 @@
-# OpenChronicle v2 - Feature & Implementation Backlog
+# OpenChronicle v2 — Feature & Implementation Backlog
 
-This document tracks planned features, implementation gaps, and future work for the OpenChronicle v2 project.
+This document tracks planned features, implementation gaps, and future work
+for OpenChronicle v2. Organized into phases based on dependencies, effort,
+and value. **This is a living document** — reviewed after each phase
+completion. See `docs/CODEBASE_ASSESSMENT.md` for current project status.
 
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-24
+
+---
+
+## Review Protocol
+
+This backlog is re-evaluated after each phase completion. The goal is to
+capture what we learned during implementation and adjust course — not to
+re-plan from scratch every time.
+
+**Trigger:** Completing any numbered phase or significant milestone.
+
+**Review checklist:**
+
+1. Did implementation reveal a missing core capability? → Add to Core
+   Infrastructure Gaps.
+2. Did effort estimates prove wrong? → Update remaining estimates.
+3. Did a "later" item become urgent (e.g., daily-use connector)? → Move
+   it up in the implementation sequence.
+4. Did a planned item turn out to be unnecessary? → Remove or defer it.
+5. Did a plugin candidate need core access? → Reclassify to core and
+   document why.
+6. Any new items discovered during implementation? → Add to the right
+   phase.
+
+**What changes:** Ordering, effort estimates, new items, removed items.
+
+**What doesn't change:** The taxonomy (plugin/core/external), the
+dependency graph (unless a real dependency is discovered), and completed
+work.
 
 ---
 
@@ -18,124 +50,343 @@ This document tracks planned features, implementation gaps, and future work for 
 
 ---
 
-## Priority 0 — Foundation (Blocking)
+## Completed Work (Reference)
 
-### 0.1 Scheduler Service (Core)
+Everything below is implemented, tested, and merged to `main`. Collapsed
+for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 
-**Status:** ✅ Implemented
-**Effort:** Medium
-**Rationale:** Enables scheduled responses, periodic scans, metrics snapshots. Unlocks downstream features (Discord, security scanner, dev agent runner). Built as a core service in `application/services/` per Decision #4 (hybrid taxonomy).
+<details>
+<summary><strong>Foundation & Core Services</strong></summary>
+
+- **Scheduler Service** — tick-driven, atomic claim, 53 tests, CLI + RPC
+  (`application/services/scheduler.py`)
+- **Mixture-of-Experts** — Jaccard consensus, quality pool, `--moe` flag,
+  32 tests (`application/services/moe_execution.py`)
+- **Capability-Aware Routing** — `ModelConfigLoader` parses capabilities,
+  `RouterPolicy` filters by `required_capabilities`, 12 tests
+- **Asset Management** — filesystem storage, SHA-256 dedup, generic linking,
+  4 MCP tools, 4 CLI commands, 40 tests
+- **Time Context Injection** — current time, last interaction, seconds delta
+- **File-Based Config** — single `core.json`, three-layer precedence
+- **Config Externalization** — conversation defaults + Discord settings wired
+- **Enterprise Tightening** — Passes A/B/C: domain exceptions, input
+  validation, DRY extraction, timeouts, container lifecycle, error codes,
+  API/MCP parity, 102 new tests across 3 passes
+
+</details>
+
+<details>
+<summary><strong>Interfaces</strong></summary>
+
+- **CLI** — 76+ subcommands via dispatch tables, streaming support
+- **STDIO RPC** — 24 commands, async, daemon mode (`oc serve`)
+- **Discord Interface** — 6 slash commands, session mapping, 85 tests,
+  optional `[discord]` extra (`interfaces/discord/`)
+- **MCP Server** — 26 tools, stdio + SSE transports, 44 tests, optional
+  `[mcp]` extra (`interfaces/mcp/`)
+- **HTTP API** — FastAPI, 25 REST endpoints, API key auth, rate limiting,
+  CORS, 54+ tests (`interfaces/api/`)
+- **Docker CI** — GitHub Actions multi-arch build, GHA cache
+
+</details>
+
+<details>
+<summary><strong>Memory System</strong></summary>
+
+- **Phase 1** — `memory_update` use case, tag-filtered AND-logic search,
+  schema migration, 19 tests
+- **Phase 1.1** — Interface parity (`get`/`delete`/`stats` on MCP + API),
+  pagination, source index, observability events, 27 tests
+- **Phase 2** — External turn recording, standalone context assembly,
+  incremental `onboard_git` with watermark tracking, `context_builder`
+  service extracted from `prepare_ask()`, 39 tests
+
+</details>
+
+**Totals:** 1,237 tests, 26 MCP tools, 25 REST endpoints, 9 ports, 7
+services, 35 use cases, 5 interfaces.
+
+---
+
+## Feature Taxonomy
+
+Every feature falls into one of three categories. This determines where
+code lives and what APIs it uses.
+
+| Category | Definition | Location | API Access |
+| -------- | ---------- | -------- | ---------- |
+| **Core** | Stateful, needs ports/scheduler/LLM, lifecycle hooks | `application/services/`, `domain/ports/` | Full |
+| **Plugin** | Stateless `(task, context) → result` handler | `plugins/<name>/` | Task payload + event emission |
+| **External** | Composes via MCP or HTTP API | Outside OC repo | MCP tools / REST endpoints |
+
+**Rule:** If a feature needs LLM access, persistent storage, scheduler
+integration, or shell execution, it is core — not a plugin. Plugins are
+independent, stateless, and never depend on other plugins. If a plugin
+candidate reveals a need for core capabilities, the missing capability
+is added to core first.
+
+---
+
+## Quick Wins (Trivial, Unblocked Now)
+
+### Goose MCP Integration
+
+**Status:** 🔴 Not Started
+**Effort:** Trivial (config only)
+**Category:** External
+
+Goose connects to OC as an MCP server. No custom code — just a Goose
+profile config pointing to `oc mcp serve` alongside Serena MCP.
+
+```text
+Goose (orchestrating agent)
+  ├── Serena MCP server  →  code understanding (what IS)
+  └── OC MCP server      →  persistent memory (what WAS and WHY)
+```
+
+**MVP:**
+
+- [ ] Goose profile config pointing to both OC and Serena MCP servers
+- [ ] Manual validation: save memory → exit → new session retrieves it
+
+### VS Code MCP Integration
+
+**Status:** 🔴 Not Started
+**Effort:** Trivial (config only)
+**Category:** External
+
+VS Code supports MCP servers natively. Primary integration is `oc mcp serve`
+in VS Code's MCP config. Custom Copilot SDK integration is secondary — only
+if deeper IDE features are needed later.
+
+- [ ] VS Code MCP config pointing to `oc mcp serve`
+- [ ] Manual validation: memory save/search works from VS Code
+
+---
+
+## Core Infrastructure Gaps (Blockers)
+
+These are small but foundational services that multiple downstream features
+depend on. They should be built before the features that need them.
+
+### Output Manager
+
+**Status:** 🔴 Not Started
+**Effort:** Small
+**Blocks:** Security Scanner, Dev Agent Runner, export bundles
+
+Expose `OC_OUTPUT_DIR` through a proper core service for structured file
+output with timestamps and lifecycle management.
 
 **Requirements:**
 
-- [x] Job store (core SQLite — `scheduled_jobs` table, 16 columns, 2 indexes)
-- [x] One-shot scheduled tasks (auto-complete after fire)
-- [x] Recurring jobs (interval-based, `cron_expr` column reserved for v1)
-- [x] Deterministic execution order (`next_due_at ASC`, `created_at ASC`, `id ASC`)
-- [x] `scheduler.tick(now, max_jobs)` — atomic claim via `BEGIN IMMEDIATE`, drift prevention
-- [x] `scheduler.serve()` — async polling loop with clean shutdown
-- [x] Job lifecycle: active/paused/completed/cancelled with state transition validation
-- [x] CLI: `oc scheduler {add|list|pause|resume|cancel|tick}`
-- [x] RPC: `scheduler.{add|list|pause|resume|cancel|tick}` (6 handlers)
-- [x] Events: `scheduler.job_created/paused/resumed/cancelled/fired/tick_completed`
+- [ ] `application/services/output_manager.py` — core service
+- [ ] `save_report(report_type, data) → path` — timestamped JSON output
+- [ ] `list_outputs(report_type) → list` — enumerate outputs
+- [ ] `latest_output(report_type) → path | None` — "latest" pointer
+- [ ] `cleanup(max_age_days) → int` — garbage collection
+- [ ] Config: `OC_OUTPUT_DIR` env var (existing, currently unused)
 
-**Acceptance Criteria:**
+### Controlled Shell Execution
 
-- [x] Jobs persist across restarts (SQLite)
-- [x] Deterministic ordering verified by tests
-- [x] No double-fire under concurrent tick() (concurrency stress test T6)
-- [x] 53 tests (28 service, 13 storage, 12 CLI)
+**Status:** 🔴 Not Started
+**Effort:** Small-Medium
+**Blocks:** Security Scanner, Dev Agent Runner
 
----
+Subprocess execution with timeout, permission enforcement, and audit
+logging. Required by any core service that runs external tools.
 
-## Priority 1 — Client Integrations
+**Requirements:**
 
-### 1.1 Discord Interface (Core Driver)
-
-**Status:** ✅ Implemented
-**Location:** `src/openchronicle/interfaces/discord/` (optional `[discord]` extra)
-**Tests:** 71 unit tests (`test_discord_*.py`) + 14 integration tests
-
-Implemented as a core interfaces driver per Decision #4 (hybrid taxonomy).
-The driver interacts with core directly via the container (same process), not
-via STDIO RPC. Core remains fully functional without Discord installed — the
-`discord.py` package is an optional extra, all discord imports are lazy and
-confined to `interfaces/discord/` and `interfaces/cli/commands/discord.py`.
-
-**Implemented:**
-
-- [x] Discord bot receiving messages (`commands.Bot` subclass)
-- [x] 6 slash commands: `/newconvo`, `/remember`, `/forget`, `/explain`, `/mode`, `/history`
-- [x] Session-to-conversation mapping (file-backed, multi-user)
-- [x] Message splitting for Discord's 2000-char limit
-- [x] Privacy gate and interaction routing honored
-- [x] Config from `core.json` + env vars (three-layer precedence)
-- [x] `oc discord start` CLI command with lazy import guard
-
-**Architectural posture (enforced by tests):**
-
-- Core must remain fully functional without Discord (`test_architectural_posture.py`)
-- No `core.*` module imports discord (`test_hexagonal_boundaries.py`)
-- Multi-session isolation: no module-level mutable state (`test_architectural_posture.py`)
+- [ ] `application/services/shell_runner.py` — core service
+- [ ] Execute command with timeout and resource limits
+- [ ] Allowlist enforcement (permitted commands/paths)
+- [ ] Structured result capture (stdout, stderr, exit code, duration)
+- [ ] Event emission: `shell.command_executed` with audit trail
+- [ ] No network access by default (configurable per invocation)
 
 ---
 
-## Priority 2 — OC MCP Server (Core Interface)
+## Phase 3 — Smarter Memory
 
-### 2.1 MCP Server Interface
+**Goal:** Upgrade memory retrieval from keyword matching to semantic search.
+Highest daily impact — every OC session touches memory.
 
-**Status:** ✅ Implemented
-**Location:** `src/openchronicle/interfaces/mcp/` (optional `[mcp]` extra)
-**Tests:** 21 unit tests (`test_mcp_config.py`, `test_mcp_tools.py`) + 7 posture tests
-**Spec:** [`docs/integrations/mcp_server_spec.md`](integrations/mcp_server_spec.md)
+### Memory v1: Embeddings / Semantic Search
 
-Exposes OC's persistent memory and conversation capabilities via Model Context
-Protocol. Enables any MCP-compatible agent (Goose, Claude Desktop, VS Code) to
-use OC without custom integration code. See Decision #5 in assessment.
+**Status:** 🔴 Not Started
+**Effort:** Medium-Large
+**Category:** Core (enhances `MemoryStorePort`)
 
-**Key insight — the OC + Serena + Goose triangle:**
+Memory v0 uses FTS5 keyword search — functional but limited to exact term
+matches. Memory v1 introduces embedding-based semantic search for higher
+recall and relevance. This affects every conversation turn.
 
-- Serena MCP = code understanding (what the code IS)
-- OC MCP = persistent memory (what was DECIDED and WHY)
-- Goose = agent execution (hands that do the work)
+**Requirements:**
 
-**Implemented:**
+- [ ] `EmbeddingPort` ABC — provider abstraction for embedding generation
+- [ ] Embedding generation on memory save (and re-embed on update)
+- [ ] Vector similarity search (cosine or dot product)
+- [ ] Hybrid retrieval: semantic score + keyword score → combined ranking
+- [ ] Embedding storage (new table or SQLite vector extension)
+- [ ] Stub embedding adapter for testing (deterministic)
+- [ ] At least one real adapter (local sentence-transformers or OpenAI)
 
-- [x] `memory_search` — keyword search across memory items
-- [x] `memory_save` — store a memory item (tagged, optionally pinned)
-- [x] `memory_list` — list memories (by conversation, project, or all)
-- [x] `memory_pin` — pin/unpin a memory for persistent retrieval
-- [x] `memory_update` — update content and/or tags of an existing memory
-- [x] `memory_search` tag filter — AND-logic tag filtering on search results
-- [x] `memory_get` — retrieve a single memory item by ID
-- [x] `memory_delete` — delete a memory item (emits `memory.deleted` event)
-- [x] `memory_stats` — aggregate counts (total, pinned, by tag, by source)
-- [x] `conversation_ask` — send a message through full OC pipeline (async)
-- [x] `conversation_history` — retrieve recent turns
-- [x] `conversation_list` — list conversations
-- [x] `conversation_create` — create a new conversation
-- [x] `context_recent` — recent activity summary for a topic/conversation
-- [x] `health` — health check (runtime diagnostics)
-- [x] `oc mcp serve` CLI command (stdio transport)
-- [x] Optional SSE transport (`--transport sse --port 8080`)
-- [x] Posture tests (core runs without MCP SDK, no inward imports)
-- [x] `python -m openchronicle.interfaces.mcp` entry point
+**Open questions (decide at implementation time):**
 
-**Architectural posture (enforced by tests):**
+- Embedding provider: local (`sentence-transformers`) vs API (OpenAI)?
+- Storage: SQLite with `sqlite-vec` extension vs separate store?
+- Retrieval: semantic-only, keyword-only, or hybrid scoring?
+- Embedding dimensions and model selection?
 
-- Core must remain fully functional without MCP SDK (`test_architectural_posture.py`)
-- No `core.*` module imports mcp (`test_hexagonal_boundaries.py`)
-- All MCP imports are lazy, confined to `interfaces/mcp/` and `cli/commands/mcp_cmd.py`
+**Context:** Decision #3 in `docs/CODEBASE_ASSESSMENT.md` established memory
+self-report as v0 baseline. Self-report data collected now informs retrieval
+quality when embeddings are added.
 
 ---
 
-## Priority 3 — Safety & Security
+## Phase 4 — Reactive Eventing
 
-### 3.1 Dev Folder Security Scanner Plugin
+**Goal:** Make OC event-driven. External systems can subscribe to OC events
+and push events into OC.
+
+### Webhook Service
 
 **Status:** 🔴 Not Started
 **Effort:** Medium
-**Depends On:** Scheduler Service (core)
+**Category:** Core (`application/services/webhook_service.py`)
+**Depends On:** HTTP API ✅
+
+**Requirements:**
+
+- [ ] **Outbound:** Event listener → filter by subscription → HTTP POST
+      with retry + HMAC signing
+- [ ] **Inbound:** Receive POST → validate signature → transform payload →
+      emit internal event
+- [ ] **Storage:** `webhooks` table in SQLite (endpoint, event_types,
+      secret, active)
+- [ ] **Retry:** Existing `RetryController` pattern (exponential backoff
+      with jitter)
+- [ ] **Routes:** CRUD for webhook subscriptions + inbound receiver
+  - `POST /api/v1/webhooks` (register)
+  - `GET /api/v1/webhooks` (list)
+  - `DELETE /api/v1/webhooks/{id}` (remove)
+  - `POST /api/v1/webhooks/inbound/{source}` (receive)
+- [ ] MCP tools: `webhook_register`, `webhook_list`, `webhook_delete`
+- [ ] Events: `webhook.registered`, `webhook.delivered`, `webhook.failed`
+
+---
+
+## Phase 5 — Agent Automation Hooks
+
+**Goal:** Frictionless memory flow — IDE events automatically trigger OC
+memory operations without manual tool invocation.
+
+### IDE Event-Triggered Memory
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Category:** External (config + hooks, minimal OC-side changes)
+**Depends On:** MCP Server ✅, Memory Phase 2 ✅
+
+Configure MCP so that IDE events (session start, file save, commit, context
+compression) automatically trigger OC memory operations.
+
+**Target IDEs:**
+
+- [ ] **Claude Code** — hooks system (`user_prompt_submit`, session
+      start/end) for auto-save/load of working context
+- [ ] **Goose** — MCP event subscriptions for auto-memory on session
+      boundaries
+- [ ] **VS Code** — extension events (workspace open, file save) mapped
+      to OC memory operations via MCP
+
+**Requirements:**
+
+- [ ] Define event-to-action mapping (which IDE events → which OC ops)
+- [ ] Auto-context injection on session start (load relevant memories)
+- [ ] Auto-save working context on session end / context compression
+- [ ] User-configurable triggers (enable/disable per event type)
+- [ ] Documentation: hook config examples for each IDE
+
+**OC-side changes (if any):**
+
+- [ ] MCP server-side event subscription capability (or SSE push)
+- [ ] Batch memory operations for efficiency (save multiple in one call)
+
+---
+
+## Phase 6 — Media & Vision
+
+**Goal:** Image generation and vision input. These share capability-aware
+routing infrastructure (already implemented).
+
+### Media Generation Port
+
+**Status:** 🔴 Not Started
+**Effort:** Medium-Large
+**Category:** Core (new port + adapters)
+**Depends On:** Capability-Aware Routing ✅
+
+New port for image/video generation. Different input/output types from text
+completion, different routing needs, different cost model.
+
+**Why core:** Needs its own port (`MediaGenerationPort`), adapters, routing,
+and asset integration. The plugin API provides no LLM or asset access.
+
+**Requirements:**
+
+- [ ] `MediaGenerationPort` ABC (`generate_async`, `supported_media_types`)
+- [ ] `MediaRequest` / `MediaResult` domain models
+- [ ] Stub adapter for testing
+- [ ] Ollama media adapter (flux, sdxl, stable-diffusion via Ollama API)
+- [ ] OpenAI media adapter (DALL-E)
+- [ ] `generate_media` use case (orchestrates port + asset storage)
+- [ ] CLI: `oc media generate`
+- [ ] MCP tool: `media_generate`
+- [ ] API route: `POST /api/v1/media/generate`
+
+### Multimodal Conversation Input
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Category:** Core (LLM port + adapter enhancement)
+**Depends On:** Capability-Aware Routing ✅
+
+Send images to vision-capable models via the conversation pipeline.
+
+**Requirements:**
+
+- [ ] Extend message format to include `image_url` content blocks
+- [ ] Wire asset IDs → base64 or URL in `prepare_ask()`
+- [ ] Add `asset_ids` parameter to `ask_conversation.execute()`
+- [ ] Route to vision-capable models when images present
+- [ ] Adapter support in OpenAI, Anthropic, Ollama (vision models)
+
+---
+
+## Phase 7 — Security & Automation
+
+**Goal:** Safety rails for autonomous agent execution. Sequential dependency
+chain — each item depends on the one before it.
+
+**Dependency chain:**
+
+```text
+Core Infra (Output Manager + Shell Execution)
+  └── Security Scanner ──→ Dev Agent Runner ──→ Serena in Sandbox
+```
+
+### Security Scanner (Core Service)
+
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Category:** Core (`application/services/security_scanner.py`)
+**Depends On:** Scheduler ✅, Output Manager, Shell Execution
+
+**Reclassified from plugin to core service.** Needs scheduler integration,
+controlled shell execution, output directory access, and event emission —
+none of which the plugin API provides. Per Decision #4 (hybrid taxonomy).
 
 **Requirements:**
 
@@ -144,26 +395,25 @@ use OC without custom integration code. See Decision #5 in assessment.
   - [ ] Dependency vulnerability: osv-scanner
   - [ ] Container scanning: trivy (optional)
   - [ ] Static analysis: semgrep rules (optional)
-- [ ] Deterministic scan runs with stable tool versions
-- [ ] Reports stored in output directory with timestamps + "latest" pointer
+- [ ] Scheduled scan runs via scheduler service
+- [ ] Reports stored via output manager with timestamps + "latest" pointer
 - [ ] Alert channels: CLI/RPC retrieval
-- [ ] Optional Discord alerts (if Discord interface configured)
+- [ ] Optional Discord alerts (via event → webhook or direct interface)
+- [ ] Events: `security.scan_started`, `security.scan_completed`,
+      `security.finding_detected`
 
 **Acceptance Criteria:**
 
-- Scans run on schedule via scheduler service
+- Deterministic scan runs with stable tool versions
 - Reports are JSON-serializable and timestamped
 - No false positives in baseline scan of clean repo
 
----
-
-## Priority 4 — Workflow Automation
-
-### 4.1 Dev Agent Runner (Sandboxed)
+### Dev Agent Runner (Sandboxed)
 
 **Status:** 🔴 Not Started
 **Effort:** Large (3+ weeks)
-**Depends On:** Scheduler, Security Scanner
+**Category:** Core (`application/services/sandbox_runner.py`)
+**Depends On:** Scheduler ✅, Security Scanner, Shell Execution
 **Risk:** High — requires careful security design
 
 **Requirements:**
@@ -174,427 +424,135 @@ use OC without custom integration code. See Decision #5 in assessment.
 - [ ] Network restrictions (no network by default)
 - [ ] Complete audit logging (commands, files touched, outputs, errors)
 - [ ] Outputs: patch/branch or artifact bundle (never direct upstream push)
+- [ ] Security scanner runs on all outputs before they leave sandbox
 
-**Security Baseline:**
+**Security Baseline (non-negotiable):**
 
 - [ ] Default deny: network, secrets access, external repo push
 - [ ] Explicit allow-lists for commands, directories
 - [ ] Time/resource limits enforced
 - [ ] Human review gate before any upstream push
 
-### 4.2 Serena MCP Capabilities Integration
+### Serena MCP in Sandbox
 
 **Status:** ⏸️ Deferred
 **Depends On:** Dev Agent Runner (stable)
 
-**Approach:**
-
-- Start with "compatibility mode": allow Serena-like flows only inside sandbox runner container
-- Integrate only after sandbox runner is stable, network policy is explicit, scanning pipeline exists
-
----
-
-## Priority 5 — Advanced LLM Features
-
-### 5.1 Mixture-of-Experts Mode (Core — Execution Strategy)
-
-**Status:** ✅ Implemented
-**Location:** `src/openchronicle/core/application/services/moe_execution.py`
-**Effort:** Medium
-**Priority:** Implemented
-
-**Why core, not plugin:** MoE needs `LLMPort` to make N expert calls with
-explicit model selection, `RouterPolicy` / `ProviderFacade` to route each expert
-to a different provider/model, and response aggregation logic. The plugin API
-provides `(task, context) → result` with no LLM access. MoE is an execution
-strategy (like streaming vs non-streaming), not a stateless handler.
-
-**Implementation:**
-
-- [x] Run N experts via LLMPort with different model selections (quality pool candidates)
-- [x] Select output via Jaccard-based consensus scoring (deterministic, no LLM-as-judge)
-- [x] Produce aggregator decision with explainability via `moe.consensus_run` event
-- [x] Deterministic selection rules with weight tiebreaker + stable sort
-- [x] Event emission: `moe.consensus_run` with full expert breakdown
-- [x] Config: `MoESettings` in `core.json` `"moe"` section, env var overrides
-- [x] CLI: `oc chat --moe`, `oc convo ask --moe`
-- [x] MCP: `conversation_ask(moe=true)`
-- [x] 32 tests (consensus scoring, execute_moe, config loading, hygiene)
-
-**Constraints (preserved):**
-
-- Optional, not default UX (per-call `--moe` flag)
-- Clear cost implications (N× token cost)
-- Opt-in per conversation or per ask (not global default)
+Allow Serena-like code navigation flows only inside the sandbox runner
+container. Integrate only after sandbox runner is stable, network policy
+is explicit, and scanning pipeline exists for outputs.
 
 ---
 
-## Priority 6 — HTTP API (Core Interface)
+## Plugins
 
-### 6.1 HTTP API Server
+Plugins are **independent, stateless handlers** that register via the plugin
+API: `(task, context) → result`. They never depend on other plugins. They
+never access LLM, storage, or scheduler directly. If a plugin candidate
+needs core capabilities, the capability is added to core first.
 
-**Status:** ✅ Done
-**Location:** `src/openchronicle/interfaces/api/` (core dependency, not optional)
-**Effort:** Medium
-**Classification:** Core interface (Decision #6)
+**Plugins serve a dual purpose:**
 
-Always-on daemon infrastructure. FastAPI/uvicorn are core dependencies. The HTTP
-API starts as part of `oc serve` alongside STDIO RPC. Mirrors MCP tools 1:1 as
-REST endpoints — any HTTP client gets the same capabilities as MCP clients.
+1. **User-facing functionality** — domain-specific task handlers
+2. **Pipeline exercise** — every plugin execution generates events, produces
+   results, and flows through the task lifecycle. More diverse workloads
+   improve observability data, stress-test the event system, and validate
+   retrieval quality when memory embeddings land. Plugins are the best way
+   to generate realistic, varied datapoints through the core pipeline.
 
-**Why core, not optional:** The HTTP API is the same tier as CLI, STDIO RPC,
-Discord, and MCP. Webhooks (inbound and outbound) depend on it. Plugins register
-routes through it. External integrations compose through it. It has no optional
-SDK dependency — FastAPI is lightweight and always installed.
+### Plugin Standards
 
-**Implemented:**
+- Must load/unload cleanly (no side effects at import time)
+- Deterministic ordering where selection matters
+- Structured, auditable outputs (stable JSON envelopes)
+- Errors carry canonical `error_code` and actionable hints
+- Network usage: explicit config flag, logged endpoints
+- No secrets in logs
+- Tests: unit tests for handlers, integration test for `plugin.invoke`
 
-- [x] FastAPI app factory with lifespan container injection
-- [x] `HTTPConfig` dataclass (host, port, api_key), three-layer precedence
-- [x] Authentication middleware (API key, configurable exempt paths)
-- [x] Per-client rate limiting middleware (sliding window, thread-safe, memory leak eviction)
-- [x] Core routes mirroring MCP surface (19 endpoints):
-  - [x] `/api/v1/memory/*` (search, save, list, pin, update)
-  - [x] `/api/v1/conversation/*` (ask, history, list, create, context_recent)
-  - [x] `/api/v1/project/*` (create, list)
-  - [x] `/api/v1/asset/*` (upload, list, get, link)
-  - [x] `/api/v1/health`, `/api/v1/stats` (tool_stats, moe_stats)
-- [x] OpenAPI documentation (auto-generated by FastAPI)
-- [x] Shared serializers (`interfaces/serializers.py`) — MCP + API use same dict helpers
-- [x] Optional CORS via `OC_API_CORS_ORIGINS`
-- [x] Wire HTTP server startup into `oc serve` (daemon thread)
-- [x] 51 tests (`tests/test_http_api.py`)
+### Storytelling Plugin Suite
 
-**Deferred to future work:**
+**Status:** 🔴 Not Started (demo handler exists in `plugins/storytelling/`)
+**Effort:** Medium-Large
+**Reference:** `archive/openchronicle.v1` branch
 
-- [ ] SSE streaming for conversation_ask
-- [ ] Privacy gate middleware (PII detection on inbound)
-- [ ] Plugin route registration (mounted under `/api/v1/plugins/`)
-- [ ] Hexagonal boundary tests (no `core.*` imports from `interfaces/api/`)
+V1 was a comprehensive narrative AI engine. V2 stripped to domain-agnostic
+core. The v1 features belong in a plugin suite. Each subsystem is an
+independent plugin — no cross-plugin dependencies.
 
-### 6.2 Webhook Service (Core)
+**Candidate plugins (each independent):**
 
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** HTTP API (P6.1)
-**Classification:** Core service (`application/services/webhook_service.py`)
+- [ ] **Character management** — entity tracking, stats, behavior
+- [ ] **Scene/timeline management** — scene persistence, navigation
+- [ ] **Narrative engines** — consistency checker, emotional analyzer
+- [ ] **Game mechanics** — dice engine, narrative branching
+- [ ] **Bookmark system** — scene bookmarking, chapters
 
-Webhooks are a core service that the HTTP API exposes, not just an HTTP feature.
+**Data value:** Storytelling plugins generate rich, structured events
+(character interactions, scene transitions, narrative decisions) that
+exercise the event pipeline with diverse, non-trivial payloads. This data
+is valuable for testing memory retrieval quality and event replay.
 
-**Requirements:**
+**Storage note:** Character state and scene persistence need structured
+storage. Options: (a) serialize state in task payloads (stateless), (b) use
+OC memory system via the conversation pipeline, (c) if the plugin API proves
+insufficient, promote storage-heavy features to core services. Evaluate at
+implementation time — don't over-engineer the plugin API preemptively.
 
-- [ ] **Outbound:** Event listener → filter by subscription → HTTP POST with
-      retry + HMAC signing
-- [ ] **Inbound:** Receive POST → validate signature → transform payload →
-      emit internal event
-- [ ] **Storage:** `webhooks` table in SQLite (endpoint, event_types, secret,
-      active)
-- [ ] **Retry:** Existing `RetryController` pattern (exponential backoff with
-      jitter)
-- [ ] **Routes:** `POST /api/v1/webhooks` (register), `GET /api/v1/webhooks`
-      (list), `DELETE /api/v1/webhooks/{id}` (remove),
-      `POST /api/v1/webhooks/inbound/{source}` (receive)
+### Future Plugin Candidates
+
+Plugin ideas that would generate valuable pipeline data:
+
+- **Daily journal / reflection** — scheduled via core, generates structured
+  memory entries. Exercises scheduler→task→event→memory flow.
+- **Code snippet analyzer** — processes code payloads, emits structured
+  analysis events. Exercises task handler + event emission.
+- **Habit tracker** — periodic tasks with time-series data. Exercises
+  scheduler integration and event aggregation.
+
+**Evaluation criteria for new plugins:**
+
+1. Does it generate diverse, realistic data through the pipeline?
+2. Does it exercise a core capability that needs validation?
+3. Can it be implemented as a stateless handler? (If not → core service)
+4. Is it independent of all other plugins?
 
 ---
 
-## Priority 7 — Core Capabilities
+## Personal Life Connectors
 
-### 7.1 Capability-Aware Routing
+These extend OC beyond developer tooling into personal AI assistant
+territory. All connectors are **read-only by default** — OC observes and
+advises, it does not impersonate or take actions on the user's behalf.
 
-**Status:** ✅ Implemented
-**Effort:** Small
-**Classification:** Core enhancement (routing + model config)
+Each connector is independent. Classification (plugin vs core driver) is
+TBD at implementation time based on how deeply it needs core access.
+Connectors that need scheduler integration for periodic sync are likely
+core services.
 
-`ModelConfigLoader` parses the `capabilities` dict from model configs.
-`RouterPolicy` filters pool candidates by `required_capabilities` (opt-in).
-`NO_CAPABLE_MODEL` error when no candidate matches. 12 tests.
+**Connectors as continuous integration tests:** A connector used daily is
+worth more than a feature used occasionally. Daily-use connectors produce a
+steady stream of real-world data through the entire pipeline — scheduler
+ticks, memory population, event emission, retrieval quality — exercising
+code paths that synthetic tests can't reach. Edge cases surface naturally
+under sustained real load. Prioritize connectors that will see daily use
+over those that are architecturally interesting but rarely exercised.
 
-**Requirements:**
-
-- [x] Parse `capabilities` dict in `ModelConfigLoader`
-- [x] Add capability filter to routing — select only models matching required
-      capabilities
-- [x] New capability flags: `text_generation`, `image_generation`,
-      `video_generation`, `vision`
-- [x] Optional `generation_pool` in `PoolConfig` for media generation models
-
-### 7.2 Media Generation (Core Capability)
+### Google Account Connector
 
 **Status:** 🔴 Not Started
 **Effort:** Medium-Large
-**Depends On:** Capability-Aware Routing (P7.1)
-**Classification:** Core capability (Decision #7)
-
-Locally hosted media generation (image, video) via a new port. Different
-input/output types from text completion, different routing needs, different
-cost model.
-
-**Why core, not plugin:** Needs its own port (`MediaGenerationPort`), adapters
-(Ollama, OpenAI), capability-aware routing, and asset integration. The plugin
-API provides `(task, context) → result` with no LLM or asset access.
-
-**Requirements:**
-
-- [ ] `MediaGenerationPort` ABC (`generate_async`, `supported_media_types`)
-- [ ] `MediaRequest` / `MediaResult` domain models
-- [ ] Ollama media adapter (flux, sdxl, stable-diffusion via Ollama API)
-- [ ] OpenAI media adapter (DALL-E)
-- [ ] Stub adapter for testing
-- [ ] `generate_media` use case (orchestrates port + asset storage)
-- [ ] CLI: `oc media generate`
-- [ ] MCP tool: `media_generate`
-- [ ] HTTP API routes: `/api/v1/media/generate`
-
-### 7.3 Multimodal Conversation Input
-
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** Capability-Aware Routing (P7.1)
-**Classification:** Core enhancement (LLM port + adapters)
-
-Send images to vision-capable models via the conversation pipeline. Currently
-deferred in `docs/architecture/ASSETS.md`.
-
-**Requirements:**
-
-- [ ] Extend message format to include `image_url` content blocks
-- [ ] Wire asset IDs → base64 or URL in `prepare_ask()`
-- [ ] Add `asset_ids` parameter to `ask_conversation.execute()`
-- [ ] Route to vision-capable models when images are present
-- [ ] Adapter support in OpenAI, Anthropic, Ollama (vision models)
-
----
-
-## Priority 8 — Memory Enhancement
-
-Memory improvements are tracked in two dimensions:
-
-- **Search technology:** v0 (keyword/FTS5) → v1 (embeddings/semantic)
-- **Improvement phases:** Phase 1 (update + tag filter) → Phase 2 (context
-  assembly + turn recording + incremental onboard)
-
-### 8.0 Memory Phase 1 (Update + Tag-Filtered Search)
-
-**Status:** ✅ Implemented
-**Commit:** `d19617c`
-
-- [x] `memory_update` use case — update content and/or tags, `updated_at` tracking
-- [x] Tag-filtered search — AND-logic tag parameter on `search_memory()`
-- [x] Schema migration (`updated_at` column, idempotent ALTER TABLE)
-- [x] All interfaces: MCP tool, API endpoint, CLI command, serializer
-- [x] 19 new tests (11 update, 8 tag search)
-
-### 8.0.05 Memory Phase 1.1 (Interface Parity + Observability)
-
-**Status:** ✅ Implemented
-
-- [x] `delete_memory` use case — captures project_id before deletion, emits `memory.deleted` event
-- [x] MCP tools: `memory_get`, `memory_delete`, `memory_stats` (21→24 tools)
-- [x] API routes: `GET /memory/{id}`, `DELETE /memory/{id}`, `GET /memory/stats` (19→22 endpoints)
-- [x] Pagination — `offset` parameter on `list_memory()` and `search_memory()` (all interfaces)
-- [x] Source index — `idx_memory_source` on `memory_items(source)`
-- [x] Streaming telemetry fix — `_stream_turn()` now passes telemetry to `prepare_ask()` and `finalize_turn()`
-- [x] Observability events: `memory.search_completed` (latency, result count), `context.assembly_breakdown` (phase timing)
-- [x] Fixed `MetricsTracker` protocol conformance (`Sequence` → `Iterable` for input params)
-- [x] 27 new tests across 4 files
-
-### 8.0.1 Memory Phase 2 (Context Assembly + Turn Recording + Incremental Onboard)
-
-**Status:** ✅ Implemented
-
-- [x] **External turn recording** — `turn_record` MCP tool + `POST /{id}/turns` API
-      endpoint. Records turns from external agents (Claude Code, Goose, IDE plugins).
-      Use case: `application/use_cases/external_turn.py`.
-- [x] **Standalone context assembly** — `context_assemble` MCP tool + `POST /{id}/assemble-context`
-      API endpoint. Shared `context_builder` service extracted from `prepare_ask()`.
-      Use case: `application/use_cases/assemble_context.py`.
-- [x] **Incremental `onboard_git`** — watermark tracking via `MemoryItem` with
-      `source="git-onboard-watermark"`. `since_commit` parameter on `extract_commits_from_git()`.
-      `list_memory_by_source` promoted to `MemoryStorePort` (was duck-typed).
-- [x] 39 new tests (1,237 total)
-
-### 8.1 Memory v1 (Embeddings / Semantic Search)
-
-**Status:** 🔴 Not Started
-**Effort:** Medium-Large
-**Classification:** Core enhancement (upgrades existing `MemoryStorePort`)
-
-Memory v0 uses keyword-based search — functional but limited. Memory v1
-introduces embedding-based semantic search for higher recall and relevance.
-
-**Why core, not plugin:** Memory is the foundational product feature — OC
-exists because chat context dies between sessions. Improving retrieval
-quality affects every conversation turn. The memory port surface
-(`MemoryStorePort`) is already in core; embeddings enhance it.
-
-**Requirements:**
-
-- [ ] Embedding generation (per memory item, on save)
-- [ ] Vector similarity search (cosine or dot product)
-- [ ] Hybrid retrieval: semantic search + existing keyword search
-- [ ] Embedding provider abstraction (local vs API-based)
-- [ ] Incremental re-embedding on memory update
-- [ ] Storage: embeddings table or extension to existing memory table
-
-**Open questions (decide at implementation time):**
-
-- Embedding provider: local (sentence-transformers) vs API (OpenAI embeddings)?
-- Storage: SQLite with vector extension (sqlite-vec) vs separate vector store?
-- Retrieval strategy: semantic-only, keyword-only, or hybrid scoring?
-
-**Context:** Decision #3 in `docs/CODEBASE_ASSESSMENT.md` established memory
-self-report as v0 baseline. Memory v1 is the planned upgrade path. Self-report
-data collected now informs retrieval quality when embeddings are added.
-
----
-
-## Priority 9 — IDE / Developer Platform Integrations
-
-### 9.1 VS Code Copilot SDK Integration
-
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** OC MCP Server (P2)
-
-**Approach:** VS Code supports MCP servers natively. Primary integration path is
-OC MCP server (same as Goose). Custom Copilot SDK integration is a secondary
-option if deeper IDE integration is needed.
-
-**Requirements:**
-
-- [ ] VS Code MCP config pointing to `oc mcp serve`
-- [ ] Authenticate explicitly (user-managed)
-- [ ] Sanitize payloads / respect PII gate
-
-### 9.1.1 IDE Event-Triggered Memory Integration
-
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** OC MCP Server (P2), Memory Phase 2 (P8.0.1)
-
-Configure MCP so that IDE events (session start, file save, commit, context
-compression, etc.) automatically trigger OC memory operations without manual
-tool invocation. The goal is seamless, automatic memory utilization.
-
-**Target IDEs:**
-
-- [ ] **Claude Code** — hooks system (`user_prompt_submit`, session start/end)
-      for auto-save/load of working context
-- [ ] **Goose** — MCP event subscriptions for auto-memory on session boundaries
-- [ ] **VS Code** — extension events (workspace open, file save) mapped to OC
-      memory operations via MCP
-
-**Requirements:**
-
-- [ ] Define event-to-action mapping (which IDE events trigger which OC operations)
-- [ ] MCP server-side event subscription capability (or polling)
-- [ ] Auto-context injection on session start (load relevant memories)
-- [ ] Auto-save working context on session end / context compression
-- [ ] User-configurable triggers (enable/disable per event type)
-
-### 9.2 Goose (Block) Integration (MCP Client)
-
-**Status:** 🔴 Not Started
-**Effort:** Low (once OC MCP server exists)
-**Depends On:** OC MCP Server (P2)
-
-**What it is:** Goose is an open-source, local, extensible AI agent aimed at
-automating engineering tasks end-to-end (CLI + desktop), with native MCP server
-support.
-
-**Why we care:** Goose + OC MCP + Serena MCP forms a triangle where Goose is the
-agent (hands), Serena provides code understanding (eyes), and OC provides
-persistent memory (long-term memory). No single tool does all three.
-
-**Integration approach (Decision #5 — MCP-first):**
-
-Goose connects to OC as an MCP server. No custom Goose extension code. No
-sandbox runner prerequisite. Goose orchestrates; OC serves memory and
-conversation capabilities.
-
-```text
-Goose (orchestrating agent)
-  ├── Serena MCP server  →  code understanding (what IS)
-  └── OC MCP server      →  persistent memory (what WAS and WHY)
-```
-
-**What Goose gets from OC via MCP:**
-
-- Cross-session memory (save/search/pin knowledge that persists)
-- Conversation history (resume context from prior sessions)
-- Full conversation pipeline (routing, privacy gate, telemetry)
-- Audit trail (hash-chained events for every interaction)
-
-**MVP:**
-
-- [ ] OC MCP server running (`oc mcp serve`)
-- [ ] Goose profile config pointing to both OC and Serena MCP servers
-- [ ] Manual validation: Goose saves a memory via OC, exits, new session
-      retrieves it
-
-**Upgrade path (later — Dev Agent Runner):**
-
-The MCP approach has Goose orchestrating and OC serving. The Dev Agent Runner
-(P4.1) flips the control: OC orchestrates Goose as a sandboxed worker with full
-audit trail, security scanning, and network policy. The MCP server is a
-prerequisite for both approaches.
-
-**Security guardrails for the upgrade path (non-negotiable, same as before):**
-
-- Default no internet unless explicitly enabled per run
-- Strict allowlists for writable paths, executable commands, max runtime
-- No pushing to external remotes
-- All outputs pass through scanning pipeline before being considered trusted
-
-**Notes:**
-
-- Goose remains a replaceable agent runtime. Any MCP-compatible agent (Claude
-  Desktop, VS Code Copilot, custom agents) gets the same OC capabilities.
-
----
-
-## Priority 10 — Platform Infrastructure
-
-### 10.1 Private Git Server Integration
-
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** Dev Agent Runner
-
-**Approach:**
-
-- Self-hosted Git (Gitea/GitLab) behind network
-- Clone/pull in sandbox, produce branches/patches
-- Manual human review gate before any upstream push
-
----
-
-## Priority 11 — Personal Life Connectors
-
-These connectors extend OC beyond developer tooling into personal AI
-assistant territory. All connectors are **read-only by default** — OC
-observes and advises, it does not impersonate or take actions on the
-user's behalf. Each connector is a plugin or core driver (classification
-TBD at implementation time based on how deeply it needs core access).
-
-### 11.1 Google Account Connector
-
-**Status:** 🔴 Not Started
-**Effort:** Medium-Large
-**Depends On:** Asset System (for Drive file references), Scheduler (for periodic sync)
-
-Read-only integration with Google Workspace services. OC becomes a
-time-aware assistant that knows your schedule, can summarize emails, and
-has context from your documents — without impersonating you.
+**Depends On:** Scheduler ✅, Asset System ✅ (for Drive file references)
+
+Read-only integration with Google Workspace. OC becomes a time-aware
+assistant that knows your schedule, can summarize emails, and has context
+from your documents.
 
 **Scope (read-only, no impersonation):**
 
-- [ ] **Google Calendar** — event awareness, schedule context, upcoming reminders.
-      OC knows what's on the calendar and can factor it into conversations.
-- [ ] **Gmail** — email summaries, search, thread context. OC can summarize
-      unread mail, find past emails by topic, surface relevant threads.
-- [ ] **Google Drive** — file listing, document context, search. Ties into
-      the asset system for file references without duplicating storage.
+- [ ] **Google Calendar** — event awareness, schedule context, reminders
+- [ ] **Gmail** — email summaries, search, thread context
+- [ ] **Google Drive** — file listing, document context, search
 
 **Technical approach:**
 
@@ -611,64 +569,67 @@ has context from your documents — without impersonating you.
 - Credentials never logged or stored in event trail
 - PII gate applies to all Google-sourced content
 
-### 11.2 Plex Media Server Connector
+### Plex Media Server Connector
 
 **Status:** 🔴 Not Started
 **Effort:** Medium
-**Depends On:** Scheduler (for periodic sync)
+**Depends On:** Scheduler ✅
+**Daily use:** Yes — highest-value connector for pipeline validation
 
-Integration with a local Plex Media Server. OC tracks your media library,
-remembers what you've watched, and can monitor server health.
+Integration with a local Plex Media Server for library awareness, watch
+history tracking, and server health monitoring. Daily use makes this the
+best candidate for sustained pipeline stress-testing: scheduler-driven
+sync, memory-backed watch history, event-logged library changes.
 
 **Scope:**
 
-- [ ] **Library management** — browse libraries, search media, metadata
-      access. OC knows what's in your collection.
+- [ ] **Library management** — browse, search, metadata access
 - [ ] **Watch history / recommendations** — track viewed content, suggest
-      unwatched items based on preferences and history.
-- [ ] **Server monitoring** — transcoding status, storage usage, active
-      streams, server health checks.
+      unwatched items based on preferences
+- [ ] **Server monitoring** — transcoding status, storage usage, health
 
 **Technical approach:**
 
 - [ ] Plex API via `plexapi` Python library (or direct REST)
 - [ ] Plex token authentication
 - [ ] Periodic library/watch-history sync via scheduler
-- [ ] MCP tools: `plex_search`, `plex_recently_watched`, `plex_server_status`
-      (tentative)
-- [ ] Memory integration: watch history stored as OC memories for
-      cross-session recommendations
+- [ ] MCP tools: `plex_search`, `plex_recently_watched`,
+      `plex_server_status` (tentative)
+- [ ] Memory integration: watch history as OC memories for cross-session
+      recommendations
 
-### 11.3 Personal Finance Connector
+### Personal Finance Connector
 
 **Status:** 🔴 Not Started
 **Effort:** Large
-**Depends On:** Scheduler (for periodic sync)
+**Depends On:** Scheduler ✅
 **Risk:** Medium — financial data requires careful security handling
 
-OC helps manage personal finances: transaction tracking, spending
-categorization, bill/subscription monitoring, and investment overview.
+Transaction tracking, spending categorization, bill/subscription
+monitoring, and investment overview.
+
+**Decision:** Use Plaid directly for bank aggregation, not Quicken Simplifi.
+Simplifi has no public API (only an unmaintained unofficial library and
+manual CSV export). Simplifi's own bank links are unreliable. Plaid is the
+aggregator Simplifi uses under the hood anyway — going direct is more
+reliable and gives richer data.
 
 **Scope:**
 
-- [ ] **Transaction aggregation** — pull transactions from bank accounts,
-      categorize spending, track against budgets. Plaid or similar
-      aggregation service.
-- [ ] **Bill / subscription tracking** — identify recurring charges, track
-      due dates, flag unusual amounts or new subscriptions.
+- [ ] **Transaction aggregation** — bank accounts via Plaid, spending
+      categorization, budget tracking
+- [ ] **Bill / subscription tracking** — recurring charges, due dates,
+      unusual amounts
 - [ ] **Investment tracking** — portfolio overview, market data, basic
-      performance metrics.
+      performance
 
 **Technical approach:**
 
-- [ ] Plaid API for bank/transaction aggregation (or open-source
-      alternative)
-- [ ] Market data API for investment tracking (Alpha Vantage, Yahoo
-      Finance, or similar)
+- [ ] Plaid API for bank/transaction aggregation (`plaid-python`)
+- [ ] Plaid Link flow for account authorization (one-time browser setup)
+- [ ] Market data API (Alpha Vantage, Yahoo Finance, or similar)
 - [ ] Encrypted credential storage (separate from general config)
 - [ ] Periodic transaction sync via scheduler
-- [ ] MCP tools: `finance_transactions`, `finance_bills`,
-      `finance_portfolio` (tentative)
 - [ ] Spending categorization (rule-based initially, LLM-assisted later)
 
 **Security constraints (non-negotiable):**
@@ -681,29 +642,20 @@ categorization, bill/subscription monitoring, and investment overview.
 
 ---
 
-## Infrastructure Gaps
+## Platform Infrastructure
 
-### Output Directory Utilization
+### Private Git Server Integration
 
-**Status:** ⚪ Reserved
-**Env Var:** `OC_OUTPUT_DIR`
+**Status:** 🔴 Not Started
+**Effort:** Medium
+**Depends On:** Dev Agent Runner
 
-**Planned Uses:**
-
-- [ ] Scheduler job outputs
-- [ ] Security scanner reports
-- [ ] Dev agent artifacts
-- [ ] Export bundles
-
----
-
-## Testing Gaps
+Self-hosted Git (Gitea/GitLab) behind network. Clone/pull in sandbox,
+produce branches/patches. Manual human review gate before any upstream push.
 
 ### Performance Testing
 
 **Status:** 🔴 Not Started
-
-**Requirements:**
 
 - [ ] Load testing for rate limiting / concurrency scenarios
 - [ ] Performance regression testing suite
@@ -713,8 +665,6 @@ categorization, bill/subscription monitoring, and investment overview.
 
 **Status:** 🟡 Partial
 
-**Requirements:**
-
 - [ ] Standardized plugin test harness
 - [ ] Mock core for plugin unit tests
 - [ ] Integration test templates
@@ -723,27 +673,13 @@ categorization, bill/subscription monitoring, and investment overview.
 
 ## Documentation Gaps
 
-### Missing Documentation
-
-- [ ] **Performance/Optimization Guide** — Scaling, caching strategies, perf tuning
-- [ ] **Debugging Guide** — Troubleshooting procedures, common issues
-- [ ] **Security Hardening Guide** — Production hardening beyond privacy gate
-- [ ] **Contribution Guidelines** — CONTRIBUTING.md with PR process
-- [ ] **Plugin development entry point** — consolidate 4 plugin docs into single
-      learning path with end-to-end tutorial (audit M3)
-- [ ] **Docker minimal build guide** — document building provider-specific images,
-      size optimization (audit L1)
-- [ ] **Pre-commit hooks in README** — add quick-start note for hook setup (audit L2)
-
-### Audit Findings (2026-02-23, Medium/Low)
-
-Deferred items from fresh-eyes usability audit:
-
-| ID | Finding | Severity | Notes |
-| ---- | --------- | ---------- | ------- |
-| M1 | HTTP API has 19 endpoints, not 21 — delta is `search_turns` and `context_recent` as standalone MCP tool | Medium | Decide if API should gain these 2 endpoints |
-| M4 | ARCHITECTURE.md route section structure correct but endpoint count was wrong | Medium | Fixed in C1 pass |
-| M6 | Routing terminology inconsistent ("Router assist" vs "Router policy" vs "Smart routing") | Low | Context usually clarifies; glossary entry would help |
+- [ ] **Plugin development entry point** — consolidate plugin docs into a
+      single learning path with end-to-end tutorial
+- [ ] **Docker minimal build guide** — provider-specific images, size
+      optimization
+- [ ] **Performance/Optimization Guide** — scaling, caching, perf tuning
+- [ ] **Debugging Guide** — troubleshooting procedures, common issues
+- [ ] **Security Hardening Guide** — production hardening beyond privacy gate
 
 ---
 
@@ -751,15 +687,10 @@ Deferred items from fresh-eyes usability audit:
 
 ### Known Issues
 
-| Issue                               | Location                                                      | Priority |
-| ----------------------------------- | ------------------------------------------------------------- | -------- |
-| FTS5 rebuild on every startup       | `infrastructure/persistence/sqlite_store.py _ensure_fts5()`   | Low      |
-| Ollama token counts are estimates   | `infrastructure/llm/ollama_adapter.py`                        | Low      |
-| ~~Unicode encoding on Windows CLI~~ | `interfaces/cli/main.py`                                      | ✅ Fixed |
-| ~~Test subprocess PATH issue~~      | `tests/test_task_submit_rpc.py`                               | ✅ Fixed |
-| ~~Docker acceptance JSON escaping~~ | `tools/docker/acceptance.ps1`                                 | ✅ Fixed |
-| ~~docker-compose .env required~~    | `docker-compose.yml`                                          | ✅ Fixed |
-| ~~Smoke test assertion too strict~~ | `tests/integration/test_smoke_live.py`                        | ✅ Fixed |
+| Issue                             | Location                                                    | Priority |
+| --------------------------------- | ----------------------------------------------------------- | -------- |
+| FTS5 rebuild on every startup     | `infrastructure/persistence/sqlite_store.py _ensure_fts5()` | Low      |
+| Ollama token counts are estimates | `infrastructure/llm/ollama_adapter.py`                      | Low      |
 
 ### Code Quality Enforcement
 
@@ -772,86 +703,91 @@ All enforced via CI/tests:
 
 ---
 
-## Implementation Sequence
-
-Recommended order based on dependencies:
+## Dependency Graph
 
 ```text
-1. Scheduler Service (P0) ✅
-   └── Core service in application/services/
+COMPLETED (all ✅)
+├── Scheduler ──────────────────────────────┐
+├── Discord ────────────────────────────────│
+├── MCP Server ─────────────────────────────│
+├── HTTP API ───────────────────────────────│
+├── MoE ────────────────────────────────────│
+├── Capability-Aware Routing ───────────────│
+├── Asset Management ───────────────────────│
+├── Memory Phase 1 / 1.1 / 2 ──────────────│
+└── Enterprise Tightening A/B/C ────────────┘
 
-2. Discord Interface (P1) ✅
-   └── Core driver in interfaces/discord/
+QUICK WINS (unblocked now)                  │
+├── Goose MCP config ◄──────────────────── MCP Server ✅
+└── VS Code MCP config ◄───────────────── MCP Server ✅
 
-3. OC MCP Server (P2) ✅
-   └── Core interface in interfaces/mcp/
-   └── 21 tools, maps to existing ports/use cases
-   └── Unblocks: Goose, VS Code, Claude Desktop, any MCP client
+CORE INFRA GAPS (small, enable downstream)  │
+├── Output Manager ◄───────────────────── (no deps)
+└── Shell Execution ◄──────────────────── (no deps)
 
-4. Mixture-of-Experts (P5) ✅
-   └── Core execution strategy in application/services/
-   └── Jaccard consensus, --moe CLI/MCP flag, 32 tests
+PHASE 3: Smarter Memory                    │
+└── Memory Embeddings ◄────────────────── (no deps)
 
-5. HTTP API (P6) ✅
-   └── Core interface in interfaces/api/
-   └── FastAPI, 21 REST endpoints, API key auth, rate limiting, 51 tests
-   └── Starts with oc serve, shared serializers with MCP
+PHASE 4: Reactive Eventing                 │
+└── Webhooks ◄─────────────────────────── HTTP API ✅
 
-6. Capability-Aware Routing (P7.1) ✅
-   └── capabilities dict parsed in ModelConfigLoader, get_capabilities() method
-   └── RouterPolicy filters pool by required_capabilities (opt-in)
-   └── NO_CAPABLE_MODEL error code, audit trail, 12 new tests
+PHASE 5: Agent Automation Hooks            │
+└── IDE Event-Triggered Memory ◄───────── MCP Server ✅ + Memory Phase 2 ✅
 
-7. Media Generation (P7.2)
-   └── New port + adapters (Ollama, OpenAI), Decision #7
-   └── Depends on capability routing
+PHASE 6: Media & Vision                    │
+├── Media Generation ◄─────────────────── Capability Routing ✅
+└── Multimodal Input ◄─────────────────── Capability Routing ✅
 
-8. Webhooks (P6.2)
-   └── Core service, depends on HTTP API
-   └── Outbound event subscriptions + inbound receivers
+PHASE 7: Security & Automation (sequential chain)
+├── Security Scanner ◄─────────────────── Scheduler ✅ + Output Mgr + Shell Exec
+├── Dev Agent Runner ◄─────────────────── Security Scanner
+└── Serena in Sandbox ◄───────────────── Dev Agent Runner
 
-9. Security Scanner Plugin (P3)
-   └── Runs via scheduler service
-   └── Safety rail for dev agent
+PLUGINS (all independent, no cross-deps)
+├── Storytelling suite ◄───────────────── (no deps)
+├── Daily journal ◄────────────────────── (no deps)
+└── Future plugins ◄───────────────────── (no deps)
 
-10. Goose Integration (P9.2) ← MOVED UP (unblocked by MCP server)
-    └── MCP client connecting to OC MCP + Serena MCP
-    └── No custom code — just config
+PERSONAL CONNECTORS (each independent)
+├── Google ◄───────────────────────────── Scheduler ✅
+├── Plex ◄─────────────────────────────── Scheduler ✅
+└── Finance ◄──────────────────────────── Scheduler ✅
 
-11. Multimodal Conversation Input (P7.3)
-    └── Vision input via asset system
-    └── Depends on capability routing
-
-12. Memory v1 — Embeddings (P8)
-    └── Semantic search for memory retrieval
-    └── Core enhancement to MemoryStorePort
-
-13. Dev Agent Runner (P4.1)
-    └── Uses scheduler + scanner
-    └── Sandboxed execution
-    └── Upgrade path: OC orchestrates Goose
-
-14. Serena MCP in Sandbox (P4.2)
-    └── Inside sandbox runner only
-
-15. VS Code Copilot SDK (P9.1)
-    └── MCP client or custom RPC
-
-16. Private Git Server (P10)
-    └── Platform infrastructure
-
-17. Google Account Connector (P11.1)
-    └── Read-only Calendar + Gmail + Drive
-    └── OAuth 2.0, periodic sync via scheduler
-
-18. Plex Media Server Connector (P11.2)
-    └── Library, watch history, server monitoring
-    └── Plex API, scheduler-driven sync
-
-19. Personal Finance Connector (P11.3)
-    └── Transactions, bills, investments
-    └── Plaid API, encrypted credentials, strict security
+PLATFORM
+├── Private Git ◄──────────────────────── Dev Agent Runner
+├── Perf Testing ◄─────────────────────── (no deps)
+└── Docs ◄─────────────────────────────── (no deps)
 ```
+
+**Key insight:** Phases 3-6, Plugins, and Personal Connectors are all
+parallelizable — they share no dependencies. The only sequential chain is
+Phase 7 (Security & Automation), which depends on the Core Infrastructure
+Gaps being filled first.
+
+---
+
+## Implementation Sequence (Recommended)
+
+```text
+ 1. Quick Wins: Goose + VS Code MCP config          [Trivial]
+ 2. Core Infra: Output Manager + Shell Execution     [Small]
+ 3. Phase 3: Memory Embeddings                       [Medium-Large]
+ 4. Phase 4: Webhooks                                [Medium]
+ 5. Phase 5: IDE Event-Triggered Memory              [Medium]
+ 6. Plugins: Storytelling suite (pipeline exercise)   [Medium]
+ 7. Connector: Plex (daily-use pipeline validator)   [Medium]
+ 8. Phase 6: Media Generation + Multimodal           [Large]
+ 9. Phase 7: Security Scanner                        [Medium]
+10. Phase 7: Dev Agent Runner                        [Large]
+11. Connectors: Google, Finance                      [Large each]
+12. Platform: Private Git, Perf Testing, Docs        [Medium]
+```
+
+Phases 3-6, Plugins, and daily-use Connectors can be interleaved based on
+interest. The sequence above optimizes for daily impact first (memory,
+webhooks, automation hooks), then pipeline validation via real workloads
+(plugins, Plex connector), then new capabilities (media, security), then
+expansion (remaining connectors).
 
 ---
 
