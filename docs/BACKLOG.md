@@ -586,6 +586,35 @@ analysis, communication style profiling, user preference modeling. The
 storytelling use case is the most compelling demo, but the underlying
 capability is broadly useful.
 
+**Downstream evolution: custom LLM personalities.** A rich enough persona
+model is also a fine-tuning dataset. The same behavioral extraction that
+builds a system-prompt-driven character template also produces the
+training examples needed for LoRA adapters or full fine-tunes — an
+actual "character model" rather than a prompted approximation. This is
+downstream of downstream (extraction → persona schema → fine-tuning
+pipeline), but it has architectural implications for *upstream* design
+decisions made now:
+
+- **Persona schema must be rich enough to drive fine-tuning later.**
+  Speech patterns, decision heuristics, emotional response profiles,
+  and conversational examples should be first-class fields, not
+  collapsed into a single "description" blob. If the schema is
+  expressive enough for fine-tuning, it's automatically expressive
+  enough for system-prompt use.
+- **Extraction should preserve raw examples alongside synthesized
+  traits.** A trait summary ("Jester deflects with humor under stress")
+  is useful for prompting; the source exchanges that evidence it are
+  useful for few-shot examples and fine-tuning datasets. Store both.
+- **Character management plugin's storage model should anticipate
+  versioned, evolving personas.** As extraction refines a persona over
+  time (progressive confidence), earlier versions are still valuable —
+  they represent the fine-tuning curriculum (rough → refined).
+
+None of this changes the implementation plan for the extractor itself.
+It's a design constraint on the persona schema and character storage
+that should be kept in mind during storytelling plugin design so we
+don't have to re-extract later.
+
 ### Future Plugin Candidates
 
 Plugin ideas that would generate valuable pipeline data:
