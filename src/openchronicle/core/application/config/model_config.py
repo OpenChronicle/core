@@ -219,6 +219,7 @@ class ModelConfigLoader:
             "anthropic": "ANTHROPIC_API_KEY",
             "groq": "GROQ_API_KEY",
             "gemini": "GEMINI_API_KEY",
+            "xai": "XAI_API_KEY",
         }
         return mapping.get(provider.lower())
 

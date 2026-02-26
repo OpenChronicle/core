@@ -458,6 +458,22 @@ class CoreContainer:
                 timeout_seconds=settings.timeout,
             )
 
+        if provider == "xai":
+            from openchronicle.core.infrastructure.media.xai_adapter import XAIMediaAdapter
+
+            if not resolved.api_key:
+                raise LLMProviderError(
+                    "xAI media adapter requires an API key",
+                    error_code=CONFIG_ERROR,
+                    hint="Set XAI_API_KEY or configure api_config.api_key in the model config.",
+                )
+            return XAIMediaAdapter(
+                model=cfg.model,
+                api_key=resolved.api_key,
+                endpoint=resolved.endpoint,
+                timeout_seconds=settings.timeout,
+            )
+
         raise LLMProviderError(
             f"No media adapter for provider '{provider}'",
             error_code=CONFIG_ERROR,

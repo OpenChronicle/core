@@ -716,6 +716,86 @@ class TestGeminiMediaAdapter:
                 adapter.generate(MediaRequest(prompt="test"))
 
 
+# ── xAI adapter (unit tests — no network) ─────────────────────────
+
+
+class TestXAIMediaAdapter:
+    def test_init_defaults(self) -> None:
+        from openchronicle.core.infrastructure.media.xai_adapter import XAIMediaAdapter
+
+        adapter = XAIMediaAdapter(api_key="test-key")
+        assert adapter.model_name() == "grok-imagine-image"
+        assert adapter.supported_media_types() == ["image"]
+
+    def test_generate_success(self) -> None:
+        import base64
+
+        from openchronicle.core.infrastructure.media.xai_adapter import XAIMediaAdapter
+
+        fake_image = b"\x89PNG\r\n\x1a\nfakedata"
+        response_json = {"data": [{"b64_json": base64.b64encode(fake_image).decode()}]}
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = response_json
+        mock_response.raise_for_status = MagicMock()
+
+        adapter = XAIMediaAdapter(api_key="test-key")
+        with patch("httpx.post", return_value=mock_response) as mock_post:
+            result = adapter.generate(MediaRequest(prompt="a landscape"))
+
+        assert result.data == fake_image
+        assert result.provider == "xai"
+        assert result.model == "grok-imagine-image"
+
+        # Verify auth header
+        headers = mock_post.call_args.kwargs.get("headers", {})
+        assert headers["Authorization"] == "Bearer test-key"
+
+        # Verify aspect_ratio in payload
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["response_format"] == "b64_json"
+        assert "aspect_ratio" in payload
+
+    def test_generate_with_aspect_ratio(self) -> None:
+        import base64
+
+        from openchronicle.core.infrastructure.media.xai_adapter import XAIMediaAdapter
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"data": [{"b64_json": base64.b64encode(b"img").decode()}]}
+        mock_response.raise_for_status = MagicMock()
+
+        adapter = XAIMediaAdapter(api_key="test-key")
+        with patch("httpx.post", return_value=mock_response) as mock_post:
+            adapter.generate(MediaRequest(prompt="test", width=1280, height=720))
+
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["aspect_ratio"] == "16:9"
+
+    def test_generate_http_error(self) -> None:
+        import httpx
+
+        from openchronicle.core.domain.ports.llm_port import LLMProviderError
+        from openchronicle.core.infrastructure.media.xai_adapter import XAIMediaAdapter
+
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Unauthorized", request=MagicMock(), response=mock_response
+        )
+
+        adapter = XAIMediaAdapter(api_key="test-key")
+        with patch("httpx.post", return_value=mock_response):
+            with pytest.raises(LLMProviderError, match="HTTP 401"):
+                adapter.generate(MediaRequest(prompt="test"))
+
+    def test_custom_endpoint(self) -> None:
+        from openchronicle.core.infrastructure.media.xai_adapter import XAIMediaAdapter
+
+        adapter = XAIMediaAdapter(api_key="test-key", endpoint="http://custom:8080/v1/images/generations")
+        assert adapter._endpoint == "http://custom:8080/v1/images/generations"
+
+
 # ── Model config: type field and media lookup ─────────────────────
 
 
