@@ -22,6 +22,8 @@ See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 IDE automation hooks. Media generation is done (`MediaGenerationPort` with 5 adapters:
 stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine; unified model
 config with `image_generation` capability tag; `OC_MEDIA_MODEL` derives provider; 69 tests).
+Ollama CLI is done (`oc ollama list|show|add|remove|sync`, capability inference from
+Ollama API, operates against resolved config dir, 32 tests).
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
 HTTP API is done (`interfaces/api/`, FastAPI, 31 REST endpoints mirroring MCP tools,

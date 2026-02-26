@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-25
 **Branch:** `main`
-**Revision:** 39 (Media generation — 5 adapters, xAI Grok Imagine added)
+**Revision:** 40 (Ollama CLI — model discovery, config management, sync)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,463 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,495 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -123,9 +123,9 @@ Gemini adapter error codes: `_classify_gemini_error()` maps exceptions to
 **What's next:** Multimodal conversation input (vision input via asset system),
 or Phase 5 IDE automation hooks (prototype exists). Media generation is done
 (Decision #7) — `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI
-gpt-image-1, Gemini dual-surface, xAI Grok Imagine). Unified model config:
-media models live in `config/models/` with `image_generation` capability tag,
-provider derived automatically. `OC_MEDIA_MODEL` is the single config knob.
+gpt-image-1, Gemini dual-surface, xAI Grok Imagine). Ollama CLI model management
+is done — `oc ollama list|show|add|remove|sync` with capability inference from
+Ollama API metadata (vision via clip, diffusion via safetensors, tools via template).
 
 MoE (Mixture-of-Experts) execution strategy is implemented — Jaccard-based
 consensus scoring, `--moe` CLI/MCP flag, quality pool parallel execution, 32 tests.
@@ -134,7 +134,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. 31 MCP tools, 32 REST endpoints, 1,463 tests. Enterprise tightening Passes A/B/C complete.**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. 31 MCP tools, 32 REST endpoints, 1,495 tests. Enterprise tightening Passes A/B/C complete.**
 
 ---
 
@@ -234,7 +234,8 @@ validates against live providers (OpenAI, Anthropic).
 | **Webhook service** (outbound HTTP POST, HMAC-SHA256, background dispatch) | Working | WebhookSubscription/DeliveryAttempt models, WebhookStorePort, WebhookService, WebhookDispatcher (daemon thread + queue), composite emit_event, fnmatch glob filtering, exponential backoff retry, 3 MCP tools, 5 REST endpoints, 4 CLI commands, 74 tests |
 | **HTTP API interface** (FastAPI, always-on daemon, 32 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51+ tests |
 | **Media generation** (5 adapters, unified model config) | Working | `MediaGenerationPort` ABC, stub/Ollama/OpenAI/Gemini/xAI adapters, `image_generation` capability tag in `config/models/`, `OC_MEDIA_MODEL` derives provider from config, asset storage + SHA-256 dedup, CLI/MCP/API interfaces, 69 tests |
-| **Test suite** (1463 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **Ollama CLI** (model discovery, config management) | Working | `oc ollama list\|show\|add\|remove\|sync`, `OllamaService` talks to Ollama HTTP API (`/api/tags`, `/api/show`), capability inference (vision/diffusion/tools), operates against resolved config dir (`RuntimePaths`), 32 tests |
+| **Test suite** (1495 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -585,6 +586,7 @@ Core Done
   ✓ HTTP API (core — interfaces/api, always-on daemon, Decision #6)
   ✓ Capability-Aware Routing (core — wire model config capabilities into routing)
   ✓ Media Generation (core — MediaGenerationPort, 5 adapters, unified model config, Decision #7)
+  ✓ Ollama CLI (core — oc ollama list|show|add|remove|sync, capability inference, config management)
   → Multimodal Conversation Input (core — vision input via asset system)
   ✓ Webhooks (core — webhook_service.py + webhook_dispatcher.py, HMAC signing, background dispatch)
   ✓ Embedding Observability (health status, startup logging, backfill resilience, configurable timeout)
@@ -860,4 +862,6 @@ media models use `"media"`) and `description` fields. `ModelConfigLoader` gained
 | `services/webhook_service.py` | ~120 | Webhook CRUD + HMAC + delivery | New (httpx, fnmatch, secrets) |
 | `services/webhook_dispatcher.py` | ~110 | Background event dispatch | New (daemon thread, queue, retry) |
 | `infrastructure/media/` | ~790 | Media adapters | New (stub, Ollama, OpenAI, Gemini, xAI — 5 adapters, config-driven) |
+| `services/ollama_service.py` | ~240 | Ollama model discovery | New (HTTP API client, capability inference, config generation, diff/sync) |
+| `interfaces/cli/commands/ollama.py` | ~270 | Ollama CLI commands | New (list, show, add, remove, sync — 5 subcommands) |
 | `infrastructure/wiring/container.py` | ~465 | DI container | Clean (file-based config, exposes router_policy, composite emit_event, embedding_status_dict, media port via model config lookup) |
