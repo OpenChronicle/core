@@ -91,6 +91,7 @@ def create_app(container: CoreContainer, config: HTTPConfig) -> FastAPI:
     from openchronicle.interfaces.api.routes import (
         asset,
         conversation,
+        media,
         memory,
         project,
         system,
@@ -103,5 +104,6 @@ def create_app(container: CoreContainer, config: HTTPConfig) -> FastAPI:
     app.include_router(conversation.router, prefix="/api/v1", tags=["conversation"])
     app.include_router(asset.router, prefix="/api/v1", tags=["asset"])
     app.include_router(webhook.router, prefix="/api/v1", tags=["webhook"])
+    app.include_router(media.router, prefix="/api/v1", tags=["media"])
 
     return app

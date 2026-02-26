@@ -26,6 +26,8 @@ class ModelConfigEntry:
     display_name: str | None
     api_config: dict[str, Any]
     capabilities: dict[str, bool] = dataclasses.field(default_factory=dict)
+    type: str = "llm"
+    description: str | None = None
 
 
 @dataclass
@@ -79,6 +81,30 @@ class ModelConfigLoader:
                 return dict(cfg.capabilities)
         return {}
 
+    def list_by_capability(self, capability: str) -> list[ModelConfigEntry]:
+        """Return enabled configs that have the given capability set to ``True``."""
+        return [cfg for cfg in self.list_enabled() if cfg.capabilities.get(capability)]
+
+    def find_by_model(self, model: str) -> ModelConfigEntry | None:
+        """Find first enabled config matching *model* name (any provider)."""
+        for cfg in self.list_enabled():
+            if cfg.model == model:
+                return cfg
+        return None
+
+    def find_media_model(self, model: str) -> ModelConfigEntry | None:
+        """Find enabled config with ``image_generation`` capability matching *model*.
+
+        If *model* is empty, returns the first available media model (if any).
+        """
+        candidates = self.list_by_capability("image_generation")
+        if not model:
+            return candidates[0] if candidates else None
+        for cfg in candidates:
+            if cfg.model == model:
+                return cfg
+        return None
+
     def resolve(self, provider: str, model: str) -> ResolvedModelConfig:
         """
         Resolve a specific provider/model combination.
@@ -117,6 +143,10 @@ class ModelConfigLoader:
             raw_caps = raw.get("capabilities", {})
             capabilities = raw_caps if isinstance(raw_caps, dict) else {}
 
+            entry_type = raw.get("type", "llm")
+            if not isinstance(entry_type, str):
+                entry_type = "llm"
+
             entries.append(
                 ModelConfigEntry(
                     provider=str(provider),
@@ -126,6 +156,8 @@ class ModelConfigLoader:
                     display_name=raw.get("display_name"),
                     api_config=api_config,
                     capabilities=capabilities,
+                    type=entry_type,
+                    description=raw.get("description"),
                 )
             )
 

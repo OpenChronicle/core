@@ -139,6 +139,7 @@ class TestServerCreation:
             "webhook_register",
             "webhook_list",
             "webhook_delete",
+            "media_generate",
         ]
         assert sorted(tool_names) == sorted(expected)
 

@@ -45,6 +45,7 @@ def create_server(container: CoreContainer, config: MCPConfig) -> FastMCP:
         asset,
         context,
         conversation,
+        media,
         memory,
         onboard,
         project,
@@ -60,5 +61,6 @@ def create_server(container: CoreContainer, config: MCPConfig) -> FastMCP:
     onboard.register(mcp)
     asset.register(mcp)
     webhook.register(mcp)
+    media.register(mcp)
 
     return mcp

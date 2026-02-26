@@ -486,6 +486,21 @@ def main(argv: list[str] | None = None) -> int:
     asset_link_cmd.add_argument("target_id", help="Entity ID")
     asset_link_cmd.add_argument("--role", default="reference", help="Link role (default: reference)")
 
+    # --- Media commands ---
+    media_cmd = sub.add_parser("media", help="Media generation commands")
+    media_sub = media_cmd.add_subparsers(dest="media_command")
+
+    media_gen_cmd = media_sub.add_parser("generate", help="Generate media from a text prompt")
+    media_gen_cmd.add_argument("prompt", help="Text prompt for generation")
+    media_gen_cmd.add_argument("--project-id", dest="project_id", required=True, help="Project ID")
+    media_gen_cmd.add_argument("--type", dest="media_type", default="image", help="Media type (image, video)")
+    media_gen_cmd.add_argument("--model", default=None, help="Override model name")
+    media_gen_cmd.add_argument("--width", type=int, default=None, help="Image width in pixels")
+    media_gen_cmd.add_argument("--height", type=int, default=None, help="Image height in pixels")
+    media_gen_cmd.add_argument("--negative-prompt", dest="negative_prompt", default=None, help="Negative prompt")
+    media_gen_cmd.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
+    media_gen_cmd.add_argument("--steps", type=int, default=None, help="Number of diffusion steps")
+
     # --- Webhook commands ---
     webhook_cmd = sub.add_parser("webhook", help="Webhook subscription commands")
     webhook_sub = webhook_cmd.add_subparsers(dest="webhook_command")

@@ -1,0 +1,14 @@
+{
+  "provider": "gemini",
+  "model": "imagen-3.0-generate-002",
+  "type": "media",
+  "display_name": "Google Imagen 3",
+  "description": "Google Imagen 3 image generation via Gemini API",
+  "capabilities": {
+    "image_generation": true
+  },
+  "api_config": {
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta",
+    "timeout": 60
+  }
+}

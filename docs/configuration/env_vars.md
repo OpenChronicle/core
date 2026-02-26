@@ -165,6 +165,18 @@ for local development; env vars are useful for Docker/CI overrides.
 | `OC_EMBEDDING_API_KEY` | `embedding.api_key` | - | API key for embedding provider. If unset, adapter falls back to provider-specific env var (e.g., `OPENAI_API_KEY`). |
 | `OC_EMBEDDING_TIMEOUT` | `embedding.timeout` | `30` | Per-request timeout in seconds for embedding API calls. Applies to both OpenAI and Ollama adapters. |
 
+## Media Generation
+
+Media generation uses the model config system — the provider is derived from the
+matching model config's `provider` field. Set `OC_MEDIA_MODEL` to a model name
+that has `"image_generation": true` in its `capabilities` (see `config/models/`).
+Special value `"stub"` uses the deterministic test adapter (no config file needed).
+
+| Variable | `core.json` key | Default | Description |
+| -------- | --------------- | ------- | ----------- |
+| `OC_MEDIA_MODEL` | `media.model` | *(empty — disabled)* | Model name for generation (e.g. `stub`, `flux`, `gpt-image-1`, `imagen-3.0-generate-002`). Empty disables media generation. Provider is derived from the model config. |
+| `OC_MEDIA_TIMEOUT` | `media.timeout` | `120` | Request timeout in seconds for media generation API calls. |
+
 ## Search
 
 | Variable | Default | Description |

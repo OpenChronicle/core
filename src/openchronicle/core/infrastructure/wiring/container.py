@@ -11,6 +11,7 @@ from openchronicle.core.application.config.settings import (
     EmbeddingSettings,
     load_conversation_settings,
     load_embedding_settings,
+    load_media_settings,
     load_moe_settings,
     load_privacy_outbound_settings,
     load_router_assist_settings,
@@ -32,6 +33,7 @@ from openchronicle.core.domain.errors.error_codes import CONFIG_ERROR
 from openchronicle.core.domain.models.project import Event
 from openchronicle.core.domain.ports.embedding_port import EmbeddingPort
 from openchronicle.core.domain.ports.llm_port import LLMPort, LLMProviderError
+from openchronicle.core.domain.ports.media_generation_port import MediaGenerationPort
 from openchronicle.core.domain.ports.router_assist_port import RouterAssistPort
 from openchronicle.core.infrastructure.config.config_loader import load_config_files, load_plugin_config
 from openchronicle.core.infrastructure.llm.provider_facade import create_provider_aware_llm
@@ -94,6 +96,7 @@ class CoreContainer:
             self.conversation_settings = load_conversation_settings(file_configs.get("conversation"))
             self.moe_settings = load_moe_settings(file_configs.get("moe"))
             self.embedding_settings = load_embedding_settings(file_configs.get("embedding"))
+            self.media_settings = load_media_settings(file_configs.get("media"))
             self.budget_policy = load_budget_policy(file_configs.get("budget"))
 
             router_fc = file_configs.get("router")
@@ -204,6 +207,9 @@ class CoreContainer:
             self.embedding_service: EmbeddingService | None = (
                 EmbeddingService(self.embedding_port, self.storage) if self.embedding_port is not None else None
             )
+
+            # Media generation service (optional)
+            self.media_port: MediaGenerationPort | None = self._build_media_port()
 
             # Webhook service + dispatcher (composite emit_event)
             self.webhook_service = WebhookService(store=self.storage)
@@ -347,4 +353,113 @@ class CoreContainer:
             f"Unknown embedding provider: {settings.provider}",
             error_code=CONFIG_ERROR,
             hint="Set OC_EMBEDDING_PROVIDER to 'none', 'stub', 'openai', or 'ollama'.",
+        )
+
+    def _build_media_port(self) -> MediaGenerationPort | None:
+        """Build media generation port from MediaSettings + model configs.
+
+        The ``model`` field in MediaSettings drives adapter selection:
+        - Empty → disabled.
+        - ``"stub"`` → deterministic stub adapter.
+        - Anything else → looked up in model configs (``image_generation``
+          capability).  Provider is derived from the matching config.
+
+        Returns None if disabled or if initialization fails.
+        """
+        import logging
+
+        _log = logging.getLogger(__name__)
+        settings = self.media_settings
+        if not settings.enabled:
+            _log.info("Media generation: disabled (no model configured)")
+            return None
+
+        try:
+            port = self._create_media_adapter()
+            _log.info(
+                "Media generation adapter initialized: model=%s, timeout=%.1fs",
+                port.model_name(),
+                settings.timeout,
+            )
+            return port
+        except Exception as exc:
+            _log.warning(
+                "Media generation adapter (%s) failed to initialize: %s",
+                settings.model,
+                exc,
+            )
+            return None
+
+    def _create_media_adapter(self) -> MediaGenerationPort:
+        """Create the media generation adapter from model config. Raises on failure."""
+        settings = self.media_settings
+        model_name = settings.model
+
+        # Special case: stub adapter (no model config needed)
+        if model_name == "stub":
+            from openchronicle.core.infrastructure.media.stub_adapter import StubMediaAdapter
+
+            return StubMediaAdapter()
+
+        # Look up model config by name (must have image_generation capability)
+        cfg = self.model_config_loader.find_media_model(model_name)
+        if cfg is None:
+            raise LLMProviderError(
+                f"No model config with image_generation capability found for model '{model_name}'",
+                error_code=CONFIG_ERROR,
+                hint=(
+                    f"Create a config file in config/models/ for '{model_name}' "
+                    'with \'"capabilities": {{"image_generation": true}}\'.'
+                ),
+            )
+
+        # Resolve the config to get API key, endpoint, etc.
+        resolved = self.model_config_loader.resolve(cfg.provider, cfg.model)
+        provider = cfg.provider.lower()
+
+        if provider == "ollama":
+            from openchronicle.core.infrastructure.media.ollama_adapter import OllamaMediaAdapter
+
+            return OllamaMediaAdapter(
+                model=cfg.model,
+                host=resolved.base_url,
+                timeout_seconds=settings.timeout,
+            )
+
+        if provider == "openai":
+            from openchronicle.core.infrastructure.media.openai_adapter import OpenAIMediaAdapter
+
+            if not resolved.api_key:
+                raise LLMProviderError(
+                    "OpenAI media adapter requires an API key",
+                    error_code=CONFIG_ERROR,
+                    hint="Set OPENAI_API_KEY or configure api_config.api_key in the model config.",
+                )
+            return OpenAIMediaAdapter(
+                model=cfg.model,
+                api_key=resolved.api_key,
+                endpoint=resolved.endpoint,
+                timeout_seconds=settings.timeout,
+            )
+
+        if provider == "gemini":
+            from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
+
+            if not resolved.api_key:
+                raise LLMProviderError(
+                    "Gemini media adapter requires an API key",
+                    error_code=CONFIG_ERROR,
+                    hint="Set GEMINI_API_KEY or configure api_config.api_key in the model config.",
+                )
+            return GeminiMediaAdapter(
+                model=cfg.model,
+                api_key=resolved.api_key,
+                endpoint=resolved.endpoint or resolved.base_url,
+                timeout_seconds=settings.timeout,
+            )
+
+        raise LLMProviderError(
+            f"No media adapter for provider '{provider}'",
+            error_code=CONFIG_ERROR,
+            hint=f"Provider '{provider}' does not support image generation.",
         )

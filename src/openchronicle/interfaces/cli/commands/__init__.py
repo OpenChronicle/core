@@ -20,6 +20,7 @@ from . import (
     debug,
     discord,
     mcp_cmd,
+    media,
     memory,
     onboard,
     project,
@@ -79,6 +80,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace, CoreContainer], int]] = {
     "rpc": system.cmd_rpc,
     # Asset
     "asset": asset.cmd_asset,
+    # Media
+    "media": media.cmd_media,
     # Webhook
     "webhook": webhook_cmd.cmd_webhook,
     # Chat

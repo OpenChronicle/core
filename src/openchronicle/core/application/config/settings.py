@@ -276,6 +276,44 @@ def load_embedding_settings(
     )
 
 
+@dataclass(frozen=True)
+class MediaSettings:
+    """Media generation configuration.
+
+    ``model`` drives adapter selection:
+    - Empty string → disabled (no media generation).
+    - ``"stub"`` → deterministic stub adapter (testing).
+    - Any other value → looked up in model configs via ``image_generation``
+      capability.  The provider is derived from the matching config.
+    """
+
+    model: str = ""
+    timeout: float = 120.0
+
+    def __post_init__(self) -> None:
+        if self.timeout <= 0:
+            raise ValueError(f"media timeout must be > 0, got {self.timeout}")
+
+    @property
+    def enabled(self) -> bool:
+        return self.model != ""
+
+
+def load_media_settings(
+    file_config: dict[str, Any] | None = None,
+) -> MediaSettings:
+    fc = file_config or {}
+    timeout_raw = env_override("OC_MEDIA_TIMEOUT", fc.get("timeout"))
+    timeout = float(str(timeout_raw)) if timeout_raw is not None else 120.0
+    return MediaSettings(
+        model=parse_str(
+            env_override("OC_MEDIA_MODEL", fc.get("model")),
+            default="",
+        ),
+        timeout=timeout,
+    )
+
+
 def load_moe_settings(
     file_config: dict[str, Any] | None = None,
 ) -> MoESettings:

@@ -128,6 +128,9 @@ def _make_mock_container() -> MagicMock:
     container.embedding_service = None
     container.embedding_status_dict.return_value = {"status": "disabled", "provider": "none"}
 
+    # Media port defaults to None unless test overrides
+    container.media_port = None
+
     return container
 
 

@@ -330,7 +330,7 @@ routing infrastructure (already implemented).
 
 ### Media Generation Port
 
-**Status:** 🔴 Not Started
+**Status:** 🟡 V0 Complete (stub + Ollama adapters, video in contract)
 **Effort:** Medium-Large
 **Category:** Core (new port + adapters)
 **Depends On:** Capability-Aware Routing ✅
@@ -343,15 +343,33 @@ and asset integration. The plugin API provides no LLM or asset access.
 
 **Requirements:**
 
-- [ ] `MediaGenerationPort` ABC (`generate_async`, `supported_media_types`)
-- [ ] `MediaRequest` / `MediaResult` domain models
-- [ ] Stub adapter for testing
-- [ ] Ollama media adapter (flux, sdxl, stable-diffusion via Ollama API)
-- [ ] OpenAI media adapter (DALL-E)
-- [ ] `generate_media` use case (orchestrates port + asset storage)
-- [ ] CLI: `oc media generate`
-- [ ] MCP tool: `media_generate`
-- [ ] API route: `POST /api/v1/media/generate`
+- [x] `MediaGenerationPort` ABC (`generate`, `supported_media_types`)
+- [x] `MediaRequest` / `MediaResult` domain models (video fields included)
+- [x] Stub adapter for testing (deterministic PNG from prompt hash)
+- [x] Ollama media adapter (flux, sdxl, stable-diffusion via `/api/generate`)
+- [ ] OpenAI media adapter (DALL-E) — deferred
+- [x] `generate_media` use case (orchestrates port + asset storage + dedup)
+- [x] CLI: `oc media generate`
+- [x] MCP tool: `media_generate`
+- [x] API route: `POST /api/v1/media/generate`
+- [x] `MediaSettings` + `load_media_settings()` (three-layer precedence)
+- [x] Container wiring (`_build_media_port`, graceful degradation)
+- [x] 39 tests
+
+**Remaining:**
+
+- [ ] OpenAI adapter (DALL-E) — add when needed
+- [ ] Ollama adapter API validation — Ollama's image generation API is
+  experimental; adapter uses fallback extraction (images array, image
+  field, base64 response). Needs testing against real Ollama diffusion
+  models to confirm response format and tighten the adapter.
+- [ ] `oc ollama scan` — CLI command to scan a local Ollama instance,
+  discover installed models and capabilities, and auto-generate model
+  config JSON files. Also serves as a concrete reference for how each
+  model's API actually behaves (response format, supported params),
+  informing adapter implementations.
+- [ ] Capability-aware routing integration — wire `media_type` into
+  `required_capabilities` for automatic model selection
 
 ### Multimodal Conversation Input
 
@@ -854,7 +872,7 @@ PHASE 5: Agent Automation Hooks            │
 └── IDE Event-Triggered Memory ◄───────── MCP Server ✅ + Memory Phase 2 ✅
 
 PHASE 6: Media & Vision                    │
-├── Media Generation ◄─────────────────── Capability Routing ✅
+├── Media Generation (v0 ✅) ◄──────────── Capability Routing ✅
 └── Multimodal Input ◄─────────────────── Capability Routing ✅
 
 PHASE 7: Security & Automation (sequential chain)
