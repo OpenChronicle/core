@@ -572,10 +572,53 @@ class TestGeminiMediaAdapter:
         from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
 
         adapter = GeminiMediaAdapter(api_key="test-key")
-        assert adapter.model_name() == "imagen-3.0-generate-002"
+        assert adapter.model_name() == "gemini-2.0-flash-exp-image-generation"
         assert adapter.supported_media_types() == ["image"]
 
-    def test_generate_success(self) -> None:
+    def test_native_generate_success(self) -> None:
+        """Gemini native model uses :generateContent with inlineData response."""
+        import base64
+
+        from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
+
+        fake_image = b"\x89PNG\r\n\x1a\nfakedata"
+        response_json = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"inlineData": {"mimeType": "image/png", "data": base64.b64encode(fake_image).decode()}}
+                        ]
+                    }
+                }
+            ]
+        }
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = response_json
+        mock_response.raise_for_status = MagicMock()
+
+        adapter = GeminiMediaAdapter(api_key="test-key")
+        with patch("httpx.post", return_value=mock_response) as mock_post:
+            result = adapter.generate(MediaRequest(prompt="a sunset"))
+
+        assert result.data == fake_image
+        assert result.provider == "gemini"
+        assert result.mime_type == "image/png"
+        assert result.metadata["surface"] == "generateContent"
+
+        # Verify x-goog-api-key header
+        call_kwargs = mock_post.call_args
+        headers = call_kwargs.kwargs.get("headers", {})
+        assert headers["x-goog-api-key"] == "test-key"
+
+        # Verify generateContent payload
+        payload = call_kwargs.kwargs["json"]
+        assert "contents" in payload
+        assert payload["generationConfig"]["responseModalities"] == ["TEXT", "IMAGE"]
+
+    def test_imagen_predict_success(self) -> None:
+        """Imagen model uses :predict with predictions response."""
         import base64
 
         from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
@@ -589,21 +632,18 @@ class TestGeminiMediaAdapter:
         mock_response.json.return_value = response_json
         mock_response.raise_for_status = MagicMock()
 
-        adapter = GeminiMediaAdapter(api_key="test-key")
+        adapter = GeminiMediaAdapter(api_key="test-key", model="imagen-4.0-generate-001")
         with patch("httpx.post", return_value=mock_response) as mock_post:
             result = adapter.generate(MediaRequest(prompt="a sunset"))
 
         assert result.data == fake_image
-        assert result.provider == "gemini"
-        assert result.model == "imagen-3.0-generate-002"
-        assert result.mime_type == "image/png"
+        assert result.metadata["surface"] == "predict"
 
-        # Verify API key in query params
-        call_kwargs = mock_post.call_args
-        params = call_kwargs.kwargs.get("params", call_kwargs[1].get("params", {}))
-        assert params["key"] == "test-key"
+        # Verify :predict URL
+        url = mock_post.call_args.args[0] if mock_post.call_args.args else mock_post.call_args.kwargs.get("url", "")
+        assert ":predict" in str(url)
 
-    def test_generate_with_aspect_ratio(self) -> None:
+    def test_imagen_with_aspect_ratio(self) -> None:
         import base64
 
         from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
@@ -614,7 +654,7 @@ class TestGeminiMediaAdapter:
         }
         mock_response.raise_for_status = MagicMock()
 
-        adapter = GeminiMediaAdapter(api_key="test-key")
+        adapter = GeminiMediaAdapter(api_key="test-key", model="imagen-4.0-generate-001")
         with patch("httpx.post", return_value=mock_response) as mock_post:
             adapter.generate(MediaRequest(prompt="test", width=1536, height=1024))
 
@@ -649,7 +689,20 @@ class TestGeminiMediaAdapter:
             with pytest.raises(LLMProviderError, match="TimeoutException"):
                 adapter.generate(MediaRequest(prompt="test"))
 
-    def test_no_predictions_in_response(self) -> None:
+    def test_no_image_in_native_response(self) -> None:
+        from openchronicle.core.domain.ports.llm_port import LLMProviderError
+        from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"candidates": [{"content": {"parts": [{"text": "no image"}]}}]}
+        mock_response.raise_for_status = MagicMock()
+
+        adapter = GeminiMediaAdapter(api_key="test-key")
+        with patch("httpx.post", return_value=mock_response):
+            with pytest.raises(LLMProviderError, match="no image data"):
+                adapter.generate(MediaRequest(prompt="test"))
+
+    def test_no_predictions_in_imagen_response(self) -> None:
         from openchronicle.core.domain.ports.llm_port import LLMProviderError
         from openchronicle.core.infrastructure.media.gemini_adapter import GeminiMediaAdapter
 
@@ -657,7 +710,7 @@ class TestGeminiMediaAdapter:
         mock_response.json.return_value = {"predictions": []}
         mock_response.raise_for_status = MagicMock()
 
-        adapter = GeminiMediaAdapter(api_key="test-key")
+        adapter = GeminiMediaAdapter(api_key="test-key", model="imagen-4.0-generate-001")
         with patch("httpx.post", return_value=mock_response):
             with pytest.raises(LLMProviderError, match="no image data"):
                 adapter.generate(MediaRequest(prompt="test"))
@@ -896,10 +949,10 @@ class TestMediaContainerWiring:
             tmp_path,
             [
                 (
-                    "gemini_imagen.json",
+                    "gemini_image.json",
                     {
                         "provider": "gemini",
-                        "model": "imagen-3.0-generate-002",
+                        "model": "gemini-2.0-flash-exp-image-generation",
                         "capabilities": {"image_generation": True},
                         "api_config": {
                             "endpoint": "https://generativelanguage.googleapis.com/v1beta",
@@ -910,7 +963,7 @@ class TestMediaContainerWiring:
         )
         with patch.dict(
             "os.environ",
-            {"OC_MEDIA_MODEL": "imagen-3.0-generate-002", "GEMINI_API_KEY": "test-key"},
+            {"OC_MEDIA_MODEL": "gemini-2.0-flash-exp-image-generation", "GEMINI_API_KEY": "test-key"},
             clear=False,
         ):
             with CoreContainer(
@@ -919,7 +972,7 @@ class TestMediaContainerWiring:
             ) as c:
                 assert c.media_port is not None
                 assert isinstance(c.media_port, GeminiMediaAdapter)
-                assert c.media_port.model_name() == "imagen-3.0-generate-002"
+                assert c.media_port.model_name() == "gemini-2.0-flash-exp-image-generation"
 
     def test_media_port_unknown_model_graceful(self, tmp_path: Path) -> None:
         """Unknown model name results in media_port = None (graceful degradation)."""

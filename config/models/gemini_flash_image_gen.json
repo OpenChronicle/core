@@ -1,9 +1,9 @@
 {
   "provider": "gemini",
-  "model": "imagen-3.0-generate-002",
+  "model": "gemini-2.0-flash-exp-image-generation",
   "type": "media",
-  "display_name": "Google Imagen 3",
-  "description": "Google Imagen 3 image generation via Gemini API",
+  "display_name": "Gemini 2.0 Flash Image Generation",
+  "description": "Gemini native image generation (experimental, generateContent API)",
   "capabilities": {
     "image_generation": true
   },
