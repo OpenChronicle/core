@@ -5,11 +5,13 @@ For the full plugin development guide, see [PLUGINS.md](../architecture/PLUGINS.
 
 ## Structure
 
-Plugins live under the top-level plugins/ directory. Each plugin must be a package with **init**.py and a plugin.py entrypoint:
+Plugins live in the [plugins repository](https://github.com/OpenChronicle/plugins)
+and are deployed into core's plugin directory (`OC_PLUGIN_DIR`, default `plugins/`)
+via symlink or copy. Each plugin must be a package with `__init__.py` and a `plugin.py` entrypoint:
 
 ```text
-plugins/
-  hello_plugin/
+<plugin_dir>/
+  my_plugin/
     __init__.py
     plugin.py
 ```

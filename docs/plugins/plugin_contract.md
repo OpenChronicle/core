@@ -6,7 +6,7 @@
 
 ## Core promises
 
-- Plugin loader discovers packages under plugins/ with **init**.py and plugin.py.
+- Plugin loader discovers packages under the plugin directory (`OC_PLUGIN_DIR`, default `plugins/`) with `__init__.py` and `plugin.py`.
 - Handlers are registered by name using the TaskHandlerRegistry (handlers may be named namespace.action).
 - Plugin execution uses task_type = plugin.invoke with payload { "handler": "namespace.action", "input": { ... } }.
 - Dotted task_type strings (for example, hello.echo) are invalid and return INVALID_TASK_TYPE.

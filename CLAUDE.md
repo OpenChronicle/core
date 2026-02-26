@@ -140,7 +140,7 @@ for the full directory tree and layer descriptions.
 - **Ports**: Abstract interfaces in `domain/ports/` that infrastructure implements
 - **Event Model**: Hash-chained events for tamper-evident task timelines (`prev_hash` -> `hash`)
 - **Task Handlers**: Async functions registered by handler name (e.g., `hello.echo`, `story.draft`)
-- **Plugins**: Discovered from `plugins/` directory, loaded via `importlib.util`
+- **Plugins**: Loaded from `OC_PLUGIN_DIR` (default `plugins/`), via `importlib.util`. Plugin development happens in [openchronicle/plugins](https://github.com/OpenChronicle/plugins); deploy by symlink/copy into core's plugin dir
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)

@@ -78,9 +78,9 @@ src/openchronicle/
     │       └── system.py        # /api/v1/health, /api/v1/stats
     └── serializers.py           # Shared dict serializers (MCP + API)
 
-plugins/
-├── hello_plugin/                # Minimal example plugin
-└── storytelling/                # Story generation plugin with domain/application layers
+plugins/                             # OC_PLUGIN_DIR — deploy plugins here (symlink or copy)
+├── hello_plugin/                # Bundled example: minimal plugin
+└── storytelling/                # Bundled example: story generation with domain/application layers
 ```
 
 ## Key Components
@@ -178,7 +178,9 @@ Outbound LLM requests pass through a privacy gate that:
 
 ## Plugin System
 
-Plugins are discovered from `plugins/` directory:
+Plugins live in a [separate repository](https://github.com/OpenChronicle/plugins)
+and are loaded from the plugin directory (`OC_PLUGIN_DIR`, default `plugins/`).
+Core ships with example plugins for development reference.
 
 1. Each plugin exports `register(registry)` function
 2. Handlers use `namespace.action` naming (e.g., `hello.echo`, `story.draft`)

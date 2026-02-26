@@ -674,7 +674,7 @@ is an optional bolt-on — they need the same level of access as core services.
 | Feature needs... | Lives in... | Examples |
 | ------------------ | ------------- | ---------- |
 | Persistent state, lifecycle, service access, or LLM orchestration | Core (`application/` or `interfaces/`) | Scheduler, Discord, MCP server, HTTP API, Dev Agent Runner, MoE Mode |
-| Stateless input→output processing | Plugin (`plugins/`) | Story generation, analysis, formatting, security scan |
+| Stateless input→output processing | Plugin ([openchronicle/plugins](https://github.com/OpenChronicle/plugins)) | Story generation, analysis, formatting, security scan |
 | External process composing via MCP or RPC | External client | Goose, VS Code, Claude Desktop, CI integrations |
 
 **Action:** Build scheduler in `application/services/`, Discord driver in

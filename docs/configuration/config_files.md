@@ -21,7 +21,7 @@ Dataclass defaults  →  JSON config file  →  Environment variable
 config/
   core.json         # All runtime settings (routing, budget, privacy, etc.)
   models/           # Per-model JSON configs (provider, limits, capabilities)
-plugins/            # Plugin code + optional per-plugin JSON configs
+plugins/            # OC_PLUGIN_DIR — plugin code + optional per-plugin JSON configs
 ```
 
 Run `oc init-config` to generate `core.json` and example model configs.

@@ -4,14 +4,18 @@
 > [Plugin Contract](../plugins/plugin_contract.md) |
 > [Plugin Quickstart](../plugins/plugin_quickstart.md)
 
-OpenChronicle v2 uses a file-based plugin system that allows contributors to extend functionality by adding plugins to the `plugins/` directory.
+OpenChronicle v2 uses a file-based plugin system. Plugins live in a
+[separate repository](https://github.com/OpenChronicle/plugins) and are
+deployed into core's plugin directory via symlink, copy, or by setting
+`OC_PLUGIN_DIR`. Core ships with example plugins (`hello_plugin`,
+`storytelling`) for development reference.
 
 ## Plugin Structure
 
-Plugins live in the root-level `plugins/` directory. Each plugin must follow this structure:
+Each plugin must follow this structure:
 
 ```text
-plugins/
+<plugin_dir>/
   <plugin_name>/
     __init__.py     # Required: makes the plugin a Python package
     plugin.py       # Required: contains register() function
@@ -45,7 +49,7 @@ def register(
 
 The `PluginLoader` automatically discovers and loads plugins:
 
-1. **Discovery**: Scans the `plugins/` directory for subdirectories containing `plugin.py`
+1. **Discovery**: Scans the plugin directory (`OC_PLUGIN_DIR`, default `plugins/`) for subdirectories containing `plugin.py`
 2. **Loading**: Loads each plugin module by **file path** using `importlib.util` (NOT by import path)
 3. **Registration**: Calls the plugin's `register()` function to register handlers and capabilities
 4. **Error Handling**: Plugin load failures are logged but don't crash the system
@@ -70,7 +74,8 @@ By default, the plugin system prevents handler name collisions:
 
 To add a new plugin:
 
-1. Create a directory under `plugins/`:
+1. Create a directory in the plugin directory (or in the
+   [plugins repo](https://github.com/OpenChronicle/plugins)):
 
    ```bash
    mkdir plugins/my_plugin
@@ -135,7 +140,7 @@ async def my_handler(task: Task, context: dict[str, Any] | None = None) -> dict[
 
 ## Example: Storytelling Plugin
 
-The built-in `storytelling` plugin demonstrates the plugin structure:
+The bundled `storytelling` example plugin demonstrates the plugin structure:
 
 ```text
 plugins/
