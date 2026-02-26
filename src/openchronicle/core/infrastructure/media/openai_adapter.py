@@ -30,7 +30,12 @@ _SIZE_MAP: dict[tuple[int, int], str] = {
 
 
 def _resolve_size(width: int | None, height: int | None) -> str:
-    """Map width/height to the closest supported OpenAI size string."""
+    """Map width/height to a size string for OpenAI-compatible endpoints.
+
+    Standard OpenAI sizes are returned from the lookup table.
+    Non-standard sizes (e.g. for sd.cpp or other local servers) are
+    passed through as ``"WxH"`` so the server can honour them directly.
+    """
     if width is None and height is None:
         return "auto"
     w = width or 1024
@@ -38,8 +43,7 @@ def _resolve_size(width: int | None, height: int | None) -> str:
     key = (w, h)
     if key in _SIZE_MAP:
         return _SIZE_MAP[key]
-    # Fall back to "auto" and let the API decide
-    return "auto"
+    return f"{w}x{h}"
 
 
 class OpenAIMediaAdapter(MediaGenerationPort):
