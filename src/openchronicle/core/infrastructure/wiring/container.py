@@ -184,6 +184,15 @@ class CoreContainer:
                 config_loader=load_plugin_config,
             )
             self.plugin_loader.load_plugins()
+            self.asset_file_storage = AssetFileStorage(base_dir=str(self.paths.assets_dir))
+
+            # Embedding service (optional — hybrid memory search)
+            # Constructed before orchestrator so it can be injected into handler context
+            self.embedding_port: EmbeddingPort | None = self._build_embedding_port()
+            self.embedding_service: EmbeddingService | None = (
+                EmbeddingService(self.embedding_port, self.storage) if self.embedding_port is not None else None
+            )
+
             self.orchestrator = OrchestratorService(
                 storage=self.storage,
                 llm=self.llm,
@@ -193,19 +202,13 @@ class CoreContainer:
                 rate_limiter=rate_limiter,
                 retry_policy=retry_policy,
                 router=router_policy,
+                embedding_service=self.embedding_service,
+                plugin_configs=self.plugin_loader.plugin_configs(),
             )
             self.scheduler = SchedulerService(
                 storage=self.storage,
                 submit_task=self.orchestrator.submit_task,
                 emit_event=self.event_logger.append,
-            )
-
-            self.asset_file_storage = AssetFileStorage(base_dir=str(self.paths.assets_dir))
-
-            # Embedding service (optional — hybrid memory search)
-            self.embedding_port: EmbeddingPort | None = self._build_embedding_port()
-            self.embedding_service: EmbeddingService | None = (
-                EmbeddingService(self.embedding_port, self.storage) if self.embedding_port is not None else None
             )
 
             # Media generation service (optional)

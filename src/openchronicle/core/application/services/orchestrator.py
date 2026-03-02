@@ -21,6 +21,7 @@ from openchronicle.core.application.policies.retry_policy import RetryAttempt, R
 from openchronicle.core.application.routing.fallback_executor import FallbackExecutor
 from openchronicle.core.application.routing.router_policy import RouteDecision, RouterPolicy
 from openchronicle.core.application.runtime.task_registry import TaskHandlerRegistry
+from openchronicle.core.application.services.embedding_service import EmbeddingService
 from openchronicle.core.application.services.llm_execution import execute_with_explicit_provider
 from openchronicle.core.domain.errors.error_codes import TASK_NOT_FOUND
 from openchronicle.core.domain.exceptions import BudgetExceededError, NotFoundError
@@ -62,6 +63,8 @@ class OrchestratorService:
         rate_limiter: RateLimiter | None = None,
         retry_policy: RetryPolicy | None = None,
         router: RouterPolicy | None = None,
+        embedding_service: EmbeddingService | None = None,
+        plugin_configs: dict[str, dict[str, Any]] | None = None,
     ) -> None:
         self.storage = storage
         self.llm = llm
@@ -69,6 +72,8 @@ class OrchestratorService:
         self.handler_registry = handler_registry
         self.emit_event = emit_event
         self.usage_tracker = UsageTracker(storage)
+        self._embedding_service = embedding_service
+        self._plugin_configs: dict[str, dict[str, Any]] = plugin_configs or {}
 
         if rate_limiter is not None:
             self.rate_limiter = rate_limiter
@@ -889,6 +894,118 @@ class OrchestratorService:
 
         return os.getenv("OPENAI_MODEL") or cast(str, getattr(self.llm, "model", "gpt-4o-mini"))
 
+    def _build_handler_context(
+        self,
+        task: Task,
+        agent_id: str | None,
+        attempt_id: str,
+        handler_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Build enriched context dict for plugin handler invocation."""
+        from typing import cast
+
+        from openchronicle.core.application.use_cases import add_memory as add_memory_uc
+        from openchronicle.core.application.use_cases import search_memory as search_memory_uc
+        from openchronicle.core.application.use_cases import update_memory as update_memory_uc
+        from openchronicle.core.domain.models.memory_item import MemoryItem
+        from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
+        from openchronicle.core.domain.time_utils import utc_now
+
+        memory_store = cast(MemoryStorePort, self.storage)
+
+        ctx: dict[str, Any] = {
+            "agent_id": agent_id,
+            "attempt_id": attempt_id,
+            "emit_event": self.emit_event,
+        }
+
+        # --- Memory closures (pre-bound to project, store, embedding) ---
+        project_id = task.project_id
+
+        def memory_save(
+            content: str,
+            tags: list[str] | None = None,
+            pinned: bool = False,
+        ) -> MemoryItem:
+            item = MemoryItem(
+                id=str(uuid4()),
+                content=content,
+                tags=tags or [],
+                pinned=pinned,
+                project_id=project_id,
+                source="plugin",
+                created_at=utc_now(),
+            )
+            return add_memory_uc.execute(
+                memory_store,
+                self.emit_event,
+                item,
+                embedding_service=self._embedding_service,
+            )
+
+        def memory_search(
+            query: str,
+            top_k: int = 8,
+            tags: list[str] | None = None,
+        ) -> list[MemoryItem]:
+            return search_memory_uc.execute(
+                memory_store,
+                query,
+                top_k=top_k,
+                project_id=project_id,
+                tags=tags,
+                embedding_service=self._embedding_service,
+            )
+
+        def memory_update(
+            memory_id: str,
+            content: str | None = None,
+            tags: list[str] | None = None,
+        ) -> MemoryItem:
+            return update_memory_uc.execute(
+                memory_store,
+                self.emit_event,
+                memory_id,
+                content=content,
+                tags=tags,
+                embedding_service=self._embedding_service,
+            )
+
+        ctx["memory_save"] = memory_save
+        ctx["memory_search"] = memory_search
+        ctx["memory_update"] = memory_update
+
+        # --- LLM closure (auto-routed) ---
+        async def llm_complete(
+            messages: list[dict[str, Any]],
+            max_output_tokens: int | None = None,
+            temperature: float | None = None,
+        ) -> LLMResponse:
+            route = self.router.route(
+                task_type=task.type,
+                agent_role="worker",
+            )
+            return await execute_with_explicit_provider(
+                self.llm,
+                provider=route.provider,
+                model=route.model,
+                messages=messages,
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+            )
+
+        ctx["llm_complete"] = llm_complete
+
+        # --- Plugin config ---
+        plugin_config: dict[str, Any] = {}
+        if handler_name:
+            source = self.handler_registry.get_source(handler_name)
+            if source:
+                plugin_config = self._plugin_configs.get(source, {})
+        ctx["plugin_config"] = plugin_config
+
+        return ctx
+
     async def _dispatch_task(self, task: Task, agent_id: str | None, attempt_id: str) -> Any:
         builtin_handler = self._builtin_handlers.get(task.type)
         if builtin_handler is not None:
@@ -918,16 +1035,13 @@ class OrchestratorService:
                 created_at=task.created_at,
                 updated_at=task.updated_at,
             )
-            return await registry_handler(
-                invoke_task,
-                {"agent_id": agent_id, "attempt_id": attempt_id, "emit_event": self.emit_event},
-            )
+            ctx = self._build_handler_context(task, agent_id, attempt_id, handler_name=handler_name)
+            return await registry_handler(invoke_task, ctx)
 
         registry_handler = self.handler_registry.get(task.type)
         if registry_handler is not None:
-            return await registry_handler(
-                task, {"agent_id": agent_id, "attempt_id": attempt_id, "emit_event": self.emit_event}
-            )
+            ctx = self._build_handler_context(task, agent_id, attempt_id, handler_name=task.type)
+            return await registry_handler(task, ctx)
 
         # No handler registered for this task type
         raise NotFoundError(f"No handler registered for task type: {task.type}")

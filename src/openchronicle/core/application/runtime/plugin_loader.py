@@ -75,6 +75,7 @@ class PluginLoader:
         self.handler_registry = handler_registry or TaskHandlerRegistry(check_collisions=not self.allow_collisions)
         self._config_loader: PluginConfigLoaderPort = config_loader or (lambda _dir, _name: {})
         self._plugin_sources: dict[str, str] = {}  # plugin_name -> source_path
+        self._plugin_configs: dict[str, dict[str, Any]] = {}  # plugin_name -> config
 
     def _find_repo_root(self) -> Path:
         """Find repository root by walking up until pyproject.toml is found."""
@@ -135,6 +136,7 @@ class PluginLoader:
             plugin_cfg = self._config_loader(plugins_root, plugin_name)
             if plugin_cfg:
                 plugin_context["config"] = plugin_cfg
+                self._plugin_configs[plugin_name] = plugin_cfg
 
             self._load_plugin(plugin_name, plugin_dir, init_file, plugin_file, plugin_context or None)
 
@@ -217,3 +219,7 @@ class PluginLoader:
 
     def handler_registry_instance(self) -> TaskHandlerRegistry:
         return self.handler_registry
+
+    def plugin_configs(self) -> dict[str, dict[str, Any]]:
+        """Return a copy of the plugin name -> config mapping."""
+        return dict(self._plugin_configs)

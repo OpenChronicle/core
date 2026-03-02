@@ -59,3 +59,7 @@ class TaskHandlerRegistry:
 
     def list_task_types(self) -> list[str]:
         return sorted(self._handlers.keys())
+
+    def get_source(self, handler_name: str) -> str | None:
+        """Return the plugin name that registered this handler, or None."""
+        return self._handler_sources.get(handler_name)

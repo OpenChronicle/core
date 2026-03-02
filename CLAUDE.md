@@ -19,7 +19,10 @@ scheduler and Discord are core features, not plugins (Decision #4 in assessment)
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
 **Next action:** Multimodal conversation input (vision via asset system) or Phase 5
-IDE automation hooks. Media generation is done (`MediaGenerationPort` with 5 adapters:
+IDE automation hooks. Enriched plugin handler context is done (pre-bound `memory_save`,
+`memory_search`, `memory_update`, `llm_complete`, `plugin_config` closures in handler
+context dict; 4 files changed, 9 tests; Plex + Plaid connector design docs in plugins repo).
+Media generation is done (`MediaGenerationPort` with 5 adapters:
 stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine; unified model
 config with `image_generation` capability tag; `OC_MEDIA_MODEL` derives provider; 69 tests).
 Ollama CLI is done (`oc ollama list|show|add|remove|sync`, capability inference from

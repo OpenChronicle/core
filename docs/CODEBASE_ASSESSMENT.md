@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-02-25
+**Date:** 2026-03-02
 **Branch:** `main`
-**Revision:** 40 (Ollama CLI — model discovery, config management, sync)
+**Revision:** 41 (Enriched plugin handler context — memory, LLM, config closures)
 
 ---
 
@@ -20,7 +20,7 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,495 unit/functional, 22 real-world integration, 14 Discord
+Tests are strong (1,504 unit/functional, 22 real-world integration, 14 Discord
 integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
@@ -235,7 +235,7 @@ validates against live providers (OpenAI, Anthropic).
 | **HTTP API interface** (FastAPI, always-on daemon, 32 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51+ tests |
 | **Media generation** (5 adapters, unified model config) | Working | `MediaGenerationPort` ABC, stub/Ollama/OpenAI/Gemini/xAI adapters, `image_generation` capability tag in `config/models/`, `OC_MEDIA_MODEL` derives provider from config, asset storage + SHA-256 dedup, CLI/MCP/API interfaces, 69 tests |
 | **Ollama CLI** (model discovery, config management) | Working | `oc ollama list\|show\|add\|remove\|sync`, `OllamaService` talks to Ollama HTTP API (`/api/tags`, `/api/show`), capability inference (vision/diffusion/tools), operates against resolved config dir (`RuntimePaths`), 32 tests |
-| **Test suite** (1495 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **Test suite** (1504 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -574,6 +574,12 @@ historical context and a feature roadmap for the plugin phase.
 A plugin-readiness audit (2026-02-13) identified that the plugin system works for
 stateless task handlers but cannot support stateful, long-running, or
 service-dependent features. See Decision #4 below for the architectural response.
+Enriched plugin handler context (2026-03-02) addresses the stateful gap for
+connector-style plugins: handlers now receive pre-bound `memory_save`,
+`memory_search`, `memory_update`, `llm_complete`, and `plugin_config` closures
+in their context dict. Plugins never import core internals — all capabilities
+are injected at invocation time. Design docs for Plex and Plaid connectors
+are in the plugins repo.
 
 ```text
 Core Done
