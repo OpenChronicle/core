@@ -46,7 +46,7 @@ class OpenAIEmbeddingAdapter(EmbeddingPort):
                 error_code=MISSING_PACKAGE,
                 hint="Install with: pip install -e '.[openai]'",
             ) from exc
-        kwargs: dict[str, object] = {}
+        kwargs: dict[str, Any] = {}
         if self._api_key:
             kwargs["api_key"] = self._api_key
         if self._base_url:

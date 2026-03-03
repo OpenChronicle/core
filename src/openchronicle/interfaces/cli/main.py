@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
+import sys
+from pathlib import Path
+from types import ModuleType
 
+from openchronicle.core.application.config.paths import RuntimePaths
 from openchronicle.core.application.use_cases import convo_mode
 from openchronicle.core.domain.ports.llm_port import LLMProviderError
 from openchronicle.core.infrastructure.wiring.container import CoreContainer
@@ -49,6 +54,94 @@ def _build_container(args: argparse.Namespace) -> CoreContainer | None:
             os.environ["OC_LLM_PROVIDER"] = original_provider
 
     return container
+
+
+def _discover_plugin_cli_commands(
+    sub: argparse._SubParsersAction,
+    core_commands: set[str],
+) -> dict[str, ModuleType]:
+    """Scan the plugin directory for plugins that provide CLI commands.
+
+    Each plugin with CLI commands provides ``{plugin_dir}/{name}/cli.py``
+    exporting: ``COMMAND`` (str), ``setup_parser(sub)`` (callable),
+    ``run(args, container)`` (callable).
+
+    Returns a dict mapping command names to loaded modules.
+    """
+    plugin_dir = Path(RuntimePaths.resolve().plugin_dir)
+    result: dict[str, ModuleType] = {}
+
+    if not plugin_dir.is_dir():
+        return result
+
+    for candidate in sorted(plugin_dir.iterdir()):
+        cli_file = candidate / "cli.py"
+        if not candidate.is_dir() or not cli_file.is_file():
+            continue
+
+        module_name = f"oc_plugins.{candidate.name}.cli"
+
+        # Load the module
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, cli_file)
+            if spec is None or spec.loader is None:
+                print(f"Warning: could not create spec for {cli_file}", file=sys.stderr)
+                continue
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
+        except Exception as exc:  # noqa: BLE001
+            print(f"Warning: failed to load plugin CLI {cli_file}: {exc}", file=sys.stderr)
+            sys.modules.pop(module_name, None)
+            continue
+
+        # Validate protocol attributes
+        command = getattr(module, "COMMAND", None)
+        if not isinstance(command, str) or not command:
+            print(f"Warning: {cli_file} missing or invalid COMMAND attribute, skipping", file=sys.stderr)
+            sys.modules.pop(module_name, None)
+            continue
+
+        setup_fn = getattr(module, "setup_parser", None)
+        run_fn = getattr(module, "run", None)
+        if not callable(setup_fn):
+            print(f"Warning: {cli_file} missing setup_parser() callable, skipping", file=sys.stderr)
+            sys.modules.pop(module_name, None)
+            continue
+        if not callable(run_fn):
+            print(f"Warning: {cli_file} missing run() callable, skipping", file=sys.stderr)
+            sys.modules.pop(module_name, None)
+            continue
+
+        # Collision detection: core commands
+        if command in core_commands:
+            print(
+                f"Warning: plugin {candidate.name} CLI command '{command}' collides with a core command, skipping",
+                file=sys.stderr,
+            )
+            sys.modules.pop(module_name, None)
+            continue
+
+        # Collision detection: another plugin
+        if command in result:
+            print(
+                f"Warning: plugin {candidate.name} CLI command '{command}' collides with another plugin, skipping",
+                file=sys.stderr,
+            )
+            sys.modules.pop(module_name, None)
+            continue
+
+        # Register argparse subcommands
+        try:
+            setup_fn(sub)
+        except Exception as exc:  # noqa: BLE001
+            print(f"Warning: {cli_file} setup_parser() failed: {exc}", file=sys.stderr)
+            sys.modules.pop(module_name, None)
+            continue
+
+        result[command] = module
+
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -551,6 +644,10 @@ def main(argv: list[str] | None = None) -> int:
     chat_cmd.add_argument("--no-stream", dest="no_stream", action="store_true", help="Disable streaming output")
     chat_cmd.add_argument("--moe", action="store_true", help="Use Mixture-of-Experts consensus mode")
 
+    # --- Plugin CLI commands (discovered dynamically) ---
+    _all_core_commands = set(COMMANDS) | set(PRE_CONTAINER_COMMANDS)
+    plugin_cli_commands = _discover_plugin_cli_commands(sub, _all_core_commands)
+
     # --- Parse ---
     args = parser.parse_args(argv)
 
@@ -567,7 +664,12 @@ def main(argv: list[str] | None = None) -> int:
     if container is None:
         return 1
 
-    # Dispatch
+    # Plugin CLI dispatch
+    plugin_module = plugin_cli_commands.get(args.command)
+    if plugin_module is not None:
+        return int(plugin_module.run(args, container))
+
+    # Core dispatch
     handler = COMMANDS.get(args.command)
     if handler is None:
         parser.print_help()

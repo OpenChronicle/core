@@ -2,7 +2,8 @@
 
 > **Related Plugin Documentation:**
 > [Plugin Contract](../plugins/plugin_contract.md) |
-> [Plugin Quickstart](../plugins/plugin_quickstart.md)
+> [Plugin Quickstart](../plugins/plugin_quickstart.md) |
+> [Connector Plugins](../plugins/connector_plugins.md)
 
 OpenChronicle v2 uses a file-based plugin system. Plugins live in a
 [separate repository](https://github.com/OpenChronicle/plugins) and are
