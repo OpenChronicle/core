@@ -175,21 +175,23 @@ depend on. They should be built before the features that need them.
 
 ### Output Manager
 
-**Status:** 🔴 Not Started
+**Status:** ✅ Implemented
 **Effort:** Small
 **Blocks:** Security Scanner, Dev Agent Runner, export bundles
 
-Expose `OC_OUTPUT_DIR` through a proper core service for structured file
-output with timestamps and lifecycle management.
+Structured file output with timestamps and lifecycle management.
 
-**Requirements:**
+**Implemented:**
 
-- [ ] `application/services/output_manager.py` — core service
-- [ ] `save_report(report_type, data) → path` — timestamped JSON output
-- [ ] `list_outputs(report_type) → list` — enumerate outputs
-- [ ] `latest_output(report_type) → path | None` — "latest" pointer
-- [ ] `cleanup(max_age_days) → int` — garbage collection
-- [ ] Config: `OC_OUTPUT_DIR` env var (existing, currently unused)
+- [x] `application/services/output_manager.py` — core service
+- [x] `save_report(report_type, data) → path` — timestamped JSON output
+- [x] `list_outputs(report_type) → list` — enumerate outputs (newest first)
+- [x] `latest_output(report_type) → path | None` — "latest" pointer
+- [x] `cleanup(max_age_days) → int` — garbage collection
+- [x] Config: `OC_OUTPUT_DIR` env var (wired via `RuntimePaths`)
+- [x] CLI: `oc output save|list|latest|cleanup`
+- [x] Path traversal validation on report_type
+- [x] 14 tests
 
 ### Controlled Shell Execution
 

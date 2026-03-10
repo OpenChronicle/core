@@ -600,6 +600,25 @@ def main(argv: list[str] | None = None) -> int:
     media_gen_cmd.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     media_gen_cmd.add_argument("--steps", type=int, default=None, help="Number of diffusion steps")
 
+    # --- Output commands ---
+    output_cmd = sub.add_parser("output", help="Structured output management commands")
+    output_sub = output_cmd.add_subparsers(dest="output_command")
+
+    output_save_cmd = output_sub.add_parser("save", help="Save a JSON report")
+    output_save_cmd.add_argument("report_type", help="Report type identifier")
+    output_save_cmd.add_argument("data", help="JSON data to save")
+
+    output_list_cmd = output_sub.add_parser("list", help="List output files for a report type")
+    output_list_cmd.add_argument("report_type", help="Report type identifier")
+
+    output_latest_cmd = output_sub.add_parser("latest", help="Show latest output for a report type")
+    output_latest_cmd.add_argument("report_type", help="Report type identifier")
+
+    output_cleanup_cmd = output_sub.add_parser("cleanup", help="Delete old output files")
+    output_cleanup_cmd.add_argument(
+        "--max-age-days", dest="max_age_days", type=int, required=True, help="Max age in days"
+    )
+
     # --- Webhook commands ---
     webhook_cmd = sub.add_parser("webhook", help="Webhook subscription commands")
     webhook_sub = webhook_cmd.add_subparsers(dest="webhook_command")

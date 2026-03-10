@@ -24,6 +24,7 @@ from . import (
     memory,
     ollama,
     onboard,
+    output,
     project,
     scheduler,
     system,
@@ -85,6 +86,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace, CoreContainer], int]] = {
     "media": media.cmd_media,
     # Ollama
     "ollama": ollama.cmd_ollama,
+    # Output
+    "output": output.cmd_output,
     # Webhook
     "webhook": webhook_cmd.cmd_webhook,
     # Chat

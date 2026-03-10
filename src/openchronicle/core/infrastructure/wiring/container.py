@@ -26,6 +26,7 @@ from openchronicle.core.application.runtime.task_registry import TaskHandlerRegi
 from openchronicle.core.application.services.asset_storage import AssetFileStorage
 from openchronicle.core.application.services.embedding_service import EmbeddingService
 from openchronicle.core.application.services.orchestrator import OrchestratorService
+from openchronicle.core.application.services.output_manager import OutputManager
 from openchronicle.core.application.services.scheduler import SchedulerService
 from openchronicle.core.application.services.webhook_dispatcher import WebhookDispatcher
 from openchronicle.core.application.services.webhook_service import WebhookService
@@ -185,6 +186,7 @@ class CoreContainer:
             )
             self.plugin_loader.load_plugins()
             self.asset_file_storage = AssetFileStorage(base_dir=str(self.paths.assets_dir))
+            self.output_manager = OutputManager(base_dir=str(output_dir_resolved))
 
             # Embedding service (optional — hybrid memory search)
             # Constructed before orchestrator so it can be injected into handler context
