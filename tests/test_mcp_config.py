@@ -57,7 +57,7 @@ class TestMCPConfigValidation:
             MCPConfig.from_env(file_config={"transport": "websocket"})
 
     def test_valid_transports(self) -> None:
-        for transport in ("stdio", "sse"):
+        for transport in ("stdio", "sse", "streamable-http"):
             config = MCPConfig.from_env(file_config={"transport": transport})
             assert config.transport == transport
 

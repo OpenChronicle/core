@@ -454,10 +454,13 @@ def main(argv: list[str] | None = None) -> int:
     mcp_sub = mcp_cmd.add_subparsers(dest="mcp_command")
     mcp_serve = mcp_sub.add_parser("serve", help="Start the MCP server")
     mcp_serve.add_argument(
-        "--transport", choices=["stdio", "sse"], default=None, help="Transport protocol (default: stdio)"
+        "--transport",
+        choices=["stdio", "sse", "streamable-http"],
+        default=None,
+        help="Transport protocol (default: stdio)",
     )
-    mcp_serve.add_argument("--host", default=None, help="Bind address for SSE transport (default: 127.0.0.1)")
-    mcp_serve.add_argument("--port", type=int, default=None, help="Port for SSE transport (default: 8080)")
+    mcp_serve.add_argument("--host", default=None, help="Bind address for SSE/HTTP transport (default: 127.0.0.1)")
+    mcp_serve.add_argument("--port", type=int, default=None, help="Port for SSE/HTTP transport (default: 8080)")
     mcp_serve.add_argument(
         "--config-dir",
         default=None,

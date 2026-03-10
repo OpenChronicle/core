@@ -523,14 +523,14 @@ Start the MCP server. Exposes OC's memory and conversation capabilities to any
 MCP-compatible client (Goose, Claude Desktop, VS Code).
 
 ```text
-oc mcp serve [--transport {stdio,sse}] [--host HOST] [--port PORT]
+oc mcp serve [--transport {stdio,sse,streamable-http}] [--host HOST] [--port PORT]
 ```
 
 | Flag | Description |
 | ------ | ------------- |
-| `--transport` | Transport protocol: `stdio` (default) or `sse` |
-| `--host` | Bind address for SSE transport (default: `127.0.0.1`) |
-| `--port` | Port for SSE transport (default: `8080`) |
+| `--transport` | Transport protocol: `stdio` (default), `sse`, or `streamable-http` |
+| `--host` | Bind address for SSE/HTTP transport (default: `127.0.0.1`) |
+| `--port` | Port for SSE/HTTP transport (default: `8080`) |
 
 Requires the `[mcp]` extra: `pip install -e ".[mcp]"`.
 

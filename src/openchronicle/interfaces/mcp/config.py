@@ -14,12 +14,12 @@ class MCPConfig:
     Three-layer precedence: env var > file config (core.json mcp section) > default.
 
     Env vars:
-        OC_MCP_TRANSPORT — "stdio" or "sse" (default: "stdio")
-        OC_MCP_HOST — bind address for SSE transport (default: "127.0.0.1")
-        OC_MCP_PORT — port for SSE transport (default: 8080)
+        OC_MCP_TRANSPORT — "stdio", "sse", or "streamable-http" (default: "stdio")
+        OC_MCP_HOST — bind address for SSE/HTTP transport (default: "127.0.0.1")
+        OC_MCP_PORT — port for SSE/HTTP transport (default: 8080)
     """
 
-    transport: Literal["stdio", "sse"] = "stdio"
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
     host: str = "127.0.0.1"
     port: int = 8080
     server_name: str = "openchronicle"
@@ -30,8 +30,8 @@ class MCPConfig:
         fc = file_config or {}
 
         transport = os.environ.get("OC_MCP_TRANSPORT", "").strip() or _str_or_default(fc.get("transport"), "stdio")
-        if transport not in ("stdio", "sse"):
-            raise ValueError(f"Invalid MCP transport: {transport!r}. Must be 'stdio' or 'sse'.")
+        if transport not in ("stdio", "sse", "streamable-http"):
+            raise ValueError(f"Invalid MCP transport: {transport!r}. Must be 'stdio', 'sse', or 'streamable-http'.")
 
         host = os.environ.get("OC_MCP_HOST", "").strip() or _str_or_default(fc.get("host"), "127.0.0.1")
 
@@ -46,7 +46,12 @@ class MCPConfig:
 
         server_name = _str_or_default(fc.get("server_name"), "openchronicle")
 
-        return cls(transport=cast(Literal["stdio", "sse"], transport), host=host, port=port, server_name=server_name)
+        return cls(
+            transport=cast(Literal["stdio", "sse", "streamable-http"], transport),
+            host=host,
+            port=port,
+            server_name=server_name,
+        )
 
 
 def _str_or_default(value: object, default: str) -> str:

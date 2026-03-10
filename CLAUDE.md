@@ -30,6 +30,9 @@ Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
 HTTP API is done (`interfaces/api/`, FastAPI, 31 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51+ tests, auto-starts with `oc serve`).
+OpenAI-compatible API layer is done (`interfaces/api/routes/openai_compat.py`,
+`GET /v1/models` + `POST /v1/chat/completions` with streaming, model routing via
+`provider/model` format, 29 tests).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
 MCP server is done (`interfaces/mcp/`, 30 tools, 37 tests + 7 posture, `oc mcp serve`
@@ -163,7 +166,8 @@ for the full directory tree and layer descriptions.
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
 - **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 31 tools, FastMCP)
-- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 33 REST endpoints, auto-starts with `oc serve`)
+- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 35 REST endpoints, auto-starts with `oc serve`)
+- **OpenAI Compat**: `interfaces/api/routes/openai_compat.py` — `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients
 - **MoE Execution**: `application/services/moe_execution.py` — Mixture-of-Experts consensus strategy (`--moe` flag)
 - **Asset Management**: `domain/models/asset.py` + `application/services/asset_storage.py` — filesystem storage, SHA-256 dedup, generic entity linking
 - **Embedding Service**: `application/services/embedding_service.py` — hybrid FTS5+cosine search via RRF, `EmbeddingPort` (stub/OpenAI/Ollama adapters), `OC_EMBEDDING_PROVIDER` env var

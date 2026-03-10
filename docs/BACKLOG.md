@@ -84,8 +84,10 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
   optional `[discord]` extra (`interfaces/discord/`)
 - **MCP Server** — 31 tools, stdio + SSE transports, 44 tests, optional
   `[mcp]` extra (`interfaces/mcp/`)
-- **HTTP API** — FastAPI, 33 REST endpoints, API key auth, rate limiting,
+- **HTTP API** — FastAPI, 35 REST endpoints, API key auth, rate limiting,
   CORS, 54+ tests (`interfaces/api/`)
+- **OpenAI Compat Layer** — `/v1/models` + `/v1/chat/completions`
+  (streaming + non-streaming), `provider/model` routing, 29 tests
 - **Docker CI** — GitHub Actions multi-arch build, GHA cache
 
 </details>
@@ -107,7 +109,7 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 
 </details>
 
-**Totals:** 1,623 tests, 31 MCP tools, 33 REST endpoints, 11 ports, 10
+**Totals:** 1,623 tests, 31 MCP tools, 35 REST endpoints, 11 ports, 10
 services, 38 use cases, 5 interfaces.
 
 ---
