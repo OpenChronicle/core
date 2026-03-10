@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 from collections.abc import AsyncIterator
@@ -22,6 +23,8 @@ from openchronicle.core.domain.ports.llm_port import (
     ToolCall,
     ToolDefinition,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 class OllamaAdapter(LLMPort):
@@ -135,9 +138,13 @@ class OllamaAdapter(LLMPort):
                 )
             result_tool_calls = tc_list
 
-        # Ollama may not always return token usage; handle gracefully
+        # Ollama token counts (prompt_eval_count / eval_count) are model
+        # evaluation metrics, not tokenizer-based counts.  They are the
+        # best values Ollama provides but may be imprecise for strict
+        # budget tracking.
         usage_data = None
         if "prompt_eval_count" in data or "eval_count" in data:
+            _logger.debug("Ollama token counts are eval-based estimates (not tokenizer-precise)")
             usage_data = LLMUsage(
                 input_tokens=data.get("prompt_eval_count"),
                 output_tokens=data.get("eval_count"),
@@ -226,6 +233,7 @@ class OllamaAdapter(LLMPort):
                     text = data.get("message", {}).get("content", "")
                     done = data.get("done", False)
 
+                    # See complete_async for note on eval-based token estimates.
                     usage_obj: LLMUsage | None = None
                     if done and ("prompt_eval_count" in data or "eval_count" in data):
                         usage_obj = LLMUsage(

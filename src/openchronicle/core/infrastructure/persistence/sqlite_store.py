@@ -1274,9 +1274,14 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
             cur.execute(stmt)
         self._commit_if_needed()
 
-        # Idempotent backfill — re-reads all content rows from source tables.
-        cur.execute("INSERT INTO memory_fts(memory_fts) VALUES('rebuild')")
-        cur.execute("INSERT INTO turns_fts(turns_fts) VALUES('rebuild')")
+        # Only rebuild FTS indexes when they are empty.  Triggers keep
+        # them in sync after the initial population, so a full rebuild
+        # on every startup is wasteful (re-reads all content rows).
+        for fts_table in ("memory_fts", "turns_fts"):
+            (count,) = cur.execute(f"SELECT COUNT(*) FROM {fts_table}").fetchone()  # noqa: S608
+            if count == 0:
+                _logger.info("FTS5 table %s empty — rebuilding index", fts_table)
+                cur.execute(f"INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')")  # noqa: S608
         self._commit_if_needed()
         self._fts5_active = True
         _logger.info("FTS5 full-text search enabled")
