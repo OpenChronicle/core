@@ -62,48 +62,60 @@ def _should_skip_path(path: Path) -> bool:
 
 def _scan_forbidden_files() -> list[str]:
     """
-    Scan for forbidden files that should never exist in-tree or be committed.
+    Scan for forbidden files that are tracked by git.
+
+    Checks git index (not the filesystem) so that gitignored local dev
+    files like ``docker-compose.local.yml`` and ``.env.local`` don't
+    trigger false positives.
 
     Returns:
-        List of forbidden file paths found (relative to repo root)
+        List of forbidden file paths found in the git index
     """
+    import subprocess
+
     repo_root = _get_repo_root()
     violations = []
 
-    # Local override files that should NEVER exist (not even in working directory)
-    # These must always be local-only (not in any shared branch/zip)
-    local_override_files = [
+    # Get all tracked files from git index
+    result = subprocess.run(
+        ["git", "ls-files"],
+        capture_output=True,
+        text=True,
+        cwd=repo_root,
+        check=True,
+    )
+    tracked = set(result.stdout.strip().splitlines())
+
+    # Local override files that should never be committed
+    forbidden_filenames = [
         "docker-compose.local.yml",
         ".env",
         ".env.local",
     ]
-    for filename in local_override_files:
-        file_path = repo_root / filename
-        if file_path.exists():
+    for filename in forbidden_filenames:
+        if filename in tracked:
             violations.append(filename)
 
     # Other *.env files (except .env.example)
-    for env_file in repo_root.glob("*.env"):
-        if env_file.name != ".env.example":
-            violations.append(str(env_file.relative_to(repo_root)))
+    for tracked_file in tracked:
+        if tracked_file.endswith(".env") and tracked_file != ".env.example":
+            if tracked_file not in violations:
+                violations.append(tracked_file)
 
     return sorted(set(violations))
 
 
 def test_no_runtime_artifacts() -> None:
-    """Fail if local override files exist in the repository."""
+    """Fail if forbidden local override files are tracked by git."""
     violations = _scan_forbidden_files()
 
     if violations:
         msg = (
-            "Repository contains forbidden local override files:\n\n"
-            + "\n".join(f"  - {v}" for v in violations)
-            + "\n\n"
-            "These files must never be committed or shipped in-tree:\n"
-            "  - docker-compose.local.yml is for local dev only\n"
-            "  - .env and .env.local are for local dev only\n\n"
-            "Action: Delete these files. They should only exist locally.\n"
-            "Use git-ignored .env.local for local configuration."
+            "Git-tracked files that should never be committed:\n\n" + "\n".join(f"  - {v}" for v in violations) + "\n\n"
+            "These files are for local dev only and must be gitignored:\n"
+            "  - docker-compose.local.yml — local Docker overrides\n"
+            "  - .env and .env.local — local environment variables\n\n"
+            "Action: git rm --cached <file> and ensure .gitignore covers it."
         )
         raise AssertionError(msg)
 
