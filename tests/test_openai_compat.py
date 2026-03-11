@@ -501,3 +501,298 @@ class TestOpenAICompatAuth:
             headers={"Authorization": "Bearer test-secret"},
         )
         assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# V2 — Persistent endpoints (project-scoped / conversation-scoped)
+# ---------------------------------------------------------------------------
+
+
+def _make_v2_container() -> MagicMock:
+    """Build a mock container with V2-specific setup (project + conversation)."""
+    container = _make_mock_container()
+
+    from openchronicle.core.domain.models.conversation import Conversation
+    from openchronicle.core.domain.models.project import Project
+
+    project = Project(id="proj-1", name="Test Project")
+    container.storage.get_project.return_value = project
+
+    webui_convo = Conversation(
+        id="convo-webui",
+        project_id="proj-1",
+        title="Open WebUI Session",
+        mode="webui",
+    )
+    container.storage.list_conversations.return_value = [webui_convo]
+    container.storage.get_conversation.return_value = webui_convo
+
+    # assemble_context needs: list_turns, list_memory, search_memory
+    container.storage.list_turns.return_value = []
+    container.storage.list_memory.return_value = []
+    container.storage.search_memory.return_value = []
+
+    # external_turn needs: next_turn_index, add_turn, transaction
+    container.storage.next_turn_index.return_value = 0
+    container.emit_event = MagicMock()
+
+    return container
+
+
+class TestPersistentModelsEndpoints:
+    """GET /v1/p/{project_id}/models and /v1/p/{pid}/c/{cid}/models."""
+
+    def test_project_models_returns_same_as_v1(self) -> None:
+        client = _make_client()
+        v1 = client.get("/v1/models").json()
+        v2 = client.get("/v1/p/any-project/models").json()
+        assert v1 == v2
+
+    def test_conversation_models_returns_same_as_v1(self) -> None:
+        client = _make_client()
+        v1 = client.get("/v1/models").json()
+        v2 = client.get("/v1/p/any-project/c/any-convo/models").json()
+        assert v1 == v2
+
+    def test_project_models_returns_200(self) -> None:
+        client = _make_client()
+        resp = client.get("/v1/p/some-project-id/models")
+        assert resp.status_code == 200
+        assert resp.json()["object"] == "list"
+
+    def test_conversation_models_returns_200(self) -> None:
+        client = _make_client()
+        resp = client.get("/v1/p/some-project-id/c/some-convo-id/models")
+        assert resp.status_code == 200
+        assert resp.json()["object"] == "list"
+
+
+class TestAutoSessionChatCompletions:
+    """POST /v1/p/{project_id}/chat/completions — auto-session mode."""
+
+    def test_creates_webui_conversation_on_first_request(self) -> None:
+        container = _make_v2_container()
+        # No existing webui conversation
+        container.storage.list_conversations.return_value = []
+        container.llm.complete_async = AsyncMock(return_value=_stub_response())
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 200
+        container.storage.add_conversation.assert_called_once()
+
+    def test_reuses_existing_webui_conversation(self) -> None:
+        container = _make_v2_container()
+        container.llm.complete_async = AsyncMock(return_value=_stub_response())
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 200
+        container.storage.add_conversation.assert_not_called()
+
+    def test_invalid_project_returns_404(self) -> None:
+        container = _make_v2_container()
+        container.storage.get_project.return_value = None
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/nonexistent/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 404
+
+    def test_non_streaming_returns_openai_format(self) -> None:
+        container = _make_v2_container()
+        container.llm.complete_async = AsyncMock(return_value=_stub_response("Hi there"))
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        data = resp.json()
+        assert data["object"] == "chat.completion"
+        assert data["choices"][0]["message"]["content"] == "Hi there"
+
+    def test_turn_recorded_after_response(self) -> None:
+        container = _make_v2_container()
+        container.llm.complete_async = AsyncMock(return_value=_stub_response("response"))
+        client = _make_client(container)
+
+        client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={"messages": [{"role": "user", "content": "question"}]},
+        )
+        container.storage.add_turn.assert_called_once()
+
+    def test_streaming_returns_sse_format(self) -> None:
+        container = _make_v2_container()
+        chunks = [
+            StreamChunk(text="Hi", finished=False, provider="stub", model="stub-model"),
+            StreamChunk(text="", finished=True, provider="stub", model="stub-model", finish_reason="stop"),
+        ]
+
+        async def mock_stream(**kwargs: object) -> object:
+            for c in chunks:
+                yield c
+
+        container.llm.stream_async = mock_stream
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
+        )
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("text/event-stream")
+        assert "data: [DONE]" in resp.text
+
+    def test_streaming_records_turn_after_done(self) -> None:
+        container = _make_v2_container()
+        chunks = [
+            StreamChunk(text="Hello world", finished=False, provider="stub", model="stub-model"),
+            StreamChunk(text="", finished=True, provider="stub", model="stub-model", finish_reason="stop"),
+        ]
+
+        async def mock_stream(**kwargs: object) -> object:
+            for c in chunks:
+                yield c
+
+        container.llm.stream_async = mock_stream
+        client = _make_client(container)
+
+        client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
+        )
+        container.storage.add_turn.assert_called_once()
+
+    def test_extracts_last_user_message(self) -> None:
+        """When multiple messages are sent, the last user message is the prompt."""
+        container = _make_v2_container()
+        container.llm.complete_async = AsyncMock(return_value=_stub_response())
+        client = _make_client(container)
+
+        client.post(
+            "/v1/p/proj-1/chat/completions",
+            json={
+                "messages": [
+                    {"role": "system", "content": "You are helpful"},
+                    {"role": "user", "content": "first"},
+                    {"role": "assistant", "content": "sure"},
+                    {"role": "user", "content": "second"},
+                ],
+            },
+        )
+        # The turn recorded should use "second" as user_text
+        turn_args = container.storage.add_turn.call_args[0][0]
+        assert turn_args.user_text == "second"
+
+
+class TestExplicitConversationChatCompletions:
+    """POST /v1/p/{project_id}/c/{conversation_id}/chat/completions."""
+
+    def test_valid_project_and_conversation_works(self) -> None:
+        container = _make_v2_container()
+        container.llm.complete_async = AsyncMock(return_value=_stub_response())
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/c/convo-webui/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 200
+
+    def test_conversation_not_in_project_returns_404(self) -> None:
+        container = _make_v2_container()
+        from openchronicle.core.domain.models.conversation import Conversation
+
+        other_convo = Conversation(id="other-convo", project_id="other-project", mode="general")
+        container.storage.get_conversation.return_value = other_convo
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/c/other-convo/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 404
+
+    def test_missing_conversation_returns_404(self) -> None:
+        container = _make_v2_container()
+        container.storage.get_conversation.return_value = None
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/proj-1/c/nonexistent/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 404
+
+    def test_missing_project_returns_404(self) -> None:
+        container = _make_v2_container()
+        container.storage.get_project.return_value = None
+        client = _make_client(container)
+
+        resp = client.post(
+            "/v1/p/bad-proj/c/convo-webui/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        assert resp.status_code == 404
+
+    def test_turn_recording_uses_correct_provider_model(self) -> None:
+        container = _make_v2_container()
+        container.llm.complete_async = AsyncMock(return_value=_stub_response())
+        client = _make_client(container)
+
+        client.post(
+            "/v1/p/proj-1/c/convo-webui/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+        turn = container.storage.add_turn.call_args[0][0]
+        assert turn.provider == "stub"
+        assert turn.model == "stub-model"
+
+    def test_streaming_records_turn(self) -> None:
+        container = _make_v2_container()
+        chunks = [
+            StreamChunk(text="Result", finished=False, provider="stub", model="stub-model"),
+            StreamChunk(text="", finished=True, provider="stub", model="stub-model", finish_reason="stop"),
+        ]
+
+        async def mock_stream(**kwargs: object) -> object:
+            for c in chunks:
+                yield c
+
+        container.llm.stream_async = mock_stream
+        client = _make_client(container)
+
+        client.post(
+            "/v1/p/proj-1/c/convo-webui/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
+        )
+        container.storage.add_turn.assert_called_once()
+
+
+class TestListConversationsProjectFilter:
+    """Port-level test: list_conversations with project_id filter."""
+
+    def test_filter_by_project_id(self) -> None:
+        container = _make_v2_container()
+        container.storage.list_conversations.return_value = []
+        _make_client(container)
+
+        container.storage.list_conversations(project_id="proj-1")
+        container.storage.list_conversations.assert_called_with(project_id="proj-1")
+
+    def test_no_filter_returns_all(self) -> None:
+        container = _make_v2_container()
+        _make_client(container)
+
+        container.storage.list_conversations()
+        container.storage.list_conversations.assert_called_with()

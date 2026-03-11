@@ -664,6 +664,20 @@ def main(argv: list[str] | None = None) -> int:
     ollama_sync_cmd = ollama_sub.add_parser("sync", help="Create configs for all unconfigured installed models")
     ollama_sync_cmd.add_argument("--prune", action="store_true", help="Remove stale configs for uninstalled models")
 
+    # --- Open WebUI commands ---
+    openwebui_cmd = sub.add_parser("openwebui", help="Open WebUI integration commands")
+    openwebui_sub = openwebui_cmd.add_subparsers(dest="openwebui_command")
+
+    openwebui_new_cmd = openwebui_sub.add_parser("new", help="Create a new webui conversation")
+    openwebui_new_cmd.add_argument("--title", default=None, help="Conversation title")
+    openwebui_new_cmd.add_argument("--project-id", dest="project_id", default=None, help="Project ID")
+
+    openwebui_url_cmd = openwebui_sub.add_parser("url", help="Print project-scoped base URL for Open WebUI")
+    openwebui_url_cmd.add_argument("--project-id", dest="project_id", default=None, help="Project ID")
+
+    openwebui_list_cmd = openwebui_sub.add_parser("list", help="List webui conversations")
+    openwebui_list_cmd.add_argument("--project-id", dest="project_id", default=None, help="Project ID")
+
     # --- Chat ---
     chat_cmd = sub.add_parser("chat", help="Interactive chat session")
     chat_cmd.add_argument("--conversation-id", default=None, help="Resume specific conversation by ID")

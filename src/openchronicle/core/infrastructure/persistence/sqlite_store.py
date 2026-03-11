@@ -603,10 +603,16 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
         row = cur.execute("SELECT * FROM conversations WHERE id=?", (conversation_id,)).fetchone()
         return row_to_conversation(row) if row else None
 
-    def list_conversations(self, limit: int | None = None) -> list[Conversation]:
+    def list_conversations(self, limit: int | None = None, *, project_id: str | None = None) -> list[Conversation]:
         cur = self._conn.cursor()
-        sql = "SELECT * FROM conversations ORDER BY created_at DESC, id DESC"
-        params: list[int] = []
+        sql = "SELECT * FROM conversations"
+        params: list[Any] = []
+
+        if project_id is not None:
+            sql += " WHERE project_id = ?"
+            params.append(project_id)
+
+        sql += " ORDER BY created_at DESC, id DESC"
 
         if limit is not None:
             sql += " LIMIT ?"

@@ -53,7 +53,6 @@ services:
       - OC_ASSETS_DIR=/assets
       - OC_LLM_PROVIDER=${OC_LLM_PROVIDER:-openai}
       - OC_DISCORD_SESSION_STORE_PATH=/data/discord_sessions.json
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
     env_file:
       - path: .env
         required: false

@@ -24,6 +24,7 @@ from . import (
     memory,
     ollama,
     onboard,
+    openwebui,
     output,
     project,
     scheduler,
@@ -86,6 +87,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace, CoreContainer], int]] = {
     "media": media.cmd_media,
     # Ollama
     "ollama": ollama.cmd_ollama,
+    # Open WebUI
+    "openwebui": openwebui.cmd_openwebui,
     # Output
     "output": output.cmd_output,
     # Webhook
