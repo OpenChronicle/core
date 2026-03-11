@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-10
 **Branch:** `main`
-**Revision:** 45 (Plaid connector plugin, Docker serve service, composite emit_event fix)
+**Revision:** 46 (OpenAI-compat API stress tests, webui session race documented)
 
 ---
 
@@ -20,8 +20,8 @@ pipeline works end-to-end: conversation → context assembly → memory retrieva
 provider routing → LLM call → streaming response → turn persistence → event
 logging. The CLI has an interactive chat REPL with streaming, conversation
 shortcuts (`--resume`, `--latest`), and a clean dispatch-table architecture.
-Tests are strong (1,623 unit/functional, 22 real-world integration, 14 Discord
-integration, 6 concurrency stress), architecture is enforced, and the STDIO RPC
+Tests are strong (1,656 unit/functional, 24 real-world integration, 14 Discord
+integration, 18 concurrency stress), architecture is enforced, and the STDIO RPC
 daemon mode exists. Integration
 tests auto-detect application configuration (config directory, provider, credentials
 from model configs) via a shared `conftest.py` — only `OC_INTEGRATION_TESTS=1` is
@@ -135,7 +135,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. 31 MCP tools, 35 REST endpoints, 1,623 tests. Enterprise tightening Passes A/B/C complete. OpenAI-compatible API layer added: `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients, `provider/model` routing format, 29 tests.**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. 30 MCP tools, 39 REST endpoints, 1,712 tests. Enterprise tightening Passes A/B/C complete. OpenAI-compatible API layer added: `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients, `provider/model` routing format, 53 unit tests + 12 API stress tests. Known issue: `_get_or_create_webui_session` has a read-then-write race under multi-connection concurrency (tracked in BACKLOG.md).**
 
 ---
 
@@ -230,14 +230,14 @@ validates against live providers (OpenAI, Anthropic).
 | **Config-driven wiring** (JSON model configs, env vars) | Working | Per-(provider, model) resolution |
 | **Time context** (current time, last interaction, seconds delta) | Working | Injected in `prepare_ask()`, raw ISO + integer data, 5 tests |
 | **Discord interface** (bot, slash commands, session, formatting) | Working | `commands.Bot` subclass, 6 slash commands, session mapping, message splitting, PID file guard, config from `core.json`, 71 tests |
-| **MCP server interface** (31 tools, FastMCP, stdio + SSE) | Working | Memory (save/search/list/pin/update/get/delete/stats/embed), conversation, context, system, onboard, asset, webhook, media tools; `@track_tool` decorator; lazy import guard; posture-enforced isolation |
+| **MCP server interface** (30 tools, FastMCP, stdio + SSE) | Working | Memory (save/search/list/pin/update/get/delete/stats/embed), conversation, context, system, onboard, asset, webhook, media tools; `@track_tool` decorator; lazy import guard; posture-enforced isolation |
 | **Asset management** (filesystem storage, SHA-256 dedup, generic linking) | Working | Asset/AssetLink models, AssetStorePort, AssetFileStorage, upload/link use cases, 4 MCP tools, 4 CLI commands, 48 tests |
 | **Webhook service** (outbound HTTP POST, HMAC-SHA256, background dispatch) | Working | WebhookSubscription/DeliveryAttempt models, WebhookStorePort, WebhookService, WebhookDispatcher (daemon thread + queue), composite emit_event, fnmatch glob filtering, exponential backoff retry, 3 MCP tools, 5 REST endpoints, 4 CLI commands, 74 tests |
-| **HTTP API interface** (FastAPI, always-on daemon, 35 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51+ tests |
-| **OpenAI-compatible API layer** (`/v1/models`, `/v1/chat/completions`) | Working | OpenAI Chat Completions protocol for Open WebUI and other clients, streaming + non-streaming, `provider/model` routing, `auto` default routing, 29 tests |
+| **HTTP API interface** (FastAPI, always-on daemon, 39 REST endpoints) | Working | App factory, API key auth (timing-safe), per-client rate limiting (thread-safe), CORS, middleware stack, shared serializers, 51+ tests |
+| **OpenAI-compatible API layer** (`/v1/models`, `/v1/chat/completions`) | Working | OpenAI Chat Completions protocol for Open WebUI and other clients, streaming + non-streaming, `provider/model` routing, `auto` default routing, 53 unit tests + 12 API stress tests |
 | **Media generation** (5 adapters, unified model config) | Working | `MediaGenerationPort` ABC, stub/Ollama/OpenAI/Gemini/xAI adapters, `image_generation` capability tag in `config/models/`, `OC_MEDIA_MODEL` derives provider from config, asset storage + SHA-256 dedup, CLI/MCP/API interfaces, 69 tests |
 | **Ollama CLI** (model discovery, config management) | Working | `oc ollama list\|show\|add\|remove\|sync`, `OllamaService` talks to Ollama HTTP API (`/api/tags`, `/api/show`), capability inference (vision/diffusion/tools), operates against resolved config dir (`RuntimePaths`), 32 tests |
-| **Test suite** (1573 unit/functional, 22 real-world integration, 14 Discord integration, 6 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **Test suite** (1656 unit/functional, 24 real-world integration, 14 Discord integration, 18 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama + OpenAI-compat stress, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
@@ -340,7 +340,7 @@ surface. No backwards compatibility concerns. No production deployment yet.
 | ~~Docker hardening~~ | ✅ CI builds multi-arch image to `ghcr.io/openchronicle/core` on push to main |
 | ~~Scheduler~~ | ✅ Core service (`application/services/scheduler.py`, 53 tests) |
 | ~~Discord driver~~ | ✅ Interfaces driver (`interfaces/discord/`, 85 tests, optional extra) |
-| ~~OC MCP Server~~ | ✅ Interfaces driver (`interfaces/mcp/`, 26 tools, 40+7 tests, optional extra) |
+| ~~OC MCP Server~~ | ✅ Interfaces driver (`interfaces/mcp/`, 30 tools, 44+7 tests, optional extra) |
 
 ---
 
@@ -494,7 +494,7 @@ limits, capabilities, cost tracking, and performance metadata; per-plugin JSON c
 
 **Stub only:** ONNX router assist (intentional placeholder).
 
-### Test Suite (152 files, 1573 unit/functional + 22 real-world integration + 14 Discord integration + 6 concurrency stress)
+### Test Suite (152 files, 1656 unit/functional + 24 real-world integration + 14 Discord integration + 18 concurrency stress)
 
 Well-organized into 12 categories: business logic (23), CLI/RPC (23), hygiene (11),
 infrastructure (11), contract (8), policy (5), memory (5), architecture guard (4),
@@ -525,7 +525,7 @@ Only `OC_INTEGRATION_TESTS=1` is needed to run — no manual `OC_CONFIG_DIR` or
 (`test_smoke_live.py`) adapted to handle config-embedded credentials (skip
 credential-removal tests when keys aren't in env vars).
 
-**Concurrency stress tests** (`test_stress.py`): 5 threading-based tests using
+**Concurrency stress tests** (`test_stress.py`): 6 threading-based tests using
 separate `SqliteStore` connections to the same database file (simulating
 multi-process access). Each thread gets its own `sqlite3.Connection` with
 independent locks and WAL snapshots. Results:
@@ -538,6 +538,26 @@ independent locks and WAL snapshots. Results:
 | T4: Write lock starvation | Long transaction blocks other writers | **pass** — application-level retry recovers after holder releases |
 | T5: Independent chains (baseline) | Concurrent writes to different task_ids | **pass** — database fundamentally sound |
 | T6: Scheduler tick no double-fire | Concurrent `tick()` atomic claiming | **pass** — 20 jobs, each fired exactly once |
+
+**OpenAI-compat API stress tests** (`test_openai_stress.py`): 12 tests exercising
+the full HTTP → container → storage pipeline via FastAPI TestClient with real
+SqliteStore and stubbed LLM. Concurrent tests use per-thread `CoreContainer`
+instances (separate SQLite connections to the same DB file). Results:
+
+| Test | Target | Outcome |
+| ------ | -------- | --------- |
+| S1: WebUI session race | `_get_or_create_webui_session` read-then-write | **xfail** — race confirmed, duplicate sessions created |
+| S2: Concurrent turn recording | Turn index uniqueness under 10 concurrent writes | **pass** — all indices unique and sequential |
+| S3: Rapid-fire sequential | 50 sequential requests, state consistency | **pass** — all turns recorded, indices monotonic |
+| S4: Streaming turn recording | 10 concurrent streaming requests, buffered text | **pass** — all turns recorded with complete text |
+| S5: Mixed streaming + non-streaming | 5 streaming + 5 non-streaming concurrent | **pass** — all 10 turns recorded, no corruption |
+| S6: Multi-project isolation | 5 projects × 5 concurrent requests | **pass** — no cross-project contamination |
+| S7: Explicit vs auto-session | Interleaved explicit + auto-session requests | **pass** — turns land in correct conversations |
+| S8: Event chain integrity | 10 concurrent requests, hash chain verification | **pass** — event chain intact |
+| S9: Memory injection consistency | 20 memories + 10 concurrent context assemblies | **pass** — no errors, memories unchanged |
+| S10: V1/V2 isolation | 5 V1 + 5 V2 concurrent requests | **pass** — V1 no turns, V2 records turns |
+| S11: Invalid input flood | 20 concurrent requests, ~50% invalid | **pass** — correct error codes, valid requests succeed |
+| S12: Conversation growth | 100 sequential turns, large history | **pass** — context assembly works, indices correct |
 
 **Strongest coverage:** Provider routing, budget enforcement, conversation flow,
 event verification, architectural boundaries, live provider validation,

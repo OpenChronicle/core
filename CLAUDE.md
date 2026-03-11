@@ -28,14 +28,16 @@ Ollama CLI is done (`oc ollama list|show|add|remove|sync`, capability inference 
 Ollama API, operates against resolved config dir, 32 tests).
 Capability-aware routing is done (`ModelConfigLoader` parses capabilities,
 `RouterPolicy` filters by `required_capabilities`, `NO_CAPABLE_MODEL` error, 12 tests).
-HTTP API is done (`interfaces/api/`, FastAPI, 31 REST endpoints mirroring MCP tools,
+HTTP API is done (`interfaces/api/`, FastAPI, 39 REST endpoints mirroring MCP tools,
 API key auth, rate limiting, shared serializers, 51+ tests, auto-starts with `oc serve`).
 OpenAI-compatible API layer is done (`interfaces/api/routes/openai_compat.py`,
 `GET /v1/models` + `POST /v1/chat/completions` with streaming, model routing via
-`provider/model` format, 29 tests).
+`provider/model` format, 53 unit tests + 12 API stress tests).
+Known issue: `_get_or_create_webui_session` has a read-then-write race under
+multi-connection concurrency (tracked in BACKLOG.md).
 MoE execution strategy is done (`application/services/moe_execution.py`, Jaccard
 consensus, `--moe` CLI/MCP, 32 tests).
-MCP server is done (`interfaces/mcp/`, 30 tools, 37 tests + 7 posture, `oc mcp serve`
+MCP server is done (`interfaces/mcp/`, 30 tools, 44 tests + 7 posture, `oc mcp serve`
 CLI, stdio + SSE transports, lazy import guard).
 Asset management is done (`domain/models/asset.py`, `application/services/asset_storage.py`,
 `application/use_cases/upload_asset.py`, `application/use_cases/link_asset.py`,
@@ -165,8 +167,8 @@ for the full directory tree and layer descriptions.
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)
-- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 31 tools, FastMCP)
-- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 35 REST endpoints, auto-starts with `oc serve`)
+- **MCP Server**: Interfaces driver in `interfaces/mcp/` (optional extra, 30 tools, FastMCP)
+- **HTTP API**: Interfaces driver in `interfaces/api/` (FastAPI, 39 REST endpoints, auto-starts with `oc serve`)
 - **OpenAI Compat**: `interfaces/api/routes/openai_compat.py` — `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients
 - **MoE Execution**: `application/services/moe_execution.py` — Mixture-of-Experts consensus strategy (`--moe` flag)
 - **Asset Management**: `domain/models/asset.py` + `application/services/asset_storage.py` — filesystem storage, SHA-256 dedup, generic entity linking

@@ -82,9 +82,9 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 - **STDIO RPC** — 24 commands, async, daemon mode (`oc serve`)
 - **Discord Interface** — 6 slash commands, session mapping, 85 tests,
   optional `[discord]` extra (`interfaces/discord/`)
-- **MCP Server** — 31 tools, stdio + SSE transports, 44 tests, optional
+- **MCP Server** — 30 tools, stdio + SSE transports, 44 tests, optional
   `[mcp]` extra (`interfaces/mcp/`)
-- **HTTP API** — FastAPI, 35 REST endpoints, API key auth, rate limiting,
+- **HTTP API** — FastAPI, 39 REST endpoints, API key auth, rate limiting,
   CORS, 54+ tests (`interfaces/api/`)
 - **OpenAI Compat Layer** — `/v1/models` + `/v1/chat/completions`
   (streaming + non-streaming), `provider/model` routing, 29 tests
@@ -109,7 +109,7 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 
 </details>
 
-**Totals:** 1,623 tests, 31 MCP tools, 35 REST endpoints, 11 ports, 10
+**Totals:** 1,712 tests, 30 MCP tools, 39 REST endpoints, 11 ports, 10
 services, 38 use cases, 5 interfaces.
 
 ---
