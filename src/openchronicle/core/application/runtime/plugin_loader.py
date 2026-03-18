@@ -147,6 +147,17 @@ class PluginLoader:
         # Step 1: Load the package (__init__.py) to establish the plugin namespace
         package_name = f"oc_plugins.{plugin_name}"
 
+        # Ensure the top-level oc_plugins namespace package exists in sys.modules.
+        # Python's import machinery requires all parent packages to be registered
+        # when resolving relative imports in submodules (e.g., from .parsers import ...).
+        if "oc_plugins" not in sys.modules:
+            import types
+
+            ns_pkg = types.ModuleType("oc_plugins")
+            ns_pkg.__path__ = []
+            ns_pkg.__package__ = "oc_plugins"
+            sys.modules["oc_plugins"] = ns_pkg
+
         try:
             # Create package spec with submodule_search_locations for relative imports
             package_spec = importlib.util.spec_from_file_location(
@@ -166,6 +177,11 @@ class PluginLoader:
             # Clean up sys.modules on failure
             sys.modules.pop(package_name, None)
             return
+
+        # Step 1b: Pre-register sub-packages (directories with __init__.py)
+        # Python's import machinery needs intermediate packages in sys.modules
+        # to resolve chained relative imports (e.g., from .domain.modes import ...).
+        self._register_subpackages(plugin_dir, package_name)
 
         # Step 2: Load plugin.py as a submodule of the package
         plugin_module_name = f"{package_name}.plugin"
@@ -213,6 +229,43 @@ class PluginLoader:
         finally:
             # Clear current source after registration
             self.handler_registry.set_current_source(None)
+
+    @staticmethod
+    def _register_subpackages(plugin_dir: Path, package_name: str) -> None:
+        """Recursively register sub-packages in sys.modules for relative imports.
+
+        Without this, chained relative imports like ``from .domain.modes import X``
+        fail because Python can't find the intermediate ``domain`` package.
+        """
+        for sub_dir in sorted(plugin_dir.rglob("*")):
+            if not sub_dir.is_dir():
+                continue
+            init_file = sub_dir / "__init__.py"
+            if not init_file.exists():
+                continue
+
+            # Compute the dotted module name from the relative path
+            rel = sub_dir.relative_to(plugin_dir)
+            parts = list(rel.parts)
+            sub_package_name = f"{package_name}.{'.'.join(parts)}"
+
+            if sub_package_name in sys.modules:
+                continue
+
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    sub_package_name,
+                    init_file,
+                    submodule_search_locations=[str(sub_dir)],
+                )
+                if spec is None or spec.loader is None:
+                    continue
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[sub_package_name] = mod
+                spec.loader.exec_module(mod)
+            except Exception:
+                # Non-fatal: sub-package registration failure doesn't block the plugin
+                sys.modules.pop(sub_package_name, None)
 
     def registry_instance(self) -> PluginRegistry:
         return self.registry
