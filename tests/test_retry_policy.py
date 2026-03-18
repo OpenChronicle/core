@@ -15,8 +15,10 @@ from openchronicle.core.infrastructure.wiring.container import CoreContainer
 
 
 @pytest.fixture
-def container() -> CoreContainer:
+def container(monkeypatch: pytest.MonkeyPatch) -> CoreContainer:
     """Create a fresh container for each test."""
+    monkeypatch.delenv("OC_CONFIG_DIR", raising=False)
+    monkeypatch.delenv("OC_LLM_PROVIDER", raising=False)
     return CoreContainer()
 
 

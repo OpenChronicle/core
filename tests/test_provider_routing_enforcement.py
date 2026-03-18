@@ -150,8 +150,10 @@ async def test_provider_not_configured_fails_cleanly() -> None:
 
 
 @pytest.mark.asyncio
-async def test_stub_provider_always_available() -> None:
+async def test_stub_provider_always_available(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that stub provider is always available as fallback."""
+    monkeypatch.delenv("OC_CONFIG_DIR", raising=False)
+    monkeypatch.delenv("OC_LLM_PROVIDER", raising=False)
     # Arrange: Create facade with only stub
     fake_stub = FakeStubAdapter()
     facade = ProviderAwareLLMFacade({"stub": fake_stub})

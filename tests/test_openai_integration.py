@@ -56,6 +56,7 @@ async def test_worker_summarize_uses_stub_by_default(tmp_path: Path, monkeypatch
     """Without OC_LLM_PROVIDER or override, uses stub adapter."""
 
     monkeypatch.delenv("OC_LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("OC_CONFIG_DIR", raising=False)
     container = CoreContainer(db_path=str(tmp_path / "stub-default.db"))
     orchestrator = container.orchestrator
 

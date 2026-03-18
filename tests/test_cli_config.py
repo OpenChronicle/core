@@ -11,8 +11,10 @@ import pytest
 from openchronicle.interfaces.cli.main import main
 
 
-def test_config_show_default_values() -> None:
+def test_config_show_default_values(monkeypatch: pytest.MonkeyPatch) -> None:
     """Default config shows expected defaults (stub provider, budget off, privacy off)."""
+    monkeypatch.delenv("OC_CONFIG_DIR", raising=False)
+    monkeypatch.delenv("OC_LLM_PROVIDER", raising=False)
     with patch("builtins.print") as mock_print:
         rc = main(["config", "show"])
 
