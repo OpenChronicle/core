@@ -1121,21 +1121,24 @@ class SqliteStore(StoragePort, ConversationStorePort, MemoryStorePort, AssetStor
             if tags:
                 pinned_items = [i for i in pinned_items if all(t in i.tags for t in tags)]
 
-        remaining = max(effective_top_k - len(pinned_items), 0)
+        # Pinned items have separate budget — don't reduce search limit
+        # (prevents pinned items from crowding out query-relevant results)
 
-        # Non-pinned search — FTS5 or fallback
+        # Non-pinned search — FTS5 or fallback (always gets full top_k budget)
         if self._fts5_active:
-            non_pinned = self._fts5_search_memory(query, remaining, conversation_id, project_id, tags=tags)
+            non_pinned = self._fts5_search_memory(query, effective_top_k, conversation_id, project_id, tags=tags)
         else:
-            non_pinned = self._fallback_search_memory(query, remaining, conversation_id, project_id, tags=tags)
+            non_pinned = self._fallback_search_memory(query, effective_top_k, conversation_id, project_id, tags=tags)
 
         # Deduplicate — pinned items might overlap with search results
         pinned_ids = {i.id for i in pinned_items}
         non_pinned = [i for i in non_pinned if i.id not in pinned_ids]
 
-        results: list[MemoryItem] = list(pinned_items)
-        results.extend(non_pinned[:remaining])
-        return results[offset : offset + top_k]
+        # Pinned items prepended on first page only; offset paginates non-pinned results
+        non_pinned_page = non_pinned[offset : offset + top_k]
+        if offset == 0:
+            return list(pinned_items) + non_pinned_page
+        return non_pinned_page
 
     # ---- helpers ----
     def _normalize_tokens(self, text: str) -> list[str]:

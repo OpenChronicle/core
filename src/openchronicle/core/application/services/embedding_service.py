@@ -151,16 +151,15 @@ class EmbeddingService:
             if tags:
                 pinned_items = [i for i in pinned_items if all(t in i.tags for t in tags)]
 
-        remaining = max(effective_top_k - len(pinned_items), 0)
-        if remaining == 0:
-            return pinned_items[offset : offset + top_k]
+        # Pinned items have separate budget — don't reduce search/RRF limit
+        # (prevents pinned items from crowding out query-relevant results)
 
         pinned_ids = {i.id for i in pinned_items}
 
         # ── Keyword search (list A) ─────────────────────────────────────
         keyword_results = self._store.search_memory(
             query,
-            top_k=remaining * 2,  # over-fetch for RRF merge
+            top_k=effective_top_k * 2,  # over-fetch for RRF merge
             conversation_id=conversation_id,
             project_id=project_id,
             include_pinned=False,
@@ -175,7 +174,7 @@ class EmbeddingService:
             project_id=project_id,
             tags=tags,
             exclude_ids=pinned_ids,
-            limit=remaining * 2,
+            limit=effective_top_k * 2,
         )
 
         # ── RRF merge ──────────────────────────────────────────────────
@@ -217,11 +216,13 @@ class EmbeddingService:
 
         rrf_scores.sort(key=lambda x: x[1], reverse=True)
 
-        merged = [item_map[mid] for mid, _ in rrf_scores[:remaining]]
+        merged = [item_map[mid] for mid, _ in rrf_scores[:effective_top_k]]
 
-        results: list[MemoryItem] = list(pinned_items)
-        results.extend(merged)
-        return results[offset : offset + top_k]
+        # Pinned items prepended on first page only; offset paginates non-pinned results
+        non_pinned_page = merged[offset : offset + top_k]
+        if offset == 0:
+            return list(pinned_items) + non_pinned_page
+        return non_pinned_page
 
     def _semantic_search(
         self,

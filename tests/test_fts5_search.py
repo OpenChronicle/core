@@ -242,6 +242,37 @@ class TestFTS5MemorySearch:
         assert len(results) == 1
         assert "Some note" in results[0].content
 
+    def test_pinned_items_do_not_crowd_search_results(self, tmp_path: Any) -> None:
+        """Pinned items must not reduce the budget for non-pinned search results."""
+        store = _store(tmp_path)
+        # Create many pinned items (more than top_k)
+        for i in range(20):
+            _add_memory(store, content=f"Pinned convention #{i}", pinned=True)
+        # Create a searchable non-pinned item
+        _add_memory(store, content="Carl Ashcombe is a bookstore owner")
+
+        # Search with top_k smaller than pinned count
+        results = store.search_memory("Ashcombe", include_pinned=True, top_k=5)
+        non_pinned = [r for r in results if not r.pinned]
+        assert len(non_pinned) >= 1, "Non-pinned search result should not be crowded out by pinned items"
+        assert any("Ashcombe" in r.content for r in non_pinned)
+
+    def test_pinned_crowding_with_tag_filter(self, tmp_path: Any) -> None:
+        """When tag filter excludes pinned items, search results fill the full budget."""
+        store = _store(tmp_path)
+        # Pinned items with different tags
+        for i in range(10):
+            _add_memory(store, content=f"Pinned rule #{i}", pinned=True, tags='["convention"]')
+        # Non-pinned items with story tags
+        _add_memory(store, content="Character profile: Carl", tags='["story", "character"]')
+        _add_memory(store, content="Character profile: Max", tags='["story", "character"]')
+
+        # Search with tags that exclude all pinned items
+        results = store.search_memory("Character", include_pinned=True, top_k=5, tags=["story", "character"])
+        assert len(results) == 2
+        assert all("Character" in r.content for r in results)
+        assert not any(r.pinned for r in results)
+
 
 # ── FTS5 Fallback Search ─────────────────────────────────────────
 
