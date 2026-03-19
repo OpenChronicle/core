@@ -24,6 +24,8 @@ def build_system_prompt(
     worldbuilding: list[str],
     player_character: str | None = None,
     canon: bool = True,
+    resolution_context: str | None = None,
+    branch_context: str | None = None,
 ) -> str:
     """Assemble the full system prompt from mode + storytelling context.
 
@@ -66,6 +68,16 @@ def build_system_prompt(
     if worldbuilding:
         parts.append("=== WORLD-BUILDING ===")
         parts.extend(worldbuilding)
+
+    # 9. Resolution outcome (from game mechanics)
+    if resolution_context:
+        parts.append("=== RESOLUTION OUTCOME ===")
+        parts.append(resolution_context)
+
+    # 10. Narrative options (from branching engine)
+    if branch_context:
+        parts.append("=== NARRATIVE OPTIONS ===")
+        parts.append(branch_context)
 
     return "\n\n".join(parts)
 

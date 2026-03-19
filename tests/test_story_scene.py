@@ -103,11 +103,12 @@ class TestSceneHandler:
             save_scene=True,
         )
         assert result.scene_id == "saved-scene-001"
-        save_mock.assert_called_once()
-        call_kwargs = save_mock.call_args
-        assert "story" in call_kwargs.kwargs["tags"]
-        assert "scene" in call_kwargs.kwargs["tags"]
-        assert "canon" in call_kwargs.kwargs["tags"]
+        # First call is scene save, second is auto-bookmark
+        assert save_mock.call_count == 2
+        scene_call_kwargs = save_mock.call_args_list[0]
+        assert "story" in scene_call_kwargs.kwargs["tags"]
+        assert "scene" in scene_call_kwargs.kwargs["tags"]
+        assert "canon" in scene_call_kwargs.kwargs["tags"]
 
     @pytest.mark.asyncio
     async def test_sandbox_scene_tagged_correctly(self) -> None:
@@ -121,9 +122,10 @@ class TestSceneHandler:
             canon=False,
             save_scene=True,
         )
-        call_kwargs = save_mock.call_args
-        assert "sandbox" in call_kwargs.kwargs["tags"]
-        assert "canon" not in call_kwargs.kwargs["tags"]
+        # First call is scene save
+        scene_call_kwargs = save_mock.call_args_list[0]
+        assert "sandbox" in scene_call_kwargs.kwargs["tags"]
+        assert "canon" not in scene_call_kwargs.kwargs["tags"]
 
     @pytest.mark.asyncio
     async def test_participant_mode_with_character(self) -> None:

@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-18
 **Branch:** `main`
-**Revision:** 47 (Storytelling Phase 3: conversation mode integration)
+**Revision:** 48 (Storytelling Phases 4-7: mechanics, timeline, engines, persona)
 
 ---
 
@@ -120,16 +120,19 @@ Gemini adapter error codes: `_classify_gemini_error()` maps exceptions to
 `OLLAMA_HOST` documented in env vars reference.
 21 new tests, 1198 total passing.
 
-**Storytelling plugin Phase 3 (conversation mode integration) is done.** Plugins can
-now register **mode prompt builders** — callables that produce custom system prompts
-when a conversation is in their mode. The storytelling plugin registers a `"story"`
-mode builder: when a conversation's `mode` is set to `"story"`, `prepare_ask()`
-delegates system prompt construction to the plugin, which assembles characters,
-style guides, locations, worldbuilding, and scene context from project memory via
-tag-filtered search. Generic keyword-based memory retrieval is skipped (the builder
-does its own retrieval); pinned memories are still included. New CLI convenience
-commands: `oc story characters`, `oc story locations`, `oc story search`. 20 new
-tests, 1767 total.
+**Storytelling plugin Phases 4-7 are done.** Phase 4 (Game Mechanics Engine): full
+TTRPG system with `DiceType` (9 types), `ResolutionType` (13), `DifficultyLevel`
+(6 with D&D-style DCs), `OutcomeType` (5 with nat-20/nat-1 crit detection),
+`StatBlock` (14 stats, D&D modifier calc, memory-backed persistence), `NarrativeBranch`
+(LLM-driven branching from resolution outcomes); scene handler injects resolution/branch
+context into prompts. Phase 5 (Bookmark & Timeline): `BookmarkType` (4 types),
+memory-backed CRUD, `Timeline` assembly with chapter grouping, auto-bookmark on scene
+save. Phase 6 (Narrative Engines): `ConsistencyChecker` (LLM-based contradiction
+detection with severity levels), `EmotionalAnalyzer` (9 emotion labels, loop detection,
+per-character arcs); scene handler integrates both via `--check-consistency` and
+`--analyze-emotion` flags. Phase 7 (Persona Extractor): text-only extraction with
+multimodal deferred; domain models, LLM extraction, memory persistence. 12 new
+handlers, 11 new CLI commands, 13 new files. 208 new tests, 1975 total.
 
 **What's next:** Multimodal conversation input (vision input via asset system),
 or Phase 5 IDE automation hooks (prototype exists). Plugin development lives in

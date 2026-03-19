@@ -107,6 +107,10 @@ protocol in `PluginRegistry` port, `prepare_ask()` delegates system prompt to ac
 mode's builder, story builder assembles characters/style guides/locations/worldbuilding
 from project memory via tag-filtered search, `make_memory_search_closure` extracted to
 `context_builder.py`, CLI `oc story characters|locations|search`, 20 new tests, 1767 total).
+Storytelling Plugin Phases 4-7 are done (game mechanics engine with dice/resolution/stats/branching,
+bookmark & timeline with auto-bookmark on scene save, narrative engines with LLM-based
+consistency checking and emotional arc analysis, persona extractor stub with text-only
+extraction; 13 new files, 12 new handlers, 11 new CLI commands, 208 new tests, 1975 total).
 
 ## Build and Development
 
