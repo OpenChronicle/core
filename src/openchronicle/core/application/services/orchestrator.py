@@ -904,8 +904,8 @@ class OrchestratorService:
         """Build enriched context dict for plugin handler invocation."""
         from typing import cast
 
+        from openchronicle.core.application.services.context_builder import make_memory_search_closure
         from openchronicle.core.application.use_cases import add_memory as add_memory_uc
-        from openchronicle.core.application.use_cases import search_memory as search_memory_uc
         from openchronicle.core.application.use_cases import update_memory as update_memory_uc
         from openchronicle.core.domain.models.memory_item import MemoryItem
         from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
@@ -943,19 +943,7 @@ class OrchestratorService:
                 embedding_service=self._embedding_service,
             )
 
-        def memory_search(
-            query: str,
-            top_k: int = 8,
-            tags: list[str] | None = None,
-        ) -> list[MemoryItem]:
-            return search_memory_uc.execute(
-                memory_store,
-                query,
-                top_k=top_k,
-                project_id=project_id,
-                tags=tags,
-                embedding_service=self._embedding_service,
-            )
+        memory_search = make_memory_search_closure(memory_store, project_id, self._embedding_service)
 
         def memory_update(
             memory_id: str,

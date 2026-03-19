@@ -68,6 +68,20 @@ def setup_parser(sub: argparse._SubParsersAction) -> None:
     scene_parser.add_argument("--max-tokens", type=int, default=2048, help="Max output tokens (default: 2048)")
     scene_parser.add_argument("--temperature", type=float, default=0.8, help="LLM temperature (default: 0.8)")
 
+    # oc story characters --project-id <id> [--primary-only]
+    chars_parser = story_sub.add_parser("characters", help="List imported characters")
+    chars_parser.add_argument("--project-id", required=True, help="OC project ID")
+    chars_parser.add_argument("--primary-only", action="store_true", help="Show only primary characters")
+
+    # oc story locations --project-id <id>
+    locs_parser = story_sub.add_parser("locations", help="List imported locations")
+    locs_parser.add_argument("--project-id", required=True, help="OC project ID")
+
+    # oc story search --project-id <id> <query>
+    search_parser = story_sub.add_parser("search", help="Search storytelling content")
+    search_parser.add_argument("query", nargs="+", help="Search query")
+    search_parser.add_argument("--project-id", required=True, help="OC project ID")
+
 
 def run(args: argparse.Namespace, container: CoreContainer) -> int:
     """Dispatch ``oc story <subcommand>``."""
@@ -76,10 +90,13 @@ def run(args: argparse.Namespace, container: CoreContainer) -> int:
         "list": _cmd_story_list,
         "show": _cmd_story_show,
         "scene": _cmd_story_scene,
+        "characters": _cmd_story_characters,
+        "locations": _cmd_story_locations,
+        "search": _cmd_story_search,
     }
     handler = story_dispatch.get(args.story_command)
     if handler is None:
-        print("Usage: oc story <import|list|show|scene>")
+        print("Usage: oc story <import|list|show|scene|characters|locations|search>")
         return 1
     return handler(args, container)
 
@@ -301,3 +318,66 @@ def _extract_type_from_tags(tags: list[str]) -> str:
         if tag in type_tags:
             return tag
     return "unknown"
+
+
+def _cmd_story_characters(args: argparse.Namespace, container: CoreContainer) -> int:
+    """List imported characters from storytelling memory."""
+    from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
+
+    memory_store: MemoryStorePort = container.storage
+    tags = ["story", "character"]
+    if args.primary_only:
+        tags.append("primary")
+
+    items = memory_store.search_memory("character", project_id=args.project_id, top_k=200, tags=tags)
+    if not items:
+        print("No characters found.")
+        return 0
+
+    print(f"Characters ({len(items)}):")
+    print(f"{'ID':38s}  {'Preview'}")
+    print("-" * 80)
+    for item in items:
+        preview = item.content.split("\n")[0][:60] if item.content else ""
+        print(f"{item.id:38s}  {preview}")
+    return 0
+
+
+def _cmd_story_locations(args: argparse.Namespace, container: CoreContainer) -> int:
+    """List imported locations from storytelling memory."""
+    from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
+
+    memory_store: MemoryStorePort = container.storage
+    items = memory_store.search_memory("location", project_id=args.project_id, top_k=200, tags=["story", "location"])
+    if not items:
+        print("No locations found.")
+        return 0
+
+    print(f"Locations ({len(items)}):")
+    print(f"{'ID':38s}  {'Preview'}")
+    print("-" * 80)
+    for item in items:
+        preview = item.content.split("\n")[0][:60] if item.content else ""
+        print(f"{item.id:38s}  {preview}")
+    return 0
+
+
+def _cmd_story_search(args: argparse.Namespace, container: CoreContainer) -> int:
+    """Search storytelling content by query."""
+    from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
+
+    memory_store: MemoryStorePort = container.storage
+    query = " ".join(args.query)
+    items = memory_store.search_memory(query, project_id=args.project_id, top_k=20, tags=["story"])
+    if not items:
+        print("No results found.")
+        return 0
+
+    print(f"Search results ({len(items)}):")
+    print(f"{'ID':38s}  {'Type':15s}  {'Preview'}")
+    print("-" * 80)
+    for item in items:
+        item_type = _extract_type_from_tags(item.tags)
+        preview = item.content.split("\n")[0][:50] if item.content else ""
+        print(f"{item.id:38s}  {item_type:15s}  {preview}")
+    return 0

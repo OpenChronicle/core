@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from openchronicle.core.application.runtime.task_registry import HandlerCollisionError, TaskHandlerRegistry
 from openchronicle.core.domain.errors import PLUGIN_COLLISION, PLUGIN_ID_COLLISION
-from openchronicle.core.domain.ports.plugin_port import PluginRegistry
+from openchronicle.core.domain.ports.plugin_port import ModePromptBuilder, PluginRegistry
 
 
 class PluginConfigLoaderPort(Protocol):
@@ -53,12 +53,22 @@ class PluginCollisionError(Exception):
 class InMemoryPluginRegistry(PluginRegistry):
     def __init__(self) -> None:
         self._agent_templates: list[dict[str, Any]] = []
+        self._mode_prompt_builders: dict[str, ModePromptBuilder] = {}
 
     def register_agent_template(self, agent: dict[str, Any]) -> None:
         self._agent_templates.append(agent)
 
     def list_agent_templates(self) -> list[dict[str, Any]]:
         return list(self._agent_templates)
+
+    def register_mode_prompt_builder(self, mode: str, builder: ModePromptBuilder) -> None:
+        self._mode_prompt_builders[mode] = builder
+
+    def get_mode_prompt_builder(self, mode: str) -> ModePromptBuilder | None:
+        return self._mode_prompt_builders.get(mode)
+
+    def mode_prompt_builders(self) -> dict[str, ModePromptBuilder]:
+        return dict(self._mode_prompt_builders)
 
 
 class PluginLoader:

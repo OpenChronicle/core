@@ -109,6 +109,7 @@ class DiscordBot(commands.Bot):
             privacy_gate=getattr(self.container, "privacy_gate", None),
             privacy_settings=getattr(self.container, "privacy_settings", None),
             embedding_service=self.container.embedding_service,
+            mode_prompt_builders=self.container.plugin_loader.registry_instance().mode_prompt_builders(),
         )
 
         collected: list[str] = []

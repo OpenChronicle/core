@@ -141,36 +141,41 @@ async def my_handler(task: Task, context: dict[str, Any] | None = None) -> dict[
 
 ## Example: Storytelling Plugin
 
-The bundled `storytelling` example plugin demonstrates the plugin structure:
+The `storytelling` plugin demonstrates full plugin capabilities including task
+handlers, agent templates, mode prompt builders, and CLI commands:
 
 ```text
 plugins/
   storytelling/
-    plugin.py           # Main plugin file
     __init__.py
-    application/        # Optional: organized code
+    plugin.py              # Registration: handlers + agent template + mode builder
+    cli.py                 # CLI commands (oc story import|list|show|scene|characters|locations|search)
+    importer.py            # Project import pipeline (text file parsing + classification)
+    helpers.py             # Shared utilities
+    application/
+      context_assembler.py # Tag-filtered memory retrieval for scene/conversation context
+      scene_handler.py     # Scene generation orchestration
+      conversation_mode.py # Story mode prompt builder for conversation integration
     domain/
-    resources/
+      modes.py             # Engagement modes (participant/director/audience), system prompt builder
+      models.py            # Domain models (ImportResult, SceneResult, StoryContext)
+    resources/             # Static prompt templates
 ```
 
 Key parts of `plugin.py`:
 
 ```python
-async def _story_draft_handler(task: Task, context: dict[str, Any] | None = None) -> dict[str, str]:
-    prompt = task.payload.get("prompt") or "Tell a short story."
-    draft = f"[storytelling draft] {prompt}"
-    return {"draft": draft}
+from .application.conversation_mode import story_prompt_builder
 
-def register(
-    registry: PluginRegistry,
-    handler_registry: TaskHandlerRegistry,
-    context: dict[str, Any] | None = None
-) -> None:
+def register(registry, handler_registry, context=None):
     handler_registry.register("story.draft", _story_draft_handler)
+    handler_registry.register("story.import", _story_import_handler)
+    handler_registry.register("story.scene", _story_scene_handler)
     registry.register_agent_template({
         "role": "storyteller",
-        "description": "Generates narrative drafts."
+        "description": "Imports and manages narrative content, generates scenes."
     })
+    registry.register_mode_prompt_builder("story", story_prompt_builder)
 ```
 
 ## Using Plugin Task Handlers
@@ -231,6 +236,90 @@ Test your plugin by:
 
        assert result["output"] == "expected"
    ```
+
+## Mode Prompt Builders
+
+Plugins can register **mode prompt builders** to customize the system prompt
+for conversations in a specific mode. When a conversation's `mode` matches a
+registered builder, `prepare_ask()` delegates system prompt construction to the
+builder instead of using the default `"You are a helpful assistant."` prompt.
+
+### Registering a Mode Prompt Builder
+
+```python
+from openchronicle.core.domain.ports.plugin_port import PluginRegistry
+
+def my_mode_builder(
+    prompt_text: str,
+    *,
+    memory_search,       # Callable for tag-filtered memory search
+    project_id=None,     # Conversation's project ID
+) -> str:
+    """Build a custom system prompt for 'my_mode' conversations."""
+    # Use memory_search to retrieve mode-specific context
+    items = memory_search("relevant query", top_k=50, tags=["my-tag"])
+    # Assemble and return the system prompt string
+    return f"You are a specialized assistant.\n\nContext:\n{items}"
+
+def register(registry: PluginRegistry, handler_registry, context=None):
+    # Register task handlers as usual...
+    handler_registry.register("my.handler", my_handler)
+
+    # Register the mode prompt builder
+    registry.register_mode_prompt_builder("my_mode", my_mode_builder)
+```
+
+### How It Works
+
+1. User sets `mode` on a conversation (e.g., `oc convo mode <id> story`)
+2. On each `prepare_ask()` call, the system checks for a registered builder
+   matching the conversation's `effective_mode`
+3. If a builder exists and the conversation has a `project_id`:
+   - The builder receives a pre-bound `memory_search` closure and the user's prompt
+   - The builder returns the complete system prompt
+   - Generic keyword-based memory retrieval is **skipped** (the builder does its own)
+   - Pinned memories are still included
+4. If no builder matches, the default system prompt and memory retrieval are used
+
+### ModePromptBuilder Protocol
+
+```python
+class ModePromptBuilder(Protocol):
+    def __call__(
+        self,
+        prompt_text: str,
+        *,
+        memory_search: Callable[..., list[Any]],
+        project_id: str | None = None,
+    ) -> str: ...
+```
+
+The `memory_search` closure has the signature:
+`(query: str, top_k: int = 8, tags: list[str] | None = None) -> list[MemoryItem]`
+
+### Example: Storytelling Plugin
+
+The `storytelling` plugin registers a `"story"` mode builder that assembles
+characters, style guides, locations, worldbuilding, and scene context from
+project memory using tag-filtered search:
+
+```python
+from .application.context_assembler import assemble_story_context
+from .domain.modes import EngagementMode, build_system_prompt
+
+def story_prompt_builder(prompt_text, *, memory_search, project_id=None):
+    ctx = assemble_story_context(memory_search, prompt_text)
+    return build_system_prompt(
+        EngagementMode.DIRECTOR,
+        instructions=ctx.instructions,
+        style_guide=ctx.style_guide,
+        characters=ctx.characters,
+        locations=ctx.locations,
+        scenes=ctx.scenes,
+        worldbuilding=ctx.worldbuilding,
+        canon=True,
+    )
+```
 
 ## Plugin Repository Root Resolution
 

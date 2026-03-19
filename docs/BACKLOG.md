@@ -501,18 +501,32 @@ needs core capabilities, the capability is added to core first.
 
 ### Storytelling Plugin Suite
 
-**Status:** 🔴 Not Started (demo handler exists in `plugins/storytelling/`)
+**Status:** 🟡 Phase 3 Complete (import + scene generation + conversation mode)
 **Effort:** Medium-Large
-**Reference:** `archive/openchronicle.v1` branch
+**Reference:** `archive/openchronicle.v1` branch, `plugins/storytelling/`
 
 V1 was a comprehensive narrative AI engine. V2 stripped to domain-agnostic
 core. The v1 features belong in a plugin suite. Each subsystem is an
 independent plugin — no cross-plugin dependencies.
 
-**Candidate plugins (each independent):**
+**Completed phases:**
 
-- [ ] **Character management** — entity tracking, stats, behavior
-- [ ] **Scene/timeline management** — scene persistence, navigation
+- [x] **Phase 1: Import pipeline** — text file parsing, content classification
+  (character, location, style-guide, instructions, worldbuilding), memory
+  storage with structured tags, asset upload for images
+- [x] **Phase 2: Scene generation** — context assembly from project memory
+  (tag-filtered search), engagement modes (participant/director/audience),
+  canon/sandbox, system prompt construction, LLM completion, scene persistence
+- [x] **Phase 3: Conversation mode** — `ModePromptBuilder` protocol in core
+  `PluginRegistry`, `prepare_ask()` delegates system prompt to active mode's
+  builder, story builder assembles characters/style guides/locations/worldbuilding
+  from memory, CLI convenience commands (`oc story characters|locations|search`)
+
+**CLI commands:** `oc story import|list|show|scene|characters|locations|search`
+**Tests:** 95 (import + scene + conversation mode)
+
+**Candidate future plugins (each independent):**
+
 - [ ] **Narrative engines** — consistency checker, emotional analyzer
 - [ ] **Game mechanics** — dice engine, narrative branching
 - [ ] **Bookmark system** — scene bookmarking, chapters
@@ -523,11 +537,9 @@ independent plugin — no cross-plugin dependencies.
 exercise the event pipeline with diverse, non-trivial payloads. This data
 is valuable for testing memory retrieval quality and event replay.
 
-**Storage note:** Character state and scene persistence need structured
-storage. Options: (a) serialize state in task payloads (stateless), (b) use
-OC memory system via the conversation pipeline, (c) if the plugin API proves
-insufficient, promote storage-heavy features to core services. Evaluate at
-implementation time — don't over-engineer the plugin API preemptively.
+**Storage note:** Character state and scene persistence use the OC memory
+system via tag-filtered search. The `ModePromptBuilder` protocol allows
+plugins to assemble custom system prompts from memory without core changes.
 
 ### Persona Extractor (Storytelling Extension)
 

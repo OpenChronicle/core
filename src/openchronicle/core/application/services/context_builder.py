@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from openchronicle.core.domain.models.conversation import Conversation, Turn
 from openchronicle.core.domain.models.memory_item import MemoryItem
+from openchronicle.core.domain.ports.memory_store_port import MemoryStorePort
+
+if TYPE_CHECKING:
+    from openchronicle.core.application.services.embedding_service import EmbeddingService
 
 _CONTENT_SNIPPET_MAX = 300
 
@@ -70,3 +76,34 @@ def build_turn_messages(
         messages.append({"role": "assistant", "content": turn.assistant_text})
     messages.append({"role": "user", "content": prompt_text})
     return messages
+
+
+def make_memory_search_closure(
+    memory_store: MemoryStorePort,
+    project_id: str | None,
+    embedding_service: EmbeddingService | None = None,
+) -> Callable[..., list[MemoryItem]]:
+    """Build a pre-bound memory_search closure for plugin consumption.
+
+    The returned callable has signature::
+
+        memory_search(query: str, top_k: int = 8, tags: list[str] | None = None)
+            -> list[MemoryItem]
+    """
+    from openchronicle.core.application.use_cases import search_memory as search_memory_uc
+
+    def memory_search(
+        query: str,
+        top_k: int = 8,
+        tags: list[str] | None = None,
+    ) -> list[MemoryItem]:
+        return search_memory_uc.execute(
+            memory_store,
+            query,
+            top_k=top_k,
+            project_id=project_id,
+            tags=tags,
+            embedding_service=embedding_service,
+        )
+
+    return memory_search

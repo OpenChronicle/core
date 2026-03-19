@@ -102,6 +102,11 @@ Phase 5 IDE automation hooks prototype is done (Claude Code `PreCompact` hook
 injects OC context memories before compression, `SessionStart(compact)` hook
 reloads after compression, `--full` flag on `oc memory search` for
 machine-readable context injection, hooks in `.claude/hooks/` gitignored).
+Storytelling Plugin Phase 3 is done (conversation mode integration: `ModePromptBuilder`
+protocol in `PluginRegistry` port, `prepare_ask()` delegates system prompt to active
+mode's builder, story builder assembles characters/style guides/locations/worldbuilding
+from project memory via tag-filtered search, `make_memory_search_closure` extracted to
+`context_builder.py`, CLI `oc story characters|locations|search`, 20 new tests, 1767 total).
 
 ## Build and Development
 
@@ -163,7 +168,7 @@ for the full directory tree and layer descriptions.
 - **Ports**: Abstract interfaces in `domain/ports/` that infrastructure implements
 - **Event Model**: Hash-chained events for tamper-evident task timelines (`prev_hash` -> `hash`)
 - **Task Handlers**: Async functions registered by handler name (e.g., `hello.echo`, `story.draft`)
-- **Plugins**: Loaded from `OC_PLUGIN_DIR` (default `plugins/`), via `importlib.util`. Plugin development happens in [openchronicle/plugins](https://github.com/OpenChronicle/plugins); deploy by symlink/copy into core's plugin dir
+- **Plugins**: Loaded from `OC_PLUGIN_DIR` (default `plugins/`), via `importlib.util`. Plugin development happens in [openchronicle/plugins](https://github.com/OpenChronicle/plugins); deploy by symlink/copy into core's plugin dir. Plugins can register **mode prompt builders** (`ModePromptBuilder` protocol) to override system prompts when a conversation is in their mode
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)

@@ -445,6 +445,7 @@ def cmd_convo_ask(args: argparse.Namespace, container: CoreContainer) -> int:
                 privacy_gate=getattr(container, "privacy_gate", None),
                 privacy_settings=getattr(container, "privacy_settings", None),
                 moe=getattr(args, "moe", False),
+                mode_prompt_builders=container.plugin_loader.registry_instance().mode_prompt_builders(),
             )
         except (ValueError, LLMProviderError) as exc:
             if (

@@ -186,6 +186,10 @@ Core ships with example plugins for development reference.
 2. Handlers use `namespace.action` naming (e.g., `hello.echo`, `story.draft`)
 3. Task type `plugin.invoke` routes to handlers via `payload.handler`
 4. Plugins can define their own domain/application layers
+5. Plugins can register **mode prompt builders** (`ModePromptBuilder` protocol) to
+   customize the system prompt when a conversation is in their mode — e.g., the
+   storytelling plugin's `"story"` mode assembles characters, style guides,
+   locations, and worldbuilding from project memory
 
 ## CLI and RPC
 
@@ -201,10 +205,9 @@ The `oc` CLI provides:
 
 See `docs/BACKLOG.md` for planned features including:
 
-- Media generation port
+- Multimodal conversation input (vision via asset system)
 - Security scanner plugin
 - Dev agent runner (sandboxed)
-- Memory System Phase 2 (context assembly, turn recording)
 
 Already implemented as core capabilities (not plugins — see Decision #4):
 

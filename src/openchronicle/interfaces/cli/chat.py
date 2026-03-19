@@ -42,6 +42,7 @@ async def _stream_turn(
         privacy_settings=getattr(container, "privacy_settings", None),
         telemetry=telemetry,
         embedding_service=container.embedding_service,
+        mode_prompt_builders=container.plugin_loader.registry_instance().mode_prompt_builders(),
     )
 
     collected: list[str] = []
@@ -119,6 +120,7 @@ async def chat_loop(container: CoreContainer, conversation_id: str, *, stream: b
                     privacy_settings=getattr(container, "privacy_settings", None),
                     telemetry=telemetry,
                     moe=moe,
+                    mode_prompt_builders=container.plugin_loader.registry_instance().mode_prompt_builders(),
                 )
                 print(f"\n{turn.assistant_text}")
         except (ValueError, LLMProviderError) as exc:

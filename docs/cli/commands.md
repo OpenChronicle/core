@@ -574,6 +574,88 @@ via `memory_save`.
 
 ---
 
+## Storytelling (Plugin)
+
+Commands provided by the `storytelling` plugin (`oc story`). Requires the plugin
+to be installed in the plugin directory.
+
+### `oc story import`
+
+Import a storytelling project from a directory of text files.
+
+```text
+oc story import <path> --project-id <id> [--project-name NAME] [--dry-run]
+```
+
+| Flag | Description |
+| ------ | ------------- |
+| `--project-id` | **Required.** OC project ID |
+| `--project-name` | Project name (default: directory name) |
+| `--dry-run` | Parse and classify without saving |
+
+### `oc story list`
+
+List imported storytelling content.
+
+```text
+oc story list --project-id <id> [--type {character,location,style-guide,scene,instructions,worldbuilding,all}]
+```
+
+### `oc story show`
+
+Show a single storytelling memory item.
+
+```text
+oc story show <memory_id>
+```
+
+### `oc story scene`
+
+Generate a storytelling scene via the orchestrator.
+
+```text
+oc story scene <prompt...> --project-id <id> [--mode {participant,director,audience}]
+               [--canon | --sandbox] [--character NAME] [--location NAME]
+               [--save] [--max-tokens N] [--temperature F]
+```
+
+| Flag | Description |
+| ------ | ------------- |
+| `--project-id` | **Required.** OC project ID |
+| `--mode` | Engagement mode (default: `director`) |
+| `--sandbox` | Non-canon mode (default: canon) |
+| `--character` | Player character name (for participant mode) |
+| `--location` | Location hint for context retrieval |
+| `--save` | Save generated scene as a memory item |
+| `--max-tokens` | Max output tokens (default: `2048`) |
+| `--temperature` | LLM temperature (default: `0.8`) |
+
+### `oc story characters`
+
+List imported characters.
+
+```text
+oc story characters --project-id <id> [--primary-only]
+```
+
+### `oc story locations`
+
+List imported locations.
+
+```text
+oc story locations --project-id <id>
+```
+
+### `oc story search`
+
+Search storytelling content by query.
+
+```text
+oc story search <query...> --project-id <id>
+```
+
+---
+
 ## Testing / Debug
 
 ### `oc selftest`

@@ -31,6 +31,7 @@ from openchronicle.core.domain.errors.error_codes import (
 )
 from openchronicle.core.domain.exceptions import NotFoundError
 from openchronicle.core.domain.models.conversation import Conversation, Turn
+from openchronicle.core.domain.models.memory_item import MemoryItem
 from openchronicle.core.domain.models.project import Event, Task
 from openchronicle.core.domain.ports.conversation_store_port import ConversationStorePort
 from openchronicle.core.domain.ports.interaction_router_port import InteractionRouterPort
@@ -44,6 +45,7 @@ _logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from openchronicle.core.application.services.embedding_service import EmbeddingService
     from openchronicle.core.domain.models.moe_result import MoEResult
+    from openchronicle.core.domain.ports.plugin_port import ModePromptBuilder
 
 
 class TelemetryRecorder(Protocol):
@@ -188,6 +190,7 @@ async def prepare_ask(
     privacy_settings: PrivacyOutboundSettings | None = None,
     telemetry: TelemetryRecorder | None = None,
     embedding_service: EmbeddingService | None = None,
+    mode_prompt_builders: dict[str, ModePromptBuilder] | None = None,
 ) -> PreparedContext:
     """Prepare context for a conversation turn (phases 1-5).
 
@@ -209,26 +212,49 @@ async def prepare_ask(
 
     prior_turns = convo_store.list_turns(conversation_id, limit=last_n)
 
-    messages: list[dict[str, str]] = [{"role": "system", "content": "You are a helpful assistant."}]
+    # --- Mode prompt builder: plugins can override the system prompt ---
+    builder = (mode_prompt_builders or {}).get(effective_mode)
+    if builder and conversation.project_id:
+        from openchronicle.core.application.services.context_builder import make_memory_search_closure
 
-    memory_search_start = time.perf_counter() if perf_enabled else 0.0
-    # Pinned memories have their own budget (not counted against top_k)
-    pinned_memory = memory_store.list_memory(pinned_only=True) if include_pinned_memory else []
-    if embedding_service is not None:
-        relevant_memory = embedding_service.search_hybrid(
-            prompt_text,
-            top_k=top_k_memory,
-            conversation_id=conversation_id,
-            include_pinned=False,
+        memory_search_start = time.perf_counter() if perf_enabled else 0.0
+        search_fn = make_memory_search_closure(
+            memory_store,
+            conversation.project_id,
+            embedding_service,
         )
+        system_content = builder(
+            prompt_text,
+            memory_search=search_fn,
+            project_id=conversation.project_id,
+        )
+        messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
+
+        # Pinned memories still included — they're standing instructions
+        pinned_memory = memory_store.list_memory(pinned_only=True) if include_pinned_memory else []
+        relevant_memory: list[MemoryItem] = []  # builder did its own retrieval
+        memory_retrieval_ms = (time.perf_counter() - memory_search_start) * 1000 if perf_enabled else 0.0
     else:
-        relevant_memory = memory_store.search_memory(
-            prompt_text,
-            top_k=top_k_memory,
-            conversation_id=conversation_id,
-            include_pinned=False,
-        )
-    memory_retrieval_ms = (time.perf_counter() - memory_search_start) * 1000 if perf_enabled else 0.0
+        messages = [{"role": "system", "content": "You are a helpful assistant."}]
+
+        memory_search_start = time.perf_counter() if perf_enabled else 0.0
+        # Pinned memories have their own budget (not counted against top_k)
+        pinned_memory = memory_store.list_memory(pinned_only=True) if include_pinned_memory else []
+        if embedding_service is not None:
+            relevant_memory = embedding_service.search_hybrid(
+                prompt_text,
+                top_k=top_k_memory,
+                conversation_id=conversation_id,
+                include_pinned=False,
+            )
+        else:
+            relevant_memory = memory_store.search_memory(
+                prompt_text,
+                top_k=top_k_memory,
+                conversation_id=conversation_id,
+                include_pinned=False,
+            )
+        memory_retrieval_ms = (time.perf_counter() - memory_search_start) * 1000 if perf_enabled else 0.0
 
     emit_event(
         Event(
@@ -733,6 +759,7 @@ async def execute(
     telemetry: TelemetryRecorder | None = None,
     moe: bool = False,
     embedding_service: EmbeddingService | None = None,
+    mode_prompt_builders: dict[str, ModePromptBuilder] | None = None,
 ) -> Turn:
     ctx = await prepare_ask(
         convo_store=convo_store,
@@ -752,6 +779,7 @@ async def execute(
         privacy_settings=privacy_settings,
         telemetry=telemetry,
         embedding_service=embedding_service,
+        mode_prompt_builders=mode_prompt_builders,
     )
 
     perf_enabled = ctx.started_at > 0.0

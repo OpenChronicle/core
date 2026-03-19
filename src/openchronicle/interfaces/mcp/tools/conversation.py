@@ -125,6 +125,7 @@ def register(mcp: FastMCP) -> None:
             privacy_gate=container.privacy_gate,
             privacy_settings=container.privacy_settings,
             moe=moe,
+            mode_prompt_builders=container.plugin_loader.registry_instance().mode_prompt_builders(),
         )
         return turn_to_dict(turn)
 

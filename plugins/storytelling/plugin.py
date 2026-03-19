@@ -8,6 +8,7 @@ from openchronicle.core.application.runtime.task_registry import TaskHandlerRegi
 from openchronicle.core.domain.models.project import Event, Task
 from openchronicle.core.domain.ports.plugin_port import PluginRegistry
 
+from .application.conversation_mode import story_prompt_builder
 from .application.scene_handler import generate_scene
 from .domain.modes import EngagementMode
 from .helpers import format_draft, hash_text
@@ -234,3 +235,5 @@ def register(
     registry.register_agent_template(
         {"role": "storyteller", "description": "Imports and manages narrative content, generates scenes."}
     )
+
+    registry.register_mode_prompt_builder("story", story_prompt_builder)

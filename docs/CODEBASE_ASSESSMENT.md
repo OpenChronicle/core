@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-03-10
+**Date:** 2026-03-18
 **Branch:** `main`
-**Revision:** 46 (OpenAI-compat API stress tests, webui session race documented)
+**Revision:** 47 (Storytelling Phase 3: conversation mode integration)
 
 ---
 
@@ -120,6 +120,17 @@ Gemini adapter error codes: `_classify_gemini_error()` maps exceptions to
 `OLLAMA_HOST` documented in env vars reference.
 21 new tests, 1198 total passing.
 
+**Storytelling plugin Phase 3 (conversation mode integration) is done.** Plugins can
+now register **mode prompt builders** — callables that produce custom system prompts
+when a conversation is in their mode. The storytelling plugin registers a `"story"`
+mode builder: when a conversation's `mode` is set to `"story"`, `prepare_ask()`
+delegates system prompt construction to the plugin, which assembles characters,
+style guides, locations, worldbuilding, and scene context from project memory via
+tag-filtered search. Generic keyword-based memory retrieval is skipped (the builder
+does its own retrieval); pinned memories are still included. New CLI convenience
+commands: `oc story characters`, `oc story locations`, `oc story search`. 20 new
+tests, 1767 total.
+
 **What's next:** Multimodal conversation input (vision input via asset system),
 or Phase 5 IDE automation hooks (prototype exists). Plugin development lives in
 [openchronicle/plugins](https://github.com/OpenChronicle/plugins). Media generation is done
@@ -135,7 +146,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. 30 MCP tools, 39 REST endpoints, 1,712 tests. Enterprise tightening Passes A/B/C complete. OpenAI-compatible API layer added: `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients, `provider/model` routing format, 53 unit tests + 12 API stress tests. Known issue: `_get_or_create_webui_session` has a read-then-write race under multi-connection concurrency (tracked in BACKLOG.md).**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. Storytelling plugin Phase 3 (conversation mode integration): plugins register mode prompt builders via `PluginRegistry`, `prepare_ask()` delegates system prompt construction to the active mode's builder, story builder assembles characters/style guides/locations/worldbuilding from project memory; CLI convenience commands `oc story characters|locations|search`. 30 MCP tools, 39 REST endpoints, 1,767 tests. Enterprise tightening Passes A/B/C complete. OpenAI-compatible API layer added: `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients, `provider/model` routing format, 53 unit tests + 12 API stress tests. Known issue: `_get_or_create_webui_session` has a read-then-write race under multi-connection concurrency (tracked in BACKLOG.md).**
 
 ---
 
@@ -222,7 +233,7 @@ validates against live providers (OpenAI, Anthropic).
 | **Interaction routing** (rule + hybrid ML assist) | Working | NSFW scoring, mode detection |
 | **Memory v1** (hybrid search: FTS5 keyword + embedding cosine via RRF) | Working | `EmbeddingPort` ABC, stub/OpenAI/Ollama adapters, `EmbeddingService` with hybrid `search_hybrid()`, embeddings stored as BLOB in `memory_embeddings` table, backfill CLI/MCP/API with per-item resilience, backwards-compatible default (`OC_EMBEDDING_PROVIDER=none`), embedding status in health endpoint, startup logging, configurable timeout (`OC_EMBEDDING_TIMEOUT`) |
 | **Budget/rate limiting** | Working | Token limits, call limits, rate gates |
-| **Plugin system** (discover, load, register, invoke) | Working | 2 example plugins, collision detection |
+| **Plugin system** (discover, load, register, invoke, mode builders) | Working | 2 example plugins, collision detection, mode prompt builder registry |
 | **Scheduler** (tick-driven, atomic claim, drift prevention) | Working | Core service, 6 CLI + 6 RPC commands, 53 tests |
 | **STDIO RPC** (24 commands, serve + oneshot) | Working | Request dedup, telemetry, error codes |
 | **CLI** (76+ subcommands) | Working | Project/task/convo/memory/diagnostics/db maintenance/config/version/events/delete/scheduler |
@@ -237,7 +248,7 @@ validates against live providers (OpenAI, Anthropic).
 | **OpenAI-compatible API layer** (`/v1/models`, `/v1/chat/completions`) | Working | OpenAI Chat Completions protocol for Open WebUI and other clients, streaming + non-streaming, `provider/model` routing, `auto` default routing, 53 unit tests + 12 API stress tests |
 | **Media generation** (5 adapters, unified model config) | Working | `MediaGenerationPort` ABC, stub/Ollama/OpenAI/Gemini/xAI adapters, `image_generation` capability tag in `config/models/`, `OC_MEDIA_MODEL` derives provider from config, asset storage + SHA-256 dedup, CLI/MCP/API interfaces, 69 tests |
 | **Ollama CLI** (model discovery, config management) | Working | `oc ollama list\|show\|add\|remove\|sync`, `OllamaService` talks to Ollama HTTP API (`/api/tags`, `/api/show`), capability inference (vision/diffusion/tools), operates against resolved config dir (`RuntimePaths`), 32 tests |
-| **Test suite** (1656 unit/functional, 24 real-world integration, 14 Discord integration, 18 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama + OpenAI-compat stress, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
+| **Test suite** (1656 unit/functional, 24 real-world integration, 14 Discord integration, 18 concurrency stress) | Passing | 15 test categories + Discord + MCP + Assets + HTTP API + Embedding + Webhooks + Media + Ollama + OpenAI-compat stress + Storytelling conversation mode, architecture guards, posture enforcement, live provider validation, concurrency race proofs, config drift detection, auto-detecting conftest, DB isolation fixture |
 
 ### Architecture (Enforced and Clean)
 
