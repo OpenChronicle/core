@@ -9,66 +9,84 @@
 # adhoc-CLI runner (use `docker exec` into one of the running services
 # instead).
 #
-# Stack-level env vars to set in Portainer (Stacks → this stack →
-# Environment variables) — none of these come from a .env in the repo
-# when deployed via Portainer "Stack from Git":
+# === Stack-level environment variables ===
+# Every value below using ${VAR} syntax is sourced from Portainer's
+# stack Environment variables section (Stacks → this stack →
+# Environment variables). Values *without* ${...} are container-internal
+# paths and the deployment shape — they don't change per environment.
 #
 #   Required:
-#     OC_LLM_PROVIDER       — openai | anthropic | groq | gemini | ollama | stub
-#     OPENAI_API_KEY        — if OC_LLM_PROVIDER=openai
-#     ANTHROPIC_API_KEY     — if OC_LLM_PROVIDER=anthropic
-#     GROQ_API_KEY          — if OC_LLM_PROVIDER=groq
-#     GEMINI_API_KEY        — if OC_LLM_PROVIDER=gemini
+#     OC_LLM_PROVIDER       openai | anthropic | groq | gemini | ollama | stub
+#     One matching API key — OPENAI_API_KEY / ANTHROPIC_API_KEY /
+#                             GROQ_API_KEY / GEMINI_API_KEY (depending on
+#                             OC_LLM_PROVIDER above)
 #
 #   Recommended:
-#     OC_API_KEY            — bearer token for HTTP API auth (otherwise the
-#                             API is open on whatever network reaches :8000)
-#     OC_EMBEDDING_PROVIDER — none (default) | openai | ollama
-#                             Set to enable hybrid FTS5+semantic search
-#     OC_EMBEDDING_MODEL    — provider-specific
+#     OC_API_KEY            Bearer token for HTTP API auth. Without it,
+#                           anything on the NAS network can hit :8000.
+#     OC_EMBEDDING_PROVIDER none (default) | openai | ollama
+#                           Set to enable hybrid FTS5+semantic search.
+#     OC_EMBEDDING_MODEL    Provider-specific embedding model name.
 #
 #   Optional:
-#     OC_TAG                — image tag (default: latest). Pin to a SHA for
-#                             reproducible deploys
-#     HOST_HTTP_PORT        — host port for HTTP API (default 8000)
-#     HOST_MCP_PORT         — host port for MCP streamable-http (default 8080)
-#     OLLAMA_HOST           — http://host.docker.internal:11434 (if Ollama
-#                             runs on the NAS host)
+#     OC_TAG                Image tag (default: latest). Pin to a SHA
+#                           for reproducible deploys.
+#     HOST_HTTP_PORT        Host port for HTTP API (default: 18000 — chosen
+#                           because :8000 is taken by portainer-ce on
+#                           carldog-nas. Override only if you redeploy
+#                           somewhere else and want a different port).
+#     HOST_MCP_PORT         Host port for MCP streamable-http (default: 18001
+#                           — chosen because :8080 is taken by sabnzbd and
+#                           :18080 by qbittorrent on carldog-nas).
+#     OLLAMA_HOST           e.g. http://host.docker.internal:11434
+#                           if Ollama runs on the NAS host.
 #
-# Image: ghcr.io/carldog/openchronicle-mcp (published by GitHub Actions
-# multi-arch CI on every push to main).
+# Image: ghcr.io/carldog/openchronicle-mcp (multi-arch, published by
+# GitHub Actions on every push to main).
+
+# Shared env block — referenced by both `serve` and `mcp` via YAML
+# anchors. Container-internal paths stay literal; Portainer-sourced
+# values use ${VAR} (or ${VAR:-default}) substitution at deploy time.
+x-oc-env: &oc-env
+  # Container-internal paths (hardcoded, deployment shape):
+  OC_DB_PATH: /data/openchronicle.db
+  OC_CONFIG_DIR: /config
+  OC_OUTPUT_DIR: /output
+  OC_ASSETS_DIR: /assets
+  # Portainer stack env (required):
+  OC_LLM_PROVIDER: ${OC_LLM_PROVIDER}
+  # Portainer stack env (provider keys — set whichever matches OC_LLM_PROVIDER):
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  # Portainer stack env (optional):
+  OC_EMBEDDING_PROVIDER: ${OC_EMBEDDING_PROVIDER:-}
+  OC_EMBEDDING_MODEL: ${OC_EMBEDDING_MODEL:-}
+  OLLAMA_HOST: ${OLLAMA_HOST:-}
+
+x-oc-volumes: &oc-volumes
+  - oc-data:/data
+  - oc-config:/config
+  - oc-output:/output
+  - oc-assets:/assets
+
+x-oc-extra-hosts: &oc-extra-hosts
+  - host.docker.internal:host-gateway
 
 services:
   serve:
     image: ghcr.io/carldog/openchronicle-mcp:${OC_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "${HOST_HTTP_PORT:-8000}:8000"
+      - "${HOST_HTTP_PORT:-18000}:8000"
     environment:
-      - OC_DB_PATH=/data/openchronicle.db
-      - OC_CONFIG_DIR=/config
-      # OC_PLUGIN_DIR intentionally unset — defaults to /app/plugins
-      # (image-baked storytelling plugin). Override only if you want
-      # to layer additional plugins via a host bind-mount or volume.
-      - OC_OUTPUT_DIR=/output
-      - OC_ASSETS_DIR=/assets
-      - OC_API_HOST=0.0.0.0
-      - OC_LLM_PROVIDER
-      - OC_API_KEY
-      - OC_EMBEDDING_PROVIDER
-      - OC_EMBEDDING_MODEL
-      - OPENAI_API_KEY
-      - ANTHROPIC_API_KEY
-      - GROQ_API_KEY
-      - GEMINI_API_KEY
-      - OLLAMA_HOST
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - oc-data:/data
-      - oc-config:/config
-      - oc-output:/output
-      - oc-assets:/assets
+      <<: *oc-env
+      # serve-only:
+      OC_API_HOST: 0.0.0.0
+      OC_API_KEY: ${OC_API_KEY:-}
+    extra_hosts: *oc-extra-hosts
+    volumes: *oc-volumes
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health',timeout=3).status==200 else 1)\""]
       interval: 30s
@@ -81,30 +99,10 @@ services:
     entrypoint: ["oc", "mcp", "serve", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8080"]
     restart: unless-stopped
     ports:
-      - "${HOST_MCP_PORT:-8080}:8080"
-    environment:
-      - OC_DB_PATH=/data/openchronicle.db
-      - OC_CONFIG_DIR=/config
-      # OC_PLUGIN_DIR intentionally unset — defaults to /app/plugins
-      # (image-baked storytelling plugin). Override only if you want
-      # to layer additional plugins via a host bind-mount or volume.
-      - OC_OUTPUT_DIR=/output
-      - OC_ASSETS_DIR=/assets
-      - OC_LLM_PROVIDER
-      - OC_EMBEDDING_PROVIDER
-      - OC_EMBEDDING_MODEL
-      - OPENAI_API_KEY
-      - ANTHROPIC_API_KEY
-      - GROQ_API_KEY
-      - GEMINI_API_KEY
-      - OLLAMA_HOST
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - oc-data:/data
-      - oc-config:/config
-      - oc-output:/output
-      - oc-assets:/assets
+      - "${HOST_MCP_PORT:-18001}:8080"
+    environment: *oc-env
+    extra_hosts: *oc-extra-hosts
+    volumes: *oc-volumes
     depends_on:
       serve:
         condition: service_healthy
