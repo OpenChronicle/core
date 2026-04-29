@@ -2,14 +2,16 @@
 
 > **Related Plugin Documentation:**
 > [Plugin Contract](../plugins/plugin_contract.md) |
-> [Plugin Quickstart](../plugins/plugin_quickstart.md) |
-> [Connector Plugins](../plugins/connector_plugins.md)
+> [Plugin Quickstart](../plugins/plugin_quickstart.md)
 
-OpenChronicle v2 uses a file-based plugin system. Plugins live in a
+OpenChronicle uses a file-based plugin system for **extensions that modify
+OC's conversational behavior** — primarily mode prompt builders, system
+prompt augmenters, and conversation-lifecycle handlers. Domain integrations
+that import external data (Plex, Plaid, etc.) belong as their own MCP
+servers, not as OC plugins. Plugins live in a
 [separate repository](https://github.com/OpenChronicle/plugins) and are
 deployed into core's plugin directory via symlink, copy, or by setting
-`OC_PLUGIN_DIR`. Core ships with example plugins (`hello_plugin`,
-`storytelling`) for development reference.
+`OC_PLUGIN_DIR`. Core ships with `storytelling` as the reference extension.
 
 ## Plugin Structure
 

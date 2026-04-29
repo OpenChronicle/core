@@ -200,7 +200,7 @@ def test_task_run_many_invalid_task_type(tmp_path: Path) -> None:
 
     invalid_task = Task(
         project_id=conversation.project_id,
-        type="hello.echo",
+        type="story.draft",
         payload={"prompt": "should not run"},
     )
     storage.add_task(invalid_task)

@@ -365,7 +365,7 @@ Args:
   "project_id": "...",
   "task_type": "plugin.invoke",
   "payload": {
-    "handler": "hello.echo",
+    "handler": "story.draft",
     "input": {
       "prompt": "test message"
     }
@@ -400,7 +400,7 @@ Example workflow:
 PROJECT_ID=$(oc init-project "test-project")
 
 # 2. Submit a task
-TASK_ID=$(oc rpc --request '{"protocol_version":"1","command":"task.submit","args":{"project_id":"'"$PROJECT_ID"'","task_type":"plugin.invoke","payload":{"handler":"hello.echo","input":{"prompt":"hello"}}}}' | jq -r '.result.task_id')
+TASK_ID=$(oc rpc --request '{"protocol_version":"1","command":"task.submit","args":{"project_id":"'"$PROJECT_ID"'","task_type":"plugin.invoke","payload":{"handler":"story.draft","input":{"prompt":"hello"}}}}' | jq -r '.result.task_id')
 
 # 3. Execute queued tasks
 oc rpc --request '{"protocol_version":"1","command":"task.run_many","args":{"limit":10}}'

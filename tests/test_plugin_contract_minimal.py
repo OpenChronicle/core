@@ -11,7 +11,7 @@ def test_plugin_contract_minimal() -> None:
     loader = PluginLoader(plugins_dir="plugins", handler_registry=registry)
     loader.load_plugins()
 
-    plugin_module = sys.modules.get("oc_plugins.hello_plugin.plugin")
+    plugin_module = sys.modules.get("oc_plugins.storytelling.plugin")
     assert plugin_module is not None
 
     assert getattr(plugin_module, "PLUGIN_ID", None)
@@ -19,4 +19,4 @@ def test_plugin_contract_minimal() -> None:
     assert getattr(plugin_module, "PLUGIN_VERSION", None)
     assert getattr(plugin_module, "PLUGIN_ENTRYPOINT", None)
 
-    assert registry.get("hello.echo") is not None
+    assert registry.get("story.draft") is not None

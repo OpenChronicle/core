@@ -54,7 +54,7 @@ class TestSchedulerAdd:
                 "--task-type",
                 "plugin.invoke",
                 "--payload",
-                '{"handler": "hello.echo"}',
+                '{"handler": "story.draft"}',
             ],
             container,
         )

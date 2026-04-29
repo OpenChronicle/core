@@ -80,7 +80,7 @@ class TestAddJob:
             project_id="proj-1",
             name="once",
             task_type="plugin.invoke",
-            task_payload={"handler": "hello.echo"},
+            task_payload={"handler": "story.draft"},
         )
         assert job.status == JobStatus.ACTIVE
         assert job.interval_seconds is None

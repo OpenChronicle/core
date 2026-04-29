@@ -14,12 +14,16 @@
 
 ## Current Sprint
 
-**Status:** Core done. Post-core features in progress. Hybrid taxonomy decided:
-scheduler and Discord are core features, not plugins (Decision #4 in assessment).
+**Status:** Core done. Connector plugin model retired (2026-04-29 incident).
+OpenChronicle is now positioned as an MCP server with narrow extension support
+for behavior-modifying plugins (storytelling). Domain integrations (Plex, etc.)
+belong as their own MCP servers, composed by the client.
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Multimodal conversation input (vision via asset system) or Phase 5
-IDE automation hooks. Plugin development lives in
+**Next action:** Rebrand evaluation (`OpenChronicle/openchronicle-core` →
+`carldog/openchronicle-mcp`), backlog reclassification (extension /
+external-MCP / core lens), Open WebUI compat decision (drop
+`openai_compat.py`?). Plugin development for `storytelling` lives in
 [openchronicle/plugins](https://github.com/OpenChronicle/plugins).
 Media generation is done (`MediaGenerationPort` with 5 adapters:
 stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine; unified model
@@ -111,6 +115,16 @@ Storytelling Plugin Phases 4-7 are done (game mechanics engine with dice/resolut
 bookmark & timeline with auto-bookmark on scene save, narrative engines with LLM-based
 consistency checking and emotional arc analysis, persona extractor stub with text-only
 extraction; 13 new files, 12 new handlers, 11 new CLI commands, 208 new tests, 1975 total).
+2026-04-29 incident remediation + connector model retired (production DB
+`memory_embeddings` B-tree corruption recovered via Plan B rebuild —
+plex memory items stripped, 49 non-plex items preserved, integrity_check ok;
+`hello_plugin`/`plaid_connector`/`plex_connector` deleted from `plugins/` along
+with 8 dedicated test files; 4 fixture-using tests migrated from `hello.echo` to
+`story.draft`; storytelling plugin gained `PLUGIN_ID`/`NAME`/`VERSION`/`ENTRYPOINT`
+metadata constants — contract was previously enforced only via hello_plugin;
+`/data` migrated from Windows bind-mount to Docker named volume `oc-data` to fix
+SQLite WAL fsync risk on bind-mount FS; root cause: plex webhook bombardment +
+unclean container restart on bind-mount = torn checkpoint write; 1921 tests pass).
 
 ## Build and Development
 
@@ -171,7 +185,7 @@ for the full directory tree and layer descriptions.
 
 - **Ports**: Abstract interfaces in `domain/ports/` that infrastructure implements
 - **Event Model**: Hash-chained events for tamper-evident task timelines (`prev_hash` -> `hash`)
-- **Task Handlers**: Async functions registered by handler name (e.g., `hello.echo`, `story.draft`)
+- **Task Handlers**: Async functions registered by handler name (e.g., `story.draft`)
 - **Plugins**: Loaded from `OC_PLUGIN_DIR` (default `plugins/`), via `importlib.util`. Plugin development happens in [openchronicle/plugins](https://github.com/OpenChronicle/plugins); deploy by symlink/copy into core's plugin dir. Plugins can register **mode prompt builders** (`ModePromptBuilder` protocol) to override system prompts when a conversation is in their mode
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
@@ -189,7 +203,7 @@ for the full directory tree and layer descriptions.
 
 - Event types: dot-separated lowercase (`llm.requested`, `task.completed`)
 - Task types: use `plugin.invoke` with handler in payload (not dotted task types)
-- Handler names: dot-separated lowercase (`story.draft`, `hello.echo`)
+- Handler names: dot-separated lowercase (`story.draft`)
 - Error codes: SCREAMING_SNAKE_CASE (`INVALID_ARGUMENT`, `BUDGET_EXCEEDED`)
 
 **Patterns:**

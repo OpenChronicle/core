@@ -2,7 +2,7 @@
 
 Ensures plugin documentation does NOT drift back to obsolete guidance:
 - Task handlers MUST be invoked via task_type "plugin.invoke".
-- Dotted task_type strings (e.g. "hello.echo") MUST be described as
+- Dotted task_type strings (e.g. "story.draft") MUST be described as
   invalid / INVALID_TASK_TYPE, never as the normal execution path.
 """
 
@@ -50,7 +50,7 @@ def _extract_task_type_values(text: str) -> list[str]:
 
 
 def _is_dotted_task_type(value: str) -> bool:
-    """True when *value* looks like a dotted handler name (e.g. hello.echo).
+    """True when *value* looks like a dotted handler name (e.g. story.draft).
 
     ``plugin.invoke`` is the canonical task_type and is NOT considered
     a 'dotted handler name' for the purpose of this check.

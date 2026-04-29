@@ -24,7 +24,7 @@ def _make_job(**overrides: object) -> ScheduledJob:
         "project_id": "proj-1",
         "name": "test-job",
         "task_type": "plugin.invoke",
-        "task_payload": {"handler": "hello.echo"},
+        "task_payload": {"handler": "story.draft"},
     }
     defaults.update(overrides)
     return ScheduledJob(**defaults)  # type: ignore[arg-type]
@@ -40,7 +40,7 @@ class TestAddAndGet:
         assert got.id == job.id
         assert got.name == "nightly-scan"
         assert got.task_type == "plugin.invoke"
-        assert got.task_payload == {"handler": "hello.echo"}
+        assert got.task_payload == {"handler": "story.draft"}
         assert got.status == JobStatus.ACTIVE
         assert got.fire_count == 0
 

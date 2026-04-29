@@ -1,8 +1,8 @@
 # OpenChronicle v2 — Senior Developer Codebase Assessment
 
-**Date:** 2026-03-18
+**Date:** 2026-04-29
 **Branch:** `main`
-**Revision:** 48 (Storytelling Phases 4-7: mechanics, timeline, engines, persona)
+**Revision:** 49 (2026-04 incident remediation + connector model retired + named volume migration)
 
 ---
 
@@ -321,6 +321,72 @@ processes can now share the database.
 
 ---
 
+## 2026-04 Incident Remediation
+
+**What happened.** Production SQLite DB at
+`C:/Docker/openchronicle/data/openchronicle.db` developed B-tree corruption in
+the `memory_embeddings` table — multiple "2nd reference to page X" errors and
+"Rowid out of order" — surfaced when the running container's `add_memory`
+INSERT failed with `database disk image is malformed`. The corruption survived
+clean shutdowns, so it was on-disk, not in-flight. No backup was usable
+(`.bak` was 344 KB from 2026-03-09, predating most data).
+
+**Root cause.** Three contributors compound:
+
+1. **Plex webhook bombardment.** `plex_connector` registered `plex.webhook`,
+   accepting POSTs from Plex Media Server for every `media.scrobble` event.
+   At peak the SERVE container received multiple webhooks/sec, each triggering
+   a `memory_save` → row insert + FTS5 trigger + (when embeddings were
+   configured) embedding generation + INSERT into `memory_embeddings`. Plex
+   memory items grew to 89% of `memory_items` (1,168 of 1,306).
+2. **Windows bind-mount fsync.** `/data` was a bind-mount from
+   `C:/Docker/openchronicle/data` into the container. Docker Desktop on Windows
+   implements bind-mounts via virtualization (9P/WSL2); SQLite WAL relies on
+   POSIX `fsync` semantics that bind-mounts do not honor strictly. SQLite docs
+   warn against this configuration.
+3. **Unclean restart during checkpoint.** Container logs showed restart clusters
+   (3 restarts on 2026-03-19, more on 2026-04-15) consistent with Docker Desktop
+   updates or Windows reboots. A restart during a WAL checkpoint, on a
+   bind-mount FS that lied about fsync, produced a half-written checkpoint —
+   the on-disk B-tree gained the cross-page references that
+   `integrity_check` later flagged.
+
+**Recovery.** Plan B (gold-standard SQLite recovery): bypass the corrupt B-tree
+entirely rather than trust SQLite to walk it.
+
+1. Stopped Docker writers (`serve`, `mcp`).
+2. Cold-copied the corrupt DB as evidence (`openchronicle.db.corrupt-2026-04-29`).
+3. Disabled `plex_connector` (rename `plugin.py` → `plugin.py.disabled`).
+4. Built a recovery script (`recover_db.py`): opened corrupt DB read-only,
+   replayed schema into a fresh DB skipping FTS5 shadow tables (auto-managed),
+   union-collected `memory_items` IDs from PK and rowid scan paths to maximize
+   coverage (1,301 of 1,306 reachable), per-row refetch via PK with try/except
+   (436 rows had unreadable content/tags pages — overflow page corruption),
+   stripped 816 plex-tagged rows per user request, recreated `memory_embeddings`
+   empty (regenerable via backfill).
+5. Verified: `PRAGMA integrity_check: ok`. Data: 49 non-plex memory items, all
+   1,131 tasks, 3,995 events, 16 turns, 2 conversations.
+6. Pre-existing data: 250 FK violations on `spans → tasks` (orphans from old
+   data), carried forward unchanged — separate cleanup.
+
+**Mitigations.**
+
+| Mitigation | Status |
+| ---------- | ------ |
+| Disable plex bombardment (delete `plex_connector`) | **Done** |
+| Delete other connectors (`plaid_connector`, `hello_plugin`) | **Done** |
+| Move `/data` from Windows bind-mount to Docker named volume `oc-data` | **Done** (in `docker-compose.local.example.yml`) |
+| Fix `.bak` strategy (current backup gap is 7+ weeks) | **Open** — separate task: cron `oc db backup` |
+| Address 250 pre-existing `spans → tasks` FK orphans | **Open** — separate cleanup |
+| Audit other plugin/connector backlogs against connector-vs-extension lens | **Open** — strategic discussion in progress |
+
+**External action required.** Plex Media Server still has a webhook URL
+pointing at OC's `/api/v1/hooks/plex.webhook`. Now that the handler is gone,
+Plex requests return 404. Remove the webhook from Plex MS settings to stop
+the requests entirely.
+
+---
+
 ## Definition of Done: Core v2
 
 "Core done" means: a fully operational daemon that you can interact with like a
@@ -622,8 +688,14 @@ exists, parses JSON or multipart form-data, submits a `plugin.invoke` task, and
 returns 202 with the task ID. Execution happens in a FastAPI `BackgroundTasks`
 callback. 5 tests.
 
-Connector plugins (Plex, Plaid) are developed in the
-[openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo.
+**Connector model retired (2026-04-29).** Domain integrations (Plex, Plaid,
+etc.) no longer live as plugins inside OC — they belong as their own MCP
+servers, composed by the client. The `plex_connector`, `plaid_connector`, and
+`hello_plugin` directories were removed from `plugins/`, along with 8 dedicated
+tests. Only `storytelling` remains as the reference extension plugin (it
+modifies OC's conversation behavior via mode prompt builders, not a connector).
+The plugin loader contract is unchanged — task handlers and mode builders are
+still the plugin extension surface. See "2026-04 Incident Remediation" below.
 
 ```text
 Core Done

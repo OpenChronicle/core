@@ -42,7 +42,7 @@ def test_task_submit_creates_task_in_db() -> None:
             "args": {
                 "project_id": project_id,
                 "task_type": "plugin.invoke",
-                "payload": {"handler": "hello.echo", "input": {"prompt": "test"}},
+                "payload": {"handler": "story.draft", "input": {"prompt": "test"}},
             },
         }
 
@@ -70,22 +70,22 @@ def test_task_submit_creates_task_in_db() -> None:
         assert get_response["result"]["task"]["type"] == "plugin.invoke"
 
 
-def test_task_submit_and_execute_hello_echo(tmp_path: Path) -> None:
-    """Task.submit + task.run_many should execute hello.echo deterministically."""
+def test_task_submit_and_execute_story_draft(tmp_path: Path) -> None:
+    """Task.submit + task.run_many should execute story.draft deterministically."""
     db_path = tmp_path / "test.db"
 
     # Create project
     create_result = _run_oc(["oc", "init-project", "test-project"], db_path)
     project_id = create_result.stdout.strip()
 
-    # Submit hello.echo task via plugin.invoke
+    # Submit story.draft task via plugin.invoke
     submit_request = {
         "protocol_version": "1",
         "command": "task.submit",
         "args": {
             "project_id": project_id,
             "task_type": "plugin.invoke",
-            "payload": {"handler": "hello.echo", "input": {"prompt": "test message"}},
+            "payload": {"handler": "story.draft", "input": {"prompt": "test message"}},
         },
     }
 
@@ -154,7 +154,7 @@ def test_task_submit_and_execute_hello_echo(tmp_path: Path) -> None:
     result_json = row[0]
     assert result_json is not None, f"Task result_json missing for task_id={task_id}"
     result_payload = json.loads(result_json)
-    assert result_payload == {"echo": "test message"}
+    assert result_payload == {"draft": "[storytelling draft] test message"}
 
 
 def test_task_submit_missing_project_id() -> None:
@@ -168,7 +168,7 @@ def test_task_submit_missing_project_id() -> None:
             "command": "task.submit",
             "args": {
                 "task_type": "plugin.invoke",
-                "payload": {"handler": "hello.echo", "input": {"prompt": "test"}},
+                "payload": {"handler": "story.draft", "input": {"prompt": "test"}},
             },
         }
 
@@ -193,7 +193,7 @@ def test_task_submit_invalid_task_type(tmp_path: Path) -> None:
         "command": "task.submit",
         "args": {
             "project_id": project_id,
-            "task_type": "hello.echo",
+            "task_type": "story.draft",
             "payload": {},
         },
     }
@@ -277,7 +277,7 @@ def test_task_submit_project_not_found() -> None:
             "args": {
                 "project_id": "nonexistent-project",
                 "task_type": "plugin.invoke",
-                "payload": {"handler": "hello.echo", "input": {"prompt": "test"}},
+                "payload": {"handler": "story.draft", "input": {"prompt": "test"}},
             },
         }
 

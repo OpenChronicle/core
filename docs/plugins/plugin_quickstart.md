@@ -2,7 +2,6 @@
 
 See the plugin contract for guarantees and requirements: [plugin_contract.md](plugin_contract.md).
 For the full plugin development guide, see [PLUGINS.md](../architecture/PLUGINS.md).
-For connector plugin documentation (Plex, Plaid), see [connector_plugins.md](connector_plugins.md).
 
 ## Structure
 
@@ -53,7 +52,7 @@ Use task_type = plugin.invoke with a payload that specifies the handler and inpu
 PROJECT_ID=$(oc init-project "plugin-demo")
 
 # 2) Submit a plugin invocation task
-TASK_ID=$(oc rpc --request '{"protocol_version":"1","command":"task.submit","args":{"project_id":"'"$PROJECT_ID"'","task_type":"plugin.invoke","payload":{"handler":"hello.echo","input":{"prompt":"hello"}}}}' | jq -r '.result.task_id')
+TASK_ID=$(oc rpc --request '{"protocol_version":"1","command":"task.submit","args":{"project_id":"'"$PROJECT_ID"'","task_type":"plugin.invoke","payload":{"handler":"story.draft","input":{"prompt":"hello"}}}}' | jq -r '.result.task_id')
 
 # 3) Execute queued tasks
 oc rpc --request '{"protocol_version":"1","command":"task.run_many","args":{"limit":5,"type":"plugin.invoke","max_seconds":0}}'

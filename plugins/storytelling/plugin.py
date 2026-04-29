@@ -35,6 +35,11 @@ from .domain.timeline import BookmarkType
 from .helpers import format_draft, hash_text
 from .importer import import_project
 
+PLUGIN_ID = "storytelling"
+PLUGIN_NAME = "Storytelling"
+PLUGIN_VERSION = "1.0.0"
+PLUGIN_ENTRYPOINT = "plugins/storytelling/plugin.py"
+
 logger = logging.getLogger(__name__)
 
 

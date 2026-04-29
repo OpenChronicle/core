@@ -9,7 +9,7 @@
 - Plugin loader discovers packages under the plugin directory (`OC_PLUGIN_DIR`, default `plugins/`) with `__init__.py` and `plugin.py`.
 - Handlers are registered by name using the TaskHandlerRegistry (handlers may be named namespace.action).
 - Plugin execution uses task_type = plugin.invoke with payload { "handler": "namespace.action", "input": { ... } }.
-- Dotted task_type strings (for example, hello.echo) are invalid and return INVALID_TASK_TYPE.
+- Dotted task_type strings (for example, story.draft) are invalid and return INVALID_TASK_TYPE.
 - Execution is deterministic for identical inputs unless explicitly stated.
 - Core selftests require no external network calls or API keys.
 - Events record task lifecycle and plugin handler start/finish but do not record raw prompts or tokens.

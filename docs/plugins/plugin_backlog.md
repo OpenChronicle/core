@@ -83,14 +83,11 @@ stress-testing of the event system, and earlier discovery of core gaps.
 
 ## Existing Plugins
 
-### `hello_plugin`
-
-Demo plugin. Echoes input text. Zero dependencies.
-
 ### `storytelling`
 
-Demo handler for narrative draft formatting. Emits 2 events for
-observability. See `docs/BACKLOG.md` Plugins section for expansion plans.
+Reference extension. Registers narrative-mode prompt builder, story handlers
+(draft/scene/import/persona/consistency/emotion/bookmark/timeline/dice), and
+the `story` mode for conversations. See `docs/BACKLOG.md` for expansion plans.
 
 ---
 

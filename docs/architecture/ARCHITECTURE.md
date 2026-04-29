@@ -79,8 +79,7 @@ src/openchronicle/
     └── serializers.py           # Shared dict serializers (MCP + API)
 
 plugins/                             # OC_PLUGIN_DIR — deploy plugins here (symlink or copy)
-├── hello_plugin/                # Bundled example: minimal plugin
-└── storytelling/                # Bundled example: story generation with domain/application layers
+└── storytelling/                # Bundled extension: mode prompt builder + story handlers
 ```
 
 ## Key Components
@@ -183,7 +182,7 @@ and are loaded from the plugin directory (`OC_PLUGIN_DIR`, default `plugins/`).
 Core ships with example plugins for development reference.
 
 1. Each plugin exports `register(registry)` function
-2. Handlers use `namespace.action` naming (e.g., `hello.echo`, `story.draft`)
+2. Handlers use `namespace.action` naming (e.g., `story.draft`)
 3. Task type `plugin.invoke` routes to handlers via `payload.handler`
 4. Plugins can define their own domain/application layers
 5. Plugins can register **mode prompt builders** (`ModePromptBuilder` protocol) to

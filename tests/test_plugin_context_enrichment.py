@@ -237,7 +237,7 @@ async def test_plugin_config_matches_configured_content(_setup: dict[str, Any]) 
 
 @pytest.mark.asyncio
 async def test_existing_plugins_still_work(tmp_path: Path) -> None:
-    """hello_plugin and storytelling plugins work unchanged with enriched context."""
+    """storytelling plugin works unchanged with enriched context."""
     db_path = tmp_path / "test.db"
     storage = SqliteStore(db_path=str(db_path))
     storage.init_schema()
@@ -257,16 +257,10 @@ async def test_existing_plugins_still_work(tmp_path: Path) -> None:
 
     project = orchestrator.create_project("Test")
 
-    # hello plugin
-    task = orchestrator.submit_task(project.id, "hello.echo", {"prompt": "hi"})
+    task = orchestrator.submit_task(project.id, "story.draft", {"prompt": "Once"})
     result = await orchestrator.execute_task(task.id)
-    assert result == {"echo": "hi"}
+    assert result == {"draft": "[storytelling draft] Once"}
     assert storage.get_task(task.id).status == TaskStatus.COMPLETED  # type: ignore[union-attr]
-
-    # storytelling plugin
-    task2 = orchestrator.submit_task(project.id, "story.draft", {"prompt": "Once"})
-    result2 = await orchestrator.execute_task(task2.id)
-    assert result2 == {"draft": "[storytelling draft] Once"}
 
 
 @pytest.mark.asyncio
