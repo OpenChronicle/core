@@ -1,7 +1,7 @@
-# Gitleaks configuration for openchronicle-core
+# Gitleaks configuration for openchronicle-mcp
 # https://github.com/gitleaks/gitleaks
 
-title = "openchronicle-core gitleaks config"
+title = "openchronicle-mcp gitleaks config"
 
 [extend]
 useDefault = true

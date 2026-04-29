@@ -1,8 +1,8 @@
 {
-  "name": "openchronicle-core-tools",
+  "name": "openchronicle-mcp-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Development tools for OpenChronicle Core",
+  "description": "Development tools for OpenChronicle MCP",
   "scripts": {
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"!node_modules\" \"!.venv\" \"!v1.reference\" \"!.pytest_cache\"",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\" \"!node_modules\" \"!.venv\" \"!v1.reference\" \"!.pytest_cache\""

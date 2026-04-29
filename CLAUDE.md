@@ -20,11 +20,9 @@ for behavior-modifying plugins (storytelling). Domain integrations (Plex, etc.)
 belong as their own MCP servers, composed by the client.
 See [docs/CODEBASE_ASSESSMENT.md](docs/CODEBASE_ASSESSMENT.md) for full status.
 
-**Next action:** Rebrand evaluation (`OpenChronicle/openchronicle-core` →
-`carldog/openchronicle-mcp`), backlog reclassification (extension /
-external-MCP / core lens), Open WebUI compat decision (drop
-`openai_compat.py`?). Plugin development for `storytelling` lives in
-[openchronicle/plugins](https://github.com/OpenChronicle/plugins).
+**Next action:** Backlog reclassification (extension / external-MCP / core
+lens), Open WebUI compat decision (drop `openai_compat.py`?). The
+`storytelling` extension lives in this repo's `plugins/storytelling/`.
 Media generation is done (`MediaGenerationPort` with 5 adapters:
 stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine; unified model
 config with `image_generation` capability tag; `OC_MEDIA_MODEL` derives provider; 69 tests).
@@ -61,7 +59,7 @@ pagination with `offset`, source index, streaming telemetry fix, observability e
 `memory.search_completed` + `context.assembly_breakdown`, 27 new tests).
 Config externalization is done (conversation defaults + Discord operational
 settings wired through three-layer precedence, hygiene test prevents drift).
-Docker CI is done (GitHub Actions multi-arch build to `ghcr.io/openchronicle/core`,
+Docker CI is done (GitHub Actions multi-arch build to `ghcr.io/carldog/openchronicle-mcp`,
 `latest` + SHA tags, GHA cache, `.gitattributes` for LF shell scripts).
 Enterprise Tightening Pass A is done (domain exceptions `NotFoundError`/`ValidationError`,
 global FastAPI exception handlers, Pydantic `Field()`/`Query()` input validation,
@@ -99,9 +97,8 @@ Embedding observability is done (health endpoint reports embedding status
 active/disabled/failed with coverage stats, startup INFO logging on adapter init,
 per-item backfill resilience with error isolation, configurable timeout via
 `OC_EMBEDDING_TIMEOUT` env var / `embedding.timeout` core.json key, 1438 total).
-Plugin repo separation is done (plugins now at
-[openchronicle/plugins](https://github.com/OpenChronicle/plugins), 9 doc files
-updated, core's `plugins/` dir still works via `OC_PLUGIN_DIR`).
+Plugin repo separation reverted (2026-04-29) — `OpenChronicle/plugins` deleted
+along with the connector model; storytelling stays in this repo's `plugins/`.
 Phase 5 IDE automation hooks prototype is done (Claude Code `PreCompact` hook
 injects OC context memories before compression, `SessionStart(compact)` hook
 reloads after compression, `--full` flag on `oc memory search` for
@@ -186,7 +183,7 @@ for the full directory tree and layer descriptions.
 - **Ports**: Abstract interfaces in `domain/ports/` that infrastructure implements
 - **Event Model**: Hash-chained events for tamper-evident task timelines (`prev_hash` -> `hash`)
 - **Task Handlers**: Async functions registered by handler name (e.g., `story.draft`)
-- **Plugins**: Loaded from `OC_PLUGIN_DIR` (default `plugins/`), via `importlib.util`. Plugin development happens in [openchronicle/plugins](https://github.com/OpenChronicle/plugins); deploy by symlink/copy into core's plugin dir. Plugins can register **mode prompt builders** (`ModePromptBuilder` protocol) to override system prompts when a conversation is in their mode
+- **Plugins**: Loaded from `OC_PLUGIN_DIR` (default `plugins/`), via `importlib.util`. The only current extension is `storytelling`, in this repo's `plugins/` directory. Plugins can register **mode prompt builders** (`ModePromptBuilder` protocol) to override system prompts when a conversation is in their mode. Domain integrations (Plex, etc.) belong as their own MCP servers, composed by the client — not as plugins inside OC
 - **Routing**: Provider/model selection via pools (fast, quality, nsfw) with fallback support
 - **Scheduler**: Core service in `application/services/scheduler.py` (not a plugin)
 - **Discord**: Interfaces driver in `interfaces/discord/` (optional extra, not a plugin)

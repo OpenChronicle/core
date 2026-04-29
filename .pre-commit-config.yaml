@@ -1,4 +1,4 @@
-# Pre-commit configuration for OpenChronicle
+# Pre-commit configuration for OpenChronicle MCP
 # Enforces hexagonal architecture boundaries to prevent regression
 #
 # Install pre-commit: pip install pre-commit

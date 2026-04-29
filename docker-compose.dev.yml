@@ -8,13 +8,13 @@
 
 services:
   serve:
-    image: openchronicle-core:dev
+    image: openchronicle-mcp:dev
 
   openchronicle:
-    image: openchronicle-core:dev
+    image: openchronicle-mcp:dev
 
   discord:
-    image: openchronicle-core:dev
+    image: openchronicle-mcp:dev
 
   mcp:
-    image: openchronicle-core:dev
+    image: openchronicle-mcp:dev

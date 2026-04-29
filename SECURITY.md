@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in OpenChronicle, **do not open a
 public issue.** Please report it privately using
-[GitHub's security advisory feature](https://github.com/OpenChronicle/core/security/advisories/new).
+[GitHub's security advisory feature](https://github.com/CarlDog/openchronicle-mcp/security/advisories/new).
 
 I'll acknowledge your report within 72 hours and work with you to understand
 the scope and develop a fix.

@@ -1,9 +1,9 @@
 # OpenChronicle
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-ghcr.io%2Fopenchronicle%2Fcore-blue?logo=docker)](https://ghcr.io/openchronicle/core)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io%2Fcarldog%2Fopenchronicle-mcp-blue?logo=docker)](https://ghcr.io/carldog/openchronicle-mcp)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://python.org)
-[![CI](https://github.com/OpenChronicle/core/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/OpenChronicle/core/actions/workflows/docker-publish.yml)
+[![CI](https://github.com/CarlDog/openchronicle-mcp/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/CarlDog/openchronicle-mcp/actions/workflows/docker-publish.yml)
 
 **Persistent memory and context for LLM conversations.**
 
@@ -49,7 +49,7 @@ full audit trail.
 ## Quick Start (Docker)
 
 ```bash
-docker pull ghcr.io/openchronicle/core:latest
+docker pull ghcr.io/carldog/openchronicle-mcp:latest
 docker compose run --rm openchronicle chat
 ```
 

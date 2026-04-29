@@ -177,9 +177,10 @@ Outbound LLM requests pass through a privacy gate that:
 
 ## Plugin System
 
-Plugins live in a [separate repository](https://github.com/OpenChronicle/plugins)
-and are loaded from the plugin directory (`OC_PLUGIN_DIR`, default `plugins/`).
-Core ships with example plugins for development reference.
+Plugins live in this repo's `plugins/` directory (or wherever `OC_PLUGIN_DIR`
+points). The current extension is `storytelling`. Plugins are
+behavior-modifying extensions only (mode prompt builders, conversation
+hooks); domain integrations belong as their own MCP servers.
 
 1. Each plugin exports `register(registry)` function
 2. Handlers use `namespace.action` naming (e.g., `story.draft`)

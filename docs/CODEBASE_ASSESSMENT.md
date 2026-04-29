@@ -135,8 +135,9 @@ multimodal deferred; domain models, LLM extraction, memory persistence. 12 new
 handlers, 11 new CLI commands, 13 new files. 208 new tests, 1975 total.
 
 **What's next:** Multimodal conversation input (vision input via asset system),
-or Phase 5 IDE automation hooks (prototype exists). Plugin development lives in
-[openchronicle/plugins](https://github.com/OpenChronicle/plugins). Media generation is done
+or Phase 5 IDE automation hooks (prototype exists). The `storytelling`
+extension lives in this repo's `plugins/` (the `OpenChronicle/plugins` repo
+was deleted as part of the 2026-04-29 cleanup). Media generation is done
 (Decision #7) — `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI
 gpt-image-1, Gemini dual-surface, xAI Grok Imagine). Ollama CLI model management
 is done — `oc ollama list|show|add|remove|sync` with capability inference from
@@ -149,7 +150,7 @@ Code integration, and any MCP-compatible client. MCP tool usage tracking and MoE
 usage tracking provide operational observability — dedicated tables, aggregate
 stats queries, `tool_stats` and `moe_stats` MCP tools.
 
-**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins separated to [openchronicle/plugins](https://github.com/OpenChronicle/plugins) repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. Storytelling plugin Phase 3 (conversation mode integration): plugins register mode prompt builders via `PluginRegistry`, `prepare_ask()` delegates system prompt construction to the active mode's builder, story builder assembles characters/style guides/locations/worldbuilding from project memory; CLI convenience commands `oc story characters|locations|search`. 30 MCP tools, 39 REST endpoints, 1,767 tests. Enterprise tightening Passes A/B/C complete. OpenAI-compatible API layer added: `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients, `provider/model` routing format, 53 unit tests + 12 API stress tests. Known issue: `_get_or_create_webui_session` has a read-then-write race under multi-connection concurrency (tracked in BACKLOG.md).**
+**Overall: Core feature-complete, Discord + MCP + HTTP API interfaces operational, MoE consensus execution implemented, MCP/MoE usage tracking operational, config fully externalized, hex boundaries enforced, concurrency-safe for multi-process deployment. Memory system Phase 3 complete: embedding-based semantic search via provider-agnostic `EmbeddingPort` (stub, OpenAI, Ollama adapters), hybrid FTS5+cosine retrieval combined via Reciprocal Rank Fusion (RRF), embeddings stored as BLOB in SQLite with CASCADE cleanup, backfill CLI/MCP/API, backwards-compatible default (keyword-only when `OC_EMBEDDING_PROVIDER=none`). Embedding observability added: health endpoint reports embedding status (active/disabled/failed with coverage stats), startup logging on adapter init, per-item backfill resilience with error isolation, configurable timeout via `OC_EMBEDDING_TIMEOUT`. Phase 4 Webhook Service complete: outbound webhooks with HMAC-SHA256 signing, background dispatcher thread with queue + exponential backoff retry, composite `emit_event` pattern (zero call-site changes), fnmatch glob event filtering, recursion prevention. Phase 5 IDE automation hooks prototyped: Claude Code `PreCompact` and `SessionStart(compact)` hooks inject OC memories around context compression via `oc memory search --full`. Media generation complete: `MediaGenerationPort` with 5 adapters (stub, Ollama, OpenAI gpt-image-1, Gemini dual-surface, xAI Grok Imagine), unified model config with `image_generation` capability tag (no separate `OC_MEDIA_PROVIDER`), asset storage with SHA-256 dedup, CLI/MCP/API interfaces. Model config system extended with `type` and `description` fields, `find_media_model()`/`list_by_capability()` lookup methods. Plugins repo separation later reverted (2026-04-29) — `OpenChronicle/plugins` deleted, storytelling stays in this repo. Ollama CLI model management: `oc ollama list|show|add|remove|sync` with capability inference from Ollama API metadata, operates against resolved config directory. Storytelling plugin Phase 3 (conversation mode integration): plugins register mode prompt builders via `PluginRegistry`, `prepare_ask()` delegates system prompt construction to the active mode's builder, story builder assembles characters/style guides/locations/worldbuilding from project memory; CLI convenience commands `oc story characters|locations|search`. 30 MCP tools, 39 REST endpoints, 1,767 tests. Enterprise tightening Passes A/B/C complete. OpenAI-compatible API layer added: `/v1/models` + `/v1/chat/completions` (streaming + non-streaming) for Open WebUI and other OpenAI-compatible clients, `provider/model` routing format, 53 unit tests + 12 API stress tests. Known issue: `_get_or_create_webui_session` has a read-then-write race under multi-connection concurrency (tracked in BACKLOG.md).**
 
 ---
 
@@ -417,7 +418,7 @@ surface. No backwards compatibility concerns. No production deployment yet.
 | ~~HTTP API~~ | ✅ Core interface (`interfaces/api/`, FastAPI, always-on daemon) |
 | ONNX router assist | Linear model works; ONNX is a performance optimization |
 | Embeddings / vector memory search | Keyword search works for v0; embeddings are a plugin concern |
-| ~~Docker hardening~~ | ✅ CI builds multi-arch image to `ghcr.io/openchronicle/core` on push to main |
+| ~~Docker hardening~~ | ✅ CI builds multi-arch image to `ghcr.io/carldog/openchronicle-mcp` on push to main |
 | ~~Scheduler~~ | ✅ Core service (`application/services/scheduler.py`, 53 tests) |
 | ~~Discord driver~~ | ✅ Interfaces driver (`interfaces/discord/`, 85 tests, optional extra) |
 | ~~OC MCP Server~~ | ✅ Interfaces driver (`interfaces/mcp/`, 30 tools, 44+7 tests, optional extra) |
@@ -703,7 +704,7 @@ Core Done
   ✓ Scheduler (core — application/services)
   ✓ Discord Driver (core — interfaces/)
   ✓ OC MCP Server (core — interfaces/mcp, Decision #5)
-  ✓ Docker CI (ghcr.io/openchronicle/core, multi-arch, GitHub Actions)
+  ✓ Docker CI (ghcr.io/carldog/openchronicle-mcp, multi-arch, GitHub Actions)
   ✓ MoE Mode (core — application/services/moe_execution.py, uses LLMPort + routing)
   ✓ HTTP API (core — interfaces/api, always-on daemon, Decision #6)
   ✓ Capability-Aware Routing (core — wire model config capabilities into routing)
@@ -804,7 +805,8 @@ is an optional bolt-on — they need the same level of access as core services.
 | Feature needs... | Lives in... | Examples |
 | ------------------ | ------------- | ---------- |
 | Persistent state, lifecycle, service access, or LLM orchestration | Core (`application/` or `interfaces/`) | Scheduler, Discord, MCP server, HTTP API, Dev Agent Runner, MoE Mode |
-| Stateless input→output processing | Plugin ([openchronicle/plugins](https://github.com/OpenChronicle/plugins)) | Story generation, analysis, formatting, security scan |
+| Behavior-modifying extension (mode prompt builder, conversation hooks) | Plugin (this repo's `plugins/`) | Storytelling |
+| Domain-specific data integration | External MCP server (separate repo) | Plex sync, banking, file indexers |
 | External process composing via MCP or RPC | External client | Goose, VS Code, Claude Desktop, CI integrations |
 
 **Action:** Build scheduler in `application/services/`, Discord driver in

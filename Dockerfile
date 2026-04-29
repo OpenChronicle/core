@@ -1,4 +1,4 @@
-# CLI-first image for OpenChronicle v2
+# CLI-first image for OpenChronicle MCP
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

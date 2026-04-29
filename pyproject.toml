@@ -3,10 +3,10 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openchronicle-core"
+name = "openchronicle-mcp"
 version = "2.0.0.dev0"
 description = "Durable context engine for LLM interactions — persistent memory, explainable routing, and auditable decision trails."
-authors = [{name = "OpenChronicle"}]
+authors = [{name = "CarlDog", email = "carldog@users.noreply.github.com"}]
 maintainers = [{name = "CarlDog", email = "carldog@users.noreply.github.com"}]
 license = {text = "AGPL-3.0-only"}
 readme = "README.md"
@@ -29,10 +29,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OpenChronicle/core"
-Repository = "https://github.com/OpenChronicle/core"
-Issues = "https://github.com/OpenChronicle/core/issues"
-Documentation = "https://github.com/OpenChronicle/core/tree/main/docs"
+Homepage = "https://github.com/CarlDog/openchronicle-mcp"
+Repository = "https://github.com/CarlDog/openchronicle-mcp"
+Issues = "https://github.com/CarlDog/openchronicle-mcp/issues"
+Documentation = "https://github.com/CarlDog/openchronicle-mcp/tree/main/docs"
 
 [project.optional-dependencies]
 openai = [

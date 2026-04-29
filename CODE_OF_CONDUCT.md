@@ -59,7 +59,7 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported via [GitHub private vulnerability reporting](https://github.com/OpenChronicle/core/security/advisories/new).
+reported via [GitHub private vulnerability reporting](https://github.com/CarlDog/openchronicle-mcp/security/advisories/new).
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the

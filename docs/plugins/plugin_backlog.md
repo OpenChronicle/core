@@ -14,7 +14,7 @@ Every feature falls into one of three categories:
 | Category | Definition | Location | API Access |
 | -------- | ---------- | -------- | ---------- |
 | **Core** | Stateful, needs ports/scheduler/LLM, lifecycle hooks | `application/services/`, `domain/ports/` | Full |
-| **Plugin** | Stateless `(task, context) → result` handler | [openchronicle/plugins](https://github.com/OpenChronicle/plugins) | Task payload + event emission |
+| **Plugin** | Behavior-modifying extension (mode prompt builder, conversation hooks) | This repo's `plugins/` | Mode dispatch, registry, event emission |
 | **External** | Composes via MCP or HTTP API | Outside OC repo | MCP tools / REST endpoints |
 
 **The plugin API is complete.** No extension planned. Complex features belong

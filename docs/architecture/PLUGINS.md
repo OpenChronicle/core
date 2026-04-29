@@ -8,10 +8,9 @@ OpenChronicle uses a file-based plugin system for **extensions that modify
 OC's conversational behavior** — primarily mode prompt builders, system
 prompt augmenters, and conversation-lifecycle handlers. Domain integrations
 that import external data (Plex, Plaid, etc.) belong as their own MCP
-servers, not as OC plugins. Plugins live in a
-[separate repository](https://github.com/OpenChronicle/plugins) and are
-deployed into core's plugin directory via symlink, copy, or by setting
-`OC_PLUGIN_DIR`. Core ships with `storytelling` as the reference extension.
+servers, not as OC plugins. Plugins live in this repo's `plugins/` directory
+(or wherever `OC_PLUGIN_DIR` points). The current extension is
+`storytelling`.
 
 ## Plugin Structure
 
@@ -77,8 +76,7 @@ By default, the plugin system prevents handler name collisions:
 
 To add a new plugin:
 
-1. Create a directory in the plugin directory (or in the
-   [plugins repo](https://github.com/OpenChronicle/plugins)):
+1. Create a directory in the plugin directory:
 
    ```bash
    mkdir plugins/my_plugin

@@ -35,7 +35,7 @@ body:
       placeholder: |
         - OS: Windows 11 / Ubuntu 24.04 / macOS 15
         - Python: 3.11.x
-        - Install: pip / Docker (ghcr.io/openchronicle/core:latest)
+        - Install: pip / Docker (ghcr.io/carldog/openchronicle-mcp:latest)
     validations:
       required: false
   - type: textarea
