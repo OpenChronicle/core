@@ -3,7 +3,7 @@
 **Authoritative backlog:** [`docs/BACKLOG.md`](../BACKLOG.md) — this document
 covers plugin-specific standards and the taxonomy boundary.
 
-**Last Updated:** 2026-02-24
+**Last Updated:** 2026-04-29
 
 ---
 
@@ -85,25 +85,41 @@ stress-testing of the event system, and earlier discovery of core gaps.
 
 ### `storytelling`
 
-Reference extension. Registers narrative-mode prompt builder, story handlers
-(draft/scene/import/persona/consistency/emotion/bookmark/timeline/dice), and
-the `story` mode for conversations. See `docs/BACKLOG.md` for expansion plans.
+Reference extension. Registers narrative-mode prompt builder and story
+handlers (draft/scene/import/persona/consistency/emotion/bookmark/timeline/dice).
+Phases 1–7 complete; persona-extractor multimodal phase deferred. See
+`docs/BACKLOG.md` for the open work.
 
 ---
 
-## Reclassified to Core (Reference)
+## Where Things Don't Belong (Reference)
 
-These were originally discussed as plugin candidates but were correctly
-implemented as core services per Decision #4 (hybrid taxonomy):
+Three categories of work that were once discussed as plugins but live
+elsewhere:
 
-- **Scheduler** — `application/services/scheduler.py` (needs persistent
+**Implemented as core services** (correct under any taxonomy — needed
+deep core access from day one):
+
+- **Scheduler** — `application/services/scheduler.py` (persistent
   storage, lifecycle hooks)
 - **Discord** — `interfaces/discord/` (interface like CLI, full core access)
 - **MoE** — `application/services/moe_execution.py` (needs LLMPort)
-- **Security Scanner** — will be `application/services/security_scanner.py`
-  (needs scheduler, shell execution, output directory)
-- **Dev Agent Runner** — will be `application/services/sandbox_runner.py`
-  (needs LLM, orchestration, sandboxing)
+
+**Reclassified to external MCP** (under the post-2026-04-29 taxonomy,
+domain integrations live in their own MCP servers):
+
+- **Security Scanner** — `security-scan-mcp` candidate (separate repo)
+  if pursued
+- **Plex / Servarr / qBittorrent / Portainer** — already exist as
+  `plex-mcp`, `servarr-mcp`, `downloader-mcp`, `portainer-mcp`
+- **Personal finance** — `plaid-mcp` candidate if pursued
+- **Google Workspace** — claude.ai built-in MCPs cover this
+
+**Dropped as out-of-scope** (sandboxed agent platform; different product):
+
+- Dev Agent Runner
+- Serena MCP in Sandbox
+- Private Git Server Integration
 
 ---
 

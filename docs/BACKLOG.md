@@ -5,7 +5,7 @@ for OpenChronicle v2. Organized into phases based on dependencies, effort,
 and value. **This is a living document** — reviewed after each phase
 completion. See `docs/CODEBASE_ASSESSMENT.md` for current project status.
 
-**Last Updated:** 2026-03-10
+**Last Updated:** 2026-04-29
 
 ---
 
@@ -82,12 +82,11 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 - **STDIO RPC** — 24 commands, async, daemon mode (`oc serve`)
 - **Discord Interface** — 6 slash commands, session mapping, 85 tests,
   optional `[discord]` extra (`interfaces/discord/`)
-- **MCP Server** — 30 tools, stdio + SSE transports, 44 tests, optional
-  `[mcp]` extra (`interfaces/mcp/`)
-- **HTTP API** — FastAPI, 39 REST endpoints, API key auth, rate limiting,
+- **MCP Server** — 32 tools, stdio + SSE transports, 47 tests, optional
+  `[mcp]` extra (`interfaces/mcp/`); includes `conversation_set_mode`/`get_mode`
+  for storytelling/persona modes
+- **HTTP API** — FastAPI, 41 REST endpoints, API key auth, rate limiting,
   CORS, 54+ tests (`interfaces/api/`)
-- **OpenAI Compat Layer** — `/v1/models` + `/v1/chat/completions`
-  (streaming + non-streaming), `provider/model` routing, 29 tests
 - **Docker CI** — GitHub Actions multi-arch build, GHA cache
 
 </details>
@@ -109,7 +108,7 @@ for reference — see `docs/CODEBASE_ASSESSMENT.md` for full details.
 
 </details>
 
-**Totals:** 1,712 tests, 30 MCP tools, 39 REST endpoints, 11 ports, 10
+**Totals:** 1,874 tests, 32 MCP tools, 41 REST endpoints, 11 ports, 10
 services, 38 use cases, 5 interfaces.
 
 ---
@@ -122,14 +121,15 @@ code lives and what APIs it uses.
 | Category | Definition | Location | API Access |
 | -------- | ---------- | -------- | ---------- |
 | **Core** | Stateful, needs ports/scheduler/LLM, lifecycle hooks | `application/services/`, `domain/ports/` | Full |
-| **Plugin** | Stateless `(task, context) → result` handler | [openchronicle/plugins](https://github.com/OpenChronicle/plugins) | Task payload + event emission |
-| **External** | Composes via MCP or HTTP API | Outside OC repo | MCP tools / REST endpoints |
+| **Plugin** | Behavior-modifying extension (mode prompt builder, conversation hooks) | This repo's `plugins/` | Mode dispatch, registry, event emission |
+| **External MCP** | Domain integration composed via MCP | Separate repo (e.g. `plex-mcp`) | MCP tools / REST endpoints |
 
-**Rule:** If a feature needs LLM access, persistent storage, scheduler
-integration, or shell execution, it is core — not a plugin. Plugins are
-independent, stateless, and never depend on other plugins. If a plugin
-candidate reveals a need for core capabilities, the missing capability
-is added to core first.
+**Rule:** Domain integrations (Plex, banking, file indexers, security
+scanners) belong as their own MCP servers, not as OC plugins. The
+storytelling extension is OC's reference plugin and currently the only
+one — plugins exist to alter conversational behavior in OC's pipeline,
+not to import external data. The connector model was retired on
+2026-04-29 along with the `OpenChronicle/plugins` repo.
 
 ---
 
@@ -295,10 +295,16 @@ memory operations without manual tool invocation.
 
 ### IDE Event-Triggered Memory
 
-**Status:** 🔴 Not Started
+**Status:** 🟡 Prototype (Claude Code hooks only)
 **Effort:** Medium
 **Category:** External (config + hooks, minimal OC-side changes)
 **Depends On:** MCP Server ✅, Memory Phase 2 ✅
+
+**Prototype already shipped** for Claude Code: `PreCompact` hook injects OC
+context memories before context compression, `SessionStart(compact)` hook
+reloads after compression, `--full` flag on `oc memory search` for
+machine-readable injection. Hooks live in `.claude/hooks/` (gitignored
+since they're per-developer config). Goose and VS Code coverage still open.
 
 Configure MCP so that IDE events (session start, file save, commit, context
 compression) automatically trigger OC memory operations.
@@ -394,82 +400,42 @@ Send images to vision-capable models via the conversation pipeline.
 
 ---
 
-## Phase 7 — Security & Automation
+## Phase 7 — Security Scanning
 
-**Goal:** Safety rails for autonomous agent execution. Sequential dependency
-chain — each item depends on the one before it.
+**Goal:** Periodic security scanning of OC's own repo (and any other repo
+the user wires up). Reclassified to external MCP under the new architecture.
 
-**Dependency chain:**
+### Security Scanner
 
-```text
-Core Infra (Output Manager + Shell Execution)
-  └── Security Scanner ──→ Dev Agent Runner ──→ Serena in Sandbox
-```
-
-### Security Scanner (Core Service)
-
-**Status:** 🔴 Not Started
+**Status:** 🔴 Not Started (Concept)
 **Effort:** Medium
-**Category:** Core (`application/services/security_scanner.py`)
-**Depends On:** Scheduler ✅, Output Manager, Shell Execution
+**Category:** External MCP candidate (separate `security-scan-mcp` repo if
+pursued), or compose existing scanners directly via shell.
+**Depends On:** Output Manager ✅, Shell Execution (still core, see above)
 
-**Reclassified from plugin to core service.** Needs scheduler integration,
-controlled shell execution, output directory access, and event emission —
-none of which the plugin API provides. Per Decision #4 (hybrid taxonomy).
+**Reclassified from core to external MCP** (2026-04-29). Same pattern as
+`plex-mcp` — domain-specific glue (gitleaks, osv-scanner, trivy, semgrep)
+that doesn't need to live inside OC. An external MCP can expose tools like
+`scan_repo_secrets`, `scan_dependencies`, `scan_container` and OC composes
+them when needed.
 
-**Requirements:**
+**Requirements (if built):**
 
-- [ ] Integrate existing scanners (not inventing new ones):
-  - [ ] Secrets scanning: gitleaks or trufflehog
-  - [ ] Dependency vulnerability: osv-scanner
-  - [ ] Container scanning: trivy (optional)
-  - [ ] Static analysis: semgrep rules (optional)
-- [ ] Scheduled scan runs via scheduler service
-- [ ] Reports stored via output manager with timestamps + "latest" pointer
-- [ ] Alert channels: CLI/RPC retrieval
-- [ ] Optional Discord alerts (via event → webhook or direct interface)
-- [ ] Events: `security.scan_started`, `security.scan_completed`,
-      `security.finding_detected`
+- [ ] Integrate existing scanners (not inventing new ones): gitleaks,
+      osv-scanner, trivy, semgrep
+- [ ] Periodic scans via OS cron (or whatever scheduler the user prefers
+      outside OC) — OC's scheduler isn't load-bearing here
+- [ ] Reports stored via OC's Output Manager (or written locally and
+      indexed via memory tools)
+- [ ] Events surfaced via webhook subscription if the user wants alerts
 
-**Acceptance Criteria:**
-
-- Deterministic scan runs with stable tool versions
-- Reports are JSON-serializable and timestamped
-- No false positives in baseline scan of clean repo
-
-### Dev Agent Runner (Sandboxed)
-
-**Status:** 🔴 Not Started
-**Effort:** Large (3+ weeks)
-**Category:** Core (`application/services/sandbox_runner.py`)
-**Depends On:** Scheduler ✅, Security Scanner, Shell Execution
-**Risk:** High — requires careful security design
-
-**Requirements:**
-
-- [ ] Sandboxed execution environment (dedicated container image)
-- [ ] Plan + constraints + workspace + tool permissions model
-- [ ] Explicit mounts (read-only vs read-write)
-- [ ] Network restrictions (no network by default)
-- [ ] Complete audit logging (commands, files touched, outputs, errors)
-- [ ] Outputs: patch/branch or artifact bundle (never direct upstream push)
-- [ ] Security scanner runs on all outputs before they leave sandbox
-
-**Security Baseline (non-negotiable):**
-
-- [ ] Default deny: network, secrets access, external repo push
-- [ ] Explicit allow-lists for commands, directories
-- [ ] Time/resource limits enforced
-- [ ] Human review gate before any upstream push
-
-### Serena MCP in Sandbox
-
-**Status:** ⏸️ Deferred
-**Depends On:** Dev Agent Runner (stable)
-
-Allow Serena-like code navigation flows only inside the sandbox runner
-container. Integrate only after sandbox runner is stable, network policy
-is explicit, and scanning pipeline exists for outputs.
+**Note:** Decision #4 originally pulled this from plugin to core because
+the plugin API couldn't reach scheduler/shell/output. Under the post-2026-04-29
+taxonomy, neither plugin nor core is the right home — external MCP is.
+Sandboxed agent execution (Dev Agent Runner, Serena-in-sandbox, private
+git server integration) was dropped from this backlog: it's a different
+product (sandboxed agent platform) and Claude Code/Goose already cover
+that ground for the user's actual workflow.
 
 ---
 
@@ -499,15 +465,16 @@ needs core capabilities, the capability is added to core first.
 - No secrets in logs
 - Tests: unit tests for handlers, integration test for `plugin.invoke`
 
-### Storytelling Plugin Suite
+### Storytelling Plugin
 
-**Status:** 🟡 Phase 3 Complete (import + scene generation + conversation mode)
+**Status:** ✅ Phases 1–7 Complete (text-only persona extraction; multimodal deferred)
 **Effort:** Medium-Large
-**Reference:** `archive/openchronicle.v1` branch, `plugins/storytelling/`
+**Location:** `plugins/storytelling/` (this repo)
+**Reference:** `archive/openchronicle.v1` branch
 
 V1 was a comprehensive narrative AI engine. V2 stripped to domain-agnostic
-core. The v1 features belong in a plugin suite. Each subsystem is an
-independent plugin — no cross-plugin dependencies.
+core. The v1 features all live in this single plugin under
+`plugins/storytelling/`, registered via the `ModePromptBuilder` protocol.
 
 **Completed phases:**
 
@@ -521,33 +488,40 @@ independent plugin — no cross-plugin dependencies.
   `PluginRegistry`, `prepare_ask()` delegates system prompt to active mode's
   builder, story builder assembles characters/style guides/locations/worldbuilding
   from memory, CLI convenience commands (`oc story characters|locations|search`)
+- [x] **Phase 4: Game mechanics** — dice engine, resolution rules, character
+  stats, narrative branching
+- [x] **Phase 5: Bookmark & timeline** — scene bookmarking, auto-bookmark on
+  scene save, timeline navigation
+- [x] **Phase 6: Narrative engines** — LLM-based consistency checking,
+  emotional arc analysis
+- [x] **Phase 7: Persona extractor (text-only)** — domain models, LLM
+  extraction, memory persistence
 
 **CLI commands:** `oc story import|list|show|scene|characters|locations|search`
-**Tests:** 95 (import + scene + conversation mode)
+plus 11 additional handlers from Phases 4–7.
+**Tests:** 303 across the plugin (95 from Phases 1–3 plus 208 from Phases 4–7).
 
-**Candidate future plugins (each independent):**
+**Remaining:**
 
-- [ ] **Narrative engines** — consistency checker, emotional analyzer
-- [ ] **Game mechanics** — dice engine, narrative branching
-- [ ] **Bookmark system** — scene bookmarking, chapters
-- [ ] **Persona extractor** — see dedicated section below
+- [ ] **Persona extractor — multimodal** — audio/video transcription input
+  (Whisper or equivalent), behavioral analysis on transcripts. See dedicated
+  section below for the long-running ingestion design.
 
-**Data value:** Storytelling plugins generate rich, structured events
+**Data value:** Storytelling plugin generates rich, structured events
 (character interactions, scene transitions, narrative decisions) that
 exercise the event pipeline with diverse, non-trivial payloads. This data
 is valuable for testing memory retrieval quality and event replay.
 
 **Storage note:** Character state and scene persistence use the OC memory
 system via tag-filtered search. The `ModePromptBuilder` protocol allows
-plugins to assemble custom system prompts from memory without core changes.
+the plugin to assemble custom system prompts from memory without core changes.
 
-### Persona Extractor (Storytelling Extension)
+### Persona Extractor — Multimodal Phase
 
-**Status:** 🔴 Not Started
-**Effort:** Large
-**Category:** Plugin (stateless extraction pipeline)
-**Depends On:** Storytelling Plugin Suite (character management), Multimodal
-Input (Phase 6)
+**Status:** 🟡 Text-only complete; multimodal deferred
+**Effort:** Large (multimodal portion)
+**Category:** Plugin (lives inside `plugins/storytelling/`)
+**Depends On:** Multimodal Input (Phase 6)
 
 Extract personality models from performance content (video, audio,
 transcripts). Target use case: analyzing actors' live interpretations of
@@ -652,204 +626,87 @@ It's a design constraint on the persona schema and character storage
 that should be kept in mind during storytelling plugin design so we
 don't have to re-extract later.
 
-### Future Plugin Candidates
+### Where Stateless Data Generators Live Now
 
-Plugin ideas that would generate valuable pipeline data:
+Under the old taxonomy, ideas like daily journals, code snippet analyzers,
+and habit trackers were proposed as plugins because they were stateless
+input→output handlers. Under the new taxonomy (plugins are
+behavior-modifying extensions only), these are not plugins. The right
+shape for any of them is an **external MCP server** (separate repo, like
+`plex-mcp`) that calls OC's memory tools. None are currently planned —
+captured here only to document the redirect.
 
-- **Daily journal / reflection** — scheduled via core, generates structured
-  memory entries. Exercises scheduler→task→event→memory flow.
-- **Code snippet analyzer** — processes code payloads, emits structured
-  analysis events. Exercises task handler + event emission.
-- **Habit tracker** — periodic tasks with time-series data. Exercises
-  scheduler integration and event aggregation.
+**Evaluation criteria for adding a new plugin in this repo:**
 
-**Evaluation criteria for new plugins:**
+1. Does it modify OC's conversational behavior (mode prompt builder,
+   conversation hook)?
+2. Does it need to participate in the conversation pipeline directly?
 
-1. Does it generate diverse, realistic data through the pipeline?
-2. Does it exercise a core capability that needs validation?
-3. Can it be implemented as a stateless handler? (If not → core service)
-4. Is it independent of all other plugins?
+If the answer to both is no, it belongs as an external MCP server, not
+as a plugin.
 
 ---
 
-## Personal Life Connectors
+## Personal Life Integrations (External MCP Servers)
 
-These extend OC beyond developer tooling into personal AI assistant
-territory. All connectors are **read-only by default** — OC observes and
-advises, it does not impersonate or take actions on the user's behalf.
+Domain integrations live in their own MCP server repos and are composed
+by the client (Claude Code, Goose, Open WebUI tool loop, etc.) alongside
+OC. OC contributes persistent memory; the integration MCP contributes
+domain data. They don't share a process.
 
-Each connector is independent. Classification (plugin vs core driver) is
-TBD at implementation time based on how deeply it needs core access.
-Connectors that need scheduler integration for periodic sync are likely
-core services.
+| Integration | Where | Status |
+| ----------- | ----- | ------ |
+| Plex Media Server | [`CarlDog/plex-mcp`](https://github.com/CarlDog/plex-mcp) | Active |
+| Servarr (Sonarr/Radarr) | [`CarlDog/servarr-mcp`](https://github.com/CarlDog/servarr-mcp) | Active |
+| Downloader (qBittorrent) | [`CarlDog/downloader-mcp`](https://github.com/CarlDog/downloader-mcp) | Active |
+| Portainer | [`CarlDog/portainer-mcp`](https://github.com/CarlDog/portainer-mcp) | Active |
+| Google Workspace (Gmail/Calendar/Drive) | claude.ai built-in MCPs | Available out of the box |
+| Personal finance (Plaid) | Not started — would be a new external MCP repo if pursued | Concept |
 
-**Connectors as continuous integration tests:** A connector used daily is
-worth more than a feature used occasionally. Daily-use connectors produce a
-steady stream of real-world data through the entire pipeline — scheduler
-ticks, memory population, event emission, retrieval quality — exercising
-code paths that synthetic tests can't reach. Edge cases surface naturally
-under sustained real load. Prioritize connectors that will see daily use
-over those that are architecturally interesting but rarely exercised.
-
-### Google Account Connector
-
-**Status:** 🔴 Not Started
-**Effort:** Medium-Large
-**Depends On:** Scheduler ✅, Asset System ✅ (for Drive file references)
-
-Read-only integration with Google Workspace. OC becomes a time-aware
-assistant that knows your schedule, can summarize emails, and has context
-from your documents.
-
-**Scope (read-only, no impersonation):**
-
-- [ ] **Google Calendar** — event awareness, schedule context, reminders
-- [ ] **Gmail** — email summaries, search, thread context
-- [ ] **Google Drive** — file listing, document context, search
-
-**Technical approach:**
-
-- [ ] OAuth 2.0 flow (offline access, refresh tokens)
-- [ ] Google API client (`google-api-python-client`)
-- [ ] Credential storage (encrypted at rest, git-ignored)
-- [ ] Periodic sync via scheduler (calendar events, recent emails)
-- [ ] MCP tools: `google_calendar_today`, `google_email_summary`,
-      `google_drive_search` (tentative)
-
-**Security constraints:**
-
-- Read-only OAuth scopes only (no send, no modify, no delete)
-- Credentials never logged or stored in event trail
-- PII gate applies to all Google-sourced content
-
-### Plex Media Server Connector
-
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** Scheduler ✅
-**Daily use:** Yes — highest-value connector for pipeline validation
-
-Integration with a local Plex Media Server for library awareness, watch
-history tracking, and server health monitoring. Daily use makes this the
-best candidate for sustained pipeline stress-testing: scheduler-driven
-sync, memory-backed watch history, event-logged library changes.
-
-**Scope:**
-
-- [ ] **Library management** — browse, search, metadata access
-- [ ] **Watch history / recommendations** — track viewed content, suggest
-      unwatched items based on preferences
-- [ ] **Server monitoring** — transcoding status, storage usage, health
-
-**Technical approach:**
-
-- [ ] Plex API via `plexapi` Python library (or direct REST)
-- [ ] Plex token authentication
-- [ ] Periodic library/watch-history sync via scheduler
-- [ ] MCP tools: `plex_search`, `plex_recently_watched`,
-      `plex_server_status` (tentative)
-- [ ] Memory integration: watch history as OC memories for cross-session
-      recommendations
-
-### Personal Finance Connector
-
-**Status:** 🔴 Not Started
-**Effort:** Large
-**Depends On:** Scheduler ✅
-**Risk:** Medium — financial data requires careful security handling
-
-Transaction tracking, spending categorization, bill/subscription
-monitoring, and investment overview.
-
-**Decision:** Use Plaid directly for bank aggregation, not Quicken Simplifi.
-Simplifi has no public API (only an unmaintained unofficial library and
-manual CSV export). Simplifi's own bank links are unreliable. Plaid is the
-aggregator Simplifi uses under the hood anyway — going direct is more
-reliable and gives richer data.
-
-**Scope:**
-
-- [ ] **Transaction aggregation** — bank accounts via Plaid, spending
-      categorization, budget tracking
-- [ ] **Bill / subscription tracking** — recurring charges, due dates,
-      unusual amounts
-- [ ] **Investment tracking** — portfolio overview, market data, basic
-      performance
-
-**Technical approach:**
-
-- [ ] Plaid API for bank/transaction aggregation (`plaid-python`)
-- [ ] Plaid Link flow for account authorization (one-time browser setup)
-- [ ] Market data API (Alpha Vantage, Yahoo Finance, or similar)
-- [ ] Encrypted credential storage (separate from general config)
-- [ ] Periodic transaction sync via scheduler
-- [ ] Spending categorization (rule-based initially, LLM-assisted later)
-
-**Security constraints (non-negotiable):**
-
-- All financial credentials encrypted at rest
-- No financial data in event trail or general logs
-- PII gate enforced on all financial content
-- No write/transfer capabilities (read-only aggregation)
-- Audit log for every data access
+These don't appear elsewhere in this backlog. Cross-repo issue tracking
+is the responsibility of each integration's own repo. OC's job is to
+provide reliable memory + storytelling primitives that integration MCPs
+compose with.
 
 ---
 
 ## Platform Infrastructure
 
-### Private Git Server Integration
-
-**Status:** 🔴 Not Started
-**Effort:** Medium
-**Depends On:** Dev Agent Runner
-
-Self-hosted Git (Gitea/GitLab) behind network. Clone/pull in sandbox,
-produce branches/patches. Manual human review gate before any upstream push.
-
 ### Performance Testing
 
 **Status:** 🟡 Partial
 
-- [x] OpenAI-compat API stress tests — 12 scenarios covering concurrent
-      requests, session races, turn recording, streaming, multi-project
-      isolation, event chain integrity, memory injection, V1/V2 isolation,
-      invalid input handling, and conversation growth
-      (`tests/integration/test_openai_stress.py`, gated by `OC_INTEGRATION_TESTS=1`)
+- [x] Concurrency stress tests at the core level
+      (`tests/integration/test_stress.py`) — hash chain integrity, turn
+      index uniqueness, lost-update prevention, write lock starvation,
+      scheduler atomic claim
 - [ ] Load testing for rate limiting / concurrency scenarios
 - [ ] Performance regression testing suite
 - [ ] Benchmark tracking over time
 
+Note: a 12-scenario OpenAI-compat API stress suite was removed alongside
+`openai_compat.py` on 2026-04-29. Coverage of MCP/HTTP API concurrency
+under direct-protocol traffic would be a separate follow-up.
+
 ### Plugin Integration Testing
 
-**Status:** 🟡 Partial
+**Status:** 🟡 Partial — applies only to behavior-modifying plugins in this repo's `plugins/`
 
-**Testing standard (per plugin):**
+The connector resilience criterion (rate-limit handling, retry behavior,
+external I/O) no longer applies here — those tests belong in each
+external MCP server's own repo. What's left is testing for plugins that
+register mode prompt builders or conversation hooks.
 
-- [ ] **Smoke tests (required)** — handler loads cleanly, valid input
-      produces well-formed result, expected events emitted, error cases
-      return canonical error codes. Fast, cheap, catches the real failure
-      modes (broken imports, schema drift, bad output format).
-- [ ] **Integration smoke (required)** — one `plugin.invoke` test per
-      plugin through the real task lifecycle (orchestrator → handler →
-      event emission). Catches wiring issues that unit tests miss.
-- [ ] **Connector resilience tests (if applicable)** — plugins with
-      external I/O (Plex API, Google OAuth, etc.) get their own tests
-      for rate limit handling, timeouts, retry behavior, and error
-      classification. These are connector-specific, not generic.
+- [ ] **Mode prompt builder tests** — given a project memory state, the
+      builder produces the expected system prompt
+- [ ] **Registration smoke** — plugin loads cleanly, registers its
+      `ModePromptBuilder` and any handlers, emits expected events on
+      first use
+- [ ] **Mode dispatch end-to-end** — `conversation_set_mode` → `conversation_ask`
+      uses the registered builder
 
-**Not required:** Per-plugin stress/concurrency tests. The pipeline
-plugins flow through (scheduler → task dispatch → handler → event
-emission → memory) is stress-tested at the core level
-(`tests/integration/test_stress.py`, `test_openai_stress.py`). Plugin
-handlers are pure functions — if they work once, they work under
-concurrency. Stress-testing a plugin N times would just re-test the
-orchestrator under load.
-
-**Infrastructure:**
-
-- [ ] Standardized plugin test harness
-- [ ] Mock core for plugin unit tests
-- [ ] Integration test templates
+(Storytelling already has 303 tests covering most of this for itself;
+the open work is documenting the standard so future plugins follow it.)
 
 ---
 
@@ -928,56 +785,6 @@ is equal.
 - Research: how do RAG systems handle recency? (hybrid time+relevance
   scoring, time-bucketed retrieval, etc.)
 
-### Open WebUI Turn Pollution
-
-**Status:** 🔴 Not Started
-**Effort:** Small
-**Category:** Core (openai_compat.py)
-**Discovered:** 2026-03-11
-
-Open WebUI sends auto-generated "Task" prompts as follow-up suggestion
-requests (e.g., `### Task: Suggest 3-5 relevant follow-up questions...`).
-These are recorded as conversation turns by `external_turn`, polluting
-the conversation history with synthetic messages that aren't real user
-queries. Prior turns are injected into context assembly, so these
-polluted turns waste context window budget.
-
-**Possible fixes:**
-
-- Filter out messages matching a pattern (e.g., starts with `### Task:`)
-  before recording via `external_turn`
-- Add a configurable turn filter in the V2 persistent handler
-- Don't record assistant responses to filtered messages either
-- Consider: should `_extract_last_user_message` skip these too?
-
-### WebUI System Prompt Identity Confusion
-
-**Status:** 🔴 Not Started
-**Effort:** Small
-**Category:** Core (openai_compat.py)
-**Discovered:** 2026-03-10
-
-The system prompt `_OC_WEBUI_SYSTEM_PROMPT` says "You are an OpenChronicle
-assistant." The LLM absorbs injected project development memories (two-tier
-memory philosophy, architecture decisions, backlog items) as its own
-identity and backstory. When a user asks "tell me about yourself," the LLM
-fabricates an origin story from development context — claiming to be
-"developed by OpenChronicle" with a memory retention philosophy based on
-two-tier default behavior.
-
-**Root cause:** The system prompt conflates "you are an assistant" with
-the project context injected via memories. There is no separation between
-the assistant's role and the user's stored data.
-
-**Fix:**
-
-- Rewrite `_OC_WEBUI_SYSTEM_PROMPT` to clearly separate identity from
-  data context: "You are a helpful assistant. The user has stored
-  memories and conversation history that are provided below for
-  reference."
-- Do NOT claim the assistant is "an OpenChronicle assistant" — the LLM
-  interprets this as a character prompt and role-plays accordingly.
-
 ### Memory Injection Lacks Framing Instructions
 
 **Status:** 🔴 Not Started
@@ -1009,28 +816,6 @@ user just says "hi there."
   "conversational memories" (user preferences, decisions) with different
   framing
 
-### Plex Plugin Missing Individual Watch Memories
-
-**Status:** 🔴 Not Started
-**Effort:** Small-Medium
-**Category:** Plugin (openchronicle/plugins)
-**Discovered:** 2026-03-10
-
-The Plex connector saves aggregate sync state (`items: 6, watches: 158`)
-but not individual watch events. When a user asks "what is the last item
-I watched?" the system has no data to answer — only a count of total
-watches. The LLM confuses the sync state metadata with actual content
-and responds "The last item you watched is [Plex Sync State]."
-
-**Fix:**
-
-- Save individual watch events as separate memories (e.g., "Watched:
-  Breaking Bad S01E03 on 2026-03-10")
-- Tag with `plex-watch` for easy retrieval
-- Include timestamp in content for recency-aware queries
-- Consider: configurable granularity (per-item vs daily digest vs
-  aggregate only) to avoid memory bloat
-
 ---
 
 ## Documentation Gaps
@@ -1051,18 +836,8 @@ and responds "The last item you watched is [Plex Sync State]."
 
 | Issue                             | Location                                                    | Priority |
 | --------------------------------- | ----------------------------------------------------------- | -------- |
-| WebUI session race condition      | `interfaces/api/routes/openai_compat.py` `_get_or_create_webui_session` | Medium   |
 | FTS5 rebuild on every startup     | `infrastructure/persistence/sqlite_store.py _ensure_fts5()` | Low      |
 | Ollama token counts are estimates | `infrastructure/llm/ollama_adapter.py`                      | Low      |
-
-**WebUI session race (detail):** `_get_or_create_webui_session()` does a
-read-then-write (`list_conversations` → `add_conversation`) without transaction
-protection. Under multi-connection concurrency (multi-worker deployment, or
-multiple clients hitting the auto-session endpoint simultaneously for a new
-project), both connections see no existing webui conversation and both create
-one — resulting in duplicate webui sessions per project. Fix: wrap in
-`BEGIN IMMEDIATE` transaction, or use a UNIQUE constraint + INSERT-OR-IGNORE
-pattern. Discovered by stress test S1 in `tests/integration/test_openai_stress.py`.
 
 ### Code Quality Enforcement
 
@@ -1075,91 +850,180 @@ All enforced via CI/tests:
 
 ---
 
-## Dependency Graph
+## What's Left (Open Items Only)
 
 ```text
-COMPLETED (all ✅)
-├── Scheduler ──────────────────────────────┐
-├── Discord ────────────────────────────────│
-├── MCP Server ─────────────────────────────│
-├── HTTP API ───────────────────────────────│
-├── MoE ────────────────────────────────────│
-├── Capability-Aware Routing ───────────────│
-├── Asset Management ───────────────────────│
-├── Memory Phase 1 / 1.1 / 2 ──────────────│
-└── Enterprise Tightening A/B/C ────────────┘
-
-QUICK WINS (done)                           │
-├── Goose MCP config ✅ ◄──────────────── MCP Server ✅
-└── VS Code MCP config ✅ ◄────────────── MCP Server ✅
-
-CORE INFRA GAPS (small, enable downstream)  │
-├── Output Manager ◄───────────────────── (no deps)
-└── Shell Execution ◄──────────────────── (no deps)
-
-PHASE 3: Smarter Memory ✅                  │
-└── Memory Embeddings ✅ ◄─────────────── (no deps)
-
-PHASE 4: Reactive Eventing ✅               │
-└── Webhooks ✅ ◄──────────────────────── HTTP API ✅
+CORE INFRA GAPS                            │
+└── Shell Execution ◄──────────────────── (no deps; needed if Sec Scanner is built in OC)
 
 PHASE 5: Agent Automation Hooks            │
-└── IDE Event-Triggered Memory ◄───────── MCP Server ✅ + Memory Phase 2 ✅
+├── Claude Code hooks ✅ (prototype shipped)
+├── Goose hook coverage ◄──────────────── MCP Server ✅
+└── VS Code hook coverage ◄────────────── MCP Server ✅
 
 PHASE 6: Media & Vision                    │
-├── Media Generation (v0 ✅) ◄──────────── Capability Routing ✅
+├── Media Generation polish ◄──────────── DALL-E adapter, capability routing wiring
 └── Multimodal Input ◄─────────────────── Capability Routing ✅
 
-PHASE 7: Security & Automation (sequential chain)
-├── Security Scanner ◄─────────────────── Scheduler ✅ + Output Mgr + Shell Exec
-├── Dev Agent Runner ◄─────────────────── Security Scanner
-└── Serena in Sandbox ◄───────────────── Dev Agent Runner
+PHASE 7: Security Scanning                 │
+└── Security Scanner ◄─────────────────── External MCP candidate; Output Manager ✅
 
-PLUGINS (all independent, no cross-deps)
-├── Storytelling suite ◄───────────────── (no deps)
-├── Daily journal ◄────────────────────── (no deps)
-└── Future plugins ◄───────────────────── (no deps)
+PLUGINS                                    │
+└── Storytelling — Persona Multimodal ◄── Multimodal Input
 
-PERSONAL CONNECTORS (each independent)
-├── Google ◄───────────────────────────── Scheduler ✅
-├── Plex ◄─────────────────────────────── Scheduler ✅
-└── Finance ◄──────────────────────────── Scheduler ✅
+MEMORY                                     │
+├── Recency-aware retrieval ◄──────────── Memory Phase 3 ✅
+├── Memory injection framing ◄─────────── (no deps)
+└── Memory Validation Command ◄────────── Memory System ✅
 
-PLATFORM
-├── Private Git ◄──────────────────────── Dev Agent Runner
-├── Perf Testing ◄─────────────────────── (no deps)
+PLATFORM                                   │
+├── Perf Testing (post-openai_compat) ◄── (no deps)
+├── Plugin Integration Test standard ◄── (no deps)
 └── Docs ◄─────────────────────────────── (no deps)
+
+EXTERNAL MCP REPOS (each owns its own backlog)
+├── plex-mcp, servarr-mcp, downloader-mcp, portainer-mcp (active)
+└── security-scan-mcp, plaid-mcp (concept only)
 ```
 
-**Key insight:** Phases 3-6, Plugins, and Personal Connectors are all
-parallelizable — they share no dependencies. The only sequential chain is
-Phase 7 (Security & Automation), which depends on the Core Infrastructure
-Gaps being filled first.
+**Key insight:** All remaining items are parallelizable — no sequential
+chain. Phase 7 sandboxed-agent items (Dev Agent Runner, Serena Sandbox,
+Private Git Server) were dropped on 2026-04-29 as out-of-scope.
 
 ---
 
 ## Implementation Sequence (Recommended)
 
 ```text
- 1. Quick Wins: Goose + VS Code MCP config          [Trivial] ✅
- 2. Core Infra: Output Manager + Shell Execution     [Small]
- 3. Phase 3: Memory Embeddings                       [Medium-Large] ✅
- 4. Phase 4: Webhooks                                [Medium] ✅
- 5. Phase 5: IDE Event-Triggered Memory              [Medium]
- 6. Plugins: Storytelling suite (pipeline exercise)   [Medium]
- 7. Connector: Plex (daily-use pipeline validator)   [Medium]
- 8. Phase 6: Media Generation + Multimodal           [Large]
- 9. Phase 7: Security Scanner                        [Medium]
-10. Phase 7: Dev Agent Runner                        [Large]
-11. Connectors: Google, Finance                      [Large each]
-12. Platform: Private Git, Perf Testing, Docs        [Medium]
+1. Memory injection framing fix              [Small]    — daily impact, no deps
+2. Recency-aware memory retrieval            [Medium]   — daily impact, fixes real bug
+3. Memory Validation Command                 [Medium]   — useful, contained
+4. Storytelling persona multimodal           [Large]    — needs Multimodal Input first
+5. Multimodal Input (Phase 6)                [Medium]   — unlocks (4)
+6. Goose / VS Code IDE hooks                 [Medium]   — extend Claude Code prototype
+7. Plugin integration testing standard       [Small]    — doc + harness for future plugins
+8. Performance testing post-openai_compat    [Medium]   — replace dropped suite
+9. Documentation gaps                        [Medium]   — debugging, security hardening
 ```
 
-Phases 3-6, Plugins, and daily-use Connectors can be interleaved based on
-interest. The sequence above optimizes for daily impact first (memory,
-webhooks, automation hooks), then pipeline validation via real workloads
-(plugins, Plex connector), then new capabilities (media, security), then
-expansion (remaining connectors).
+Optimizes for daily memory impact first, then unblocks the storytelling
+multimodal path, then extends IDE hooks. Security Scanner deliberately
+left off the in-repo sequence — if built, it's a separate
+`security-scan-mcp` repo.
+
+---
+
+## Story WebUI — Visual Storytelling Frontend
+
+**Status:** 🔴 Not Started (Concept)
+**Effort:** Large
+**Depends On:** Storytelling Plugin ✅, Media Generation ✅, HTTP API ✅,
+Asset System ✅
+**Category:** Frontend (new codebase, separate repo)
+
+A purpose-built web frontend for interactive storytelling that provides a
+visual storybook experience alongside the narrative chat. Talks directly
+to OC's HTTP API — no Open WebUI in the data path.
+
+### Architecture
+
+```text
+┌───────────────────────────────────────────────┐
+│           Story WebUI (custom app)            │
+│  ┌──────────────┐  ┌──────────────────────┐   │
+│  │  Chat Panel  │  │  Visual Panel        │   │
+│  │  (player/    │  │  (generated art,     │   │
+│  │   director)  │  │   scene cards,       │   │
+│  │              │  │   timeline, maps)    │   │
+│  └──────┬───────┘  └────────┬─────────────┘   │
+│  ┌──────┴──────────────────┴──────────────┐   │
+│  │  Reader Mode (storybook layout)        │   │
+│  │  (full-width narrative + inline art)   │   │
+│  └────────────────────────────────────────┘   │
+└─────────┬─────────────────────────────────────┘
+          │ OC HTTP API
+          │ (POST /api/v1/conversation/{id}/ask,
+          │  POST /api/v1/conversation/{id}/mode,
+          │  POST /api/v1/media/generate,
+          │  GET  /api/v1/asset/{id}, …)
+    ┌─────┴──────┐
+    │  OC Core   │ ← memory, routing, storytelling
+    │  (API)     │   plugin (story mode prompt
+    └────────────┘   builder), asset storage,
+                     media generation
+```
+
+### Mode Mapping
+
+The storytelling plugin's three engagement modes map to different UI
+experiences:
+
+- **Player (PARTICIPANT)** — chat-driven, real-time. User plays a
+  character. Chat panel is primary; visual panel shows generated scene
+  art, character portraits, location images alongside the narrative.
+  Interactive — user types actions/dialogue, LLM responds with story
+  continuation + media triggers.
+- **Director** — chat-driven, real-time. AI performs all characters;
+  user directs the narrative. Same UI layout as Player but with
+  director-mode prompting. User gives stage directions rather than
+  character actions.
+- **Reader (AUDIENCE)** — consumption/presentation. Full-width
+  storybook layout. Renders completed scenes with inline generated
+  art. No chat interaction — this is the polished "read the story"
+  view. Same data, different render.
+
+### Key Components
+
+1. **Custom Story WebUI (single component)** — purpose-built frontend that:
+   - Sets `mode=story` on a conversation via `POST /api/v1/conversation/{id}/mode`
+     so OC's storytelling plugin's mode prompt builder fires automatically
+   - Sends user turns via `POST /api/v1/conversation/{id}/ask`
+   - Triggers image generation via `POST /api/v1/media/generate` after
+     scene resolution (or as part of a custom client-side trigger
+     keyed off scene markers in the response)
+   - Pulls assets via `GET /api/v1/asset/{id}` for the visual panel
+   - Manages storylines (create, select, configure, per-story theming)
+   - Renders chat + visual panel side-by-side for player/director modes
+   - Renders storybook layout for reader mode
+   - Applies per-storyline CSS/theming (dark gothic horror vs whimsical
+     fantasy vs sci-fi etc.)
+
+That's it. There's no middleware tier — the previous design's "Open WebUI
+Pipeline Plugin" intercepting completions and triggering media generation
+went away when the OpenAI-compat layer was dropped on 2026-04-29. Any
+"intercept story-mode response → trigger media gen" logic now lives in
+the custom UI directly (which has full visibility into what was just said
+and full freedom to call `media_generate` whenever it wants).
+
+### Design Decisions to Make
+
+- **Media generation latency.** Image generation takes seconds. Text
+  should stream back immediately with a placeholder; art appears
+  asynchronously once generated. Note: OC's HTTP API doesn't yet stream
+  `conversation_ask` — non-streaming response only. If progressive text
+  rendering matters, a streaming variant of `/conversation/{id}/ask` is
+  a prerequisite (small core change, would need its own backlog item).
+- **Scene boundary detection.** How does the UI know "a scene just
+  finished, time to render an image"? Options: structured markers in
+  the LLM response (e.g., `<scene-end/>` tag the storytelling builder
+  instructs the model to emit), explicit user-driven "render this"
+  button, or scheduled scene rendering after N turns.
+- **Storyline state.** Storylines map to OC `project_id` (per-storyline
+  isolation of memory) and one `conversation_id` per active session.
+  UI's "switch storyline" = switch project.
+- **Tech stack for custom UI.** TBD — could be React/Next.js, Svelte,
+  or a lightweight framework given OC's API does the heavy lifting.
+  Choose based on theming/skinning requirements.
+
+### Prerequisite that may need OC-side work
+
+- [ ] **Streaming `/conversation/{id}/ask`** — currently non-streaming
+      only. For real-time chat UX, add SSE or chunked-transfer streaming
+      response. Small core change.
+- [ ] **Scene boundary signal** — either a story-mode prompt convention
+      ("emit `<scene-end/>` at scene transitions") or a separate
+      `scene_complete` event the storytelling plugin emits that the UI
+      can subscribe to via webhook.
 
 ---
 
