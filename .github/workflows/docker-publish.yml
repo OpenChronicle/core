@@ -4,6 +4,15 @@ on:
   push:
     branches: [main, v3/develop]
     tags: ["v*"]
+    # Docs-only changes can't affect the image (build context is just the
+    # app source + Dockerfile). Skipping them avoids republishing :latest,
+    # which would otherwise force-pull + bounce the auto-deploying stack
+    # for a pure documentation commit.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".vscode/**"
+      - ".env.example"
 
 env:
   REGISTRY: ghcr.io
